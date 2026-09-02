@@ -11,12 +11,21 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/goldex-release.keystore")
+            storePassword = "goldexcompanion"
+            keyAlias = "goldex"
+            keyPassword = "goldexcompanion"
         }
     }
 
@@ -27,7 +36,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
