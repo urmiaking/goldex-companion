@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.calculator.tabs
+package com.goldex.companion.ui.calculator.tabs
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -29,7 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Karat
-import com.goldex.companion.model.PersianNumberFormatter`nimport com.goldex.companion.model.PersianWordsFormatter
+import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
