@@ -2,11 +2,14 @@
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,77 +27,115 @@ fun CoinBubbleTab(
     viewModel: GoldCalculatorViewModel,
     uiState: CalculatorUiState
 ) {
-    Card(
+    Surface(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, DarkBorder, RoundedCornerShape(16.dp))
+        color = DarkSurface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "حباب‌سنج تخصصی انواع سکه بانکی",
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = GoldLight
             )
 
+            // Coins Selector Grid
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 CoinType.values().forEach { coin ->
-                    val selected = uiState.selectedCoin == coin
-                    FilterChip(
-                        selected = selected,
-                        onClick = { viewModel.onCoinTypeSelected(coin) },
-                        label = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(coin.titleFa, fontSize = 12.sp)
-                                Text(
-                                    "${coin.totalWeightGrams}g",
-                                    fontSize = 11.sp,
-                                    color = if (selected) DarkBg else TextMuted
-                                )
-                            }
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = GoldPrimary,
-                            selectedLabelColor = DarkBg,
-                            containerColor = DarkSurfaceVariant,
-                            labelColor = TextMain
+                    val isSelected = uiState.selectedCoin == coin
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) GoldContainer else DarkSurfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (isSelected) 1.dp else 0.5.dp,
+                            if (isSelected) GoldPrimary else DarkBorder
                         ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.onCoinTypeSelected(coin) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = coin.titleFa,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) GoldPrimary else TextMain
+                            )
+                            Text(
+                                text = "${coin.totalWeightGrams} گرم",
+                                fontSize = 11.sp,
+                                color = if (isSelected) GoldLight else TextMuted
+                            )
+                        }
+                    }
                 }
             }
 
+            // Market Price Input
             GoldInputField(
                 value = uiState.coinMarketPriceInput,
                 onValueChange = { viewModel.onCoinMarketPriceChanged(it) },
-                label = "قیمت بازار سکه (تومان)",
-                trailingText = "تومان"
+                label = "قیمت روز بازار سکه",
+                trailingText = "تومان",
+                useThousandsSeparator = true
             )
 
+            // Bubble Result Card
             uiState.coinBubbleResult?.let { bubble ->
                 val bubblePercent = bubble.bubblePercent
                 val statusColor = when {
-                    bubblePercent > 25.0 -> Color(0xFFEF4444)
+                    bubblePercent > 25.0 -> ErrorRed
                     bubblePercent > 15.0 -> Color(0xFFF59E0B)
                     else -> ProfitGreen
                 }
+                val statusText = when {
+                    bubblePercent > 25.0 -> "ریسک حباب بسیار بالا"
+                    bubblePercent > 15.0 -> "حباب متوسط"
+                    else -> "حباب منطقی و کم"
+                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DarkSurfaceVariant, RoundedCornerShape(12.dp))
-                        .border(1.dp, DarkBorder, RoundedCornerShape(12.dp))
-                        .padding(14.dp)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = DarkSurfaceElevated,
+                    border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("وضعیت حباب بازاری", fontSize = 12.sp, color = TextSecondary)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(statusColor.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = statusText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = statusColor
+                                )
+                            }
+                        }
+
+                        Divider(color = DarkBorder, thickness = 0.5.dp)
+
                         ResultRow(
                             label = "ارزش ذاتی طلای سکه:",
                             value = "${PersianNumberFormatter.formatPrice(bubble.intrinsicValue)} تومان"
@@ -107,7 +148,8 @@ fun CoinBubbleTab(
                         ResultRow(
                             label = "درصد حباب بازاری:",
                             value = "${PersianNumberFormatter.toPersianDigits("%.1f".format(bubblePercent))}٪",
-                            valueColor = statusColor
+                            valueColor = statusColor,
+                            isHighlight = true
                         )
                     }
                 }

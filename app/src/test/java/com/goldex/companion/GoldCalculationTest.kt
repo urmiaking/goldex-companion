@@ -1,6 +1,8 @@
 ﻿package com.goldex.companion
 
 import androidx.compose.ui.text.AnnotatedString
+import com.goldex.companion.data.MarketRates
+import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 import org.junit.Assert.assertEquals
@@ -74,7 +76,7 @@ class GoldCalculationTest {
 
         val ons = 2500.0
         val usd = 60_000.0
-        val gram24Price = (ons * usd) / 31.1035 // ~ 4,822,608 Toman
+        val gram24Price = (ons * usd) / 31.1035
         val intrinsic = (emami.pureWeightGrams * gram24Price) + emami.mintFee
         val marketPrice = 42_000_000.0
         val bubble = marketPrice - intrinsic
@@ -87,17 +89,17 @@ class GoldCalculationTest {
     fun testDetailedJewelryCalculationWithTax() {
         val grossWeight = 12.0
         val stoneWeight = 2.0
-        val netWeight = grossWeight - stoneWeight // 10 grams
+        val netWeight = grossWeight - stoneWeight
         val spot18k = 4_000_000L
-        val wagePercent = 10.0 // 10%
-        val profitPercent = 7.0 // 7%
-        val taxPercent = 9.0 // 9%
+        val wagePercent = 10.0
+        val profitPercent = 7.0
+        val taxPercent = 9.0
 
         val pureGramSpot = spot18k.toDouble() / (18.0 / 24.0)
-        val rawValue = netWeight * Karat.K18.purityRatio * pureGramSpot // 40,000,000
-        val wageAmount = rawValue * (wagePercent / 100.0) // 4,000,000
-        val profitAmount = (rawValue + wageAmount) * (profitPercent / 100.0) // 44M * 0.07 = 3,080,000
-        val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0) // 7,080,000 * 0.09 = 637,200
+        val rawValue = netWeight * Karat.K18.purityRatio * pureGramSpot
+        val wageAmount = rawValue * (wagePercent / 100.0)
+        val profitAmount = (rawValue + wageAmount) * (profitPercent / 100.0)
+        val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0)
         val totalPayable = rawValue + wageAmount + profitAmount + taxAmount
 
         assertEquals(40_000_000.0, rawValue, 0.001)
@@ -105,5 +107,16 @@ class GoldCalculationTest {
         assertEquals(3_080_000.0, profitAmount, 0.001)
         assertEquals(637_200.0, taxAmount, 0.001)
         assertEquals(47_717_200.0, totalPayable, 0.001)
+    }
+
+    @Test
+    fun testMarketRatesAndProviders() {
+        val rates = MarketRates(
+            gold18 = 22_835_100L,
+            source = PriceSource.ISIGNAL
+        )
+        assertEquals(22_835_100L, rates.gold18)
+        assertEquals(PriceSource.ISIGNAL, rates.source)
+        assertEquals("آی‌سیگنال (isignal.ir)", rates.source.labelFa)
     }
 }

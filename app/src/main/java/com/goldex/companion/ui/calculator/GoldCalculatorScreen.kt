@@ -1,18 +1,21 @@
 ﻿package com.goldex.companion.ui.calculator
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -41,45 +44,38 @@ fun GoldCalculatorScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(38.dp)
-                                    .background(
-                                        brush = Brush.linearGradient(listOf(GoldPrimary, GoldDark)),
-                                        shape = CircleShape
-                                    ),
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(GoldContainer)
+                                    .border(1.dp, GoldBorder, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = null,
-                                    tint = DarkBg,
-                                    modifier = Modifier.size(22.dp)
+                                    tint = GoldPrimary,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                             Column {
                                 Text(
-                                    text = "همراه گلدکس",
+                                    text = "گلدکس پرو",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
+                                    fontSize = 17.sp,
                                     color = GoldPrimary
                                 )
                                 Text(
-                                    text = "دستیار جامع طلا، مظنه و حباب سکه",
-                                    fontSize = 12.sp,
+                                    text = "دستیار محاسبات طلا و مظنه زنده",
+                                    fontSize = 11.sp,
                                     color = TextMuted
                                 )
                             }
                         }
                     },
-                    actions = {
-                        IconButton(onClick = { viewModel.refreshRates() }) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "بروزرسانی مظنه",
-                                tint = GoldSecondary
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurface)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = DarkBg,
+                        titleContentColor = GoldPrimary
+                    )
                 )
             },
             containerColor = DarkBg
@@ -89,40 +85,78 @@ fun GoldCalculatorScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 LiveRatesTicker(
                     rates = uiState.rates,
                     isRefreshing = uiState.isRefreshingRates,
-                    onRefresh = { viewModel.refreshRates() }
+                    onRefresh = { viewModel.refreshRates() },
+                    onToggleSource = { viewModel.togglePriceSource() }
                 )
 
-                PrimaryTabRow(
-                    selectedTabIndex = uiState.selectedTab.ordinal,
-                    containerColor = DarkSurface,
-                    contentColor = GoldPrimary
-                ) {
-                    AppTab.values().forEach { tab ->
-                        Tab(
-                            selected = uiState.selectedTab == tab,
-                            onClick = { viewModel.selectTab(tab) },
-                            text = {
-                                Text(
-                                    text = tab.titleFa,
-                                    fontSize = 13.sp,
-                                    fontWeight = if (uiState.selectedTab == tab) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        )
-                    }
-                }
+                // Minimalist Capsule Segmented Tab Bar
+                MinimalSegmentedTabBar(
+                    selectedTab = uiState.selectedTab,
+                    onTabSelected = { viewModel.selectTab(it) }
+                )
 
+                // Tab Contents
                 when (uiState.selectedTab) {
                     AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
                     AppTab.MELT -> MeltTab(viewModel, uiState)
                     AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
                     AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun MinimalSegmentedTabBar(
+    selectedTab: AppTab,
+    onTabSelected: (AppTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = DarkSurface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            AppTab.values().forEach { tab ->
+                val isSelected = selectedTab == tab
+                val background = if (isSelected) GoldPrimary.copy(alpha = 0.16f) else Color.Transparent
+                val borderColor = if (isSelected) GoldPrimary.copy(alpha = 0.6f) else Color.Transparent
+                val contentColor = if (isSelected) GoldPrimary else TextSecondary
+                val weight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(background)
+                        .border(if (isSelected) 0.8.dp else 0.dp, borderColor, RoundedCornerShape(12.dp))
+                        .clickable { onTabSelected(tab) }
+                        .padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = tab.titleFa,
+                        color = contentColor,
+                        fontSize = 11.sp,
+                        fontWeight = weight,
+                        maxLines = 1
+                    )
                 }
             }
         }

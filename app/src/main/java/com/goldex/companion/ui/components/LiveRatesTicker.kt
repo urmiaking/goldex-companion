@@ -3,6 +3,7 @@
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,13 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.MarketRates
+import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.theme.*
 
@@ -30,6 +32,7 @@ fun LiveRatesTicker(
     rates: MarketRates,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
+    onToggleSource: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val rotation by rememberInfiniteTransition(label = "spin").animateFloat(
@@ -42,91 +45,106 @@ fun LiveRatesTicker(
         label = "rotation"
     )
 
-    Card(
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, DarkBorder, RoundedCornerShape(14.dp))
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = DarkSurface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header Row: Live indicator + Provider switch + Refresh button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Live dot + Provider Tag
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(ProfitGreen, CircleShape)
+                            .background(if (rates.isLive) ProfitGreen else TextMuted, CircleShape)
                     )
-                    Text(
-                        text = "نرخ‌های لحظه‌ای بازار طلا (GoldEx Live)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GoldLight
-                    )
+
+                    // Clickable Provider Badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(GoldContainer)
+                            .border(0.5.dp, GoldBorder, RoundedCornerShape(8.dp))
+                            .clickable { onToggleSource() }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = rates.source.labelFa,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GoldLight
+                        )
+                    }
                 }
 
+                // Time & Refresh
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "بروزرسانی: ${PersianNumberFormatter.toPersianDigits(rates.lastUpdated)}",
+                        text = PersianNumberFormatter.toPersianDigits(rates.lastUpdated),
                         fontSize = 11.sp,
                         color = TextMuted
                     )
+
                     IconButton(
                         onClick = onRefresh,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "بروزرسانی نرخ‌ها",
+                            contentDescription = "بروزرسانی مظنه",
                             tint = GoldSecondary,
                             modifier = Modifier
-                                .size(18.dp)
+                                .size(16.dp)
                                 .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Real Rate Pills Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                RatePill(
+                RateChip(
                     title = "گرم ۱۸ عیار",
                     price = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
                     accentColor = GoldPrimary
                 )
-                RatePill(
+                RateChip(
                     title = "مثقال آبشده",
                     price = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
                     accentColor = GoldLight
                 )
-                RatePill(
+                RateChip(
                     title = "سکه امامی",
                     price = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
                     accentColor = GoldSecondary
                 )
-                RatePill(
+                RateChip(
                     title = "دلار آزاد",
                     price = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
                     accentColor = ProfitGreen
                 )
-                RatePill(
-                    title = "انس طلا",
+                RateChip(
+                    title = "انس جهانی",
                     price = "\$${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))}",
                     accentColor = TextMain
                 )
@@ -136,23 +154,30 @@ fun LiveRatesTicker(
 }
 
 @Composable
-private fun RatePill(
+private fun RateChip(
     title: String,
     price: String,
     accentColor: Color
 ) {
-    Box(
-        modifier = Modifier
-            .background(DarkSurface, RoundedCornerShape(8.dp))
-            .border(0.5.dp, DarkBorder, RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = DarkSurfaceElevated,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, DarkBorder)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, fontSize = 10.sp, color = TextMuted)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 10.sp,
+                color = TextSecondary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = price,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = accentColor
             )
         }

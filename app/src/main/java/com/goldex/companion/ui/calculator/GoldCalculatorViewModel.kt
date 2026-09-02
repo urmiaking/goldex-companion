@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
+import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,7 @@ data class CalculatorUiState(
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
-    val spotPriceInput: String = "3720000",
+    val spotPriceInput: String = "22835100",
     val wageType: WageType = WageType.PERCENTAGE,
     val wageInput: String = "12",
     val profitPercentInput: String = "7",
@@ -37,14 +38,14 @@ data class CalculatorUiState(
     val priceInWords: String = "",
 
     // Melt Tab State
-    val mesghalPriceInput: String = "16115000",
+    val mesghalPriceInput: String = "98975000",
     val meltWeightInput: String = "10",
-    val meltGram18kPrice: Long = 3720000L,
+    val meltGram18kPrice: Long = 22848182L,
     val meltTotalValue: Double = 0.0,
 
     // Coin Bubble State
     val selectedCoin: CoinType = CoinType.EMAMI,
-    val coinMarketPriceInput: String = "42850000",
+    val coinMarketPriceInput: String = "228000000",
     val coinBubbleResult: CoinBubbleResult? = null,
 
     // Karat Convert State
@@ -66,47 +67,54 @@ class GoldCalculatorViewModel : ViewModel() {
     private fun loadInitialRates() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true) }
-            val rates = GoldMarketRepository.refreshRates(forceFluctuate = false)
-            _uiState.update { state ->
-                val newSpot = if (state.autoSyncPrice) rates.gold18.toString() else state.spotPriceInput
-                val newMesghal = rates.goldMelt.toString()
-                val newCoin = rates.coinEmami.toString()
-                state.copy(
-                    rates = rates,
-                    isRefreshingRates = false,
-                    spotPriceInput = newSpot,
-                    mesghalPriceInput = newMesghal,
-                    coinMarketPriceInput = newCoin
-                )
-            }
-            calculateAll()
+            val rates = GoldMarketRepository.refreshRates()
+            applyFetchedRates(rates)
         }
     }
 
     fun refreshRates() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true) }
-            val updated = GoldMarketRepository.refreshRates(forceFluctuate = true)
-            _uiState.update { state ->
-                val newSpot = if (state.autoSyncPrice) updated.gold18.toString() else state.spotPriceInput
-                val newMesghal = updated.goldMelt.toString()
-                val coinPrice = when (state.selectedCoin) {
-                    CoinType.EMAMI -> updated.coinEmami
-                    CoinType.BAHAR -> updated.coinBahar
-                    CoinType.HALF -> updated.coinHalf
-                    CoinType.QUARTER -> updated.coinQuarter
-                    CoinType.GERAMI -> updated.coinGerami
-                }.toString()
-                state.copy(
-                    rates = updated,
-                    isRefreshingRates = false,
-                    spotPriceInput = newSpot,
-                    mesghalPriceInput = newMesghal,
-                    coinMarketPriceInput = coinPrice
-                )
-            }
-            calculateAll()
+            val updated = GoldMarketRepository.refreshRates()
+            applyFetchedRates(updated)
         }
+    }
+
+    fun togglePriceSource() {
+        viewModelScope.launch {
+            val nextSource = if (_uiState.value.rates.source == PriceSource.ISIGNAL) {
+                PriceSource.TALA_IR
+            } else {
+                PriceSource.ISIGNAL
+            }
+            _uiState.update { it.copy(isRefreshingRates = true) }
+            GoldMarketRepository.setSource(nextSource)
+            val updated = GoldMarketRepository.rates.value
+            applyFetchedRates(updated)
+        }
+    }
+
+    private fun applyFetchedRates(rates: MarketRates) {
+        _uiState.update { state ->
+            val newSpot = if (state.autoSyncPrice && rates.gold18 > 0L) rates.gold18.toString() else state.spotPriceInput
+            val newMesghal = if (rates.goldMelt > 0L) rates.goldMelt.toString() else state.mesghalPriceInput
+            val newCoin = when (state.selectedCoin) {
+                CoinType.EMAMI -> rates.coinEmami
+                CoinType.BAHAR -> rates.coinBahar
+                CoinType.HALF -> rates.coinHalf
+                CoinType.QUARTER -> rates.coinQuarter
+                CoinType.GERAMI -> rates.coinGerami
+            }.toString()
+
+            state.copy(
+                rates = rates,
+                isRefreshingRates = false,
+                spotPriceInput = newSpot,
+                mesghalPriceInput = newMesghal,
+                coinMarketPriceInput = newCoin
+            )
+        }
+        calculateAll()
     }
 
     fun selectTab(tab: AppTab) {
@@ -115,7 +123,7 @@ class GoldCalculatorViewModel : ViewModel() {
 
     fun toggleAutoSyncPrice(enabled: Boolean) {
         _uiState.update { it.copy(autoSyncPrice = enabled) }
-        if (enabled) {
+        if (enabled && _uiState.value.rates.gold18 > 0L) {
             val live18 = _uiState.value.rates.gold18.toString()
             onSpotPriceChanged(live18)
         }
