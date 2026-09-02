@@ -1,23 +1,57 @@
 ﻿package com.goldex.companion.ui.calculator
 
 import androidx.lifecycle.ViewModel
-import com.goldex.companion.model.CalculationResult
-import com.goldex.companion.model.Karat
-import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.model.PriceBasis
+import androidx.lifecycle.viewModelScope
+import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.MarketRates
+import com.goldex.companion.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+enum class AppTab(val titleFa: String) {
+    JEWELRY("طلا و جواهر"),
+    MELT("مظنه آبشده"),
+    COIN("حباب سکه"),
+    CONVERT("تبدیل عیار")
+}
 
 data class CalculatorUiState(
-    val weightInput: String = "10",
-    val spotPriceInput: String = "4,500,000",
+    val selectedTab: AppTab = AppTab.JEWELRY,
+    val rates: MarketRates = MarketRates(),
+    val isRefreshingRates: Boolean = false,
+    val autoSyncPrice: Boolean = true,
+
+    // Jewelry Tab State
+    val grossWeightInput: String = "10",
+    val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
-    val priceBasis: PriceBasis = PriceBasis.PER_GRAM_18K,
-    val marginPercentInput: String = "7",
-    val calculationResult: CalculationResult? = null,
-    val error: String? = null
+    val spotPriceInput: String = "3720000",
+    val wageType: WageType = WageType.PERCENTAGE,
+    val wageInput: String = "12",
+    val profitPercentInput: String = "7",
+    val taxPercentInput: String = "9",
+    val jewelryResult: DetailedJewelryResult? = null,
+    val priceInWords: String = "",
+
+    // Melt Tab State
+    val mesghalPriceInput: String = "16115000",
+    val meltWeightInput: String = "10",
+    val meltGram18kPrice: Long = 3720000L,
+    val meltTotalValue: Double = 0.0,
+
+    // Coin Bubble State
+    val selectedCoin: CoinType = CoinType.EMAMI,
+    val coinMarketPriceInput: String = "42850000",
+    val coinBubbleResult: CoinBubbleResult? = null,
+
+    // Karat Convert State
+    val convertWeightInput: String = "10",
+    val convertFromKarat: Karat = Karat.K18,
+    val convertToKarat: Karat = Karat.K24,
+    val convertedWeight: Double = 7.5
 )
 
 class GoldCalculatorViewModel : ViewModel() {
@@ -25,79 +59,284 @@ class GoldCalculatorViewModel : ViewModel() {
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
-        calculate()
+        loadInitialRates()
+        calculateAll()
     }
 
-    fun onWeightChanged(newWeight: String) {
-        _uiState.update { it.copy(weightInput = newWeight) }
-        calculate()
+    private fun loadInitialRates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshingRates = true) }
+            val rates = GoldMarketRepository.refreshRates(forceFluctuate = false)
+            _uiState.update { state ->
+                val newSpot = if (state.autoSyncPrice) rates.gold18.toString() else state.spotPriceInput
+                val newMesghal = rates.goldMelt.toString()
+                val newCoin = rates.coinEmami.toString()
+                state.copy(
+                    rates = rates,
+                    isRefreshingRates = false,
+                    spotPriceInput = newSpot,
+                    mesghalPriceInput = newMesghal,
+                    coinMarketPriceInput = newCoin
+                )
+            }
+            calculateAll()
+        }
     }
 
-    fun onSpotPriceChanged(newPrice: String) {
-        _uiState.update { it.copy(spotPriceInput = newPrice) }
-        calculate()
+    fun refreshRates() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshingRates = true) }
+            val updated = GoldMarketRepository.refreshRates(forceFluctuate = true)
+            _uiState.update { state ->
+                val newSpot = if (state.autoSyncPrice) updated.gold18.toString() else state.spotPriceInput
+                val newMesghal = updated.goldMelt.toString()
+                val coinPrice = when (state.selectedCoin) {
+                    CoinType.EMAMI -> updated.coinEmami
+                    CoinType.BAHAR -> updated.coinBahar
+                    CoinType.HALF -> updated.coinHalf
+                    CoinType.QUARTER -> updated.coinQuarter
+                    CoinType.GERAMI -> updated.coinGerami
+                }.toString()
+                state.copy(
+                    rates = updated,
+                    isRefreshingRates = false,
+                    spotPriceInput = newSpot,
+                    mesghalPriceInput = newMesghal,
+                    coinMarketPriceInput = coinPrice
+                )
+            }
+            calculateAll()
+        }
+    }
+
+    fun selectTab(tab: AppTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    fun toggleAutoSyncPrice(enabled: Boolean) {
+        _uiState.update { it.copy(autoSyncPrice = enabled) }
+        if (enabled) {
+            val live18 = _uiState.value.rates.gold18.toString()
+            onSpotPriceChanged(live18)
+        }
+    }
+
+    // --- Jewelry Tab Actions ---
+    fun onGrossWeightChanged(newWeight: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(grossWeightInput = clean) }
+        calculateJewelry()
+    }
+
+    fun onStoneWeightChanged(newStone: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newStone).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(stoneWeightInput = clean) }
+        calculateJewelry()
     }
 
     fun onKaratSelected(karat: Karat) {
         _uiState.update { it.copy(selectedKarat = karat) }
-        calculate()
+        calculateJewelry()
     }
 
-    fun onPriceBasisSelected(basis: PriceBasis) {
-        _uiState.update { it.copy(priceBasis = basis) }
-        calculate()
+    fun onSpotPriceChanged(newPrice: String) {
+        val cleanDigits = PersianNumberFormatter.toEnglishDigits(newPrice).filter { it.isDigit() }
+        _uiState.update { it.copy(spotPriceInput = cleanDigits) }
+        calculateJewelry()
     }
 
-    fun onMarginChanged(newMargin: String) {
-        _uiState.update { it.copy(marginPercentInput = newMargin) }
-        calculate()
+    fun applyPresetSpotPrice(price: Long) {
+        _uiState.update { it.copy(spotPriceInput = price.toString()) }
+        calculateJewelry()
     }
 
-    fun addWeight(amount: Double) {
-        val currentWeight = PersianNumberFormatter.parsePersianOrEnglish(_uiState.value.weightInput) ?: 0.0
-        val next = (currentWeight + amount).coerceAtLeast(0.0)
-        _uiState.update { it.copy(weightInput = if (next % 1.0 == 0.0) next.toLong().toString() else "%.2f".format(next)) }
-        calculate()
+    fun onWageTypeChanged(type: WageType) {
+        _uiState.update { it.copy(wageType = type) }
+        calculateJewelry()
     }
 
-    fun reset() {
-        _uiState.value = CalculatorUiState(
-            weightInput = "",
-            spotPriceInput = "",
-            selectedKarat = Karat.K18,
-            priceBasis = PriceBasis.PER_GRAM_18K,
-            marginPercentInput = "7",
-            calculationResult = null,
-            error = null
-        )
+    fun onWageChanged(newWage: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newWage).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(wageInput = clean) }
+        calculateJewelry()
     }
 
-    private fun calculate() {
+    fun onProfitPercentChanged(newProfit: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newProfit).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(profitPercentInput = clean) }
+        calculateJewelry()
+    }
+
+    fun onTaxPercentChanged(newTax: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newTax).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(taxPercentInput = clean) }
+        calculateJewelry()
+    }
+
+    fun addGrossWeight(amount: Double) {
+        val current = PersianNumberFormatter.parsePersianOrEnglish(_uiState.value.grossWeightInput) ?: 0.0
+        val next = (current + amount).coerceAtLeast(0.0)
+        val formatted = if (next % 1.0 == 0.0) next.toLong().toString() else "%.2f".format(next)
+        _uiState.update { it.copy(grossWeightInput = formatted) }
+        calculateJewelry()
+    }
+
+    fun resetJewelry() {
+        _uiState.update {
+            it.copy(
+                grossWeightInput = "10",
+                stoneWeightInput = "0",
+                selectedKarat = Karat.K18,
+                spotPriceInput = it.rates.gold18.toString(),
+                wageType = WageType.PERCENTAGE,
+                wageInput = "12",
+                profitPercentInput = "7",
+                taxPercentInput = "9"
+            )
+        }
+        calculateJewelry()
+    }
+
+    // --- Melt Tab Actions ---
+    fun onMesghalPriceChanged(newMesghal: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newMesghal).filter { it.isDigit() }
+        _uiState.update { it.copy(mesghalPriceInput = clean) }
+        calculateMelt()
+    }
+
+    fun onMeltWeightChanged(newWeight: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(meltWeightInput = clean) }
+        calculateMelt()
+    }
+
+    // --- Coin Bubble Actions ---
+    fun onCoinTypeSelected(coin: CoinType) {
+        val marketPrice = when (coin) {
+            CoinType.EMAMI -> _uiState.value.rates.coinEmami
+            CoinType.BAHAR -> _uiState.value.rates.coinBahar
+            CoinType.HALF -> _uiState.value.rates.coinHalf
+            CoinType.QUARTER -> _uiState.value.rates.coinQuarter
+            CoinType.GERAMI -> _uiState.value.rates.coinGerami
+        }.toString()
+        _uiState.update { it.copy(selectedCoin = coin, coinMarketPriceInput = marketPrice) }
+        calculateCoin()
+    }
+
+    fun onCoinMarketPriceChanged(newPrice: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newPrice).filter { it.isDigit() }
+        _uiState.update { it.copy(coinMarketPriceInput = clean) }
+        calculateCoin()
+    }
+
+    // --- Karat Convert Actions ---
+    fun onConvertWeightChanged(newWeight: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(convertWeightInput = clean) }
+        calculateConvert()
+    }
+
+    fun onConvertFromKarat(karat: Karat) {
+        _uiState.update { it.copy(convertFromKarat = karat) }
+        calculateConvert()
+    }
+
+    fun onConvertToKarat(karat: Karat) {
+        _uiState.update { it.copy(convertToKarat = karat) }
+        calculateConvert()
+    }
+
+    // --- Calculations ---
+    private fun calculateAll() {
+        calculateJewelry()
+        calculateMelt()
+        calculateCoin()
+        calculateConvert()
+    }
+
+    private fun calculateJewelry() {
         val state = _uiState.value
-        val weight = PersianNumberFormatter.parsePersianOrEnglish(state.weightInput)
-        val price = PersianNumberFormatter.parsePersianOrEnglish(state.spotPriceInput)
-        val margin = PersianNumberFormatter.parsePersianOrEnglish(state.marginPercentInput) ?: 0.0
+        val gross = PersianNumberFormatter.parsePersianOrEnglish(state.grossWeightInput) ?: 0.0
+        val stone = PersianNumberFormatter.parsePersianOrEnglish(state.stoneWeightInput) ?: 0.0
+        val net = (gross - stone).coerceAtLeast(0.0)
+        val spot18 = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L
+        val wageVal = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0
+        val profitPercent = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0
+        val taxPercent = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0
 
-        if (weight == null || weight <= 0.0 || price == null || price <= 0.0) {
-            _uiState.update { it.copy(calculationResult = null, error = null) }
+        val words = if (spot18 > 0) PersianWordsFormatter.toWords(spot18) else ""
+
+        if (net <= 0.0 || spot18 <= 0L) {
+            _uiState.update { it.copy(jewelryResult = null, priceInWords = words) }
             return
         }
 
-        val pureWeight = weight * state.selectedKarat.purityRatio
-        val pureGramPrice = price / state.priceBasis.ratio
-        val rawValue = pureWeight * pureGramPrice
-        val marginVal = rawValue * (margin / 100.0)
-        val totalVal = rawValue + marginVal
-        val effectiveGramPrice = totalVal / weight
+        val pureGramSpot = spot18.toDouble() / (18.0 / 24.0)
+        val rawValue = net * state.selectedKarat.purityRatio * pureGramSpot
 
-        val result = CalculationResult(
-            pureGoldWeightGrams = pureWeight,
+        val wageAmount = when (state.wageType) {
+            WageType.PERCENTAGE -> rawValue * (wageVal / 100.0)
+            WageType.TOMAN_PER_GRAM -> net * wageVal
+        }
+
+        val profitAmount = (rawValue + wageAmount) * (profitPercent / 100.0)
+        val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0)
+        val totalPayable = rawValue + wageAmount + profitAmount + taxAmount
+        val effectivePrice = if (net > 0) totalPayable / net else 0.0
+
+        val result = DetailedJewelryResult(
+            grossWeight = gross,
+            stoneWeight = stone,
+            netWeight = net,
             rawGoldValue = rawValue,
-            marginAmount = marginVal,
-            totalTradeValue = totalVal,
-            effectivePricePerGram = effectiveGramPrice
+            wageAmount = wageAmount,
+            profitAmount = profitAmount,
+            taxAmount = taxAmount,
+            totalPayable = totalPayable,
+            effectiveGramPrice = effectivePrice
         )
 
-        _uiState.update { it.copy(calculationResult = result, error = null) }
+        _uiState.update { it.copy(jewelryResult = result, priceInWords = words) }
+    }
+
+    private fun calculateMelt() {
+        val state = _uiState.value
+        val mesghal = PersianNumberFormatter.parsePersianOrEnglish(state.mesghalPriceInput) ?: 0.0
+        val weight = PersianNumberFormatter.parsePersianOrEnglish(state.meltWeightInput) ?: 0.0
+        val gram18k = (mesghal / 4.33185).toLong()
+        val total = (gram18k * weight)
+        _uiState.update { it.copy(meltGram18kPrice = gram18k, meltTotalValue = total) }
+    }
+
+    private fun calculateCoin() {
+        val state = _uiState.value
+        val marketPrice = PersianNumberFormatter.parsePersianOrEnglish(state.coinMarketPriceInput) ?: 0.0
+        val coin = state.selectedCoin
+        val pureWeight = coin.pureWeightGrams
+
+        val usd = state.rates.usd.toDouble()
+        val ons = state.rates.ons
+        val gram24Price = (ons * usd) / 31.1035
+        val intrinsic = (pureWeight * gram24Price) + coin.mintFee
+        val bubble = marketPrice - intrinsic
+        val bubblePercent = if (intrinsic > 0) (bubble / intrinsic) * 100.0 else 0.0
+
+        val result = CoinBubbleResult(
+            coinType = coin,
+            marketPrice = marketPrice,
+            intrinsicValue = intrinsic,
+            bubbleAmount = bubble,
+            bubblePercent = bubblePercent
+        )
+        _uiState.update { it.copy(coinBubbleResult = result) }
+    }
+
+    private fun calculateConvert() {
+        val state = _uiState.value
+        val weight = PersianNumberFormatter.parsePersianOrEnglish(state.convertWeightInput) ?: 0.0
+        val fromRatio = state.convertFromKarat.purityRatio
+        val toRatio = state.convertToKarat.purityRatio
+        val converted = if (toRatio > 0) weight * (fromRatio / toRatio) else 0.0
+        _uiState.update { it.copy(convertedWeight = converted) }
     }
 }

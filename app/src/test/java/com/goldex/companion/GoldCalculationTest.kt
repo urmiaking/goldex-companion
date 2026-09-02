@@ -1,10 +1,11 @@
 ﻿package com.goldex.companion
 
-import com.goldex.companion.model.Karat
-import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.model.PriceBasis
+import androidx.compose.ui.text.AnnotatedString
+import com.goldex.companion.model.*
+import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GoldCalculationTest {
@@ -22,26 +23,87 @@ class GoldCalculationTest {
         val persian = PersianNumberFormatter.toPersianDigits(english)
         assertEquals("۱۲۳۴۵۶۷۸۹۰", persian)
 
+        val backToEnglish = PersianNumberFormatter.toEnglishDigits("۱۲,۵۰۰٫۵")
+        assertEquals("12,500.5", backToEnglish)
+
         val parsed = PersianNumberFormatter.parsePersianOrEnglish("۱۲,۵۰۰")
         assertNotNull(parsed)
         assertEquals(12500.0, parsed!!, 0.001)
+
+        val parsedLong = PersianNumberFormatter.parseToCleanLong("۳,۷۲۰,۰۰۰")
+        assertEquals(3_720_000L, parsedLong)
     }
 
     @Test
-    fun testTradeCalculation() {
-        val weight = 10.0 // 10 grams of 18k
-        val spotPrice18k = 4_000_000.0 // 4,000,000 per gram of 18k
-        val margin = 7.0 // 7%
+    fun testPersianWordsFormatter() {
+        assertEquals("صفر تومان", PersianWordsFormatter.toWords(0))
+        assertEquals("یک میلیون تومان", PersianWordsFormatter.toWords(1_000_000))
+        assertEquals("سه میلیون و هفتصد و بیست هزار تومان", PersianWordsFormatter.toWords(3_720_000))
+    }
 
-        val pureWeight = weight * Karat.K18.purityRatio // 7.5 grams
-        val pureGramPrice = spotPrice18k / PriceBasis.PER_GRAM_18K.ratio // 4,000,000 / 0.75
-        val rawGoldValue = pureWeight * pureGramPrice // 40,000,000
-        val marginAmount = rawGoldValue * (margin / 100.0) // 2,800,000
-        val totalTradeValue = rawGoldValue + marginAmount // 42,800,000
+    @Test
+    fun testVisualTransformationOffsetMapping() {
+        val transformation = ThousandsSeparatorVisualTransformation(isPersian = false)
+        val input = AnnotatedString("1234567")
+        val transformed = transformation.filter(input)
 
-        assertEquals(7.5, pureWeight, 0.001)
-        assertEquals(40_000_000.0, rawGoldValue, 0.001)
-        assertEquals(2_800_000.0, marginAmount, 0.001)
-        assertEquals(42_800_000.0, totalTradeValue, 0.001)
+        // "1234567" -> "1،234،567"
+        assertEquals("1،234،567", transformed.text.text)
+
+        // Test boundary offset mappings
+        val mapping = transformed.offsetMapping
+        assertEquals(0, mapping.originalToTransformed(0))
+        assertEquals(9, mapping.originalToTransformed(7))
+        assertEquals(0, mapping.transformedToOriginal(0))
+        assertEquals(7, mapping.transformedToOriginal(9))
+    }
+
+    @Test
+    fun testMeltGoldMesghalConversion() {
+        // Standard formula: mesghal / 4.33185 = gram 18K
+        val mesghalPrice = 16_115_000.0
+        val gram18k = (mesghalPrice / 4.33185).toLong()
+        assertEquals(3_720_119L, gram18k)
+    }
+
+    @Test
+    fun testCoinBubbleCalculation() {
+        val emami = CoinType.EMAMI
+        assertEquals(8.13598, emami.totalWeightGrams, 0.001)
+        assertEquals(7.322382, emami.pureWeightGrams, 0.001)
+
+        val ons = 2500.0
+        val usd = 60_000.0
+        val gram24Price = (ons * usd) / 31.1035 // ~ 4,822,608 Toman
+        val intrinsic = (emami.pureWeightGrams * gram24Price) + emami.mintFee
+        val marketPrice = 42_000_000.0
+        val bubble = marketPrice - intrinsic
+
+        assertTrue(intrinsic > 30_000_000.0)
+        assertTrue(bubble > 0.0)
+    }
+
+    @Test
+    fun testDetailedJewelryCalculationWithTax() {
+        val grossWeight = 12.0
+        val stoneWeight = 2.0
+        val netWeight = grossWeight - stoneWeight // 10 grams
+        val spot18k = 4_000_000L
+        val wagePercent = 10.0 // 10%
+        val profitPercent = 7.0 // 7%
+        val taxPercent = 9.0 // 9%
+
+        val pureGramSpot = spot18k.toDouble() / (18.0 / 24.0)
+        val rawValue = netWeight * Karat.K18.purityRatio * pureGramSpot // 40,000,000
+        val wageAmount = rawValue * (wagePercent / 100.0) // 4,000,000
+        val profitAmount = (rawValue + wageAmount) * (profitPercent / 100.0) // 44M * 0.07 = 3,080,000
+        val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0) // 7,080,000 * 0.09 = 637,200
+        val totalPayable = rawValue + wageAmount + profitAmount + taxAmount
+
+        assertEquals(40_000_000.0, rawValue, 0.001)
+        assertEquals(4_000_000.0, wageAmount, 0.001)
+        assertEquals(3_080_000.0, profitAmount, 0.001)
+        assertEquals(637_200.0, taxAmount, 0.001)
+        assertEquals(47_717_200.0, totalPayable, 0.001)
     }
 }
