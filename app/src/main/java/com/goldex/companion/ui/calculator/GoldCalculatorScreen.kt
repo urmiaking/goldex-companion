@@ -12,12 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Scale
-import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,11 +48,11 @@ fun GoldCalculatorScreen(
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
+                                    .size(38.dp)
                                     .background(
                                         brush = Brush.linearGradient(listOf(GoldPrimary, GoldDark)),
                                         shape = CircleShape
@@ -63,10 +60,10 @@ fun GoldCalculatorScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Diamond,
+                                    imageVector = Icons.Default.Star,
                                     contentDescription = null,
                                     tint = DarkBg,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                             Column {
@@ -207,9 +204,6 @@ fun GoldCalculatorScreen(
                             value = uiState.weightInput,
                             onValueChange = { viewModel.onWeightChanged(it) },
                             label = { Text("وزن طلا (گرم)") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Scale, contentDescription = null, tint = GoldSecondary)
-                            },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
@@ -241,9 +235,6 @@ fun GoldCalculatorScreen(
                             value = uiState.spotPriceInput,
                             onValueChange = { viewModel.onSpotPriceChanged(it) },
                             label = { Text("قیمت مظنه هر گرم (تومان)") },
-                            leadingIcon = {
-                                Icon(Icons.Default.AttachMoney, contentDescription = null, tint = GoldSecondary)
-                            },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
@@ -255,9 +246,6 @@ fun GoldCalculatorScreen(
                             value = uiState.marginPercentInput,
                             onValueChange = { viewModel.onMarginChanged(it) },
                             label = { Text("درصد سود، اجرت و کارمزد (٪)") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Percent, contentDescription = null, tint = GoldSecondary)
-                            },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.fillMaxWidth(),
@@ -353,7 +341,7 @@ fun GoldCalculatorScreen(
                                         value = "${PersianNumberFormatter.formatPrice(result.marginAmount)} تومان",
                                         valueColor = ProfitGreen
                                     )
-                                    Divider(color = DarkBorder, thickness = 0.5.dp)
+                                    HorizontalDivider(color = DarkBorder, thickness = 0.5.dp)
                                     ResultRow(
                                         label = "نرخ تمام‌شده هر گرم قطعه:",
                                         value = "${PersianNumberFormatter.formatPrice(result.effectivePricePerGram)} تومان",
@@ -394,7 +382,6 @@ fun ResultRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun outlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = GoldPrimary,

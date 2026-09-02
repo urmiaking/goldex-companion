@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release APK
+    name: "Build and Release APK"
     runs-on: ubuntu-latest
 
     steps:
@@ -40,9 +40,7 @@ jobs:
         run: |
           gh label create ci-build-failure --force || true
           touch build.log
-          cat << 'EOF' > issue_body.md
-### CI Build Failure
-EOF
+          echo "### CI Build Failure" > issue_body.md
           echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> issue_body.md
           echo "Commit: ${{ github.sha }}" >> issue_body.md
           echo "Tag: ${{ github.ref_name }}" >> issue_body.md
