@@ -1,0 +1,66 @@
+﻿name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build:
+    name: Build & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: |
+          touch build.log
+          ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
+
+      - name: Report Build Failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create ci-build-failure --force || true
+          touch build.log
+          cat << 'EOF' > issue_body.md
+### CI Build Failure
+EOF
+          echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> issue_body.md
+          echo "Commit: ${{ github.sha }}" >> issue_body.md
+          echo "Tag: ${{ github.ref_name }}" >> issue_body.md
+          echo "" >> issue_body.md
+          echo "#### Build Log (last 80 lines):" >> issue_body.md
+          echo '```' >> issue_body.md
+          tail -n 80 build.log >> issue_body.md
+          echo '```' >> issue_body.md
+
+          gh issue create \
+            --title "CI Build Failure on ${{ github.ref_name }}" \
+            --label "ci-build-failure" \
+            --body-file issue_body.md
+
+      - name: Publish GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
+          name: "GoldEx Companion ${{ github.ref_name }}"
