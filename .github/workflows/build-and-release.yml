@@ -30,6 +30,7 @@ jobs:
 
       - name: Build Release APK
         run: |
+          set -e -o pipefail
           touch build.log
           ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
 

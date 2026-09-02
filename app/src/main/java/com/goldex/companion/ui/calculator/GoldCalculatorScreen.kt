@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,13 +101,7 @@ fun GoldCalculatorScreen(
                 PrimaryTabRow(
                     selectedTabIndex = uiState.selectedTab.ordinal,
                     containerColor = DarkSurface,
-                    contentColor = GoldPrimary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.PrimaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.selectedTab.ordinal]),
-                            color = GoldPrimary
-                        )
-                    }
+                    contentColor = GoldPrimary
                 ) {
                     AppTab.values().forEach { tab ->
                         Tab(
