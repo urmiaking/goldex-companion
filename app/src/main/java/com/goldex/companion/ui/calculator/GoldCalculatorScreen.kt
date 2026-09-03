@@ -138,8 +138,8 @@ fun GoldCalculatorScreen(
                 viewModel.setCustomerManagerVisible(false)
             },
             onAddNewCustomerClick = { viewModel.setAddCustomerDialogVisible(true) },
-            onDeleteCustomer = { viewModel.deleteCustomer(context, it) },
-            onUpdateCustomer = { viewModel.updateCustomer(context, it) },
+            onDeleteCustomer = { viewModel.deleteCustomer(it) },
+            onUpdateCustomer = { viewModel.updateCustomer(it) },
             onDismiss = { viewModel.setCustomerManagerVisible(false) }
         )
     }
@@ -147,7 +147,7 @@ fun GoldCalculatorScreen(
     if (uiState.isAddCustomerDialogVisible) {
         AddCustomerDialog(
             onDismiss = { viewModel.setAddCustomerDialogVisible(false) },
-            onSaveCustomer = { viewModel.addCustomer(context, it, autoSelect = true) }
+            onSaveCustomer = { viewModel.addCustomer(it, autoSelect = true) }
         )
     }
 
@@ -157,7 +157,7 @@ fun GoldCalculatorScreen(
             rates = uiState.rates,
             customerCount = uiState.customerList.size,
             onNavigateCustomers = {
-                viewModel.loadCustomers(context)
+                viewModel.loadCustomers()
                 viewModel.setCustomerManagerVisible(true)
             },
             onNavigateSettings = {
@@ -256,7 +256,7 @@ fun GoldCalculatorScreen(
                             // Customer Management Button in TopBar
                             IconButton(
                                 onClick = {
-                                    viewModel.loadCustomers(context)
+                                    viewModel.loadCustomers()
                                     viewModel.setCustomerManagerVisible(true)
                                 },
                                 modifier = Modifier

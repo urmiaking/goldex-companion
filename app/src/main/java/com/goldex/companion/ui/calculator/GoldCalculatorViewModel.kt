@@ -588,26 +588,4 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         val converted = if (toRatio > 0) weight * (fromRatio / toRatio) else 0.0
         _uiState.update { it.copy(convertedWeight = converted) }
     }
-
-    fun checkForUpdates(manual: Boolean = false) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isCheckingForUpdate = true) }
-            val info = AppUpdateChecker.check()
-            _uiState.update {
-                it.copy(
-                    updateInfo = if (info.isAvailable || manual) info else null,
-                    isCheckingForUpdate = false,
-                    isUpdateDialogDismissed = false
-                )
-            }
-        }
-    }
-
-    fun dismissUpdateDialog() {
-        _uiState.update { it.copy(isUpdateDialogDismissed = true) }
-    }
-
-    fun showUpdateDialog() {
-        _uiState.update { it.copy(isUpdateDialogDismissed = false) }
-    }
 }

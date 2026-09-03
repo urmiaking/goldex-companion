@@ -193,9 +193,9 @@ fun GlassmorphicDock(
 
                 // Precise RTL-aware indicator track offset calculation
                 val targetOffset = if (isRtl) {
-                    horizontalPadding + ((tabCount - 1 - selectedIndex) * tabWidth)
+                    horizontalPadding + (tabWidth * (tabCount - 1 - selectedIndex))
                 } else {
-                    horizontalPadding + (selectedIndex * tabWidth)
+                    horizontalPadding + (tabWidth * selectedIndex)
                 }
 
                 // Fluid sliding spring physics indicator glide

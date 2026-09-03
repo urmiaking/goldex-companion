@@ -57,7 +57,7 @@ fun JewelryTab(
     val colors = LocalGoldExColors.current
 
     LaunchedEffect(Unit) {
-        viewModel.loadCustomers(context)
+        viewModel.loadCustomers()
     }
 
     // Customer Dialogs
@@ -67,8 +67,8 @@ fun JewelryTab(
             selectedCustomer = uiState.selectedCustomer,
             onSelectCustomer = { viewModel.selectCustomer(it) },
             onAddNewCustomerClick = { viewModel.setAddCustomerDialogVisible(true) },
-            onDeleteCustomer = { viewModel.deleteCustomer(context, it) },
-            onUpdateCustomer = { viewModel.updateCustomer(context, it) },
+            onDeleteCustomer = { viewModel.deleteCustomer(it) },
+            onUpdateCustomer = { viewModel.updateCustomer(it) },
             onDismiss = { viewModel.setCustomerPickerVisible(false) }
         )
     }
@@ -76,7 +76,7 @@ fun JewelryTab(
     if (uiState.isAddCustomerDialogVisible) {
         AddCustomerDialog(
             onDismiss = { viewModel.setAddCustomerDialogVisible(false) },
-            onSaveCustomer = { viewModel.addCustomer(context, it, autoSelect = true) }
+            onSaveCustomer = { viewModel.addCustomer(it, autoSelect = true) }
         )
     }
 
