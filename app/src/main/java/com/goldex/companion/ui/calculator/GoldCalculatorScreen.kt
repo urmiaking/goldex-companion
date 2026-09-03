@@ -17,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -26,6 +29,29 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.LiveRatesTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
+
+private val CoinVector: ImageVector = ImageVector.Builder(
+    name = "Coin",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(12f, 2f)
+        curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+        curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
+        curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+        curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+        close()
+        moveTo(12f, 19.5f)
+        curveTo(7.86f, 19.5f, 4.5f, 16.14f, 4.5f, 12f)
+        curveTo(4.5f, 7.86f, 7.86f, 4.5f, 12f, 4.5f)
+        curveTo(16.14f, 4.5f, 19.5f, 7.86f, 19.5f, 12f)
+        curveTo(19.5f, 16.14f, 16.14f, 19.5f, 12f, 19.5f)
+        close()
+    }
+}.build()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,8 +161,8 @@ fun GoldCalculatorScreen(
                             val icon = when (tab) {
                                 AppTab.JEWELRY -> Icons.Default.Star
                                 AppTab.MELT -> Icons.Default.Build
-                                AppTab.COIN -> Icons.Default.AccountBalance
-                                AppTab.CONVERT -> Icons.Default.SwapHoriz
+                                AppTab.COIN -> CoinVector
+                                AppTab.CONVERT -> Icons.Default.Refresh
                             }
 
                             NavigationBarItem(
