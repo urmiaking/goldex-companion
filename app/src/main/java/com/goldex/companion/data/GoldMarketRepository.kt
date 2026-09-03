@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -15,6 +14,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 object GoldMarketRepository {
     private val _rates = MutableStateFlow(MarketRates())
@@ -28,12 +28,22 @@ object GoldMarketRepository {
         refreshRates()
     }
 
+    suspend fun cycleSource(): PriceSource {
+        val next = when (_currentSource.value) {
+            PriceSource.ISIGNAL -> PriceSource.TALA_IR
+            PriceSource.TALA_IR -> PriceSource.TGJU
+            PriceSource.TGJU -> PriceSource.ISIGNAL
+        }
+        setSource(next)
+        return next
+    }
+
     suspend fun refreshRates(): MarketRates = withContext(Dispatchers.IO) {
         val preferred = _currentSource.value
-        val result = if (preferred == PriceSource.ISIGNAL) {
-            fetchFromISignal() ?: fetchFromTalaIr()
-        } else {
-            fetchFromTalaIr() ?: fetchFromISignal()
+        val result = when (preferred) {
+            PriceSource.ISIGNAL -> fetchFromISignal() ?: fetchFromTgju() ?: fetchFromTalaIr()
+            PriceSource.TALA_IR -> fetchFromTalaIr() ?: fetchFromTgju() ?: fetchFromISignal()
+            PriceSource.TGJU -> fetchFromTgju() ?: fetchFromISignal() ?: fetchFromTalaIr()
         }
 
         val finalRates = result ?: _rates.value.copy(
@@ -48,8 +58,8 @@ object GoldMarketRepository {
         return try {
             val url = URL("https://signalpardazgroup.com/service/signalData@4.0.0/list")
             val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
+            conn.connectTimeout = 6000
+            conn.readTimeout = 6000
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)")
@@ -150,13 +160,13 @@ object GoldMarketRepository {
                         gold18 = g18,
                         gold24 = if (g24 > 0L) g24 else (g18 * 24.0 / 18.0).toLong(),
                         goldMelt = if (melt > 0L) melt else (g18 * 4.33185).toLong(),
-                        coinEmami = if (emami > 0L) emami else 228_000_000L,
+                        coinEmami = if (emami > 0L) emami else 234_000_000L,
                         coinBahar = if (bahar > 0L) bahar else (emami * 0.98).toLong(),
                         coinHalf = if (nim > 0L) nim else (emami * 0.51).toLong(),
                         coinQuarter = if (rob > 0L) rob else (emami * 0.28).toLong(),
                         coinGerami = if (gerami > 0L) gerami else (emami * 0.14).toLong(),
-                        usd = if (usd > 0L) usd else 85_000L,
-                        ons = 2500.0,
+                        usd = if (usd > 0L) usd else 221_500L,
+                        ons = 4435.0,
                         lastUpdated = time,
                         source = PriceSource.ISIGNAL,
                         isLive = true
@@ -172,8 +182,8 @@ object GoldMarketRepository {
         return try {
             val url = URL("https://www.tala.ir/ajax/price")
             val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
+            conn.connectTimeout = 6000
+            conn.readTimeout = 6000
             conn.requestMethod = "GET"
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 
@@ -191,21 +201,31 @@ object GoldMarketRepository {
                     val vStr = obj?.optJSONObject(key)?.optString("v", "") ?: ""
                     val clean = vStr.replace(",", "").replace("-", "").trim()
                     val num = clean.toLongOrNull() ?: 0L
-                    return if (num > 50_000_000L && (key.contains("18k") || key.contains("24k"))) num / 10L else num
+                    return abs(num)
                 }
 
                 val g18 = parsePrice(goldObj, "gold_18k")
                 val g24 = parsePrice(goldObj, "gold_24k")
                 val melt = parsePrice(goldObj, "gold_bazartehran")
-                val onsStr = goldObj.optJSONObject("gold_ounce")?.optString("v", "2500") ?: "2500"
-                val ons = onsStr.replace(",", "").toDoubleOrNull() ?: 2500.0
+                val onsStr = goldObj.optJSONObject("gold_ounce")?.optString("v", "4435") ?: "4435"
+                val ons = abs(onsStr.replace(",", "").toDoubleOrNull() ?: 4435.0)
 
                 val emami = parsePrice(sekkeObj, "sekke-jad")
                 val bahar = parsePrice(sekkeObj, "sekke-gad")
                 val nim = parsePrice(sekkeObj, "sekke-nim")
                 val rob = parsePrice(sekkeObj, "sekke-rob")
                 val gerami = parsePrice(sekkeObj, "sekke-grm")
-                val usd = parsePrice(arzObj, "arz_dolar")
+                
+                var usd = parsePrice(arzObj, "arz_dolar")
+                if (usd <= 0L) {
+                    val derham = parsePrice(arzObj, "arz_derham")
+                    if (derham > 0L) {
+                        usd = (derham * 3.6725).toLong()
+                    }
+                }
+                if (usd <= 0L) {
+                    usd = 221_500L
+                }
 
                 if (g18 > 0L) {
                     val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
@@ -213,15 +233,72 @@ object GoldMarketRepository {
                         gold18 = g18,
                         gold24 = if (g24 > 0L) g24 else (g18 * 24.0 / 18.0).toLong(),
                         goldMelt = if (melt > 0L) melt else (g18 * 4.33185).toLong(),
-                        coinEmami = if (emami > 0L) emami else 228_000_000L,
+                        coinEmami = if (emami > 0L) emami else 234_000_000L,
                         coinBahar = if (bahar > 0L) bahar else (emami * 0.98).toLong(),
                         coinHalf = if (nim > 0L) nim else (emami * 0.51).toLong(),
                         coinQuarter = if (rob > 0L) rob else (emami * 0.28).toLong(),
                         coinGerami = if (gerami > 0L) gerami else (emami * 0.14).toLong(),
-                        usd = if (usd > 0L) usd else 85_000L,
+                        usd = usd,
                         ons = ons,
                         lastUpdated = time,
                         source = PriceSource.TALA_IR,
+                        isLive = true
+                    )
+                } else null
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun fetchFromTgju(): MarketRates? {
+        return try {
+            val url = URL("https://call3.tgju.org/ajax.json")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.connectTimeout = 6000
+            conn.readTimeout = 6000
+            conn.requestMethod = "GET"
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+
+            if (conn.responseCode == 200) {
+                val reader = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8"))
+                val resp = reader.readText()
+                reader.close()
+
+                val root = JSONObject(resp)
+                val current = root.optJSONObject("current") ?: return null
+
+                fun parseItemPrice(key: String, isRials: Boolean = true): Long {
+                    val pStr = current.optJSONObject(key)?.optString("p", "") ?: ""
+                    val clean = pStr.replace(",", "").replace("-", "").trim()
+                    val raw = clean.toLongOrNull() ?: 0L
+                    val absVal = abs(raw)
+                    return if (isRials && absVal > 0L) absVal / 10L else absVal
+                }
+
+                val usd = parseItemPrice("price_dollar_rl", isRials = true)
+                val g18 = parseItemPrice("geram18", isRials = true)
+                val melt = parseItemPrice("mesghal", isRials = true)
+                val emami = parseItemPrice("sekee", isRials = true)
+
+                val onsStr = current.optJSONObject("ons")?.optString("p", "4435") ?: "4435"
+                val ons = abs(onsStr.replace(",", "").toDoubleOrNull() ?: 4435.0)
+
+                if (g18 > 0L) {
+                    val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                    MarketRates(
+                        gold18 = g18,
+                        gold24 = (g18 * 24.0 / 18.0).toLong(),
+                        goldMelt = if (melt > 0L) melt else (g18 * 4.33185).toLong(),
+                        coinEmami = if (emami > 0L) emami else 234_000_000L,
+                        coinBahar = (emami * 0.98).toLong(),
+                        coinHalf = (emami * 0.51).toLong(),
+                        coinQuarter = (emami * 0.28).toLong(),
+                        coinGerami = (emami * 0.14).toLong(),
+                        usd = if (usd > 0L) usd else 221_500L,
+                        ons = ons,
+                        lastUpdated = time,
+                        source = PriceSource.TGJU,
                         isLive = true
                     )
                 } else null
