@@ -145,20 +145,7 @@ fun CoinBubbleTab(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    viewModel.onCoinTypeSelected(coin)
-                                    // Auto populate live rate if available
-                                    val liveCoinPrice = when (coin) {
-                                        CoinType.EMAMI -> uiState.rates.coinEmami
-                                        CoinType.BAHAR -> uiState.rates.coinBahar
-                                        CoinType.NIM -> uiState.rates.coinNim
-                                        CoinType.ROB -> uiState.rates.coinRob
-                                        CoinType.GERMI -> uiState.rates.coinGermi
-                                    }
-                                    if (liveCoinPrice > 0L) {
-                                        viewModel.onCoinMarketPriceChanged(liveCoinPrice.toString())
-                                    }
-                                }
+                                .clickable { viewModel.onCoinTypeSelected(coin) }
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
@@ -206,9 +193,9 @@ fun CoinBubbleTab(
                 val currentCoinLiveRate = when (uiState.selectedCoin) {
                     CoinType.EMAMI -> uiState.rates.coinEmami
                     CoinType.BAHAR -> uiState.rates.coinBahar
-                    CoinType.NIM -> uiState.rates.coinNim
-                    CoinType.ROB -> uiState.rates.coinRob
-                    CoinType.GERMI -> uiState.rates.coinGermi
+                    CoinType.HALF -> uiState.rates.coinHalf
+                    CoinType.QUARTER -> uiState.rates.coinQuarter
+                    CoinType.GERAMI -> uiState.rates.coinGerami
                 }
                 if (currentCoinLiveRate > 0L) {
                     Surface(

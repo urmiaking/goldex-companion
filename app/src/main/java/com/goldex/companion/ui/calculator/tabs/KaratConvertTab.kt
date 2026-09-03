@@ -36,6 +36,13 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
 
+private val Karat.standardCode: String
+    get() = when (this) {
+        Karat.K18 -> "۷۵۰"
+        Karat.K21 -> "۸۷۵"
+        Karat.K24 -> "۹۹۹"
+    }
+
 @Composable
 fun KaratConvertTab(
     viewModel: GoldCalculatorViewModel,
@@ -168,7 +175,7 @@ fun KaratConvertTab(
                                         color = if (isSel) colors.goldPrimary else colors.textMain
                                     )
                                     Text(
-                                        text = PersianNumberFormatter.toPersianDigits(k.purity.toString()),
+                                        text = k.standardCode,
                                         fontSize = 9.sp,
                                         color = if (isSel) colors.goldSecondary else colors.textMuted
                                     )
@@ -232,7 +239,7 @@ fun KaratConvertTab(
                                         color = if (isSel) colors.goldPrimary else colors.textMain
                                     )
                                     Text(
-                                        text = PersianNumberFormatter.toPersianDigits(k.purity.toString()),
+                                        text = k.standardCode,
                                         fontSize = 9.sp,
                                         color = if (isSel) colors.goldSecondary else colors.textMuted
                                     )
@@ -256,7 +263,7 @@ fun KaratConvertTab(
                     ) {
                         Text(text = "فرمول تبدیل عیار:", fontSize = 11.sp, color = colors.textMuted)
                         Text(
-                            text = "وزن × (${PersianNumberFormatter.toPersianDigits(uiState.convertFromKarat.purity.toString())} ÷ ${PersianNumberFormatter.toPersianDigits(uiState.convertToKarat.purity.toString())})",
+                            text = "وزن × (${uiState.convertFromKarat.standardCode} ÷ ${uiState.convertToKarat.standardCode})",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.goldSecondary
@@ -302,7 +309,7 @@ fun KaratConvertTab(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "معادل طلای خالص با استاندارد خلوص ${PersianNumberFormatter.toPersianDigits(uiState.convertToKarat.purity.toString())}",
+                        text = "معادل طلا با استاندارد خلوص ${uiState.convertToKarat.standardCode}",
                         fontSize = 10.sp,
                         color = colors.textSecondary,
                         textAlign = TextAlign.Center
