@@ -4,6 +4,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,10 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -29,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.ui.calculator.tabs.*
+import com.goldex.companion.ui.components.AddCustomerDialog
+import com.goldex.companion.ui.components.CustomerIconVector
+import com.goldex.companion.ui.components.CustomerPickerDialog
 import com.goldex.companion.ui.components.LiveRatesTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
@@ -96,6 +104,7 @@ fun GoldCalculatorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
 
     val spinTransition = rememberInfiniteTransition(label = "spin")
     val rotation by spinTransition.animateFloat(
@@ -107,6 +116,28 @@ fun GoldCalculatorScreen(
         ),
         label = "rotation"
     )
+
+    // Customer Management Modal from Top Bar
+    if (uiState.isCustomerManagerVisible) {
+        CustomerPickerDialog(
+            customers = uiState.customerList,
+            selectedCustomer = uiState.selectedCustomer,
+            onSelectCustomer = {
+                viewModel.selectCustomer(it)
+                viewModel.setCustomerManagerVisible(false)
+            },
+            onAddNewCustomerClick = { viewModel.setAddCustomerDialogVisible(true) },
+            onDeleteCustomer = { viewModel.deleteCustomer(context, it) },
+            onDismiss = { viewModel.setCustomerManagerVisible(false) }
+        )
+    }
+
+    if (uiState.isAddCustomerDialogVisible) {
+        AddCustomerDialog(
+            onDismiss = { viewModel.setAddCustomerDialogVisible(false) },
+            onSaveCustomer = { viewModel.addCustomer(context, it, autoSelect = true) }
+        )
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
@@ -169,7 +200,7 @@ fun GoldCalculatorScreen(
                                                 .background(colors.profitGreen)
                                         )
                                         Text(
-                                            text = "نرخ لحظه‌ای و دستیار معاملات",
+                                            text = "نرخ لحظه‌ای و دستیار فاکتور طلا",
                                             fontSize = 10.sp,
                                             color = colors.textMuted
                                         )
@@ -178,6 +209,26 @@ fun GoldCalculatorScreen(
                             }
                         },
                         actions = {
+                            // Customer Management Button in TopBar
+                            IconButton(
+                                onClick = {
+                                    viewModel.loadCustomers(context)
+                                    viewModel.setCustomerManagerVisible(true)
+                                },
+                                modifier = Modifier
+                                    .padding(end = 4.dp)
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colors.surfaceElevated)
+                            ) {
+                                Icon(
+                                    imageVector = CustomerIconVector,
+                                    contentDescription = "مدیریت مشتریان",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
                             // Dark / Light Theme Toggle Button
                             IconButton(
                                 onClick = { viewModel.toggleTheme() },
@@ -221,23 +272,35 @@ fun GoldCalculatorScreen(
                 }
             },
             bottomBar = {
+                // Enhanced Luxury Floating Island Dock Navigation Bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 14.dp, end = 14.dp, bottom = 12.dp, top = 4.dp),
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp, top = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(24.dp),
-                        color = colors.surface,
-                        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
-                        shadowElevation = if (colors.isDark) 4.dp else 10.dp,
+                        shape = RoundedCornerShape(26.dp),
+                        color = colors.surface.copy(alpha = if (colors.isDark) 0.96f else 0.98f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            Brush.horizontalGradient(
+                                listOf(
+                                    colors.goldSecondary.copy(alpha = 0.35f),
+                                    colors.goldPrimary.copy(alpha = 0.75f),
+                                    colors.goldSecondary.copy(alpha = 0.35f)
+                                )
+                            )
+                        ),
+                        shadowElevation = if (colors.isDark) 8.dp else 14.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        NavigationBar(
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.height(64.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 6.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             AppTab.values().forEach { tab ->
                                 val isSelected = uiState.selectedTab == tab
@@ -249,31 +312,73 @@ fun GoldCalculatorScreen(
                                     AppTab.PORTFOLIO -> PortfolioVector
                                 }
 
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = { viewModel.selectTab(tab) },
-                                    icon = {
+                                val scale by animateFloatAsState(
+                                    targetValue = if (isSelected) 1.12f else 1.0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    ),
+                                    label = "tabScale"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(
+                                            if (isSelected) {
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        colors.goldContainer.copy(alpha = if (colors.isDark) 0.40f else 0.50f),
+                                                        colors.surfaceElevated
+                                                    )
+                                                )
+                                            } else {
+                                                SolidColor(Color.Transparent)
+                                            }
+                                        )
+                                        .border(
+                                            if (isSelected) 0.8.dp else 0.dp,
+                                            if (isSelected) colors.goldPrimary.copy(alpha = 0.6f) else Color.Transparent,
+                                            RoundedCornerShape(20.dp)
+                                        )
+                                        .clickable {
+                                            viewModel.selectTab(tab)
+                                        }
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        // Active top glowing micro-indicator dot
+                                        Box(
+                                            modifier = Modifier
+                                                .width(14.dp)
+                                                .height(2.5.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(if (isSelected) colors.goldPrimary else Color.Transparent)
+                                        )
+
                                         Icon(
                                             imageVector = icon,
                                             contentDescription = tab.titleFa,
-                                            modifier = Modifier.size(19.dp)
+                                            tint = if (isSelected) colors.goldPrimary else colors.textMuted,
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .scale(scale)
                                         )
-                                    },
-                                    label = {
+
                                         Text(
                                             text = tab.titleFa,
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            fontSize = if (isSelected) 10.5.sp else 9.5.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                            maxLines = 1
                                         )
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = colors.goldPrimary,
-                                        selectedTextColor = colors.goldPrimary,
-                                        unselectedIconColor = colors.textMuted,
-                                        unselectedTextColor = colors.textSecondary,
-                                        indicatorColor = colors.goldContainer
-                                    )
-                                )
+                                    }
+                                }
                             }
                         }
                     }

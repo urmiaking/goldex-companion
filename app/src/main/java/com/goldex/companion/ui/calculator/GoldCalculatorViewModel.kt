@@ -1,7 +1,9 @@
 package com.goldex.companion.ui.calculator
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.data.PriceSource
@@ -28,6 +30,7 @@ data class CalculatorUiState(
     val isDarkTheme: Boolean = false,
 
     // Jewelry Tab State
+    val itemTitleInput: String = "قطعه طلا ۱",
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
@@ -38,6 +41,14 @@ data class CalculatorUiState(
     val taxPercentInput: String = "9",
     val jewelryResult: DetailedJewelryResult? = null,
     val priceInWords: String = "",
+
+    // Multi-Item Invoice & Customer State
+    val invoiceItems: List<InvoiceItem> = emptyList(),
+    val selectedCustomer: Customer? = null,
+    val customerList: List<Customer> = emptyList(),
+    val isCustomerPickerVisible: Boolean = false,
+    val isAddCustomerDialogVisible: Boolean = false,
+    val isCustomerManagerVisible: Boolean = false,
 
     // Melt Tab State
     val mesghalPriceInput: String = "101500000",
@@ -131,6 +142,10 @@ class GoldCalculatorViewModel : ViewModel() {
     }
 
     // --- Jewelry Tab Actions ---
+    fun onItemTitleChanged(newTitle: String) {
+        _uiState.update { it.copy(itemTitleInput = newTitle) }
+    }
+
     fun onGrossWeightChanged(newWeight: String) {
         val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
         _uiState.update { it.copy(grossWeightInput = clean) }
@@ -150,12 +165,12 @@ class GoldCalculatorViewModel : ViewModel() {
 
     fun onSpotPriceChanged(newPrice: String) {
         val cleanDigits = PersianNumberFormatter.toEnglishDigits(newPrice).filter { it.isDigit() }
-        _uiState.update { it.copy(spotPriceInput = cleanDigits) }
+        _uiState.update { it.copy(spotPriceInput = cleanDigits, autoSyncPrice = false) }
         calculateJewelry()
     }
 
     fun applyPresetSpotPrice(price: Long) {
-        _uiState.update { it.copy(spotPriceInput = price.toString()) }
+        _uiState.update { it.copy(spotPriceInput = price.toString(), autoSyncPrice = false) }
         calculateJewelry()
     }
 
@@ -176,9 +191,21 @@ class GoldCalculatorViewModel : ViewModel() {
         calculateJewelry()
     }
 
+    fun applyPresetProfit(profit: Double) {
+        val str = if (profit % 1.0 == 0.0) profit.toLong().toString() else profit.toString()
+        _uiState.update { it.copy(profitPercentInput = str) }
+        calculateJewelry()
+    }
+
     fun onTaxPercentChanged(newTax: String) {
         val clean = PersianNumberFormatter.toEnglishDigits(newTax).filter { it.isDigit() || it == '.' }
         _uiState.update { it.copy(taxPercentInput = clean) }
+        calculateJewelry()
+    }
+
+    fun applyPresetTax(tax: Double) {
+        val str = if (tax % 1.0 == 0.0) tax.toLong().toString() else tax.toString()
+        _uiState.update { it.copy(taxPercentInput = str) }
         calculateJewelry()
     }
 
@@ -193,6 +220,7 @@ class GoldCalculatorViewModel : ViewModel() {
     fun resetJewelry() {
         _uiState.update {
             it.copy(
+                itemTitleInput = "قطعه طلا ${it.invoiceItems.size + 1}",
                 grossWeightInput = "10",
                 stoneWeightInput = "0",
                 selectedKarat = Karat.K18,
@@ -204,6 +232,130 @@ class GoldCalculatorViewModel : ViewModel() {
             )
         }
         calculateJewelry()
+    }
+
+    // --- Multi-Item Invoice Actions ---
+    fun addItemToInvoice() {
+        val state = _uiState.value
+        val res = state.jewelryResult ?: return
+        val currentCount = state.invoiceItems.size
+        val item = InvoiceItem(
+            title = state.itemTitleInput.ifBlank { "قطعه طلا ${currentCount + 1}" },
+            karat = state.selectedKarat,
+            grossWeight = res.grossWeight,
+            stoneWeight = res.stoneWeight,
+            netWeight = res.netWeight,
+            spotPrice = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+            wageType = state.wageType,
+            wageInput = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0,
+            wageAmount = res.wageAmount,
+            profitPercent = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0,
+            profitAmount = res.profitAmount,
+            taxPercent = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0,
+            taxAmount = res.taxAmount,
+            rawGoldValue = res.rawGoldValue,
+            totalPayable = res.totalPayable,
+            effectiveGramPrice = res.effectiveGramPrice
+        )
+        _uiState.update {
+            it.copy(
+                invoiceItems = it.invoiceItems + item,
+                itemTitleInput = "قطعه طلا ${currentCount + 2}"
+            )
+        }
+    }
+
+    fun removeItemFromInvoice(itemId: String) {
+        _uiState.update { it.copy(invoiceItems = it.invoiceItems.filter { item -> item.id != itemId }) }
+    }
+
+    fun clearInvoice() {
+        _uiState.update { it.copy(invoiceItems = emptyList()) }
+    }
+
+    fun selectCustomer(customer: Customer?) {
+        _uiState.update { it.copy(selectedCustomer = customer, isCustomerPickerVisible = false) }
+    }
+
+    fun setCustomerPickerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isCustomerPickerVisible = visible) }
+    }
+
+    fun setAddCustomerDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isAddCustomerDialogVisible = visible) }
+    }
+
+    fun setCustomerManagerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isCustomerManagerVisible = visible) }
+    }
+
+    fun loadCustomers(context: Context) {
+        viewModelScope.launch {
+            val repo = CustomerRepository(context)
+            val list = repo.getCustomers()
+            _uiState.update { it.copy(customerList = list) }
+        }
+    }
+
+    fun addCustomer(context: Context, customer: Customer, autoSelect: Boolean = true) {
+        val repo = CustomerRepository(context)
+        repo.addCustomer(customer)
+        val updated = repo.getCustomers()
+        _uiState.update {
+            it.copy(
+                customerList = updated,
+                selectedCustomer = if (autoSelect) customer else it.selectedCustomer,
+                isAddCustomerDialogVisible = false,
+                isCustomerPickerVisible = false
+            )
+        }
+    }
+
+    fun deleteCustomer(context: Context, customerId: String) {
+        val repo = CustomerRepository(context)
+        repo.deleteCustomer(customerId)
+        val updated = repo.getCustomers()
+        _uiState.update {
+            it.copy(
+                customerList = updated,
+                selectedCustomer = if (it.selectedCustomer?.id == customerId) null else it.selectedCustomer
+            )
+        }
+    }
+
+    fun buildCurrentInvoice(): Invoice {
+        val state = _uiState.value
+        val items = if (state.invoiceItems.isNotEmpty()) {
+            state.invoiceItems
+        } else if (state.jewelryResult != null) {
+            val res = state.jewelryResult
+            listOf(
+                InvoiceItem(
+                    title = state.itemTitleInput.ifBlank { "قطعه طلا" },
+                    karat = state.selectedKarat,
+                    grossWeight = res.grossWeight,
+                    stoneWeight = res.stoneWeight,
+                    netWeight = res.netWeight,
+                    spotPrice = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+                    wageType = state.wageType,
+                    wageInput = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0,
+                    wageAmount = res.wageAmount,
+                    profitPercent = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0,
+                    profitAmount = res.profitAmount,
+                    taxPercent = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0,
+                    taxAmount = res.taxAmount,
+                    rawGoldValue = res.rawGoldValue,
+                    totalPayable = res.totalPayable,
+                    effectiveGramPrice = res.effectiveGramPrice
+                )
+            )
+        } else {
+            emptyList()
+        }
+        return Invoice(
+            customer = state.selectedCustomer,
+            items = items
+        )
     }
 
     // --- Melt Tab Actions ---
