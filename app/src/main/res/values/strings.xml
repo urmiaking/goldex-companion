@@ -1,5 +1,5 @@
-﻿<resources>
-    <string name="app_name">GoldEx Companion</string>
-    <string name="app_name_fa">همراه گلدکس</string>
-    <string name="calculator_title">محاسبه‌گر حرفه‌ای طلا و جواهر</string>
+<resources>
+    <string name="app_name">زرنگار</string>
+    <string name="app_name_fa">زرنگار | دستیار تخصصی طلا</string>
+    <string name="calculator_title">سامانه محاسبات و فاکتور طلا زرنگار</string>
 </resources>

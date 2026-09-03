@@ -127,20 +127,6 @@ fun LiveRatesTicker(
                     )
                 }
             }
-
-            IconButton(
-                onClick = onRefresh,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "بروزرسانی مظنه",
-                    tint = colors.goldPrimary,
-                    modifier = Modifier
-                        .size(17.dp)
-                        .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
-                )
-            }
         }
 
         // Horizontal Stitch Pill Ticker

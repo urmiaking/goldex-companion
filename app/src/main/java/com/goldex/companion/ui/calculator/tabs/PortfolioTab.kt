@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.calculator.tabs
+package com.goldex.companion.ui.calculator.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -100,7 +100,7 @@ fun PortfolioTab(
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = " قلم دارایی",
+                            text = "${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم دارایی",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary
@@ -110,7 +110,7 @@ fun PortfolioTab(
             )
 
             AnimatedPriceTicker(
-                text = " تومان",
+                text = "${PersianNumberFormatter.formatPrice(totalCurrentVal.toDouble())} تومان",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.goldPrimary
@@ -132,7 +132,7 @@ fun PortfolioTab(
                 Column {
                     Text("مجموع سرمایه اولیه:", fontSize = 11.sp, color = colors.textMuted)
                     AnimatedPriceTicker(
-                        text = " تومان",
+                        text = "${PersianNumberFormatter.formatPrice(totalPurchaseVal.toDouble())} تومان",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.textSecondary
@@ -146,7 +146,7 @@ fun PortfolioTab(
                 Column(horizontalAlignment = Alignment.End) {
                     Text("سود / زیان کل:", fontSize = 11.sp, color = colors.textMuted)
                     AnimatedPriceTicker(
-                        text = " ت (٪)",
+                        text = "$profitSign${PersianNumberFormatter.formatPrice(totalProfit.toDouble())} ت ($profitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(totalProfitPercent))}٪)",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = profitColor,
@@ -251,9 +251,9 @@ fun PortfolioTab(
                                 color = colors.textMain
                             )
                             val subtitle = if (item.category == PortfolioCategory.GOLD) {
-                                " گرم | "
+                                "${PersianNumberFormatter.formatWeight(item.weightGrams)} گرم | ${item.karat.labelFa}"
                             } else {
-                                " عدد "
+                                "${PersianNumberFormatter.toPersianDigits(item.quantity.toString())} عدد ${item.coinType?.titleFa ?: "سکه"}"
                             }
                             Text(
                                 text = subtitle,
@@ -288,7 +288,7 @@ fun PortfolioTab(
                     Column {
                         Text("ارزش روز:", fontSize = 10.sp, color = colors.textMuted)
                         AnimatedPriceTicker(
-                            text = " ت",
+                            text = "${PersianNumberFormatter.formatPrice(curVal.toDouble())} ت",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary
@@ -298,7 +298,7 @@ fun PortfolioTab(
                     Column(horizontalAlignment = Alignment.End) {
                         Text("سود / زیان:", fontSize = 10.sp, color = colors.textMuted)
                         AnimatedPriceTicker(
-                            text = " ت (٪)",
+                            text = "$itemProfitSign${PersianNumberFormatter.formatPrice(profit.toDouble())} ت ($itemProfitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(profitPct))}٪)",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = itemProfitColor,

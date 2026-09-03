@@ -4,19 +4,23 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.AppUpdateChecker
+import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
+import com.goldex.companion.data.NetworkMonitor
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.data.PriceSource
 import com.goldex.companion.data.UpdateInfo
 import com.goldex.companion.model.*
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class AppTab(val titleFa: String) {
@@ -78,22 +82,65 @@ data class CalculatorUiState(
     // In-App Auto-Updater State
     val updateInfo: UpdateInfo? = null,
     val isCheckingForUpdate: Boolean = false,
-    val isUpdateDialogDismissed: Boolean = false
+    val isUpdateDialogDismissed: Boolean = false,
+
+    // Real-Time Internet Connection & Network Status (Green / Yellow / Red)
+    val connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
     private val customerRepository = CustomerRepository(application.applicationContext)
     private val portfolioRepository = PortfolioRepository(application.applicationContext)
+    private val networkMonitor = NetworkMonitor(application.applicationContext)
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
+        observeNetwork()
         loadInitialRates()
         loadCustomers()
         loadPortfolio()
         calculateAll()
         checkForUpdates(manual = false)
+        startAutoRatesRefresh()
+    }
+
+    private fun observeNetwork() {
+        viewModelScope.launch {
+            networkMonitor.status.collect { netStatus ->
+                _uiState.update { current ->
+                    current.copy(
+                        connectionStatus = if (current.isRefreshingRates) ConnectionStatus.CONNECTING else netStatus
+                    )
+                }
+            }
+        }
+    }
+
+    private fun startAutoRatesRefresh() {
+        viewModelScope.launch {
+            while (isActive) {
+                delay(60_000L) // بروزرسانی خودکار نرخ‌ها در هر ۱ دقیقه
+                if (_uiState.value.autoSyncPrice) {
+                    refreshRatesSilently()
+                }
+            }
+        }
+    }
+
+    fun refreshRatesSilently() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
+            try {
+                val updated = GoldMarketRepository.refreshRates()
+                applyFetchedRates(updated)
+            } catch (_: Exception) {
+            } finally {
+                val currentStatus = networkMonitor.checkInitialStatus()
+                _uiState.update { it.copy(isRefreshingRates = false, connectionStatus = currentStatus) }
+            }
+        }
     }
 
     fun toggleTheme() {
@@ -102,17 +149,29 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     private fun loadInitialRates() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshingRates = true) }
-            val rates = GoldMarketRepository.refreshRates()
-            applyFetchedRates(rates)
+            _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
+            try {
+                val rates = GoldMarketRepository.refreshRates()
+                applyFetchedRates(rates)
+            } catch (_: Exception) {
+            } finally {
+                val currentStatus = networkMonitor.checkInitialStatus()
+                _uiState.update { it.copy(isRefreshingRates = false, connectionStatus = currentStatus) }
+            }
         }
     }
 
     fun refreshRates() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshingRates = true) }
-            val updated = GoldMarketRepository.refreshRates()
-            applyFetchedRates(updated)
+            _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
+            try {
+                val updated = GoldMarketRepository.refreshRates()
+                applyFetchedRates(updated)
+            } catch (_: Exception) {
+            } finally {
+                val currentStatus = networkMonitor.checkInitialStatus()
+                _uiState.update { it.copy(isRefreshingRates = false, connectionStatus = currentStatus) }
+            }
         }
     }
 

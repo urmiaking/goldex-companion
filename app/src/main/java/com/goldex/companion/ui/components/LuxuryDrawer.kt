@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,10 +8,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
+import com.goldex.companion.data.ConnectionStatus
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -178,6 +181,9 @@ fun LuxuryDrawer(
     drawerState: DrawerState,
     rates: MarketRates,
     customerCount: Int,
+    connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
+    isDarkTheme: Boolean = false,
+    onToggleTheme: () -> Unit = {},
     onNavigateCustomers: () -> Unit,
     onNavigateSettings: () -> Unit,
     onCheckForUpdates: () -> Unit,
@@ -195,6 +201,9 @@ fun LuxuryDrawer(
                 LuxuryDrawerSheetContent(
                     rates = rates,
                     customerCount = customerCount,
+                    connectionStatus = connectionStatus,
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = onToggleTheme,
                     onNavigateCustomers = {
                         coroutineScope.launch { drawerState.close() }
                         onNavigateCustomers()
@@ -224,6 +233,9 @@ fun LuxuryDrawer(
 fun LuxuryDrawerSheetContent(
     rates: MarketRates,
     customerCount: Int,
+    connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
+    isDarkTheme: Boolean = false,
+    onToggleTheme: () -> Unit = {},
     onNavigateCustomers: () -> Unit,
     onNavigateSettings: () -> Unit,
     onCheckForUpdates: () -> Unit,
@@ -231,6 +243,17 @@ fun LuxuryDrawerSheetContent(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
+
+    val statusColor = when (connectionStatus) {
+        ConnectionStatus.ONLINE -> colors.profitGreen
+        ConnectionStatus.CONNECTING -> Color(0xFFF59E0B) // زرد: در حال همگام‌سازی
+        ConnectionStatus.OFFLINE -> colors.errorRed     // قرمز: قطع اتصال
+    }
+    val statusText = when (connectionStatus) {
+        ConnectionStatus.ONLINE -> "آنلاین • متصل"
+        ConnectionStatus.CONNECTING -> "در حال دریافت نرخ..."
+        ConnectionStatus.OFFLINE -> "آفلاین • قطع اینترنت"
+    }
 
     ModalDrawerSheet(
         drawerShape = RoundedCornerShape(topStart = 0.dp, bottomStart = 0.dp, topEnd = 24.dp, bottomEnd = 24.dp),
@@ -274,52 +297,57 @@ fun LuxuryDrawerSheetContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Royal Crest Emblem Box
-                            Box(
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(RoundedCornerShape(13.dp))
-                                    .background(colors.surfaceElevated)
-                                    .border(1.dp, colors.goldBorder, RoundedCornerShape(13.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = DrawerCrownVector,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                            // User Profile Avatar with Online / Offline / Connecting Status Badge
+                            Box(contentAlignment = Alignment.BottomStart) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.surfaceElevated)
+                                        .border(1.2.dp, colors.goldBorder, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "پروفایل کاربر",
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                // بج وضعیت اتصال (سبز / زرد / قرمز)
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.surface)
+                                        .padding(1.5.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(statusColor)
+                                    )
+                                }
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "گلدکس پرو",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        color = colors.textMain
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(colors.goldContainer)
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = "PRO",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colors.goldPrimary
-                                        )
-                                    }
-                                }
                                 Text(
-                                    text = "سامانه محاسبات و مدیریت زرگری",
+                                    text = "زرنگار",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 19.sp,
+                                    color = colors.goldPrimary
+                                )
+                                Text(
+                                    text = "دستیار جامع محاسبات طلا",
                                     fontSize = 11.sp,
                                     color = colors.textMuted
+                                )
+                                Text(
+                                    text = statusText,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = statusColor
                                 )
                             }
                         }
@@ -340,7 +368,7 @@ fun LuxuryDrawerSheetContent(
                         }
                     }
 
-                    // Live Spot Rate Badge
+                    // Live Spot Rate Badge (نرخ زنده ۱۸ عیار)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = colors.surfaceElevated,
@@ -372,7 +400,7 @@ fun LuxuryDrawerSheetContent(
                             }
                             Text(
                                 text = if (rates.gold18 > 0L) {
-                                    " تومان"
+                                    "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} تومان"
                                 } else {
                                     "در حال دریافت..."
                                 },
@@ -409,16 +437,25 @@ fun LuxuryDrawerSheetContent(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                 )
 
-                // 1. Customer Directory
+                // 1. Dark / Light Theme Toggle (منتقل شده از Appbar به Drawer)
+                LuxuryDrawerItem(
+                    title = if (isDarkTheme) "حالت شب (تاریک)" else "حالت روز (روشن)",
+                    subtitle = if (isDarkTheme) "تغییر به تم روز و اداری" else "تغییر به تم تاریک و سلطنتی",
+                    icon = Icons.Default.Star,
+                    badgeText = if (isDarkTheme) "🌙 فعال" else "☀️ فعال",
+                    onClick = onToggleTheme
+                )
+
+                // 2. Customer Directory
                 LuxuryDrawerItem(
                     title = "مدیریت مشتریان",
                     subtitle = "دفترچه و سوابق مشتریان زرگری",
                     icon = DrawerCustomerVector,
-                    badgeText = " مشتری",
+                    badgeText = if (customerCount > 0) "${PersianNumberFormatter.toPersianDigits(customerCount.toString())} مشتری" else null,
                     onClick = onNavigateCustomers
                 )
 
-                // 2. Settings & Preferences
+                // 3. Settings & Preferences
                 LuxuryDrawerItem(
                     title = "تنظیمات نرم‌افزار",
                     subtitle = "پیکربندی سود، مالیات و مظنه",
@@ -427,12 +464,12 @@ fun LuxuryDrawerSheetContent(
                     onClick = onNavigateSettings
                 )
 
-                // 3. About & Check for Updates
+                // 4. About & Check for Updates
                 LuxuryDrawerItem(
                     title = "بررسی بروزرسانی و درباره ما",
                     subtitle = "نسخه فعال، تاریخچه و دریافت آپدیت",
                     icon = DrawerInfoVector,
-                    badgeText = "نسخه ۰.۸.۰",
+                    badgeText = "نسخه ۰.۸.۲",
                     onClick = onCheckForUpdates
                 )
             }
@@ -457,7 +494,7 @@ fun LuxuryDrawerSheetContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "گلدکس پرو • نسخه ۰.۸.۰",
+                            text = "زرنگار • نسخه ۰.۸.۲",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -469,7 +506,7 @@ fun LuxuryDrawerSheetContent(
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = "ویرایش زرین",
+                                text = "نسخه زرین",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.goldPrimary
@@ -484,7 +521,7 @@ fun LuxuryDrawerSheetContent(
                     )
 
                     Text(
-                        text = "Stitch Persian Sovereign Aurum Edition",
+                        text = "Zarnegar Sovereign Aurum Edition",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Medium,
                         color = colors.goldSecondary

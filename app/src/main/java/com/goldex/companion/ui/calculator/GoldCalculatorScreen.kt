@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -156,6 +157,9 @@ fun GoldCalculatorScreen(
             drawerState = drawerState,
             rates = uiState.rates,
             customerCount = uiState.customerList.size,
+            connectionStatus = uiState.connectionStatus,
+            isDarkTheme = uiState.isDarkTheme,
+            onToggleTheme = { viewModel.toggleTheme() },
             onNavigateCustomers = {
                 viewModel.loadCustomers()
                 viewModel.setCustomerManagerVisible(true)
@@ -175,85 +179,79 @@ fun GoldCalculatorScreen(
                                 IconButton(
                                     onClick = { coroutineScope.launch { drawerState.open() } },
                                     modifier = Modifier
-                                        .padding(start = 6.dp)
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(colors.surfaceElevated)
+                                        .padding(start = 2.dp)
+                                        .size(40.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Menu,
                                         contentDescription = "منوی اصلی",
                                         tint = colors.goldPrimary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
                             },
                             title = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(1.dp)
                                 ) {
                                     Text(
-                                        text = "گلدکس پرو",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp,
-                                        color = colors.textMain
+                                        text = "زرنگار",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp,
+                                        color = colors.goldPrimary
                                     )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(colors.goldContainer)
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = "PRO",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colors.goldPrimary
-                                        )
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(colors.profitGreen)
+                                    Text(
+                                        text = "دستیار جامع محاسبات و فاکتور طلا",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textMuted
                                     )
                                 }
                             },
                             actions = {
-                                // Dark / Light Theme Toggle Button
-                                IconButton(
-                                    onClick = { viewModel.toggleTheme() },
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(colors.surfaceElevated)
-                                ) {
-                                    Text(
-                                        text = if (colors.isDark) "☀️" else "🌙",
-                                        fontSize = 15.sp
-                                    )
+                                val statusColor = when (uiState.connectionStatus) {
+                                    ConnectionStatus.ONLINE -> colors.profitGreen
+                                    ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
+                                    ConnectionStatus.OFFLINE -> colors.errorRed
                                 }
 
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                // Refresh Rates Button
                                 IconButton(
-                                    onClick = { viewModel.refreshRates() },
+                                    onClick = { coroutineScope.launch { drawerState.open() } },
                                     modifier = Modifier
-                                        .padding(end = 4.dp)
-                                        .size(34.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(colors.surfaceElevated)
+                                        .padding(end = 6.dp)
+                                        .size(40.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = "بروزرسانی مظنه",
-                                        tint = colors.goldSecondary,
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
-                                    )
+                                    Box(contentAlignment = Alignment.BottomStart) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.surfaceElevated)
+                                                .border(1.dp, colors.goldBorder, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = "پروفایل کاربر",
+                                                tint = colors.goldPrimary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.surface)
+                                                .padding(1.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                                    .background(statusColor)
+                                            )
+                                        }
+                                    }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
