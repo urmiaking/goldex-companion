@@ -252,7 +252,7 @@ fun MeltTab(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = "${PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong())} تومان",
+                        text = PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong()),
                         fontSize = 11.sp,
                         color = colors.textMain,
                         textAlign = TextAlign.Center

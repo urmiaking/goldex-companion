@@ -89,6 +89,32 @@ val SearchIconVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+val EditIconVector: ImageVector = ImageVector.Builder(
+    name = "EditIcon",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(3f, 17.25f)
+        verticalLineTo(21f)
+        horizontalLineTo(6.75f)
+        lineTo(17.81f, 9.94f)
+        lineTo(14.06f, 6.19f)
+        lineTo(3f, 17.25f)
+        close()
+        moveTo(20.71f, 7.04f)
+        curveTo(21.1f, 6.65f, 21.1f, 6.02f, 20.71f, 5.63f)
+        lineTo(18.37f, 3.29f)
+        curveTo(17.98f, 2.9f, 17.35f, 2.9f, 16.96f, 3.29f)
+        lineTo(15.13f, 5.12f)
+        lineTo(18.88f, 8.87f)
+        lineTo(20.71f, 7.04f)
+        close()
+    }
+}.build()
+
 @Composable
 fun CustomerPickerDialog(
     customers: List<Customer>,
@@ -96,17 +122,26 @@ fun CustomerPickerDialog(
     onSelectCustomer: (Customer?) -> Unit,
     onAddNewCustomerClick: () -> Unit,
     onDeleteCustomer: (String) -> Unit,
+    onUpdateCustomer: ((Customer) -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
     var searchQuery by remember { mutableStateOf("") }
+    var customerToEdit by remember { mutableStateOf<Customer?>(null) }
+    var customerToDelete by remember { mutableStateOf<Customer?>(null) }
 
     val filteredList = remember(customers, searchQuery) {
-        if (searchQuery.isBlank()) customers
-        else customers.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-            it.phone.contains(searchQuery) ||
-            it.nationalId.contains(searchQuery)
+        val query = searchQuery.trim()
+        if (query.isBlank()) {
+            customers
+        } else {
+            val normalizedQuery = PersianNumberFormatter.normalizeForSearch(query)
+            customers.filter { c ->
+                c.name.contains(query, ignoreCase = true) ||
+                (c.phone.isNotBlank() && PersianNumberFormatter.normalizeForSearch(c.phone).contains(normalizedQuery)) ||
+                (c.nationalId.isNotBlank() && PersianNumberFormatter.normalizeForSearch(c.nationalId).contains(normalizedQuery)) ||
+                (c.note.isNotBlank() && c.note.contains(query, ignoreCase = true))
+            }
         }
     }
 
@@ -331,12 +366,33 @@ fun CustomerPickerDialog(
                                                     fontWeight = FontWeight.Bold,
                                                     color = colors.textMain
                                                 )
-                                                if (customer.phone.isNotBlank()) {
-                                                    Text(
-                                                        text = PersianNumberFormatter.toPersianDigits(customer.phone),
-                                                        fontSize = 11.sp,
-                                                        color = colors.textSecondary
-                                                    )
+                                                if (customer.phone.isNotBlank() || customer.nationalId.isNotBlank()) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        if (customer.phone.isNotBlank()) {
+                                                            Text(
+                                                                text = PersianNumberFormatter.toPersianDigits(customer.phone),
+                                                                fontSize = 11.sp,
+                                                                color = colors.textSecondary
+                                                            )
+                                                        }
+                                                        if (customer.nationalId.isNotBlank()) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(4.dp))
+                                                                    .background(colors.surfaceVariant)
+                                                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "کد: ${PersianNumberFormatter.toPersianDigits(customer.nationalId)}",
+                                                                    fontSize = 9.sp,
+                                                                    color = colors.textMuted
+                                                                )
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 if (customer.note.isNotBlank()) {
                                                     Text(
@@ -349,16 +405,33 @@ fun CustomerPickerDialog(
                                             }
                                         }
 
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            if (onUpdateCustomer != null) {
+                                                IconButton(
+                                                    onClick = { customerToEdit = customer },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = EditIconVector,
+                                                        contentDescription = "ویرایش مشتری",
+                                                        tint = colors.goldPrimary,
+                                                        modifier = Modifier.size(15.dp)
+                                                    )
+                                                }
+                                            }
+
                                             IconButton(
-                                                onClick = { onDeleteCustomer(customer.id) },
-                                                modifier = Modifier.size(30.dp)
+                                                onClick = { customerToDelete = customer },
+                                                modifier = Modifier.size(28.dp)
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.Delete,
                                                     contentDescription = "حذف مشتری",
                                                     tint = colors.errorRed.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(16.dp)
+                                                    modifier = Modifier.size(15.dp)
                                                 )
                                             }
                                         }
@@ -369,6 +442,59 @@ fun CustomerPickerDialog(
                     }
                 }
             }
+        }
+
+        // Delete Confirmation Modal Dialog
+        if (customerToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { customerToDelete = null },
+                title = {
+                    Text(text = "حذف مشتری", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colors.textMain)
+                },
+                text = {
+                    Text(
+                        text = "آیا از حذف مشتری «${customerToDelete?.name}» از لیست مشتریان اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                        fontSize = 12.sp,
+                        color = colors.textSecondary,
+                        lineHeight = 18.sp
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val toDelete = customerToDelete
+                            customerToDelete = null
+                            toDelete?.let { onDeleteCustomer(it.id) }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = colors.errorRed),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("حذف نهایی", fontSize = 11.sp, color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { customerToDelete = null },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("انصراف", fontSize = 11.sp, color = colors.textSecondary)
+                    }
+                },
+                containerColor = colors.surface,
+                shape = RoundedCornerShape(18.dp)
+            )
+        }
+
+        // Edit Customer Modal Dialog
+        if (customerToEdit != null && onUpdateCustomer != null) {
+            EditCustomerDialog(
+                customer = customerToEdit!!,
+                onDismiss = { customerToEdit = null },
+                onSaveCustomer = { updated ->
+                    onUpdateCustomer(updated)
+                    customerToEdit = null
+                }
+            )
         }
     }
 }
@@ -546,6 +672,188 @@ fun AddCustomerDialog(
                             modifier = Modifier.weight(1f).height(44.dp)
                         ) {
                             Text(text = "ثبت و انتخاب", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditCustomerDialog(
+    customer: Customer,
+    onDismiss: () -> Unit,
+    onSaveCustomer: (Customer) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    var name by remember { mutableStateOf(customer.name) }
+    var phone by remember { mutableStateOf(customer.phone) }
+    var nationalId by remember { mutableStateOf(customer.nationalId) }
+    var note by remember { mutableStateOf(customer.note) }
+    var hasError by remember { mutableStateOf(false) }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = colors.surface,
+                border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier
+                    .fillMaxWidth(0.90f)
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ویرایش مشخصات مشتری",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "انصراف",
+                                tint = colors.textSecondary
+                            )
+                        }
+                    }
+
+                    // Name
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            hasError = false
+                        },
+                        label = { Text("نام و نام‌خانوادگی خریدار *", fontSize = 11.sp) },
+                        isError = hasError,
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceElevated,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = colors.goldPrimary,
+                            unfocusedBorderColor = colors.border,
+                            focusedTextColor = colors.textMain,
+                            unfocusedTextColor = colors.textMain
+                        )
+                    )
+                    if (hasError) {
+                        Text(
+                            text = "وارد کردن نام مشتری الزامی است",
+                            fontSize = 10.sp,
+                            color = colors.errorRed
+                        )
+                    }
+
+                    // Phone
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() || c == '+' } },
+                        label = { Text("شماره همراه (اختیاری)", fontSize = 11.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceElevated,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = colors.goldPrimary,
+                            unfocusedBorderColor = colors.border,
+                            focusedTextColor = colors.textMain,
+                            unfocusedTextColor = colors.textMain
+                        )
+                    )
+
+                    // National ID
+                    OutlinedTextField(
+                        value = nationalId,
+                        onValueChange = { nationalId = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() } },
+                        label = { Text("کد ملی / شناسه اقتصادی (اختیاری)", fontSize = 11.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceElevated,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = colors.goldPrimary,
+                            unfocusedBorderColor = colors.border,
+                            focusedTextColor = colors.textMain,
+                            unfocusedTextColor = colors.textMain
+                        )
+                    )
+
+                    // Note
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it },
+                        label = { Text("توضیحات و یادداشت (اختیاری)", fontSize = 11.sp) },
+                        singleLine = false,
+                        maxLines = 2,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceElevated,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = colors.goldPrimary,
+                            unfocusedBorderColor = colors.border,
+                            focusedTextColor = colors.textMain,
+                            unfocusedTextColor = colors.textMain
+                        )
+                    )
+
+                    // Buttons
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        ) {
+                            Text(text = "انصراف", fontSize = 12.sp, color = colors.textSecondary)
+                        }
+
+                        Button(
+                            onClick = {
+                                if (name.trim().isBlank()) {
+                                    hasError = true
+                                } else {
+                                    val updated = customer.copy(
+                                        name = name.trim(),
+                                        phone = phone.trim(),
+                                        nationalId = nationalId.trim(),
+                                        note = note.trim()
+                                    )
+                                    onSaveCustomer(updated)
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colors.goldPrimary,
+                                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
+                            ),
+                            modifier = Modifier.weight(1f).height(44.dp)
+                        ) {
+                            Text(text = "ذخیره تغییرات", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

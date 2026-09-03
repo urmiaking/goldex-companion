@@ -73,13 +73,13 @@ data class Invoice(
             }
             sb.append(" | وزن خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)} گرم\n")
             val wageLabel = if (item.wageType == WageType.PERCENTAGE) {
-                "${PersianNumberFormatter.toPersianDigits(item.wageInput.toString())}٪"
+                "${PersianNumberFormatter.formatPercent(item.wageInput)}٪"
             } else {
                 "${PersianNumberFormatter.formatPrice(item.wageInput)} تومان/گرم"
             }
             sb.append("   • اجرت: $wageLabel (${PersianNumberFormatter.formatPrice(item.wageAmount)} ت)")
-            sb.append(" | سود: ${PersianNumberFormatter.toPersianDigits(item.profitPercent.toString())}٪")
-            sb.append(" | مالیات: ${PersianNumberFormatter.toPersianDigits(item.taxPercent.toString())}٪\n")
+            sb.append(" | سود: ${PersianNumberFormatter.formatPercent(item.profitPercent)}٪")
+            sb.append(" | مالیات: ${PersianNumberFormatter.formatPercent(item.taxPercent)}٪\n")
             sb.append("   • مبلغ ردیف: ${PersianNumberFormatter.formatPrice(item.totalPayable)} تومان\n")
             if (index < items.size - 1) {
                 sb.append("   - - - - - - - - - - - - - - - - - -\n")
@@ -94,7 +94,7 @@ data class Invoice(
         sb.append("• کل مالیات بر ارزش افزوده (قانونی): ${PersianNumberFormatter.formatPrice(totalTaxAmount)} تومان\n")
         sb.append("────────────────────────────────────────\n")
         sb.append("💰 مبلغ کل نهایی قابل پرداخت: ${PersianNumberFormatter.formatPrice(totalPayable)} تومان\n")
-        sb.append("(${PersianWordsFormatter.toWords(totalPayable.toLong())} تومان)\n")
+        sb.append("(${PersianWordsFormatter.toWords(totalPayable.toLong())})\n")
         sb.append("✨ میانگین تمام‌شده هر گرم: ${PersianNumberFormatter.formatPrice(effectiveGramPrice)} تومان\n")
         sb.append("════════════════════════════════════════\n")
         sb.append("توضیحات قانونی: اصل طلا از ۹٪ مالیات معاف بوده و مالیات صرفاً بر اجرت و سود اعمال گردیده است.\n")

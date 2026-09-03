@@ -95,4 +95,47 @@ class InvoiceTest {
         assertEquals("", cust.nationalId)
         assertTrue(cust.createdAt > 0L)
     }
+
+    @Test
+    fun testFormatPercentWithoutUglyDecimals() {
+        assertEquals("۷", PersianNumberFormatter.formatPercent(7.0))
+        assertEquals("۹", PersianNumberFormatter.formatPercent(9.0))
+        assertEquals("۱۲", PersianNumberFormatter.formatPercent(12.0))
+        assertEquals("۷.۵", PersianNumberFormatter.formatPercent(7.5))
+    }
+
+    @Test
+    fun testNoDuplicateTomanInTextInvoice() {
+        val item = InvoiceItem(
+            title = "دستبند",
+            grossWeight = 10.0,
+            netWeight = 10.0,
+            spotPrice = 20_000_000L,
+            wageInput = 10.0,
+            wageAmount = 20_000_000.0,
+            profitPercent = 7.0,
+            profitAmount = 15_400_000.0,
+            taxPercent = 9.0,
+            taxAmount = 3_186_000.0,
+            rawGoldValue = 200_000_000.0,
+            totalPayable = 238_586_000.0,
+            effectiveGramPrice = 23_858_600.0
+        )
+        val invoice = Invoice(items = listOf(item))
+        val text = invoice.formatTextInvoice("اتحادیه")
+        assertFalse("Invoice text must not contain duplicate 'تومان تومان'", text.contains("تومان تومان"))
+    }
+
+    @Test
+    fun testCustomerSearchNormalization() {
+        val persianPhone = "۰۹۱۲۳۴۵۶۷۸۹"
+        val englishQuery = "0912"
+        val normalizedPhone = PersianNumberFormatter.normalizeForSearch(persianPhone)
+        val normalizedQuery = PersianNumberFormatter.normalizeForSearch(englishQuery)
+        assertTrue(normalizedPhone.contains(normalizedQuery))
+
+        val nationalId = "۰۰۱۲۳۴۵۶۷۸"
+        val queryPersian = "۰۱۲"
+        assertTrue(PersianNumberFormatter.normalizeForSearch(nationalId).contains(PersianNumberFormatter.normalizeForSearch(queryPersian)))
+    }
 }

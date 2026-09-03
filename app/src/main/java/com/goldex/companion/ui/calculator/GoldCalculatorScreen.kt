@@ -128,6 +128,7 @@ fun GoldCalculatorScreen(
             },
             onAddNewCustomerClick = { viewModel.setAddCustomerDialogVisible(true) },
             onDeleteCustomer = { viewModel.deleteCustomer(context, it) },
+            onUpdateCustomer = { viewModel.updateCustomer(context, it) },
             onDismiss = { viewModel.setCustomerManagerVisible(false) }
         )
     }
@@ -321,6 +322,17 @@ fun GoldCalculatorScreen(
                                     label = "tabScale"
                                 )
 
+                                val indicatorWidth by animateDpAsState(
+                                    targetValue = if (isSelected) 16.dp else 0.dp,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    ),
+                                    label = "indicatorWidth"
+                                )
+
+                                val interactionSource = remember { MutableInteractionSource() }
+
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -342,7 +354,10 @@ fun GoldCalculatorScreen(
                                             if (isSelected) colors.goldPrimary.copy(alpha = 0.6f) else Color.Transparent,
                                             RoundedCornerShape(20.dp)
                                         )
-                                        .clickable {
+                                        .clickable(
+                                            interactionSource = interactionSource,
+                                            indication = null
+                                        ) {
                                             viewModel.selectTab(tab)
                                         }
                                         .padding(vertical = 6.dp),
@@ -355,7 +370,7 @@ fun GoldCalculatorScreen(
                                         // Active top glowing micro-indicator dot
                                         Box(
                                             modifier = Modifier
-                                                .width(14.dp)
+                                                .width(indicatorWidth)
                                                 .height(2.5.dp)
                                                 .clip(RoundedCornerShape(2.dp))
                                                 .background(if (isSelected) colors.goldPrimary else Color.Transparent)

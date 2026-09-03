@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -24,9 +25,12 @@ fun GoldInputField(
     subLabel: String? = null,
     isDecimal: Boolean = false,
     useThousandsSeparator: Boolean = true,
+    keyboardType: KeyboardType? = null,
     enabled: Boolean = true
 ) {
     val colors = LocalGoldExColors.current
+    val effectiveKeyboardType = keyboardType ?: if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
+    val isText = effectiveKeyboardType == KeyboardType.Text
 
     Column(modifier = modifier) {
         OutlinedTextField(
@@ -57,12 +61,16 @@ fun GoldInputField(
                     }
                 }
             } else null,
-            visualTransformation = ThousandsSeparatorVisualTransformation(
-                isPersian = true,
-                addSeparators = useThousandsSeparator
-            ),
+            visualTransformation = if (isText) {
+                VisualTransformation.None
+            } else {
+                ThousandsSeparatorVisualTransformation(
+                    isPersian = true,
+                    addSeparators = useThousandsSeparator
+                )
+            },
             keyboardOptions = KeyboardOptions(
-                keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
+                keyboardType = effectiveKeyboardType
             ),
             singleLine = true,
             enabled = enabled,

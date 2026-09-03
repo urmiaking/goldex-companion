@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,6 +68,7 @@ fun JewelryTab(
             onSelectCustomer = { viewModel.selectCustomer(it) },
             onAddNewCustomerClick = { viewModel.setAddCustomerDialogVisible(true) },
             onDeleteCustomer = { viewModel.deleteCustomer(context, it) },
+            onUpdateCustomer = { viewModel.updateCustomer(context, it) },
             onDismiss = { viewModel.setCustomerPickerVisible(false) }
         )
     }
@@ -200,7 +202,7 @@ fun JewelryTab(
                         onValueChange = { viewModel.onSpotPriceChanged(it) },
                         label = "نرخ هر گرم طلا خام ۱۸ عیار",
                         trailingText = "تومان",
-                        subLabel = if (uiState.priceInWords.isNotBlank()) "${uiState.priceInWords} تومان" else null,
+                        subLabel = if (uiState.priceInWords.isNotBlank()) uiState.priceInWords else null,
                         isDecimal = false,
                         useThousandsSeparator = true
                     )
@@ -275,13 +277,35 @@ fun JewelryTab(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(colors.surfaceElevated)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(text = "دقت ۰.۰۰۱ گرم", fontSize = 10.sp, color = colors.textMuted)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = colors.surfaceElevated,
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
+                            modifier = Modifier.clickable {
+                                viewModel.resetJewelry()
+                                Toast.makeText(context, "فرم این قلم بازنشانی شد ✓", Toast.LENGTH_SHORT).show()
+                            }
+                        ) {
+                            Text(
+                                text = "بازنشانی فرم",
+                                fontSize = 9.5.sp,
+                                color = colors.goldPrimary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.surfaceElevated)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(text = "دقت ۰.۰۰۱ گرم", fontSize = 10.sp, color = colors.textMuted)
+                        }
                     }
                 }
 
@@ -291,7 +315,7 @@ fun JewelryTab(
                     onValueChange = { viewModel.onItemTitleChanged(it) },
                     label = "شرح یا عنوان قطعه طلا (اختیاری)",
                     trailingText = "شرح",
-                    isDecimal = false,
+                    keyboardType = KeyboardType.Text,
                     useThousandsSeparator = false
                 )
 
@@ -924,7 +948,7 @@ fun JewelryTab(
                                                     }
                                                 }
                                                 Text(
-                                                    text = "وزن خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)} گ | اجرت: ${if (item.wageType == WageType.PERCENTAGE) "${PersianNumberFormatter.toPersianDigits(item.wageInput.toString())}٪" else "${PersianNumberFormatter.formatPrice(item.wageInput)} ت"}",
+                                                    text = "وزن خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)} گ | اجرت: ${if (item.wageType == WageType.PERCENTAGE) "${PersianNumberFormatter.formatPercent(item.wageInput)}٪" else "${PersianNumberFormatter.formatPrice(item.wageInput)} ت"}",
                                                     fontSize = 10.sp,
                                                     color = colors.textSecondary
                                                 )
@@ -1041,7 +1065,7 @@ fun JewelryTab(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${PersianWordsFormatter.toWords(invoice.totalPayable.toLong())} تومان",
+                                text = PersianWordsFormatter.toWords(invoice.totalPayable.toLong()),
                                 fontSize = 11.sp,
                                 color = colors.textMain,
                                 textAlign = TextAlign.Center

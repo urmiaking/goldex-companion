@@ -134,7 +134,7 @@ fun PortfolioTab(
                     )
 
                     Text(
-                        text = "${PersianWordsFormatter.toWords(totalCurrentVal)} تومان",
+                        text = PersianWordsFormatter.toWords(totalCurrentVal),
                         fontSize = 11.sp,
                         color = colors.textMain
                     )

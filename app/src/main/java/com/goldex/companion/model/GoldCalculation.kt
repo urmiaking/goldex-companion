@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.model
+package com.goldex.companion.model
 
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
@@ -141,6 +141,23 @@ object PersianNumberFormatter {
         }
         val df = DecimalFormat("#,##0.000", symbols)
         return toPersianDigits(df.format(weight))
+    }
+
+    fun formatPercent(value: Double): String {
+        val formatted = if (value % 1.0 == 0.0) {
+            value.toLong().toString()
+        } else {
+            "%.2f".format(Locale.US, value).trimEnd('0').trimEnd('.')
+        }
+        return toPersianDigits(formatted)
+    }
+
+    fun normalizeForSearch(text: String): String {
+        return toEnglishDigits(text)
+            .replace("-", "")
+            .replace(" ", "")
+            .trim()
+            .lowercase()
     }
 
     fun parsePersianOrEnglish(text: String): Double? {

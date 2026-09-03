@@ -8,6 +8,7 @@ import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.*
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -141,19 +142,25 @@ class GoldCalculatorViewModel : ViewModel() {
         }
     }
 
+    private fun sanitizeDecimal(input: String): String {
+        val clean = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() || it == '.' }
+        val parts = clean.split('.')
+        return if (parts.size > 2) parts[0] + "." + parts.subList(1, parts.size).joinToString("") else clean
+    }
+
     // --- Jewelry Tab Actions ---
     fun onItemTitleChanged(newTitle: String) {
         _uiState.update { it.copy(itemTitleInput = newTitle) }
     }
 
     fun onGrossWeightChanged(newWeight: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
+        val clean = sanitizeDecimal(newWeight)
         _uiState.update { it.copy(grossWeightInput = clean) }
         calculateJewelry()
     }
 
     fun onStoneWeightChanged(newStone: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newStone).filter { it.isDigit() || it == '.' }
+        val clean = sanitizeDecimal(newStone)
         _uiState.update { it.copy(stoneWeightInput = clean) }
         calculateJewelry()
     }
@@ -180,13 +187,17 @@ class GoldCalculatorViewModel : ViewModel() {
     }
 
     fun onWageChanged(newWage: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newWage).filter { it.isDigit() || it == '.' }
+        val clean = if (_uiState.value.wageType == WageType.PERCENTAGE) {
+            sanitizeDecimal(newWage)
+        } else {
+            PersianNumberFormatter.toEnglishDigits(newWage).filter { it.isDigit() }
+        }
         _uiState.update { it.copy(wageInput = clean) }
         calculateJewelry()
     }
 
     fun onProfitPercentChanged(newProfit: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newProfit).filter { it.isDigit() || it == '.' }
+        val clean = sanitizeDecimal(newProfit)
         _uiState.update { it.copy(profitPercentInput = clean) }
         calculateJewelry()
     }
@@ -198,7 +209,7 @@ class GoldCalculatorViewModel : ViewModel() {
     }
 
     fun onTaxPercentChanged(newTax: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newTax).filter { it.isDigit() || it == '.' }
+        val clean = sanitizeDecimal(newTax)
         _uiState.update { it.copy(taxPercentInput = clean) }
         calculateJewelry()
     }
@@ -212,7 +223,11 @@ class GoldCalculatorViewModel : ViewModel() {
     fun addGrossWeight(amount: Double) {
         val current = PersianNumberFormatter.parsePersianOrEnglish(_uiState.value.grossWeightInput) ?: 0.0
         val next = (current + amount).coerceAtLeast(0.0)
-        val formatted = if (next % 1.0 == 0.0) next.toLong().toString() else "%.2f".format(next)
+        val formatted = if (next % 1.0 == 0.0) {
+            next.toLong().toString()
+        } else {
+            "%.3f".format(Locale.US, next).trimEnd('0').trimEnd('.')
+        }
         _uiState.update { it.copy(grossWeightInput = formatted) }
         calculateJewelry()
     }
@@ -307,6 +322,18 @@ class GoldCalculatorViewModel : ViewModel() {
                 selectedCustomer = if (autoSelect) customer else it.selectedCustomer,
                 isAddCustomerDialogVisible = false,
                 isCustomerPickerVisible = false
+            )
+        }
+    }
+
+    fun updateCustomer(context: Context, customer: Customer) {
+        val repo = CustomerRepository(context)
+        repo.updateCustomer(customer)
+        val updated = repo.getCustomers()
+        _uiState.update {
+            it.copy(
+                customerList = updated,
+                selectedCustomer = if (it.selectedCustomer?.id == customer.id) customer else it.selectedCustomer
             )
         }
     }
