@@ -6,13 +6,27 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 
 class ThousandsSeparatorVisualTransformation(
-    private val isPersian: Boolean = true
+    private val isPersian: Boolean = true,
+    private val addSeparators: Boolean = true
 ) : VisualTransformation {
 
     override fun filter(text: AnnotatedString): TransformedText {
         val original = text.text
         if (original.isEmpty()) {
             return TransformedText(text, OffsetMapping.Identity)
+        }
+
+        if (!addSeparators) {
+            val converted = if (isPersian) {
+                val sb = StringBuilder(original.length)
+                for (ch in original) {
+                    sb.append(toPersianDigit(ch))
+                }
+                sb.toString()
+            } else {
+                original
+            }
+            return TransformedText(AnnotatedString(converted), OffsetMapping.Identity)
         }
 
         val parts = original.split('.')

@@ -1,7 +1,6 @@
 ﻿package com.goldex.companion.ui.calculator.tabs
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,17 +19,20 @@ import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.ResultRow
-import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun CoinBubbleTab(
     viewModel: GoldCalculatorViewModel,
     uiState: CalculatorUiState
 ) {
+    val colors = LocalGoldExColors.current
+
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = DarkSurface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        color = colors.surface,
+        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -41,7 +43,7 @@ fun CoinBubbleTab(
                 text = "حباب‌سنج تخصصی انواع سکه بانکی",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = GoldLight
+                color = colors.goldPrimary
             )
 
             // Coins Selector Grid
@@ -50,10 +52,10 @@ fun CoinBubbleTab(
                     val isSelected = uiState.selectedCoin == coin
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) GoldContainer else DarkSurfaceElevated,
+                        color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
                         border = androidx.compose.foundation.BorderStroke(
                             if (isSelected) 1.dp else 0.5.dp,
-                            if (isSelected) GoldPrimary else DarkBorder
+                            if (isSelected) colors.goldPrimary else colors.border
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -68,12 +70,12 @@ fun CoinBubbleTab(
                                 text = coin.titleFa,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) GoldPrimary else TextMain
+                                color = if (isSelected) colors.goldPrimary else colors.textMain
                             )
                             Text(
-                                text = "${coin.totalWeightGrams} گرم",
+                                text = "${PersianNumberFormatter.toPersianDigits(coin.totalWeightGrams.toString())} گرم",
                                 fontSize = 11.sp,
-                                color = if (isSelected) GoldLight else TextMuted
+                                color = if (isSelected) colors.goldSecondary else colors.textMuted
                             )
                         }
                     }
@@ -93,9 +95,9 @@ fun CoinBubbleTab(
             uiState.coinBubbleResult?.let { bubble ->
                 val bubblePercent = bubble.bubblePercent
                 val statusColor = when {
-                    bubblePercent > 25.0 -> ErrorRed
+                    bubblePercent > 25.0 -> colors.errorRed
                     bubblePercent > 15.0 -> Color(0xFFF59E0B)
-                    else -> ProfitGreen
+                    else -> colors.profitGreen
                 }
                 val statusText = when {
                     bubblePercent > 25.0 -> "ریسک حباب بسیار بالا"
@@ -105,8 +107,8 @@ fun CoinBubbleTab(
 
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = DarkSurfaceElevated,
-                    border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+                    color = colors.surfaceElevated,
+                    border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -118,7 +120,7 @@ fun CoinBubbleTab(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("وضعیت حباب بازاری", fontSize = 12.sp, color = TextSecondary)
+                            Text("وضعیت حباب بازاری", fontSize = 12.sp, color = colors.textSecondary)
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -134,7 +136,7 @@ fun CoinBubbleTab(
                             }
                         }
 
-                        Divider(color = DarkBorder, thickness = 0.5.dp)
+                        HorizontalDivider(color = colors.border, thickness = 0.7.dp)
 
                         ResultRow(
                             label = "ارزش ذاتی طلای سکه:",

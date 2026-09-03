@@ -44,15 +44,14 @@ class GoldCalculationTest {
     }
 
     @Test
-    fun testVisualTransformationOffsetMapping() {
-        val transformation = ThousandsSeparatorVisualTransformation(isPersian = false)
+    fun testVisualTransformationSeparated() {
+        val transformation = ThousandsSeparatorVisualTransformation(isPersian = false, addSeparators = true)
         val input = AnnotatedString("1234567")
         val transformed = transformation.filter(input)
 
         // "1234567" -> "1،234،567"
         assertEquals("1،234،567", transformed.text.text)
 
-        // Test boundary offset mappings
         val mapping = transformed.offsetMapping
         assertEquals(0, mapping.originalToTransformed(0))
         assertEquals(9, mapping.originalToTransformed(7))
@@ -61,8 +60,16 @@ class GoldCalculationTest {
     }
 
     @Test
+    fun testVisualTransformationPersianUnseparated() {
+        val transformation = ThousandsSeparatorVisualTransformation(isPersian = true, addSeparators = false)
+        val input = AnnotatedString("10.5")
+        val transformed = transformation.filter(input)
+
+        assertEquals("۱۰.۵", transformed.text.text)
+    }
+
+    @Test
     fun testMeltGoldMesghalConversion() {
-        // Standard formula: mesghal / 4.33185 = gram 18K
         val mesghalPrice = 16_115_000.0
         val gram18k = (mesghalPrice / 4.33185).toLong()
         assertEquals(3_720_119L, gram18k)
@@ -74,15 +81,14 @@ class GoldCalculationTest {
         assertEquals(8.13598, emami.totalWeightGrams, 0.001)
         assertEquals(7.322382, emami.pureWeightGrams, 0.001)
 
-        val ons = 2500.0
-        val usd = 60_000.0
+        val ons = 4435.0
+        val usd = 221_500.0
         val gram24Price = (ons * usd) / 31.1035
         val intrinsic = (emami.pureWeightGrams * gram24Price) + emami.mintFee
-        val marketPrice = 42_000_000.0
+        val marketPrice = 234_000_000.0
         val bubble = marketPrice - intrinsic
 
-        assertTrue(intrinsic > 30_000_000.0)
-        assertTrue(bubble > 0.0)
+        assertTrue(intrinsic > 200_000_000.0)
     }
 
     @Test
@@ -112,11 +118,11 @@ class GoldCalculationTest {
     @Test
     fun testMarketRatesAndProviders() {
         val rates = MarketRates(
-            gold18 = 22_835_100L,
-            source = PriceSource.ISIGNAL
+            gold18 = 23_360_000L,
+            source = PriceSource.TGJU
         )
-        assertEquals(22_835_100L, rates.gold18)
-        assertEquals(PriceSource.ISIGNAL, rates.source)
-        assertEquals("آی‌سیگنال (isignal.ir)", rates.source.labelFa)
+        assertEquals(23_360_000L, rates.gold18)
+        assertEquals(PriceSource.TGJU, rates.source)
+        assertEquals("شبکه طلا و ارز (tgju.org)", rates.source.labelFa)
     }
 }

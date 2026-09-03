@@ -18,17 +18,20 @@ import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun MeltTab(
     viewModel: GoldCalculatorViewModel,
     uiState: CalculatorUiState
 ) {
+    val colors = LocalGoldExColors.current
+
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = DarkSurface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        color = colors.surface,
+        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -39,7 +42,7 @@ fun MeltTab(
                 text = "مظنه آبشده و مثقال (تبدیل ۱۷ به ۱۸ عیار)",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = GoldLight
+                color = colors.goldPrimary
             )
 
             // Mesghal price input with live badge button
@@ -54,8 +57,8 @@ fun MeltTab(
             // Live rate quick bind chip
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = DarkSurfaceElevated,
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, GoldBorder),
+                color = colors.surfaceElevated,
+                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString()) }
@@ -65,12 +68,12 @@ fun MeltTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "درج مظنه زنده بازار:", fontSize = 11.sp, color = TextSecondary)
+                    Text(text = "درج مظنه زنده بازار:", fontSize = 11.sp, color = colors.textSecondary)
                     Text(
                         text = "${PersianNumberFormatter.formatPrice(uiState.rates.goldMelt.toDouble())} تومان",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
+                        color = colors.goldPrimary
                     )
                 }
             }
@@ -78,8 +81,8 @@ fun MeltTab(
             // Equivalent 18k Gram rate pill
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = DarkSurfaceElevated,
-                border = androidx.compose.foundation.BorderStroke(0.5.dp, DarkBorder),
+                color = colors.surfaceElevated,
+                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -87,12 +90,12 @@ fun MeltTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("قیمت معادل هر گرم ۱۸ عیار:", fontSize = 12.sp, color = TextSecondary)
+                    Text("قیمت معادل هر گرم ۱۸ عیار:", fontSize = 12.sp, color = colors.textSecondary)
                     Text(
                         text = "${PersianNumberFormatter.formatPrice(uiState.meltGram18kPrice.toDouble())} تومان",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = GoldLight
+                        color = colors.goldSecondary
                     )
                 }
             }
@@ -112,24 +115,24 @@ fun MeltTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(GoldContainer)
-                    .border(0.6.dp, GoldBorder, RoundedCornerShape(14.dp))
+                    .background(colors.goldContainer)
+                    .border(0.6.dp, colors.goldBorder, RoundedCornerShape(14.dp))
                     .padding(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("ارزش کل قطعه آبشده ۱۸ عیار", fontSize = 12.sp, color = TextSecondary)
+                Text("ارزش کل قطعه آبشده ۱۸ عیار", fontSize = 12.sp, color = colors.textSecondary)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = GoldPrimary
+                    color = colors.goldPrimary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong())} تومان",
                     fontSize = 11.sp,
-                    color = GoldLight
+                    color = colors.textMain
                 )
             }
         }

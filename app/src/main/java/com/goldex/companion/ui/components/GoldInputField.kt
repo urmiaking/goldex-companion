@@ -1,7 +1,5 @@
 ﻿package com.goldex.companion.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,10 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
 @Composable
@@ -29,6 +26,8 @@ fun GoldInputField(
     useThousandsSeparator: Boolean = true,
     enabled: Boolean = true
 ) {
+    val colors = LocalGoldExColors.current
+
     Column(modifier = modifier) {
         OutlinedTextField(
             value = value,
@@ -45,24 +44,23 @@ fun GoldInputField(
                 {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = DarkSurfaceElevated,
+                        color = colors.surfaceElevated,
                         modifier = Modifier.padding(end = 10.dp)
                     ) {
                         Text(
                             text = trailingText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = TextSecondary,
+                            color = colors.textSecondary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             } else null,
-            visualTransformation = if (useThousandsSeparator) {
-                ThousandsSeparatorVisualTransformation(isPersian = true)
-            } else {
-                VisualTransformation.None
-            },
+            visualTransformation = ThousandsSeparatorVisualTransformation(
+                isPersian = true,
+                addSeparators = useThousandsSeparator
+            ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
             ),
@@ -71,18 +69,18 @@ fun GoldInputField(
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = DarkSurfaceElevated,
-                unfocusedContainerColor = DarkSurface,
-                disabledContainerColor = DarkSurface,
-                focusedBorderColor = GoldPrimary,
-                unfocusedBorderColor = DarkBorder,
-                focusedLabelColor = GoldLight,
-                unfocusedLabelColor = TextSecondary,
-                focusedTextColor = TextMain,
-                unfocusedTextColor = TextMain,
-                cursorColor = GoldPrimary,
-                disabledTextColor = TextMuted,
-                disabledBorderColor = DarkBorder
+                focusedContainerColor = colors.surfaceElevated,
+                unfocusedContainerColor = colors.surface,
+                disabledContainerColor = colors.surfaceVariant,
+                focusedBorderColor = colors.goldPrimary,
+                unfocusedBorderColor = colors.border,
+                focusedLabelColor = colors.goldPrimary,
+                unfocusedLabelColor = colors.textSecondary,
+                focusedTextColor = colors.textMain,
+                unfocusedTextColor = colors.textMain,
+                cursorColor = colors.goldPrimary,
+                disabledTextColor = colors.textMuted,
+                disabledBorderColor = colors.border
             )
         )
 
@@ -91,7 +89,7 @@ fun GoldInputField(
                 text = subLabel,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Normal,
-                color = GoldSecondary,
+                color = colors.goldSecondary,
                 modifier = Modifier.padding(start = 6.dp, top = 4.dp)
             )
         }

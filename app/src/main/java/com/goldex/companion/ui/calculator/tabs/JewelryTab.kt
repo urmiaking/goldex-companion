@@ -1,4 +1,4 @@
-package com.goldex.companion.ui.calculator.tabs
+﻿package com.goldex.companion.ui.calculator.tabs
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -36,7 +35,7 @@ import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.ResultRow
-import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun JewelryTab(
@@ -44,13 +43,15 @@ fun JewelryTab(
     uiState: CalculatorUiState
 ) {
     val context = LocalContext.current
+    val colors = LocalGoldExColors.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Karat & Auto Sync Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = DarkSurface,
-            border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+            shadowElevation = if (colors.isDark) 0.dp else 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -66,7 +67,7 @@ fun JewelryTab(
                         text = "عیار قطعه طلا",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = TextSecondary
+                        color = colors.textSecondary
                     )
 
                     Row(
@@ -76,16 +77,16 @@ fun JewelryTab(
                         Text(
                             text = "همگام با مظنه زنده",
                             fontSize = 11.sp,
-                            color = if (uiState.autoSyncPrice) ProfitGreen else TextMuted
+                            color = if (uiState.autoSyncPrice) colors.profitGreen else colors.textMuted
                         )
                         Switch(
                             checked = uiState.autoSyncPrice,
                             onCheckedChange = { viewModel.toggleAutoSyncPrice(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = GoldPrimary,
-                                checkedTrackColor = DarkSurfaceElevated,
-                                uncheckedThumbColor = TextMuted,
-                                uncheckedTrackColor = DarkSurfaceElevated
+                                checkedThumbColor = colors.goldPrimary,
+                                checkedTrackColor = colors.surfaceElevated,
+                                uncheckedThumbColor = colors.textMuted,
+                                uncheckedTrackColor = colors.surfaceElevated
                             ),
                             modifier = Modifier.height(22.dp)
                         )
@@ -102,10 +103,10 @@ fun JewelryTab(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) GoldContainer else DarkSurfaceElevated)
+                                .background(if (isSelected) colors.goldContainer else colors.surfaceElevated)
                                 .border(
                                     if (isSelected) 1.dp else 0.5.dp,
-                                    if (isSelected) GoldPrimary else DarkBorder,
+                                    if (isSelected) colors.goldPrimary else colors.border,
                                     RoundedCornerShape(10.dp)
                                 )
                                 .clickable { viewModel.onKaratSelected(karat) }
@@ -116,7 +117,7 @@ fun JewelryTab(
                                 text = karat.labelFa,
                                 fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) GoldPrimary else TextSecondary
+                                color = if (isSelected) colors.goldPrimary else colors.textSecondary
                             )
                         }
                     }
@@ -127,8 +128,9 @@ fun JewelryTab(
         // Inputs Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = DarkSurface,
-            border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+            shadowElevation = if (colors.isDark) 0.dp else 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -141,19 +143,19 @@ fun JewelryTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "مشخصات وزن", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                    Text(text = "مشخصات وزن", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(1.0, 5.0, 10.0).forEach { add ->
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = DarkSurfaceElevated,
-                                border = androidx.compose.foundation.BorderStroke(0.5.dp, DarkBorder),
+                                color = colors.surfaceElevated,
+                                border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
                                 modifier = Modifier.clickable { viewModel.addGrossWeight(add) }
                             ) {
                                 Text(
-                                    text = "+${PersianNumberFormatter.toPersianDigits(add.toInt().toString())}g",
+                                    text = "+${PersianNumberFormatter.toPersianDigits(add.toInt().toString())} گرم",
                                     fontSize = 10.sp,
-                                    color = GoldLight,
+                                    color = colors.goldPrimary,
                                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                                 )
                             }
@@ -202,12 +204,12 @@ fun JewelryTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "اجرت ساخت", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                    Text(text = "اجرت ساخت", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSurfaceElevated)
-                            .border(0.5.dp, DarkBorder, RoundedCornerShape(8.dp))
+                            .background(colors.surfaceElevated)
+                            .border(0.5.dp, colors.border, RoundedCornerShape(8.dp))
                             .padding(2.dp)
                     ) {
                         WageType.values().forEach { type ->
@@ -215,14 +217,14 @@ fun JewelryTab(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSel) GoldContainer else Color.Transparent)
+                                    .background(if (isSel) colors.goldContainer else Color.Transparent)
                                     .clickable { viewModel.onWageTypeChanged(type) }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = type.labelFa,
                                     fontSize = 10.sp,
-                                    color = if (isSel) GoldPrimary else TextMuted
+                                    color = if (isSel) colors.goldPrimary else colors.textMuted
                                 )
                             }
                         }
@@ -274,8 +276,9 @@ fun JewelryTab(
             uiState.jewelryResult?.let { res ->
                 Surface(
                     shape = RoundedCornerShape(18.dp),
-                    color = DarkSurface,
-                    border = androidx.compose.foundation.BorderStroke(0.8.dp, GoldBorder),
+                    color = colors.surface,
+                    border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -286,10 +289,10 @@ fun JewelryTab(
                             text = "فاکتور برآورد قیمت",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = GoldLight
+                            color = colors.goldPrimary
                         )
 
-                        Divider(color = DarkBorder, thickness = 0.5.dp)
+                        HorizontalDivider(color = colors.border, thickness = 0.7.dp)
 
                         ResultRow(
                             label = "وزن خالص طلا",
@@ -314,35 +317,35 @@ fun JewelryTab(
                         ResultRow(
                             label = "قیمت تمام‌شده هر گرم",
                             value = "${PersianNumberFormatter.formatPrice(res.effectiveGramPrice)} تومان",
-                            valueColor = GoldSecondary,
+                            valueColor = colors.goldSecondary,
                             isHighlight = true
                         )
 
-                        Divider(color = DarkBorder, thickness = 0.5.dp)
+                        HorizontalDivider(color = colors.border, thickness = 0.7.dp)
 
                         // Big Luxury Total
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(GoldContainer)
-                                .border(0.5.dp, GoldBorder, RoundedCornerShape(12.dp))
+                                .background(colors.goldContainer)
+                                .border(0.6.dp, colors.goldBorder, RoundedCornerShape(12.dp))
                                 .padding(12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(text = "مبلغ کل قابل پرداخت", fontSize = 12.sp, color = TextSecondary)
+                            Text(text = "مبلغ کل قابل پرداخت", fontSize = 12.sp, color = colors.textSecondary)
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
                                 text = "${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = GoldPrimary
+                                color = colors.goldPrimary
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "${PersianWordsFormatter.toWords(res.totalPayable.toLong())} تومان",
                                 fontSize = 11.sp,
-                                color = GoldLight,
+                                color = colors.textMain,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -361,8 +364,8 @@ fun JewelryTab(
                                     Toast.makeText(context, "فاکتور با موفقیت کپی شد", Toast.LENGTH_SHORT).show()
                                 },
                                 shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = GoldLight),
-                                border = androidx.compose.foundation.BorderStroke(0.6.dp, GoldBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
+                                border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -383,8 +386,8 @@ fun JewelryTab(
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = GoldPrimary,
-                                    contentColor = DarkBg
+                                    containerColor = colors.goldPrimary,
+                                    contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
