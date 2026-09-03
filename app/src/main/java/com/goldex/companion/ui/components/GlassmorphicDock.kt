@@ -33,6 +33,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -126,15 +127,25 @@ fun GlassmorphicDock(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
-    val tabs = remember { AppTab.values() }
-    val tabCount = tabs.size
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    // Ordered from Left to Right in LTR container so Persian RTL user sees:
+    // [Far Left: Portfolio] [Convert] [Coin] [Melt] [Far Right: Jewelry]
+    val displayTabs = remember {
+        listOf(
+            AppTab.PORTFOLIO,
+            AppTab.CONVERT,
+            AppTab.COIN,
+            AppTab.MELT,
+            AppTab.JEWELRY
+        )
+    }
+    val tabCount = displayTabs.size
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 12.dp, end = 12.dp, bottom = 10.dp, top = 2.dp),
+            .padding(start = 14.dp, end = 14.dp, bottom = 10.dp, top = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         // Dual Elevation Shadow Layer 1: Ambient soft gold atmospheric halo
@@ -146,193 +157,209 @@ fun GlassmorphicDock(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            colors.goldPrimary.copy(alpha = if (colors.isDark) 0.14f else 0.10f),
+                            colors.goldPrimary.copy(alpha = if (colors.isDark) 0.16f else 0.12f),
                             Color.Transparent
                         )
                     )
                 )
         )
 
-        // Dual Elevation Shadow Layer 2 & Frosted Glass Container
+        // Frosted Glassmorphism Container
         Surface(
             shape = RoundedCornerShape(26.dp),
-            color = colors.surface.copy(alpha = if (colors.isDark) 0.78f else 0.86f),
+            color = if (colors.isDark) {
+                Color(0xCC111624) // 80% opacity dark frosted glass
+            } else {
+                Color(0xDDF4F5F9) // 86% opacity light frosted pearl glass
+            },
             border = BorderStroke(
-                width = 1.dp,
+                width = 1.2.dp,
                 brush = Brush.verticalGradient(
                     if (colors.isDark) {
                         listOf(
-                            Color.White.copy(alpha = 0.32f),       // Overhead ambient specular highlight
-                            colors.goldPrimary.copy(alpha = 0.45f),  // Gilded aurum transition
-                            colors.goldSecondary.copy(alpha = 0.18f),
-                            Color.Black.copy(alpha = 0.40f)        // Lower shadow falloff
+                            Color.White.copy(alpha = 0.45f),        // Crisp overhead specular reflection
+                            colors.goldPrimary.copy(alpha = 0.40f), // Gilded hairline
+                            Color.White.copy(alpha = 0.08f),
+                            Color.Black.copy(alpha = 0.35f)
                         )
                     } else {
                         listOf(
-                            Color.White.copy(alpha = 0.95f),       // Overhead white specular sheen
-                            colors.goldPrimary.copy(alpha = 0.35f),  // Gilded hairline
-                            colors.goldSecondary.copy(alpha = 0.20f),
-                            colors.border.copy(alpha = 0.30f)       // Lower perimeter contour
+                            Color.White.copy(alpha = 0.98f),        // Frosted specular sheen
+                            colors.goldPrimary.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.50f),
+                            Color.Black.copy(alpha = 0.06f)
                         )
                     }
                 )
             ),
-            shadowElevation = if (colors.isDark) 10.dp else 16.dp,
-            tonalElevation = 2.dp,
+            shadowElevation = if (colors.isDark) 14.dp else 18.dp,
+            tonalElevation = 0.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 6.dp)
-            ) {
-                val horizontalPadding = 0.dp
-                val availableWidth = maxWidth - (horizontalPadding * 2)
-                val tabWidth = availableWidth / tabCount
-                val selectedIndex = selectedTab.ordinal.coerceIn(0, tabCount - 1)
-
-                // Precise RTL-aware indicator track offset calculation
-                val targetOffset = if (isRtl) {
-                    horizontalPadding + (tabWidth * (tabCount - 1 - selectedIndex))
-                } else {
-                    horizontalPadding + (tabWidth * selectedIndex)
-                }
-
-                // Fluid sliding spring physics indicator glide
-                val indicatorOffset by animateDpAsState(
-                    targetValue = targetOffset,
-                    animationSpec = spring(
-                        dampingRatio = 0.76f,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
-                    label = "dockSlidingPillGlide"
-                )
-
-                // Sliding Glass Pill Indicator Track
-                Box(
+            // Force LTR coordinate system for 100% deterministic sliding indicator offset
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                BoxWithConstraints(
                     modifier = Modifier
-                        .offset(x = indicatorOffset)
-                        .width(tabWidth)
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    colors.goldContainer.copy(alpha = if (colors.isDark) 0.50f else 0.65f),
-                                    colors.surfaceElevated.copy(alpha = if (colors.isDark) 0.85f else 0.92f)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    colors.goldPrimary.copy(alpha = 0.75f),
-                                    colors.goldSecondary.copy(alpha = 0.25f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        )
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 6.dp)
                 ) {
-                    // Top glowing micro-accent bar
+                    val horizontalPadding = 0.dp
+                    val availableWidth = maxWidth - (horizontalPadding * 2)
+                    val tabWidth = availableWidth / tabCount
+                    val selectedSlotIndex = displayTabs.indexOf(selectedTab).coerceIn(0, tabCount - 1)
+                    val targetOffset = horizontalPadding + (tabWidth * selectedSlotIndex)
+
+                    // Fluid sliding spring physics indicator glide
+                    val indicatorOffset by animateDpAsState(
+                        targetValue = targetOffset,
+                        animationSpec = spring(
+                            dampingRatio = 0.78f,
+                            stiffness = Spring.StiffnessMediumLow
+                        ),
+                        label = "dockSlidingPillGlide"
+                    )
+
+                    // Sliding Glass Pill Indicator Track
                     Box(
                         modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 2.5.dp)
-                            .width(18.dp)
-                            .height(2.5.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(colors.goldPrimary)
-                    )
-                }
-
-                // Tab Items Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    tabs.forEach { tab ->
-                        val isSelected = selectedTab == tab
-                        val interactionSource = remember { MutableInteractionSource() }
-
-                        val icon = when (tab) {
-                            AppTab.JEWELRY -> Icons.Default.Star
-                            AppTab.MELT -> Icons.Default.Build
-                            AppTab.COIN -> DockCoinVector
-                            AppTab.CONVERT -> Icons.Default.Refresh
-                            AppTab.PORTFOLIO -> DockPortfolioVector
-                        }
-
-                        // Micro-interaction 1: 1.14x Scale Bounce
-                        val scale by animateFloatAsState(
-                            targetValue = if (isSelected) 1.14f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            ),
-                            label = "dockTabScale"
-                        )
-
-                        // Micro-interaction 2: -1.5dp Upward Lift
-                        val translationY by animateDpAsState(
-                            targetValue = if (isSelected) (-1.5).dp else 0.dp,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            label = "dockTabLift"
-                        )
-
-                        // Micro-interaction 3: Smooth color transitions
-                        val iconTint by animateColorAsState(
-                            targetValue = if (isSelected) colors.goldPrimary else colors.textMuted,
-                            animationSpec = tween(durationMillis = 200),
-                            label = "dockTabIconTint"
-                        )
-
-                        val textColor by animateColorAsState(
-                            targetValue = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                            animationSpec = tween(durationMillis = 200),
-                            label = "dockTabTextColor"
-                        )
-
+                            .offset(x = indicatorOffset)
+                            .width(tabWidth)
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    if (colors.isDark) {
+                                        listOf(
+                                            colors.goldContainer.copy(alpha = 0.45f),
+                                            colors.surfaceElevated.copy(alpha = 0.70f)
+                                        )
+                                    } else {
+                                        listOf(
+                                            colors.goldContainer.copy(alpha = 0.55f),
+                                            Color.White.copy(alpha = 0.85f)
+                                        )
+                                    }
+                                )
+                            )
+                            .border(
+                                width = 1.dp,
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        colors.goldPrimary.copy(alpha = 0.70f),
+                                        colors.goldSecondary.copy(alpha = 0.25f)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                    ) {
+                        // Bottom glowing indicator bar (خط هاور زیرین بر اساس درخواست کاربر)
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .clickable(
-                                    interactionSource = interactionSource,
-                                    indication = null
-                                ) {
-                                    onTabSelected(tab)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.offset(y = translationY)
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 3.5.dp)
+                                .width(22.dp)
+                                .height(3.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            colors.goldSecondary,
+                                            colors.goldPrimary,
+                                            colors.goldSecondary
+                                        )
+                                    )
+                                )
+                        )
+                    }
+
+                    // Tab Items Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        displayTabs.forEach { tab ->
+                            val isSelected = selectedTab == tab
+                            val interactionSource = remember { MutableInteractionSource() }
+
+                            val icon = when (tab) {
+                                AppTab.JEWELRY -> Icons.Default.Star
+                                AppTab.MELT -> Icons.Default.Build
+                                AppTab.COIN -> DockCoinVector
+                                AppTab.CONVERT -> Icons.Default.Refresh
+                                AppTab.PORTFOLIO -> DockPortfolioVector
+                            }
+
+                            // Micro-interaction 1: 1.14x Scale Bounce
+                            val scale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.14f else 1.0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                label = "dockTabScale"
+                            )
+
+                            // Micro-interaction 2: -1.5dp Upward Lift
+                            val translationY by animateDpAsState(
+                                targetValue = if (isSelected) (-1.5).dp else 0.dp,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                ),
+                                label = "dockTabLift"
+                            )
+
+                            // Micro-interaction 3: Smooth color transitions
+                            val iconTint by animateColorAsState(
+                                targetValue = if (isSelected) colors.goldPrimary else colors.textMuted,
+                                animationSpec = tween(durationMillis = 200),
+                                label = "dockTabIconTint"
+                            )
+
+                            val textColor by animateColorAsState(
+                                targetValue = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                animationSpec = tween(durationMillis = 200),
+                                label = "dockTabTextColor"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = null
+                                    ) {
+                                        onTabSelected(tab)
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = tab.titleFa,
-                                    tint = iconTint,
-                                    modifier = Modifier
-                                        .size(20.dp)
-                                        .scale(scale)
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.offset(y = translationY)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = tab.titleFa,
+                                        tint = iconTint,
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .scale(scale)
+                                    )
 
-                                Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
 
-                                Text(
-                                    text = tab.titleFa,
-                                    fontSize = if (isSelected) 10.5.sp else 9.5.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = textColor,
-                                    maxLines = 1
-                                )
+                                    Text(
+                                        text = tab.titleFa,
+                                        fontSize = if (isSelected) 10.5.sp else 9.5.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = textColor,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }

@@ -188,201 +188,161 @@ fun GoldCalculatorScreen(
                                     )
                                 }
                             },
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(colors.surfaceElevated)
-                                        .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
-                                    contentAlignment = Alignment.Center
+                            title = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(20.dp)
+                                    Text(
+                                        text = "گلدکس پرو",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        color = colors.textMain
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(colors.goldContainer)
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "PRO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = colors.goldPrimary
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(colors.profitGreen)
                                     )
                                 }
-                                Column {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Text(
-                                            text = "گلدکس پرو",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 17.sp,
-                                            color = colors.textMain
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(colors.goldContainer)
-                                                .padding(horizontal = 5.dp, vertical = 1.dp)
-                                        ) {
-                                            Text(
-                                                text = "PRO",
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = colors.goldPrimary
-                                            )
-                                        }
-                                    }
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.profitGreen)
-                                        )
-                                        Text(
-                                            text = "نرخ لحظه‌ای و دستیار فاکتور طلا",
-                                            fontSize = 10.sp,
-                                            color = colors.textMuted
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        actions = {
-                            // Customer Management Button in TopBar
-                            IconButton(
-                                onClick = {
-                                    viewModel.loadCustomers()
-                                    viewModel.setCustomerManagerVisible(true)
-                                },
-                                modifier = Modifier
-                                    .padding(end = 4.dp)
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(colors.surfaceElevated)
-                            ) {
-                                Icon(
-                                    imageVector = CustomerIconVector,
-                                    contentDescription = "مدیریت مشتریان",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            // Dark / Light Theme Toggle Button
-                            IconButton(
-                                onClick = { viewModel.toggleTheme() },
-                                modifier = Modifier
-                                    .padding(end = 4.dp)
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(colors.surfaceElevated)
-                            ) {
-                                Text(
-                                    text = if (colors.isDark) "☀️" else "🌙",
-                                    fontSize = 16.sp
-                                )
-                            }
-
-                            // Refresh Rates Button
-                            IconButton(onClick = { viewModel.refreshRates() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "بروزرسانی مظنه",
-                                    tint = colors.goldSecondary,
+                            },
+                            actions = {
+                                // Dark / Light Theme Toggle Button
+                                IconButton(
+                                    onClick = { viewModel.toggleTheme() },
                                     modifier = Modifier
-                                        .size(20.dp)
-                                        .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = colors.surface,
-                            titleContentColor = colors.goldPrimary
-                        )
-                    )
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(colors.surfaceElevated)
+                                ) {
+                                    Text(
+                                        text = if (colors.isDark) "☀️" else "🌙",
+                                        fontSize = 15.sp
+                                    )
+                                }
 
-                    // Subtle hairline gold bottom border for TopBar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(colors.goldGradient)
-                    )
-                }
-            },
-            bottomBar = {
-                GlassmorphicDock(
-                    selectedTab = uiState.selectedTab,
-                    onTabSelected = { viewModel.selectTab(it) }
-                )
-            },
-            containerColor = colors.background
-        ) { paddingValues ->
-            val scrollState = rememberScrollState()
-            LaunchedEffect(uiState.selectedTab) {
-                scrollState.scrollTo(0)
-            }
+                                Spacer(modifier = Modifier.width(6.dp))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                LiveRatesTicker(
-                    rates = uiState.rates,
-                    isRefreshing = uiState.isRefreshingRates,
-                    onRefresh = { viewModel.refreshRates() },
-                    onToggleSource = { viewModel.togglePriceSource() }
-                )
-
-                // Tab Contents with smooth AnimatedContent slide & fade transitions
-                AnimatedContent(
-                    targetState = uiState.selectedTab,
-                    transitionSpec = {
-                        val isForward = targetState.ordinal > initialState.ordinal
-                        (slideInHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
-                            animationSpec = tween(240, easing = FastOutSlowInEasing)
-                        )).togetherWith(
-                            slideOutHorizontally(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ) { fullWidth -> if (isForward) fullWidth / 4 else -fullWidth / 4 } + fadeOut(
-                                animationSpec = tween(180, easing = FastOutLinearInEasing)
+                                // Refresh Rates Button
+                                IconButton(
+                                    onClick = { viewModel.refreshRates() },
+                                    modifier = Modifier
+                                        .padding(end = 4.dp)
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(colors.surfaceElevated)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "بروزرسانی مظنه",
+                                        tint = colors.goldSecondary,
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = colors.surface,
+                                titleContentColor = colors.goldPrimary
                             )
                         )
-                    },
-                    label = "tabTransition",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clipToBounds()
-                ) { tab ->
-                    when (tab) {
-                        AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
-                        AppTab.MELT -> MeltTab(viewModel, uiState)
-                        AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
-                        AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                        AppTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
+
+                        // Subtle hairline gold bottom border for TopBar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(colors.goldGradient)
+                        )
                     }
+                },
+                containerColor = colors.background
+            ) { paddingValues ->
+                val scrollState = rememberScrollState()
+                LaunchedEffect(uiState.selectedTab) {
+                    scrollState.scrollTo(0)
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = paddingValues.calculateTopPadding())
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        LiveRatesTicker(
+                            rates = uiState.rates,
+                            isRefreshing = uiState.isRefreshingRates,
+                            onRefresh = { viewModel.refreshRates() },
+                            onToggleSource = { viewModel.togglePriceSource() }
+                        )
+
+                        // Tab Contents with smooth AnimatedContent slide & fade transitions
+                        AnimatedContent(
+                            targetState = uiState.selectedTab,
+                            transitionSpec = {
+                                val isForward = targetState.ordinal > initialState.ordinal
+                                (slideInHorizontally(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
+                                    animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                )).togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    ) { fullWidth -> if (isForward) fullWidth / 4 else -fullWidth / 4 } + fadeOut(
+                                        animationSpec = tween(180, easing = FastOutLinearInEasing)
+                                    )
+                                )
+                            },
+                            label = "tabTransition",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clipToBounds()
+                        ) { tab ->
+                            when (tab) {
+                                AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
+                                AppTab.MELT -> MeltTab(viewModel, uiState)
+                                AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
+                                AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
+                                AppTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
+                            }
+                        }
+
+                        // Clearance spacer so content scrolls completely above the floating dock
+                        Spacer(modifier = Modifier.height(105.dp))
+                    }
+
+                    // Floating Glassmorphic Dock pinned to bottom center
+                    GlassmorphicDock(
+                        selectedTab = uiState.selectedTab,
+                        onTabSelected = { viewModel.selectTab(it) },
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
             }
-        }
     }
 }
 }
