@@ -53,6 +53,39 @@ private val CoinVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+private val PortfolioVector: ImageVector = ImageVector.Builder(
+    name = "Portfolio",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(20f, 6f)
+        horizontalLineTo(16f)
+        verticalLineTo(4f)
+        curveTo(16f, 2.89f, 15.11f, 2f, 14f, 2f)
+        horizontalLineTo(10f)
+        curveTo(8.89f, 2f, 8f, 2.89f, 8f, 4f)
+        verticalLineTo(6f)
+        horizontalLineTo(4f)
+        curveTo(2.89f, 6f, 2f, 6.89f, 2f, 8f)
+        verticalLineTo(19f)
+        curveTo(2f, 20.11f, 2.89f, 21f, 4f, 21f)
+        horizontalLineTo(20f)
+        curveTo(21.11f, 21f, 22f, 20.11f, 22f, 19f)
+        verticalLineTo(8f)
+        curveTo(22f, 6.89f, 21.11f, 6f, 20f, 6f)
+        close()
+        moveTo(10f, 4f)
+        horizontalLineTo(14f)
+        verticalLineTo(6f)
+        horizontalLineTo(10f)
+        verticalLineTo(4f)
+        close()
+    }
+}.build()
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoldCalculatorScreen(
@@ -97,15 +130,33 @@ fun GoldCalculatorScreen(
                                 )
                             }
                             Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "همراه گلدکس",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        color = colors.goldPrimary
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(colors.goldContainer)
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "PRO",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = colors.goldPrimary
+                                        )
+                                    }
+                                }
                                 Text(
-                                    text = "همراه گلدکس",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                    color = colors.goldPrimary
-                                )
-                                Text(
-                                    text = "دستیار تخصصی طلا، مسکوکات و ارز",
-                                    fontSize = 11.sp,
+                                    text = "دستیار تخصصی طلا، مسکوکات و سبد دارایی",
+                                    fontSize = 10.sp,
                                     color = colors.textMuted
                                 )
                             }
@@ -163,6 +214,7 @@ fun GoldCalculatorScreen(
                                 AppTab.MELT -> Icons.Default.Build
                                 AppTab.COIN -> CoinVector
                                 AppTab.CONVERT -> Icons.Default.Refresh
+                                AppTab.PORTFOLIO -> PortfolioVector
                             }
 
                             NavigationBarItem(
@@ -172,13 +224,13 @@ fun GoldCalculatorScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = tab.titleFa,
-                                        modifier = Modifier.size(21.dp)
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 },
                                 label = {
                                     Text(
                                         text = tab.titleFa,
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 },
@@ -217,6 +269,7 @@ fun GoldCalculatorScreen(
                     AppTab.MELT -> MeltTab(viewModel, uiState)
                     AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
                     AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
+                    AppTab.PORTFOLIO -> PortfolioTab(uiState)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

@@ -1,0 +1,450 @@
+﻿package com.goldex.companion.ui.calculator.tabs
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.goldex.companion.data.PortfolioCategory
+import com.goldex.companion.data.PortfolioItem
+import com.goldex.companion.data.PortfolioRepository
+import com.goldex.companion.model.CoinType
+import com.goldex.companion.model.Karat
+import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.PersianWordsFormatter
+import com.goldex.companion.ui.calculator.CalculatorUiState
+import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.theme.LocalGoldExColors
+
+@Composable
+fun PortfolioTab(
+    uiState: CalculatorUiState
+) {
+    val context = LocalContext.current
+    val colors = LocalGoldExColors.current
+    val repo = remember { PortfolioRepository(context) }
+    var items by remember { mutableStateOf(repo.getItems()) }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    val totalCurrentVal = items.sumOf { it.calculateCurrentValue(uiState.rates) }
+    val totalPurchaseVal = items.sumOf { it.purchasePriceTotal }
+    val totalProfit = totalCurrentVal - totalPurchaseVal
+    val totalProfitPercent = if (totalPurchaseVal > 0) (totalProfit.toDouble() / totalPurchaseVal.toDouble()) * 100.0 else 0.0
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Hero Portfolio Summary Card (Stitch Inspired)
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ارزش کل سبد دارایی طلا و سکه",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(colors.goldContainer)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم دارایی",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
+                    }
+                }
+
+                Text(
+                    text = "${PersianNumberFormatter.formatPrice(totalCurrentVal.toDouble())} تومان",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.goldPrimary
+                )
+
+                Text(
+                    text = "${PersianWordsFormatter.toWords(totalCurrentVal)} تومان",
+                    fontSize = 11.sp,
+                    color = colors.textMain
+                )
+
+                HorizontalDivider(color = colors.border, thickness = 0.7.dp)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("مجموع سرمایه اولیه:", fontSize = 11.sp, color = colors.textMuted)
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(totalPurchaseVal.toDouble())} تومان",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textSecondary
+                        )
+                    }
+
+                    val isProfit = totalProfit >= 0
+                    val profitColor = if (isProfit) colors.profitGreen else colors.errorRed
+                    val profitSign = if (isProfit) "+" else ""
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("سود / زیان کل:", fontSize = 11.sp, color = colors.textMuted)
+                        Text(
+                            text = "$profitSign${PersianNumberFormatter.formatPrice(totalProfit.toDouble())} ت ($profitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(totalProfitPercent))}٪)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = profitColor
+                        )
+                    }
+                }
+            }
+        }
+
+        // Add Asset CTA Button
+        Button(
+            onClick = { showAddDialog = true },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.goldPrimary,
+                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text = "ثبت دارایی جدید در سبد", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+
+        // Assets List
+        items.forEach { item ->
+            val curVal = item.calculateCurrentValue(uiState.rates)
+            val profit = item.calculateProfit(uiState.rates)
+            val profitPct = item.calculateProfitPercent(uiState.rates)
+            val isItemProfit = profit >= 0
+            val itemProfitColor = if (isItemProfit) colors.profitGreen else colors.errorRed
+            val itemProfitSign = if (isItemProfit) "+" else ""
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surface,
+                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = item.title,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain
+                            )
+                            val subtitle = if (item.category == PortfolioCategory.GOLD) {
+                                "${PersianNumberFormatter.formatWeight(item.weightGrams)} گرم | ${item.karat.labelFa}"
+                            } else {
+                                "${PersianNumberFormatter.toPersianDigits(item.quantity.toString())} عدد ${item.coinType?.titleFa ?: "سکه"}"
+                            }
+                            Text(
+                                text = subtitle,
+                                fontSize = 11.sp,
+                                color = colors.textMuted
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                repo.deleteItem(item.id)
+                                items = repo.getItems()
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "حذف دارایی",
+                                tint = colors.errorRed.copy(alpha = 0.7f),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("ارزش روز:", fontSize = 10.sp, color = colors.textMuted)
+                            Text(
+                                text = "${PersianNumberFormatter.formatPrice(curVal.toDouble())} ت",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("سود / زیان:", fontSize = 10.sp, color = colors.textMuted)
+                            Text(
+                                text = "$itemProfitSign${PersianNumberFormatter.formatPrice(profit.toDouble())} ت ($itemProfitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(profitPct))}٪)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = itemProfitColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add Asset Dialog Modal
+    if (showAddDialog) {
+        AddAssetDialog(
+            rates = uiState.rates,
+            onDismiss = { showAddDialog = false },
+            onConfirm = { newItem ->
+                repo.addItem(newItem)
+                items = repo.getItems()
+                showAddDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun AddAssetDialog(
+    rates: com.goldex.companion.data.MarketRates,
+    onDismiss: () -> Unit,
+    onConfirm: (PortfolioItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    var selectedCategory by remember { mutableStateOf(PortfolioCategory.GOLD) }
+    var title by remember { mutableStateOf("") }
+    var weightInput by remember { mutableStateOf("5.0") }
+    var selectedKarat by remember { mutableStateOf(Karat.K18) }
+    var coinQuantity by remember { mutableStateOf("1") }
+    var selectedCoinType by remember { mutableStateOf(CoinType.EMAMI) }
+    var purchasePriceInput by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "ثبت قلم دارایی جدید",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.goldPrimary
+                )
+
+                // Category Switcher
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.surfaceElevated)
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    PortfolioCategory.values().forEach { cat ->
+                        val isSel = selectedCategory == cat
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSel) colors.goldContainer else Color.Transparent)
+                                .clickable {
+                                    selectedCategory = cat
+                                    if (title.isBlank()) {
+                                        title = if (cat == PortfolioCategory.GOLD) "قطعه طلای ۱۸ عیار" else "سکه تمام بهار امامی"
+                                    }
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = cat.labelFa,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSel) colors.goldPrimary else colors.textMuted
+                            )
+                        }
+                    }
+                }
+
+                // Title Input
+                GoldInputField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = "عنوان دارایی (اختیاری)",
+                    useThousandsSeparator = false
+                )
+
+                if (selectedCategory == PortfolioCategory.GOLD) {
+                    GoldInputField(
+                        value = weightInput,
+                        onValueChange = { weightInput = it },
+                        label = "وزن قطعه طلا",
+                        trailingText = "گرم",
+                        isDecimal = true,
+                        useThousandsSeparator = false
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Karat.values().forEach { k ->
+                            val isKaratSel = selectedKarat == k
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isKaratSel) colors.goldContainer else colors.surfaceElevated,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    0.5.dp,
+                                    if (isKaratSel) colors.goldPrimary else colors.border
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { selectedKarat = k }
+                            ) {
+                                Text(
+                                    text = k.labelFa,
+                                    fontSize = 11.sp,
+                                    color = if (isKaratSel) colors.goldPrimary else colors.textSecondary,
+                                    modifier = Modifier.padding(vertical = 6.dp),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    GoldInputField(
+                        value = coinQuantity,
+                        onValueChange = { coinQuantity = it },
+                        label = "تعداد سکه",
+                        trailingText = "عدد",
+                        useThousandsSeparator = false
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        CoinType.values().forEach { coin ->
+                            val isCoinSel = selectedCoinType == coin
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isCoinSel) colors.goldContainer else colors.surfaceElevated,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    0.5.dp,
+                                    if (isCoinSel) colors.goldPrimary else colors.border
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedCoinType = coin }
+                            ) {
+                                Text(
+                                    text = coin.titleFa,
+                                    fontSize = 11.sp,
+                                    color = if (isCoinSel) colors.goldPrimary else colors.textSecondary,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Purchase Price Input
+                GoldInputField(
+                    value = purchasePriceInput,
+                    onValueChange = { purchasePriceInput = it },
+                    label = "قیمت کل پرداختی هنگام خرید",
+                    trailingText = "تومان",
+                    useThousandsSeparator = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("انصراف", fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            val w = PersianNumberFormatter.parsePersianOrEnglish(weightInput) ?: 0.0
+                            val q = coinQuantity.toIntOrNull() ?: 1
+                            val p = PersianNumberFormatter.parseToCleanLong(purchasePriceInput) ?: 0L
+                            val finalTitle = if (title.isNotBlank()) title else if (selectedCategory == PortfolioCategory.GOLD) "قطعه طلا" else selectedCoinType.titleFa
+
+                            val item = PortfolioItem(
+                                title = finalTitle,
+                                category = selectedCategory,
+                                weightGrams = w,
+                                karat = selectedKarat,
+                                quantity = q,
+                                coinType = if (selectedCategory == PortfolioCategory.COIN) selectedCoinType else null,
+                                purchasePriceTotal = p
+                            )
+                            onConfirm(item)
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.goldPrimary,
+                            contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("ذخیره دارایی", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.calculator.tabs
+package com.goldex.companion.ui.calculator.tabs
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -350,10 +350,10 @@ fun JewelryTab(
                             )
                         }
 
-                        // Actions Row: Copy & Share
+                        // Actions Row: Copy, Share, and PDF Invoice Export
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             OutlinedButton(
                                 onClick = {
@@ -361,16 +361,30 @@ fun JewelryTab(
                                     val invoice = generateInvoiceText(uiState, res)
                                     val clip = ClipData.newPlainText("GoldEx Invoice", invoice)
                                     clipboard.setPrimaryClip(clip)
-                                    Toast.makeText(context, "فاکتور با موفقیت کپی شد", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "فاکتور متنی کپی شد", Toast.LENGTH_SHORT).show()
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
                                 border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = "کپی فاکتور", fontSize = 11.sp)
+                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "کپی متن", fontSize = 10.sp)
+                            }
+
+                            Button(
+                                onClick = {
+                                    com.goldex.companion.ui.util.PdfInvoiceGenerator.generateAndShareInvoice(context, uiState, res)
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colors.goldSecondary,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1.2f)
+                            ) {
+                                Text(text = "📄 فاکتور PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
 
                             Button(
@@ -391,9 +405,9 @@ fun JewelryTab(
                                 ),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = "اشتراک‌گذاری", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "ارسال", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

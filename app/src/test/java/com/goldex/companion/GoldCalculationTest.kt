@@ -1,4 +1,4 @@
-﻿package com.goldex.companion
+package com.goldex.companion
 
 import androidx.compose.ui.text.AnnotatedString
 import com.goldex.companion.data.MarketRates
@@ -124,5 +124,40 @@ class GoldCalculationTest {
         assertEquals(23_360_000L, rates.gold18)
         assertEquals(PriceSource.TGJU, rates.source)
         assertEquals("شبکه طلا و ارز (tgju.org)", rates.source.labelFa)
+    }
+
+    @Test
+    fun testPortfolioValuationAndProfit() {
+        val rates = MarketRates(
+            gold18 = 20_000_000L,
+            coinEmami = 200_000_000L
+        )
+
+        // 10 grams of 18k gold bought at 18,000,000/g = 180,000,000 total
+        val goldItem = com.goldex.companion.data.PortfolioItem(
+            title = "دستبند طلا",
+            category = com.goldex.companion.data.PortfolioCategory.GOLD,
+            weightGrams = 10.0,
+            karat = Karat.K18,
+            purchasePriceTotal = 180_000_000L
+        )
+
+        val goldCurrentVal = goldItem.calculateCurrentValue(rates)
+        assertEquals(200_000_000L, goldCurrentVal)
+        assertEquals(20_000_000L, goldItem.calculateProfit(rates))
+        assertEquals(11.11, goldItem.calculateProfitPercent(rates), 0.01)
+
+        // 2 Emami coins bought at 190,000,000 each = 380,000,000 total
+        val coinItem = com.goldex.companion.data.PortfolioItem(
+            title = "سکه تمام",
+            category = com.goldex.companion.data.PortfolioCategory.COIN,
+            quantity = 2,
+            coinType = CoinType.EMAMI,
+            purchasePriceTotal = 380_000_000L
+        )
+
+        val coinCurrentVal = coinItem.calculateCurrentValue(rates)
+        assertEquals(400_000_000L, coinCurrentVal)
+        assertEquals(20_000_000L, coinItem.calculateProfit(rates))
     }
 }

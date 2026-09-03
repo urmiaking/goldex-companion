@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.calculator
+package com.goldex.companion.ui.calculator
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,7 +16,8 @@ enum class AppTab(val titleFa: String) {
     JEWELRY("طلا و جواهر"),
     MELT("مظنه آبشده"),
     COIN("حباب سکه"),
-    CONVERT("تبدیل عیار")
+    CONVERT("تبدیل عیار"),
+    PORTFOLIO("سبد دارایی")
 }
 
 data class CalculatorUiState(
