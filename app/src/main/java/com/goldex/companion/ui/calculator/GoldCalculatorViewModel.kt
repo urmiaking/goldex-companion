@@ -88,7 +88,7 @@ class GoldCalculatorViewModel : ViewModel() {
     fun togglePriceSource() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true) }
-            val nextSource = GoldMarketRepository.cycleSource()
+            GoldMarketRepository.cycleSource()
             val updated = GoldMarketRepository.rates.value
             applyFetchedRates(updated)
         }
