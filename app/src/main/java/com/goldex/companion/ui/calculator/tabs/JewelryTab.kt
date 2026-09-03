@@ -8,20 +8,24 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,8 +38,8 @@ import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.ResultRow
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.util.PdfInvoiceGenerator
 
 @Composable
 fun JewelryTab(
@@ -46,64 +50,259 @@ fun JewelryTab(
     val colors = LocalGoldExColors.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Karat & Auto Sync Card
+        // 1. Live Benchmark Rate Card (Stitch Component #1)
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Gold gradient accent line on top
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.5.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, colors.goldSecondary, colors.goldPrimary, Color.Transparent)
+                            )
+                        )
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(colors.surfaceElevated),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "مبنای قیمت طلا خام ۱۸ عیار",
+                                    fontSize = 11.sp,
+                                    color = colors.textSecondary
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(colors.profitGreen.copy(alpha = 0.12f))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "زنده اتحادیه",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.profitGreen
+                                    )
+                                }
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.Baseline,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = PersianNumberFormatter.formatPrice(uiState.spotPriceInput.toDoubleOrNull() ?: 0.0),
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain
+                                )
+                                Text(
+                                    text = "تومان / گرم",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted
+                                )
+                            }
+                        }
+                    }
+
+                    // Auto Sync Switcher Pill
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
+                        modifier = Modifier.clickable {
+                            viewModel.toggleAutoSyncPrice(!uiState.autoSyncPrice)
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (uiState.autoSyncPrice) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = null,
+                                tint = if (uiState.autoSyncPrice) colors.goldPrimary else colors.textMuted,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = if (uiState.autoSyncPrice) "نرخ تثبیت" else "آزاد",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (uiState.autoSyncPrice) colors.goldPrimary else colors.textMuted
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Weight & Purity Configuration Card (Stitch Component #2)
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.border),
             shadowElevation = if (colors.isDark) 0.dp else 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "عیار قطعه طلا",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary
-                    )
-
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Text(
-                            text = "همگام با مظنه زنده",
-                            fontSize = 11.sp,
-                            color = if (uiState.autoSyncPrice) colors.profitGreen else colors.textMuted
+                            text = "مشخصات وزن و عیار قطعه",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
                         )
-                        Switch(
-                            checked = uiState.autoSyncPrice,
-                            onCheckedChange = { viewModel.toggleAutoSyncPrice(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = colors.goldPrimary,
-                                checkedTrackColor = colors.surfaceElevated,
-                                uncheckedThumbColor = colors.textMuted,
-                                uncheckedTrackColor = colors.surfaceElevated
-                            ),
-                            modifier = Modifier.height(22.dp)
-                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(colors.surfaceElevated)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(text = "دقت ۰.۰۰۱ گرم", fontSize = 10.sp, color = colors.textMuted)
                     }
                 }
 
+                // Gross Weight Input
+                GoldInputField(
+                    value = uiState.grossWeightInput,
+                    onValueChange = { viewModel.onGrossWeightChanged(it) },
+                    label = "وزن ناخالص قطعه (با نگین/سنگ)",
+                    trailingText = "گرم",
+                    isDecimal = true,
+                    useThousandsSeparator = false
+                )
+
+                // Quick-Add Pills (Stitch Exact: +1g, +2.5g, +5g, +10g, Reset)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Karat.values().forEach { karat ->
+                    listOf(
+                        1.0 to "+۱ گرم",
+                        2.5 to "+۲.۵ گرم",
+                        5.0 to "+۵ گرم",
+                        10.0 to "+۱۰ گرم"
+                    ).forEach { (amt, label) ->
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = colors.surfaceElevated,
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
+                            modifier = Modifier.clickable { viewModel.addGrossWeight(amt) }
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Reset Pill
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = colors.surfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
+                        modifier = Modifier.clickable { viewModel.onGrossWeightChanged("0") }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = colors.errorRed,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Text(text = "صفر", fontSize = 10.sp, color = colors.errorRed)
+                        }
+                    }
+                }
+
+                // Purity Grid (Stitch Standard Karat Selector)
+                Text(
+                    text = "انتخاب عیار استاندارد",
+                    fontSize = 11.sp,
+                    color = colors.textSecondary
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(
+                        Karat.K18 to "۷۵۰",
+                        Karat.K21 to "۸۷۵",
+                        Karat.K24 to "۹۹۹"
+                    ).forEach { (karat, purityCode) ->
                         val isSelected = uiState.selectedKarat == karat
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) colors.goldContainer else colors.surfaceElevated)
+                                .background(if (isSelected) colors.textMain else colors.surfaceElevated)
                                 .border(
                                     if (isSelected) 1.dp else 0.5.dp,
                                     if (isSelected) colors.goldPrimary else colors.border,
@@ -113,90 +312,92 @@ fun JewelryTab(
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = karat.labelFa,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) colors.goldPrimary else colors.textSecondary
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = karat.labelFa,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) colors.goldSecondary else colors.textMain
+                                )
+                                Text(
+                                    text = PersianNumberFormatter.toPersianDigits(purityCode),
+                                    fontSize = 9.sp,
+                                    color = if (isSelected) colors.goldPrimary else colors.textMuted
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Inputs Card
+        // 3. Deductions & Commercial Parameters Card (Stitch Component #3)
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.border),
             shadowElevation = if (colors.isDark) 0.dp else 1.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Gross weight input + quick add pills
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "مشخصات وزن", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf(1.0, 5.0, 10.0).forEach { add ->
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.surfaceElevated,
-                                border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
-                                modifier = Modifier.clickable { viewModel.addGrossWeight(add) }
-                            ) {
-                                Text(
-                                    text = "+${PersianNumberFormatter.toPersianDigits(add.toInt().toString())} گرم",
-                                    fontSize = 10.sp,
-                                    color = colors.goldPrimary,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                )
-                            }
+                    Text(
+                        text = "کسورات و پارامترهای تجاری",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain
+                    )
+
+                    uiState.jewelryResult?.let { res ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(colors.goldContainer)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "وزن خالص: ${PersianNumberFormatter.formatWeight(res.netWeight)} گرم",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
                         }
                     }
                 }
 
+                // Stone Deduction Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.surfaceElevated)
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    GoldInputField(
-                        value = uiState.grossWeightInput,
-                        onValueChange = { viewModel.onGrossWeightChanged(it) },
-                        label = "وزن کل طلا",
-                        trailingText = "گرم",
-                        isDecimal = true,
-                        useThousandsSeparator = false,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column {
+                        Text(text = "کسر وزن سنگ و نگین", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textMain)
+                        Text(text = "تار و پیوند اتمی یا جواهر", fontSize = 10.sp, color = colors.textMuted)
+                    }
 
-                    GoldInputField(
-                        value = uiState.stoneWeightInput,
-                        onValueChange = { viewModel.onStoneWeightChanged(it) },
-                        label = "کسر وزن نگین",
-                        trailingText = "گرم",
-                        isDecimal = true,
-                        useThousandsSeparator = false,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Box(modifier = Modifier.width(130.dp)) {
+                        GoldInputField(
+                            value = uiState.stoneWeightInput,
+                            onValueChange = { viewModel.onStoneWeightChanged(it) },
+                            label = "وزن نگین",
+                            trailingText = "گرم",
+                            isDecimal = true,
+                            useThousandsSeparator = false
+                        )
+                    }
                 }
-
-                // Spot price input
-                GoldInputField(
-                    value = uiState.spotPriceInput,
-                    onValueChange = { viewModel.onSpotPriceChanged(it) },
-                    label = "قیمت خام هر گرم طلای ۱۸ عیار",
-                    trailingText = "تومان",
-                    subLabel = if (uiState.priceInWords.isNotBlank()) "${uiState.priceInWords} تومان" else null,
-                    useThousandsSeparator = true
-                )
 
                 // Wage row
                 Row(
@@ -204,12 +405,11 @@ fun JewelryTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "اجرت ساخت", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
+                    Text(text = "اجرت ساخت کارگاهی", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textMain)
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .background(colors.surfaceElevated)
-                            .border(0.5.dp, colors.border, RoundedCornerShape(8.dp))
                             .padding(2.dp)
                     ) {
                         WageType.values().forEach { type ->
@@ -217,13 +417,14 @@ fun JewelryTab(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSel) colors.goldContainer else Color.Transparent)
+                                    .background(if (isSel) colors.surface else Color.Transparent)
                                     .clickable { viewModel.onWageTypeChanged(type) }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = type.labelFa,
                                     fontSize = 10.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSel) colors.goldPrimary else colors.textMuted
                                 )
                             }
@@ -240,35 +441,84 @@ fun JewelryTab(
                     useThousandsSeparator = uiState.wageType != WageType.PERCENTAGE
                 )
 
-                // Profit & Tax inputs
+                // Retailer Profit & Legal VAT Cards (Stitch 2-Column Grid)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    GoldInputField(
-                        value = uiState.profitPercentInput,
-                        onValueChange = { viewModel.onProfitPercentChanged(it) },
-                        label = "سود طلافروش",
-                        trailingText = "٪",
-                        isDecimal = true,
-                        useThousandsSeparator = false,
+                    // Col 1: Profit Card with Progress Bar
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceElevated,
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "سود قانونی", fontSize = 11.sp, color = colors.textMain)
+                                Text(text = "۷٪ مصوب", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
+                            }
+                            // Progress bar
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.border)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.7f)
+                                        .height(4.dp)
+                                        .background(colors.goldPrimary)
+                                )
+                            }
+                            Text(text = "سقف استاندارد صنف", fontSize = 9.sp, color = colors.textMuted)
+                        }
+                    }
 
-                    GoldInputField(
-                        value = uiState.taxPercentInput,
-                        onValueChange = { viewModel.onTaxPercentChanged(it) },
-                        label = "مالیات ارزش‌افزوده",
-                        trailingText = "٪",
-                        isDecimal = true,
-                        useThousandsSeparator = false,
+                    // Col 2: Legal VAT Card with Verified Badge
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceElevated,
                         modifier = Modifier.weight(1f)
-                    )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = "مالیات ارزش‌افزوده", fontSize = 11.sp, color = colors.textMain)
+                                Text(text = "۹٪ خدمات", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.profitGreen)
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = colors.profitGreen,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Text(text = "معافیت کامل اصل طلا", fontSize = 9.sp, color = colors.profitGreen, fontWeight = FontWeight.Medium)
+                            }
+                            Text(text = "فقط بر سود + اجرت", fontSize = 9.sp, color = colors.textMuted)
+                        }
+                    }
                 }
             }
         }
 
-        // Detailed Result Receipt Card
+        // 4. Official Luxury Receipt Card with Perforated Tear Line (Stitch Component #4)
         AnimatedVisibility(
             visible = uiState.jewelryResult != null,
             enter = fadeIn() + slideInVertically()
@@ -278,115 +528,165 @@ fun JewelryTab(
                     shape = RoundedCornerShape(18.dp),
                     color = colors.surface,
                     border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
-                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+                    shadowElevation = if (colors.isDark) 0.dp else 4.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "فاکتور برآورد قیمت",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary
-                        )
-
-                        HorizontalDivider(color = colors.border, thickness = 0.7.dp)
-
-                        ResultRow(
-                            label = "وزن خالص طلا",
-                            value = "${PersianNumberFormatter.formatWeight(res.netWeight)} گرم"
-                        )
-                        ResultRow(
-                            label = "ارزش خام طلا",
-                            value = "${PersianNumberFormatter.formatPrice(res.rawGoldValue)} تومان"
-                        )
-                        ResultRow(
-                            label = "اجرت ساخت",
-                            value = "${PersianNumberFormatter.formatPrice(res.wageAmount)} تومان"
-                        )
-                        ResultRow(
-                            label = "سود فروشنده",
-                            value = "${PersianNumberFormatter.formatPrice(res.profitAmount)} تومان"
-                        )
-                        ResultRow(
-                            label = "مالیات (بر اجرت و سود)",
-                            value = "${PersianNumberFormatter.formatPrice(res.taxAmount)} تومان"
-                        )
-                        ResultRow(
-                            label = "قیمت تمام‌شده هر گرم",
-                            value = "${PersianNumberFormatter.formatPrice(res.effectiveGramPrice)} تومان",
-                            valueColor = colors.goldSecondary,
-                            isHighlight = true
-                        )
-
-                        HorizontalDivider(color = colors.border, thickness = 0.7.dp)
-
-                        // Big Luxury Total
-                        Column(
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Top Gold Guilloché Ribbon Accent
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.goldContainer)
-                                .border(0.6.dp, colors.goldBorder, RoundedCornerShape(12.dp))
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = "مبلغ کل قابل پرداخت", fontSize = 12.sp, color = colors.textSecondary)
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = "${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "${PersianWordsFormatter.toWords(res.totalPayable.toLong())} تومان",
-                                fontSize = 11.sp,
-                                color = colors.textMain,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                                .height(4.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(colors.goldPrimary, colors.goldSecondary, colors.goldPrimary)
+                                    )
+                                )
+                        )
 
-                        // Actions Row: Copy, Share, and PDF Invoice Export
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val invoice = generateInvoiceText(uiState, res)
-                                    val clip = ClipData.newPlainText("GoldEx Invoice", invoice)
-                                    clipboard.setPrimaryClip(clip)
-                                    Toast.makeText(context, "فاکتور متنی کپی شد", Toast.LENGTH_SHORT).show()
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
-                                border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder),
-                                modifier = Modifier.weight(1f)
+                            // Invoice Header
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "کپی متن", fontSize = 10.sp)
+                                Column {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "پیش‌فاکتور رسمی زرگری",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textMain
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(colors.goldContainer)
+                                                .padding(horizontal = 6.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(text = "معتبر", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
+                                        }
+                                    }
+                                    Text(
+                                        text = "کد رهگیری: #GLD-${PersianNumberFormatter.toPersianDigits("88412")} • زمان: ${PersianNumberFormatter.toPersianDigits(uiState.rates.lastUpdated)}",
+                                        fontSize = 10.sp,
+                                        color = colors.textMuted
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(colors.surfaceElevated),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
 
-                            Button(
-                                onClick = {
-                                    com.goldex.companion.ui.util.PdfInvoiceGenerator.generateAndShareInvoice(context, uiState, res)
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = colors.goldSecondary,
-                                    contentColor = Color.White
-                                ),
-                                modifier = Modifier.weight(1.2f)
+                            // Itemization Container
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceElevated,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(text = "📄 فاکتور PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    ItemRow(
+                                        label = "ارزش طلای خام خالص (${PersianNumberFormatter.formatWeight(res.netWeight)} گرم):",
+                                        value = "${PersianNumberFormatter.formatPrice(res.rawGoldValue)} تومان",
+                                        isBold = true
+                                    )
+                                    ItemRow(
+                                        label = "کل اجرت ساخت کارگاهی (${uiState.wageInput}٪):",
+                                        value = "${PersianNumberFormatter.formatPrice(res.wageAmount)} تومان"
+                                    )
+                                    ItemRow(
+                                        label = "سود مصوب گالری (۷٪):",
+                                        value = "${PersianNumberFormatter.formatPrice(res.profitAmount)} تومان"
+                                    )
+                                    ItemRow(
+                                        label = "مالیات بر ارزش افزوده (۹٪ اجرت و سود):",
+                                        value = "${PersianNumberFormatter.formatPrice(res.taxAmount)} تومان"
+                                    )
+                                }
                             }
 
+                            // Perforated Tear-Line (Stitch Line with circular notches)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
+                                    drawLine(
+                                        color = colors.border,
+                                        start = Offset(0f, 0f),
+                                        end = Offset(size.width, 0f),
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f),
+                                        strokeWidth = 1.5f
+                                    )
+                                }
+                            }
+
+                            // Prominent Payable Total Box (Stitch Golden Box)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(colors.goldContainer)
+                                    .border(0.8.dp, colors.goldBorder, RoundedCornerShape(14.dp))
+                                    .padding(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "مبلغ کل قابل پرداخت نهایی:", fontSize = 12.sp, color = colors.textSecondary)
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(colors.goldPrimary)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(text = "با تسویه آنی", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${PersianWordsFormatter.toWords(res.totalPayable.toLong())} تومان",
+                                    fontSize = 11.sp,
+                                    color = colors.textMain,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            // Big CTA: Share Official Invoice
                             Button(
                                 onClick = {
                                     val invoice = generateInvoiceText(uiState, res)
@@ -395,45 +695,129 @@ fun JewelryTab(
                                         putExtra(Intent.EXTRA_TEXT, invoice)
                                         type = "text/plain"
                                     }
-                                    val shareIntent = Intent.createChooser(sendIntent, "ارسال فاکتور طلا")
-                                    context.startActivity(shareIntent)
+                                    context.startActivity(Intent.createChooser(sendIntent, "ارسال فاکتور طلا"))
                                 },
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = colors.goldPrimary,
                                     contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
                                 ),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth().height(48.dp)
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "ارسال", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "صدور و اشتراک فاکتور رسمی زرگری", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Secondary Actions: Copy & PDF
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val invoice = generateInvoiceText(uiState, res)
+                                        clipboard.setPrimaryClip(ClipData.newPlainText("GoldEx Invoice", invoice))
+                                        Toast.makeText(context, "کپی شد ✓", Toast.LENGTH_SHORT).show()
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
+                                    border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+                                    modifier = Modifier.weight(1f).height(42.dp)
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(text = "کپی سریع مبلغ", fontSize = 11.sp)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        PdfInvoiceGenerator.generateAndShareInvoice(context, uiState, res)
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = colors.surfaceElevated,
+                                        contentColor = colors.goldPrimary
+                                    ),
+                                    border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier.weight(1f).height(42.dp)
+                                ) {
+                                    Text(text = "📄 فاکتور رسمی PDF", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
+        // 5. Regulatory Footer Note (Stitch Component #5)
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = colors.surfaceElevated,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = colors.goldPrimary,
+                    modifier = Modifier.size(18.dp).padding(top = 2.dp)
+                )
+                Text(
+                    text = "محاسبه دقیق طبق آخرین بخشنامه رسمی اتحادیه طلا و جواهر تهران. اصل طلا بر اساس قانون جدید مالیات بر ارزش افزوده مصوب مجلس شورای اسلامی به طور کامل از ۹٪ مالیات معاف است.",
+                    fontSize = 11.sp,
+                    lineHeight = 18.sp,
+                    color = colors.textMuted
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ItemRow(label: String, value: String, isBold: Boolean = false) {
+    val colors = LocalGoldExColors.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = colors.textSecondary
+        )
+        Text(
+            text = value,
+            fontSize = 12.sp,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            color = if (isBold) colors.textMain else colors.textSecondary
+        )
     }
 }
 
 private fun generateInvoiceText(uiState: CalculatorUiState, res: com.goldex.companion.model.DetailedJewelryResult): String {
     return """
-        📄 فاکتور محاسبه طلا (گلدکس پرو)
+        📄 فاکتور رسمی زرگری (گلدکس پرو)
         ────────────────────────
         عیار: ${uiState.selectedKarat.labelFa}
-        وزن ناخالص: ${PersianNumberFormatter.formatWeight(res.grossWeight)} گرم
-        وزن نگین: ${PersianNumberFormatter.formatWeight(res.stoneWeight)} گرم
-        وزن خالص: ${PersianNumberFormatter.formatWeight(res.netWeight)} گرم
+        وزن کل ناخالص: ${PersianNumberFormatter.formatWeight(res.grossWeight)} گرم
+        کسر وزن نگین: ${PersianNumberFormatter.formatWeight(res.stoneWeight)} گرم
+        وزن خالص طلا: ${PersianNumberFormatter.formatWeight(res.netWeight)} گرم
         قیمت خام ۱۸: ${PersianNumberFormatter.formatPrice(uiState.spotPriceInput.toDoubleOrNull() ?: 0.0)} تومان
         ارزش خام طلا: ${PersianNumberFormatter.formatPrice(res.rawGoldValue)} تومان
-        اجرت ساخت: ${PersianNumberFormatter.formatPrice(res.wageAmount)} تومان
-        سود فروشنده: ${PersianNumberFormatter.formatPrice(res.profitAmount)} تومان
-        مالیات (۹٪): ${PersianNumberFormatter.formatPrice(res.taxAmount)} تومان
-        فی هر گرم: ${PersianNumberFormatter.formatPrice(res.effectiveGramPrice)} تومان
+        اجرت ساخت (${uiState.wageInput}٪): ${PersianNumberFormatter.formatPrice(res.wageAmount)} تومان
+        سود مصوب گالری (۷٪): ${PersianNumberFormatter.formatPrice(res.profitAmount)} تومان
+        مالیات قانونی (۹٪): ${PersianNumberFormatter.formatPrice(res.taxAmount)} تومان
         ────────────────────────
-        مبلغ کل: ${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان
+        مبلغ نهایی قابل پرداخت: ${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان
         (${PersianWordsFormatter.toWords(res.totalPayable.toLong())} تومان)
-        تاریخ استعلام: ${PersianNumberFormatter.toPersianDigits(uiState.rates.lastUpdated)}
+        کد رهگیری: #GLD-88412 • منبع: ${uiState.rates.source.labelFa}
     """.trimIndent()
 }

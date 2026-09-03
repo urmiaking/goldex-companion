@@ -10,8 +10,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,7 +41,8 @@ fun LiveRatesTicker(
 ) {
     val colors = LocalGoldExColors.current
 
-    val rotation by rememberInfiniteTransition(label = "spin").animateFloat(
+    val spinTransition = rememberInfiniteTransition(label = "spin")
+    val rotation by spinTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
@@ -46,144 +52,140 @@ fun LiveRatesTicker(
         label = "rotation"
     )
 
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
-        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
-        modifier = modifier.fillMaxWidth()
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            // Header Row: Live indicator + Provider switch + Refresh button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // Source Selector & Live Status Bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = colors.surface,
+                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
+                shadowElevation = if (colors.isDark) 0.dp else 1.dp,
+                modifier = Modifier.clickable { onToggleSource() }
             ) {
-                // Live dot + Provider Tag
                 Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(8.dp)
-                            .background(if (rates.isLive) colors.profitGreen else colors.textMuted, CircleShape)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (rates.isLive) colors.profitGreen else Color(0xFFF59E0B))
                     )
-
-                    // Clickable Provider Badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(colors.goldContainer)
-                            .border(0.6.dp, colors.goldBorder, RoundedCornerShape(8.dp))
-                            .clickable { onToggleSource() }
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = rates.source.labelFa,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.goldPrimary
-                        )
-                    }
-                }
-
-                // Time & Refresh
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
                     Text(
-                        text = PersianNumberFormatter.toPersianDigits(rates.lastUpdated),
+                        text = "منبع: ${rates.source.labelFa}",
                         fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary
+                    )
+                    Text(
+                        text = "• بروز: ${PersianNumberFormatter.toPersianDigits(rates.lastUpdated)}",
+                        fontSize = 10.sp,
                         color = colors.textMuted
                     )
-
-                    IconButton(
-                        onClick = onRefresh,
-                        modifier = Modifier.size(26.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "بروزرسانی مظنه",
-                            tint = colors.goldSecondary,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
-                        )
-                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Real Rate Pills Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            IconButton(
+                onClick = onRefresh,
+                modifier = Modifier.size(32.dp)
             ) {
-                RateChip(
-                    title = "گرم ۱۸ عیار",
-                    price = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
-                    accentColor = colors.goldPrimary
-                )
-                RateChip(
-                    title = "مثقال آبشده",
-                    price = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
-                    accentColor = colors.goldSecondary
-                )
-                RateChip(
-                    title = "سکه امامی",
-                    price = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
-                    accentColor = colors.goldPrimary
-                )
-                RateChip(
-                    title = "دلار آزاد",
-                    price = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
-                    accentColor = colors.profitGreen
-                )
-                RateChip(
-                    title = "انس جهانی",
-                    price = "$${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))}",
-                    accentColor = colors.textMain
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "بروزرسانی مظنه",
+                    tint = colors.goldPrimary,
+                    modifier = Modifier
+                        .size(17.dp)
+                        .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
                 )
             }
+        }
+
+        // Horizontal Stitch Pill Ticker
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TickerPill(
+                title = "طلا ۱۸:",
+                value = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
+                delta = "+۱.۲٪",
+                isPositive = true
+            )
+            TickerPill(
+                title = "مظنه مثقال:",
+                value = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
+                delta = "+۰.۸٪",
+                isPositive = true
+            )
+            TickerPill(
+                title = "سکه امامی:",
+                value = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
+                delta = "-۰.۳٪",
+                isPositive = false
+            )
+            TickerPill(
+                title = "دلار آزاد:",
+                value = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
+                delta = "+۰.۵٪",
+                isPositive = true
+            )
+            TickerPill(
+                title = "اونس جهانی:",
+                value = "${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))} $",
+                delta = "+۰.۴٪",
+                isPositive = true
+            )
         }
     }
 }
 
 @Composable
-private fun RateChip(
+private fun TickerPill(
     title: String,
-    price: String,
-    accentColor: Color
+    value: String,
+    delta: String,
+    isPositive: Boolean
 ) {
     val colors = LocalGoldExColors.current
+    val deltaColor = if (isPositive) colors.profitGreen else colors.errorRed
+    val arrowIcon = if (isPositive) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = colors.surfaceElevated,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border)
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surface,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Text(
-                text = title,
-                fontSize = 10.sp,
-                color = colors.textSecondary
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = price,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = accentColor
-            )
+            Text(text = title, fontSize = 11.sp, color = colors.textSecondary)
+            Text(text = value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                Text(text = delta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = deltaColor)
+                Icon(
+                    imageVector = arrowIcon,
+                    contentDescription = null,
+                    tint = deltaColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }

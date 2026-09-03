@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.calculator
+package com.goldex.companion.ui.calculator
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -116,10 +116,10 @@ fun GoldCalculatorScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(colors.goldContainer)
-                                    .border(0.8.dp, colors.goldBorder, CircleShape),
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.surfaceElevated)
+                                    .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -132,13 +132,13 @@ fun GoldCalculatorScreen(
                             Column {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
                                     Text(
-                                        text = "همراه گلدکس",
+                                        text = "گلدکس پرو",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 17.sp,
-                                        color = colors.goldPrimary
+                                        color = colors.textMain
                                     )
                                     Box(
                                         modifier = Modifier
@@ -154,11 +154,22 @@ fun GoldCalculatorScreen(
                                         )
                                     }
                                 }
-                                Text(
-                                    text = "دستیار تخصصی طلا، مسکوکات و سبد دارایی",
-                                    fontSize = 10.sp,
-                                    color = colors.textMuted
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(colors.profitGreen)
+                                    )
+                                    Text(
+                                        text = "نرخ لحظه‌ای و دستیار معاملات",
+                                        fontSize = 10.sp,
+                                        color = colors.textMuted
+                                    )
+                                }
                             }
                         }
                     },
@@ -197,51 +208,60 @@ fun GoldCalculatorScreen(
                 )
             },
             bottomBar = {
-                Surface(
-                    color = colors.surface,
-                    border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
-                    shadowElevation = if (colors.isDark) 0.dp else 4.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 14.dp, end = 14.dp, bottom = 12.dp, top = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    NavigationBar(
-                        containerColor = colors.surface,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier.height(70.dp)
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = colors.surface,
+                        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
+                        shadowElevation = if (colors.isDark) 4.dp else 10.dp,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        AppTab.values().forEach { tab ->
-                            val isSelected = uiState.selectedTab == tab
-                            val icon = when (tab) {
-                                AppTab.JEWELRY -> Icons.Default.Star
-                                AppTab.MELT -> Icons.Default.Build
-                                AppTab.COIN -> CoinVector
-                                AppTab.CONVERT -> Icons.Default.Refresh
-                                AppTab.PORTFOLIO -> PortfolioVector
-                            }
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.height(64.dp)
+                        ) {
+                            AppTab.values().forEach { tab ->
+                                val isSelected = uiState.selectedTab == tab
+                                val icon = when (tab) {
+                                    AppTab.JEWELRY -> Icons.Default.Star
+                                    AppTab.MELT -> Icons.Default.Build
+                                    AppTab.COIN -> CoinVector
+                                    AppTab.CONVERT -> Icons.Default.Refresh
+                                    AppTab.PORTFOLIO -> PortfolioVector
+                                }
 
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { viewModel.selectTab(tab) },
-                                icon = {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = tab.titleFa,
-                                        modifier = Modifier.size(20.dp)
+                                NavigationBarItem(
+                                    selected = isSelected,
+                                    onClick = { viewModel.selectTab(tab) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = tab.titleFa,
+                                            modifier = Modifier.size(19.dp)
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = tab.titleFa,
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = colors.goldPrimary,
+                                        selectedTextColor = colors.goldPrimary,
+                                        unselectedIconColor = colors.textMuted,
+                                        unselectedTextColor = colors.textSecondary,
+                                        indicatorColor = colors.goldContainer
                                     )
-                                },
-                                label = {
-                                    Text(
-                                        text = tab.titleFa,
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = colors.goldPrimary,
-                                    selectedTextColor = colors.goldPrimary,
-                                    unselectedIconColor = colors.textMuted,
-                                    unselectedTextColor = colors.textSecondary,
-                                    indicatorColor = colors.goldContainer
                                 )
-                            )
+                            }
                         }
                     }
                 }

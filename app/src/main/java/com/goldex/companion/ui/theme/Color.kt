@@ -4,16 +4,16 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Minimalist Luxury Gold Palette
+// Stitch "Persian Sovereign Aurum" Design Tokens
 val GoldPrimaryDark = Color(0xFFDFB35A)         // Champagne Gold for Dark
 val GoldSecondaryDark = Color(0xFFC7983B)
 val GoldContainerDark = Color(0x24DFB35A)
 val GoldBorderDark = Color(0x4DDFB35A)
 
-val GoldPrimaryLight = Color(0xFFB8860B)        // Deep Rich Gold for Light Mode
-val GoldSecondaryLight = Color(0xFF946A04)
-val GoldContainerLight = Color(0x1FB8860B)
-val GoldBorderLight = Color(0x40B8860B)
+val GoldPrimaryLight = Color(0xFFD4AF37)        // Stitch Master Champagne Gold #D4AF37
+val GoldSecondaryLight = Color(0xFFB8860B)      // Stitch Deep Bullion Gold #B8860B
+val GoldContainerLight = Color(0x29D4AF37)      // Soft gold halo
+val GoldBorderLight = Color(0x38B8860B)         // Stitch Gilded Hairline Border rgba(184, 134, 11, 0.22)
 
 @Immutable
 data class GoldExAppColors(
@@ -49,25 +49,25 @@ val DarkGoldExColors = GoldExAppColors(
     textSecondary = Color(0xFF9EA6B8),
     textMuted = Color(0xFF676E7E),
     profitGreen = Color(0xFF10B981),
-    errorRed = Color(0xFFFB7185)
+    errorRed = Color(0xFFEF4444)
 )
 
 val LightGoldExColors = GoldExAppColors(
     isDark = false,
-    background = Color(0xFFF6F8FA),
-    surface = Color(0xFFFFFFFF),
-    surfaceElevated = Color(0xFFF1F3F6),
-    surfaceVariant = Color(0xFFE9ECEF),
-    border = Color(0xFFE2E8F0),
-    goldPrimary = GoldPrimaryLight,
-    goldSecondary = GoldSecondaryLight,
+    background = Color(0xFFF6F8FA),             // Stitch Warm Ivory / Porcelain #F6F8FA
+    surface = Color(0xFFFFFFFF),                // Stitch Pure Alabaster White #FFFFFF
+    surfaceElevated = Color(0xFFF1F3FF),        // Stitch Surface Container Low #F1F3FF
+    surfaceVariant = Color(0xFFE9EDFF),         // Stitch Surface Container #E9EDFF
+    border = Color(0x2E141B2B),                 // Stitch Subtle Hairline
+    goldPrimary = GoldSecondaryLight,           // Deep Gold for text/buttons
+    goldSecondary = GoldPrimaryLight,          // Champagne Gold
     goldContainer = GoldContainerLight,
     goldBorder = GoldBorderLight,
-    textMain = Color(0xFF111827),
-    textSecondary = Color(0xFF4B5563),
-    textMuted = Color(0xFF9CA3AF),
-    profitGreen = Color(0xFF059669),
-    errorRed = Color(0xFFDC2626)
+    textMain = Color(0xFF141B2B),               // Stitch Primary Ink #141B2B
+    textSecondary = Color(0xFF4D4635),          // Stitch Secondary Ink #4D4635
+    textMuted = Color(0xFF6B7280),              // Stitch Muted Pewter #6B7280
+    profitGreen = Color(0xFF10B981),            // Stitch Emerald Bull Gain #10B981
+    errorRed = Color(0xFFEF4444)                // Stitch Ruby Bear Loss #EF4444
 )
 
 val LocalGoldExColors = staticCompositionLocalOf { LightGoldExColors }
