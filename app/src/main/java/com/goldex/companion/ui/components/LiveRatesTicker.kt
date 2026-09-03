@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -10,8 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -159,7 +157,6 @@ private fun TickerPill(
 ) {
     val colors = LocalGoldExColors.current
     val deltaColor = if (isPositive) colors.profitGreen else colors.errorRed
-    val arrowIcon = if (isPositive) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -174,18 +171,7 @@ private fun TickerPill(
         ) {
             Text(text = title, fontSize = 11.sp, color = colors.textSecondary)
             Text(text = value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(1.dp)
-            ) {
-                Text(text = delta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = deltaColor)
-                Icon(
-                    imageVector = arrowIcon,
-                    contentDescription = null,
-                    tint = deltaColor,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
+            Text(text = delta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = deltaColor)
         }
     }
 }

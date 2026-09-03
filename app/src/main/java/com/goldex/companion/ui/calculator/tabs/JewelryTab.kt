@@ -123,7 +123,7 @@ fun JewelryTab(
                             }
 
                             Row(
-                                verticalAlignment = Alignment.Baseline,
+                                verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
@@ -156,7 +156,7 @@ fun JewelryTab(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = if (uiState.autoSyncPrice) Icons.Default.Lock else Icons.Default.LockOpen,
+                                imageVector = if (uiState.autoSyncPrice) Icons.Default.Lock else Icons.Default.Refresh,
                                 contentDescription = null,
                                 tint = if (uiState.autoSyncPrice) colors.goldPrimary else colors.textMuted,
                                 modifier = Modifier.size(13.dp)
