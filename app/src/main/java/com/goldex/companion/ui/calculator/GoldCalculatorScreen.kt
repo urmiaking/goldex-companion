@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -63,10 +64,10 @@ fun GoldCalculatorScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Diamond,
+                                    imageVector = Icons.Default.Star,
                                     contentDescription = null,
                                     tint = colors.goldPrimary,
-                                    modifier = Modifier.size(19.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                             Column {
@@ -86,12 +87,17 @@ fun GoldCalculatorScreen(
                     },
                     actions = {
                         // Dark / Light Theme Toggle Button
-                        IconButton(onClick = { viewModel.toggleTheme() }) {
-                            Icon(
-                                imageVector = if (colors.isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
-                                contentDescription = "تغییر پوسته",
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(22.dp)
+                        IconButton(
+                            onClick = { viewModel.toggleTheme() },
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.surfaceElevated)
+                        ) {
+                            Text(
+                                text = if (colors.isDark) "☀️" else "🌙",
+                                fontSize = 16.sp
                             )
                         }
 
@@ -127,10 +133,10 @@ fun GoldCalculatorScreen(
                         AppTab.values().forEach { tab ->
                             val isSelected = uiState.selectedTab == tab
                             val icon = when (tab) {
-                                AppTab.JEWELRY -> Icons.Default.Diamond
-                                AppTab.MELT -> Icons.Default.Scale
-                                AppTab.COIN -> Icons.Default.MonetizationOn
-                                AppTab.CONVERT -> Icons.Default.SyncAlt
+                                AppTab.JEWELRY -> Icons.Default.Star
+                                AppTab.MELT -> Icons.Default.Build
+                                AppTab.COIN -> Icons.Default.AccountBalance
+                                AppTab.CONVERT -> Icons.Default.SwapHoriz
                             }
 
                             NavigationBarItem(
