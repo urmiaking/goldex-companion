@@ -280,11 +280,16 @@ fun GoldCalculatorScreen(
             },
             containerColor = colors.background
         ) { paddingValues ->
+            val scrollState = rememberScrollState()
+            LaunchedEffect(uiState.selectedTab) {
+                scrollState.scrollTo(0)
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -302,11 +307,11 @@ fun GoldCalculatorScreen(
                         val isForward = targetState.ordinal > initialState.ordinal
                         (slideInHorizontally(
                             animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                dampingRatio = Spring.DampingRatioNoBouncy,
                                 stiffness = Spring.StiffnessMediumLow
                             )
                         ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
-                            animationSpec = tween(260, easing = FastOutSlowInEasing)
+                            animationSpec = tween(240, easing = FastOutSlowInEasing)
                         )).togetherWith(
                             slideOutHorizontally(
                                 animationSpec = spring(
@@ -318,7 +323,10 @@ fun GoldCalculatorScreen(
                             )
                         )
                     },
-                    label = "tabTransition"
+                    label = "tabTransition",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clipToBounds()
                 ) { tab ->
                     when (tab) {
                         AppTab.JEWELRY -> JewelryTab(viewModel, uiState)

@@ -40,6 +40,7 @@ import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.heroCardGradient
 import com.goldex.companion.ui.util.PdfInvoiceGenerator
 
 @Composable
@@ -651,7 +652,7 @@ fun JewelryTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(colors.goldContainer)
+                                    .background(colors.heroCardGradient)
                                     .border(0.8.dp, colors.goldBorder, RoundedCornerShape(14.dp))
                                     .padding(14.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -676,7 +677,8 @@ fun JewelryTab(
                                     text = "${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان",
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = colors.goldPrimary
+                                    color = colors.goldPrimary,
+                                    contentAlignment = Alignment.Center
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
@@ -798,7 +800,8 @@ private fun ItemRow(label: String, value: String, isBold: Boolean = false) {
             text = value,
             fontSize = 12.sp,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = if (isBold) colors.textMain else colors.textSecondary
+            color = if (isBold) colors.textMain else colors.textSecondary,
+            contentAlignment = Alignment.CenterEnd
         )
     }
 }

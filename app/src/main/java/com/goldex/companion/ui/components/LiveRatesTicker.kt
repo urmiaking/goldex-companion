@@ -176,7 +176,7 @@ fun LiveRatesTicker(
             )
             TickerPill(
                 title = "اونس جهانی:",
-                value = "${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))} $",
+                value = "${PersianNumberFormatter.toPersianDigits(String.format(java.util.Locale.US, "%.1f", rates.ons))} $",
                 delta = "+۰.۴٪",
                 isPositive = true
             )

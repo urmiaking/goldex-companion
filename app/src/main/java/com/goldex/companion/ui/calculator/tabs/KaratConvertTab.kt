@@ -14,11 +14,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.animation.core.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -35,6 +37,7 @@ import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
+import com.goldex.companion.ui.theme.heroCardGradient
 
 private val Karat.standardCode: String
     get() = when (this) {
@@ -50,6 +53,15 @@ fun KaratConvertTab(
 ) {
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
+    var swapRotationTarget by remember { mutableFloatStateOf(0f) }
+    val swapRotation by animateFloatAsState(
+        targetValue = swapRotationTarget,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "swapRotation"
+    )
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -121,8 +133,8 @@ fun KaratConvertTab(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    listOf("۱" to "۱ گرم", "۵" to "۵ گرم", "۱۰" to "۱۰ گرم", "۲۵" to "۲۵ گرم", "۵۰" to "۵۰ گرم").forEach { (w, label) ->
-                        val isSel = uiState.convertWeightInput == w
+                    listOf("1" to "۱ گرم", "5" to "۵ گرم", "10" to "۱۰ گرم", "25" to "۲۵ گرم", "50" to "۵۰ گرم").forEach { (w, label) ->
+                        val isSel = PersianNumberFormatter.toEnglishDigits(uiState.convertWeightInput) == w
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -155,63 +167,66 @@ fun KaratConvertTab(
                             val isSel = uiState.convertFromKarat == k
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSel) colors.goldContainer else colors.surfaceElevated)
-                                    .border(
-                                        if (isSel) 1.dp else 0.5.dp,
-                                        if (isSel) colors.goldPrimary else colors.border,
-                                        RoundedCornerShape(10.dp)
-                                    )
-                                    .clickable { viewModel.onConvertFromKarat(k) }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = k.labelFa,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSel) colors.goldPrimary else colors.textMain
-                                    )
-                                    Text(
-                                        text = k.standardCode,
-                                        fontSize = 9.sp,
-                                        color = if (isSel) colors.goldSecondary else colors.textMuted
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Swap button between karats
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = colors.surfaceElevated,
-                            border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clickable {
-                                    val currentFrom = uiState.convertFromKarat
-                                    val currentTo = uiState.convertToKarat
-                                    viewModel.onConvertFromKarat(currentTo)
-                                    viewModel.onConvertToKarat(currentFrom)
-                                }
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSel) colors.goldContainer else colors.surfaceElevated)
+                                .border(
+                                    if (isSel) 1.dp else 0.5.dp,
+                                    if (isSel) colors.goldPrimary else colors.border,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { viewModel.onConvertFromKarat(k) }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "تعویض مبدأ و مقصد",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(16.dp)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = k.labelFa,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSel) colors.goldPrimary else colors.textMain
+                                )
+                                Text(
+                                    text = k.standardCode,
+                                    fontSize = 9.sp,
+                                    color = if (isSel) colors.goldSecondary else colors.textMuted
                                 )
                             }
                         }
                     }
+                }
+
+                // Swap button between karats
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = colors.surfaceElevated,
+                        border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable {
+                                swapRotationTarget += 180f
+                                val currentFrom = uiState.convertFromKarat
+                                val currentTo = uiState.convertToKarat
+                                viewModel.onConvertFromKarat(currentTo)
+                                viewModel.onConvertToKarat(currentFrom)
+                            }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "تعویض مبدأ و مقصد",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .rotate(swapRotation)
+                            )
+                        }
+                    }
+                }
 
                     Text("عیار مقصد (عیار تبدیل):", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -276,7 +291,7 @@ fun KaratConvertTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(colors.goldContainer)
+                        .background(colors.heroCardGradient)
                         .border(0.8.dp, colors.goldBorder, RoundedCornerShape(14.dp))
                         .padding(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -333,7 +348,7 @@ fun KaratConvertTab(
                     OutlinedButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clipText = "${uiState.convertWeightInput} گرم طلا ${uiState.convertFromKarat.labelFa} = ${PersianNumberFormatter.formatWeight(uiState.convertedWeight)} گرم طلا ${uiState.convertToKarat.labelFa}"
+                            val clipText = "${PersianNumberFormatter.toPersianDigits(uiState.convertWeightInput)} گرم طلا ${uiState.convertFromKarat.labelFa} = ${PersianNumberFormatter.formatWeight(uiState.convertedWeight)} گرم طلا ${uiState.convertToKarat.labelFa}"
                             clipboard.setPrimaryClip(ClipData.newPlainText("Karat Conversion", clipText))
                             Toast.makeText(context, "نتیجه تبدیل کپی شد ✓", Toast.LENGTH_SHORT).show()
                         },

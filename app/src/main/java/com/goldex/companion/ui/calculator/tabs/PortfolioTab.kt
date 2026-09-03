@@ -36,6 +36,7 @@ import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
+import com.goldex.companion.ui.theme.heroCardGradient
 
 private val PortfolioCoinVector: ImageVector = ImageVector.Builder(
     name = "PortfolioCoin",
@@ -82,7 +83,9 @@ fun PortfolioTab(
             color = colors.surface,
             border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
             shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.heroCardGradient, RoundedCornerShape(18.dp))
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 // Top gold accent line
@@ -163,7 +166,8 @@ fun PortfolioTab(
                                 text = "$profitSign${PersianNumberFormatter.formatPrice(totalProfit.toDouble())} ت ($profitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(totalProfitPercent))}٪)",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = profitColor
+                                color = profitColor,
+                                contentAlignment = Alignment.CenterEnd
                             )
                         }
                     }
@@ -331,7 +335,8 @@ fun PortfolioTab(
                                 text = "$itemProfitSign${PersianNumberFormatter.formatPrice(profit.toDouble())} ت ($itemProfitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(profitPct))}٪)",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = itemProfitColor
+                                color = itemProfitColor,
+                                contentAlignment = Alignment.CenterEnd
                             )
                         }
                     }

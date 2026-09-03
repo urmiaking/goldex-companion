@@ -50,7 +50,7 @@ fun GoldExCompanionTheme(
             colorScheme = colorScheme,
             typography = Typography
         ) {
-            ProvideTextStyle(value = TextStyle(fontFamily = VazirmatnFamily)) {
+            ProvideTextStyle(value = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings)) {
                 content()
             }
         }

@@ -22,6 +22,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clipToBounds
+
 /**
  * Animated price and number ticker with smooth vertical slide and fade transitions.
  * Gives a premium fintech micro-interaction whenever numerical values change.
@@ -34,6 +37,7 @@ fun AnimatedPriceTicker(
     fontSize: TextUnit = TextUnit.Unspecified,
     fontWeight: FontWeight? = null,
     textAlign: TextAlign? = null,
+    contentAlignment: Alignment = Alignment.CenterStart,
     overflow: TextOverflow = TextOverflow.Clip,
     maxLines: Int = 1,
     style: TextStyle = LocalTextStyle.current
@@ -43,18 +47,19 @@ fun AnimatedPriceTicker(
         transitionSpec = {
             (slideInVertically(
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessMediumLow
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
                 )
-            ) { height -> -height / 3 } + fadeIn(tween(220, easing = LinearOutSlowInEasing)))
+            ) { height -> -height / 3 } + fadeIn(tween(200, easing = LinearOutSlowInEasing)))
                 .togetherWith(
                     slideOutVertically(
-                        animationSpec = tween(160, easing = FastOutLinearInEasing)
-                    ) { height -> height / 3 } + fadeOut(tween(160))
+                        animationSpec = tween(150, easing = FastOutLinearInEasing)
+                    ) { height -> height / 3 } + fadeOut(tween(150))
                 )
         },
+        contentAlignment = contentAlignment,
         label = "priceTickerAnim",
-        modifier = modifier
+        modifier = modifier.clipToBounds()
     ) { targetText ->
         Text(
             text = targetText,

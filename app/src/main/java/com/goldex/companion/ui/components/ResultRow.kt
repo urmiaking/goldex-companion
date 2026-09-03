@@ -40,7 +40,8 @@ fun ResultRow(
                 text = value,
                 fontSize = if (isHighlight) 14.sp else 13.sp,
                 fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
-                color = actualValueColor
+                color = actualValueColor,
+                contentAlignment = Alignment.CenterEnd
             )
         } else {
             Text(

@@ -13,9 +13,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +41,7 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.ResultRow
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
+import com.goldex.companion.ui.theme.heroCardGradient
 
 private val CoinIconVector: ImageVector = ImageVector.Builder(
     name = "CoinIcon",
@@ -216,7 +220,7 @@ fun CoinBubbleTab(
                                 fontSize = 11.sp,
                                 color = colors.textSecondary
                             )
-                            Text(
+                            AnimatedPriceTicker(
                                 text = "${PersianNumberFormatter.formatPrice(currentCoinLiveRate.toDouble())} تومان",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -244,7 +248,9 @@ fun CoinBubbleTab(
                         shape = RoundedCornerShape(14.dp),
                         color = colors.surfaceElevated,
                         border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.heroCardGradient)
                     ) {
                         Column(
                             modifier = Modifier.padding(14.dp),
@@ -271,11 +277,36 @@ fun CoinBubbleTab(
                                 }
                             }
 
+                            // Prominent Bubble Amount Display
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "مبلغ حباب قیمت بازاری (${uiState.selectedCoin.titleFa})",
+                                    fontSize = 11.sp,
+                                    color = colors.textSecondary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                AnimatedPriceTicker(
+                                    text = "${PersianNumberFormatter.formatPrice(bubble.bubbleAmount)} تومان",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statusColor,
+                                    contentAlignment = Alignment.Center
+                                )
+                            }
+
                             // Visual Bubble Risk Meter (Progress bar)
                             val normalizedProgress = (bubblePercent / 40.0).coerceIn(0.0, 1.0).toFloat()
+                            val animatedProgress by animateFloatAsState(
+                                targetValue = normalizedProgress,
+                                animationSpec = tween(400, easing = FastOutSlowInEasing),
+                                label = "bubbleProgress"
+                            )
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 LinearProgressIndicator(
-                                    progress = { normalizedProgress },
+                                    progress = { animatedProgress },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(6.dp)

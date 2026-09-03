@@ -34,6 +34,7 @@ import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
+import com.goldex.companion.ui.theme.heroCardGradient
 
 @Composable
 fun MeltTab(
@@ -183,12 +184,12 @@ fun MeltTab(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf(
-                        "۴.۶۰۸" to "۱ مثقال",
-                        "۱۰" to "۱۰ گرم",
-                        "۲۰" to "۲۰ گرم",
-                        "۵۰" to "۵۰ گرم"
+                        "4.608" to "۱ مثقال",
+                        "10" to "۱۰ گرم",
+                        "20" to "۲۰ گرم",
+                        "50" to "۵۰ گرم"
                     ).forEach { (weight, label) ->
-                        val isSel = uiState.meltWeightInput == weight
+                        val isSel = PersianNumberFormatter.toEnglishDigits(uiState.meltWeightInput) == weight
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -218,7 +219,7 @@ fun MeltTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(colors.goldContainer)
+                        .background(colors.heroCardGradient)
                         .border(0.8.dp, colors.goldBorder, RoundedCornerShape(14.dp))
                         .padding(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -275,7 +276,7 @@ fun MeltTab(
                     OutlinedButton(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clipText = "ارزش قطعه آبشده (${uiState.meltWeightInput} گرم): ${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان"
+                            val clipText = "ارزش قطعه آبشده (${PersianNumberFormatter.toPersianDigits(uiState.meltWeightInput)} گرم): ${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان"
                             clipboard.setPrimaryClip(ClipData.newPlainText("Melt Value", clipText))
                             Toast.makeText(context, "ارزش آبشده کپی شد ✓", Toast.LENGTH_SHORT).show()
                         },

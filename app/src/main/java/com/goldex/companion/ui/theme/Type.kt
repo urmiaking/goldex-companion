@@ -15,36 +15,42 @@ val VazirmatnFamily = FontFamily(
     Font(R.font.vazirmatn_bold, FontWeight.Bold)
 )
 
+val VazirmatnFeatureSettings = "ss01"
+
 private val defaultTypography = Typography()
 
 val Typography = Typography(
-    displayLarge = defaultTypography.displayLarge.copy(fontFamily = VazirmatnFamily),
-    displayMedium = defaultTypography.displayMedium.copy(fontFamily = VazirmatnFamily),
-    displaySmall = defaultTypography.displaySmall.copy(fontFamily = VazirmatnFamily),
+    displayLarge = defaultTypography.displayLarge.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
+    displayMedium = defaultTypography.displayMedium.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
+    displaySmall = defaultTypography.displaySmall.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
 
-    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = VazirmatnFamily),
+    headlineLarge = defaultTypography.headlineLarge.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
     headlineMedium = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 32.sp
     ),
-    headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = VazirmatnFamily),
+    headlineSmall = defaultTypography.headlineSmall.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
 
     titleLarge = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
         lineHeight = 26.sp
     ),
     titleMedium = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp
     ),
     titleSmall = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp
@@ -52,18 +58,21 @@ val Typography = Typography(
 
     bodyLarge = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
     bodySmall = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp
@@ -71,18 +80,21 @@ val Typography = Typography(
 
     labelLarge = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
     labelMedium = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp
     ),
     labelSmall = TextStyle(
         fontFamily = VazirmatnFamily,
+        fontFeatureSettings = VazirmatnFeatureSettings,
         fontWeight = FontWeight.Medium,
         fontSize = 10.sp,
         lineHeight = 14.sp
