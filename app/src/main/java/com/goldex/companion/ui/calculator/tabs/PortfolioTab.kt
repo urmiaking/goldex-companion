@@ -1,7 +1,6 @@
-package com.goldex.companion.ui.calculator.tabs
+﻿package com.goldex.companion.ui.calculator.tabs
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -19,24 +18,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.data.PortfolioItem
-import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.calculator.CalculatorUiState
+import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.SectionHeader
 import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.goldGradient
-import com.goldex.companion.ui.theme.heroCardGradient
 
 private val PortfolioCoinVector: ImageVector = ImageVector.Builder(
     name = "PortfolioCoin",
@@ -65,11 +65,20 @@ private val PortfolioCoinVector: ImageVector = ImageVector.Builder(
 fun PortfolioTab(
     uiState: CalculatorUiState
 ) {
-    val context = LocalContext.current
+    val vm: GoldCalculatorViewModel = viewModel()
+    PortfolioTab(viewModel = vm, uiState = uiState)
+}
+
+@Composable
+fun PortfolioTab(
+    viewModel: GoldCalculatorViewModel,
+    uiState: CalculatorUiState
+) {
     val colors = LocalGoldExColors.current
-    val repo = remember { PortfolioRepository(context) }
-    var items by remember { mutableStateOf(repo.getItems()) }
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // Use unified portfolio items from ViewModel StateFlow
+    val items = uiState.portfolioItems
 
     val totalCurrentVal = items.sumOf { it.calculateCurrentValue(uiState.rates) }
     val totalPurchaseVal = items.sumOf { it.purchasePriceTotal }
@@ -77,129 +86,92 @@ fun PortfolioTab(
     val totalProfitPercent = if (totalPurchaseVal > 0) (totalProfit.toDouble() / totalPurchaseVal.toDouble()) * 100.0 else 0.0
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // Hero Portfolio Summary Card (Stitch Sovereign Aurum)
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = colors.surface,
-            border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
-            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.heroCardGradient, RoundedCornerShape(18.dp))
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Top gold accent line
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.5.dp)
-                        .background(colors.goldGradient)
-                )
-
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+        // Hero Portfolio Summary Card (Stitch Sovereign Aurum with LuxuryCard & SectionHeader)
+        LuxuryCard {
+            SectionHeader(
+                title = "ارزش کل سبد دارایی طلا و سکه",
+                subtitle = "ارزش‌گذاری بر مبنای آخرین مظنه بازار",
+                icon = Icons.Default.Star,
+                trailingContent = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(colors.goldContainer)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = "ارزش کل سبد دارایی طلا و سکه",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textSecondary
+                            text = " قلم دارایی",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
                         )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.goldContainer)
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم دارایی",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
-                        }
                     }
+                }
+            )
 
+            AnimatedPriceTicker(
+                text = " تومان",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.goldPrimary
+            )
+
+            Text(
+                text = PersianWordsFormatter.toWords(totalCurrentVal),
+                fontSize = 11.sp,
+                color = colors.textMain
+            )
+
+            HorizontalDivider(color = colors.border, thickness = 0.7.dp)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("مجموع سرمایه اولیه:", fontSize = 11.sp, color = colors.textMuted)
                     AnimatedPriceTicker(
-                        text = "${PersianNumberFormatter.formatPrice(totalCurrentVal.toDouble())} تومان",
-                        fontSize = 24.sp,
+                        text = " تومان",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary
+                    )
+                }
+
+                val isProfit = totalProfit >= 0
+                val profitColor = if (isProfit) colors.profitGreen else colors.errorRed
+                val profitSign = if (isProfit) "+" else ""
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("سود / زیان کل:", fontSize = 11.sp, color = colors.textMuted)
+                    AnimatedPriceTicker(
+                        text = " ت (٪)",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary
+                        color = profitColor,
+                        contentAlignment = Alignment.CenterEnd
                     )
-
-                    Text(
-                        text = PersianWordsFormatter.toWords(totalCurrentVal),
-                        fontSize = 11.sp,
-                        color = colors.textMain
-                    )
-
-                    HorizontalDivider(color = colors.border, thickness = 0.7.dp)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("مجموع سرمایه اولیه:", fontSize = 11.sp, color = colors.textMuted)
-                            AnimatedPriceTicker(
-                                text = "${PersianNumberFormatter.formatPrice(totalPurchaseVal.toDouble())} تومان",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textSecondary
-                            )
-                        }
-
-                        val isProfit = totalProfit >= 0
-                        val profitColor = if (isProfit) colors.profitGreen else colors.errorRed
-                        val profitSign = if (isProfit) "+" else ""
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("سود / زیان کل:", fontSize = 11.sp, color = colors.textMuted)
-                            AnimatedPriceTicker(
-                                text = "$profitSign${PersianNumberFormatter.formatPrice(totalProfit.toDouble())} ت ($profitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(totalProfitPercent))}٪)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = profitColor,
-                                contentAlignment = Alignment.CenterEnd
-                            )
-                        }
-                    }
                 }
             }
         }
 
         // Add Asset CTA Button
-        Button(
-            onClick = { showAddDialog = true },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.goldPrimary,
-                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
-            ),
-            modifier = Modifier.fillMaxWidth().height(46.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(text = "ثبت دارایی جدید در سبد", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
+        GoldButton(
+            text = "ثبت دارایی جدید در سبد",
+            icon = Icons.Default.Add,
+            onClick = { showAddDialog = true }
+        )
 
         // Empty state when no items
         if (items.isEmpty()) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surface,
-                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
-                modifier = Modifier.fillMaxWidth()
+            LuxuryCard(
+                hasTopHairline = false,
+                elevation = 1.dp,
+                contentPadding = PaddingValues(24.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -242,103 +214,96 @@ fun PortfolioTab(
             val itemProfitColor = if (isItemProfit) colors.profitGreen else colors.errorRed
             val itemProfitSign = if (isItemProfit) "+" else ""
 
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surface,
-                border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
-                shadowElevation = if (colors.isDark) 0.dp else 1.dp,
-                modifier = Modifier.fillMaxWidth()
+            LuxuryCard(
+                hasTopHairline = false,
+                elevation = 1.dp,
+                contentPadding = PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(colors.surfaceElevated),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (item.category == PortfolioCategory.GOLD) Icons.Default.Star else PortfolioCoinVector,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = item.title,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain
-                                )
-                                val subtitle = if (item.category == PortfolioCategory.GOLD) {
-                                    "${PersianNumberFormatter.formatWeight(item.weightGrams)} گرم | ${item.karat.labelFa}"
-                                } else {
-                                    "${PersianNumberFormatter.toPersianDigits(item.quantity.toString())} عدد ${item.coinType?.titleFa ?: "سکه"}"
-                                }
-                                Text(
-                                    text = subtitle,
-                                    fontSize = 11.sp,
-                                    color = colors.textMuted
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = {
-                                repo.deleteItem(item.id)
-                                items = repo.getItems()
-                            },
-                            modifier = Modifier.size(28.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(colors.surfaceElevated),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "حذف دارایی",
-                                tint = colors.errorRed.copy(alpha = 0.7f),
-                                modifier = Modifier.size(17.dp)
+                                imageVector = if (item.category == PortfolioCategory.GOLD) Icons.Default.Star else PortfolioCoinVector,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = item.title,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain
+                            )
+                            val subtitle = if (item.category == PortfolioCategory.GOLD) {
+                                " گرم | "
+                            } else {
+                                " عدد "
+                            }
+                            Text(
+                                text = subtitle,
+                                fontSize = 11.sp,
+                                color = colors.textMuted
                             )
                         }
                     }
 
-                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    IconButton(
+                        onClick = {
+                            viewModel.deletePortfolioItem(item.id)
+                        },
+                        modifier = Modifier.size(28.dp)
                     ) {
-                        Column {
-                            Text("ارزش روز:", fontSize = 10.sp, color = colors.textMuted)
-                            AnimatedPriceTicker(
-                                text = "${PersianNumberFormatter.formatPrice(curVal.toDouble())} ت",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
-                        }
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "حذف دارایی",
+                            tint = colors.errorRed.copy(alpha = 0.7f),
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                }
 
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("سود / زیان:", fontSize = 10.sp, color = colors.textMuted)
-                            AnimatedPriceTicker(
-                                text = "$itemProfitSign${PersianNumberFormatter.formatPrice(profit.toDouble())} ت ($itemProfitSign${PersianNumberFormatter.toPersianDigits("%.1f".format(profitPct))}٪)",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = itemProfitColor,
-                                contentAlignment = Alignment.CenterEnd
-                            )
-                        }
+                HorizontalDivider(color = colors.border, thickness = 0.5.dp)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("ارزش روز:", fontSize = 10.sp, color = colors.textMuted)
+                        AnimatedPriceTicker(
+                            text = " ت",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("سود / زیان:", fontSize = 10.sp, color = colors.textMuted)
+                        AnimatedPriceTicker(
+                            text = " ت (٪)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = itemProfitColor,
+                            contentAlignment = Alignment.CenterEnd
+                        )
                     }
                 }
             }
@@ -351,8 +316,7 @@ fun PortfolioTab(
             rates = uiState.rates,
             onDismiss = { showAddDialog = false },
             onConfirm = { newItem ->
-                repo.addItem(newItem)
-                items = repo.getItems()
+                viewModel.addPortfolioItem(newItem)
                 showAddDialog = false
             }
         )

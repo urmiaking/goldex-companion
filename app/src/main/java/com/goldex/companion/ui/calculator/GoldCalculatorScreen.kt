@@ -34,12 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.ui.calculator.tabs.*
-import com.goldex.companion.ui.components.AddCustomerDialog
-import com.goldex.companion.ui.components.CustomerIconVector
-import com.goldex.companion.ui.components.CustomerPickerDialog
-import com.goldex.companion.ui.components.LiveRatesTicker
+import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
+import kotlinx.coroutines.launch
 
 private val CoinVector: ImageVector = ImageVector.Builder(
     name = "Coin",
@@ -117,7 +115,20 @@ fun GoldCalculatorScreen(
         label = "rotation"
     )
 
-    // Customer Management Modal from Top Bar
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val coroutineScope = rememberCoroutineScope()
+
+    // In-App Auto-Update Dialog Prompt
+    uiState.updateInfo?.let { info ->
+        if (info.isAvailable && !uiState.isUpdateDialogDismissed) {
+            UpdateDialog(
+                updateInfo = info,
+                onDismiss = { viewModel.dismissUpdateDialog() }
+            )
+        }
+    }
+
+    // Customer Management Modal from Top Bar / Drawer
     if (uiState.isCustomerManagerVisible) {
         CustomerPickerDialog(
             customers = uiState.customerList,
@@ -141,10 +152,42 @@ fun GoldCalculatorScreen(
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Scaffold(
-            topBar = {
-                Column {
-                    TopAppBar(
+        LuxuryDrawer(
+            drawerState = drawerState,
+            rates = uiState.rates,
+            customerCount = uiState.customerList.size,
+            onNavigateCustomers = {
+                viewModel.loadCustomers(context)
+                viewModel.setCustomerManagerVisible(true)
+            },
+            onNavigateSettings = {
+                viewModel.toggleTheme()
+            },
+            onCheckForUpdates = {
+                viewModel.checkForUpdates(manual = true)
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    Column {
+                        TopAppBar(
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = { coroutineScope.launch { drawerState.open() } },
+                                    modifier = Modifier
+                                        .padding(start = 6.dp)
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(colors.surfaceElevated)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "منوی اصلی",
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            },
                         title = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -273,131 +316,10 @@ fun GoldCalculatorScreen(
                 }
             },
             bottomBar = {
-                // Enhanced Luxury Floating Island Dock Navigation Bar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp, top = 2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(26.dp),
-                        color = colors.surface.copy(alpha = if (colors.isDark) 0.96f else 0.98f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            Brush.horizontalGradient(
-                                listOf(
-                                    colors.goldSecondary.copy(alpha = 0.35f),
-                                    colors.goldPrimary.copy(alpha = 0.75f),
-                                    colors.goldSecondary.copy(alpha = 0.35f)
-                                )
-                            )
-                        ),
-                        shadowElevation = if (colors.isDark) 8.dp else 14.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AppTab.values().forEach { tab ->
-                                val isSelected = uiState.selectedTab == tab
-                                val icon = when (tab) {
-                                    AppTab.JEWELRY -> Icons.Default.Star
-                                    AppTab.MELT -> Icons.Default.Build
-                                    AppTab.COIN -> CoinVector
-                                    AppTab.CONVERT -> Icons.Default.Refresh
-                                    AppTab.PORTFOLIO -> PortfolioVector
-                                }
-
-                                val scale by animateFloatAsState(
-                                    targetValue = if (isSelected) 1.12f else 1.0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
-                                    label = "tabScale"
-                                )
-
-                                val indicatorWidth by animateDpAsState(
-                                    targetValue = if (isSelected) 16.dp else 0.dp,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    ),
-                                    label = "indicatorWidth"
-                                )
-
-                                val interactionSource = remember { MutableInteractionSource() }
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(
-                                            if (isSelected) {
-                                                Brush.verticalGradient(
-                                                    listOf(
-                                                        colors.goldContainer.copy(alpha = if (colors.isDark) 0.40f else 0.50f),
-                                                        colors.surfaceElevated
-                                                    )
-                                                )
-                                            } else {
-                                                SolidColor(Color.Transparent)
-                                            }
-                                        )
-                                        .border(
-                                            if (isSelected) 0.8.dp else 0.dp,
-                                            if (isSelected) colors.goldPrimary.copy(alpha = 0.6f) else Color.Transparent,
-                                            RoundedCornerShape(20.dp)
-                                        )
-                                        .clickable(
-                                            interactionSource = interactionSource,
-                                            indication = null
-                                        ) {
-                                            viewModel.selectTab(tab)
-                                        }
-                                        .padding(vertical = 6.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        // Active top glowing micro-indicator dot
-                                        Box(
-                                            modifier = Modifier
-                                                .width(indicatorWidth)
-                                                .height(2.5.dp)
-                                                .clip(RoundedCornerShape(2.dp))
-                                                .background(if (isSelected) colors.goldPrimary else Color.Transparent)
-                                        )
-
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = tab.titleFa,
-                                            tint = if (isSelected) colors.goldPrimary else colors.textMuted,
-                                            modifier = Modifier
-                                                .size(20.dp)
-                                                .scale(scale)
-                                        )
-
-                                        Text(
-                                            text = tab.titleFa,
-                                            fontSize = if (isSelected) 10.5.sp else 9.5.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                GlassmorphicDock(
+                    selectedTab = uiState.selectedTab,
+                    onTabSelected = { viewModel.selectTab(it) }
+                )
             },
             containerColor = colors.background
         ) { paddingValues ->
@@ -454,7 +376,7 @@ fun GoldCalculatorScreen(
                         AppTab.MELT -> MeltTab(viewModel, uiState)
                         AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
                         AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                        AppTab.PORTFOLIO -> PortfolioTab(uiState)
+                        AppTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
                     }
                 }
 
@@ -462,4 +384,5 @@ fun GoldCalculatorScreen(
             }
         }
     }
+}
 }

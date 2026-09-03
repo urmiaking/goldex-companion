@@ -1,9 +1,11 @@
 package com.goldex.companion.ui.theme
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 // Stitch "Persian Sovereign Aurum" Design Tokens
 val GoldPrimaryDark = Color(0xFFDFB35A)         // Champagne Gold for Dark
@@ -26,6 +28,7 @@ data class GoldExAppColors(
     val border: Color,
     val goldPrimary: Color,
     val goldSecondary: Color,
+    val goldBullion: Color,
     val goldContainer: Color,
     val goldBorder: Color,
     val textMain: Color,
@@ -53,6 +56,23 @@ val GoldExAppColors.heroCardGradient: Brush
         )
     )
 
+val GoldExAppColors.hairlineBorder: BorderStroke
+    get() = BorderStroke(0.6.dp, this.border)
+
+val GoldExAppColors.goldHairlineBorder: BorderStroke
+    get() = BorderStroke(0.8.dp, this.goldBorder)
+
+val GoldExAppColors.specularHairlineBrush: Brush
+    get() = Brush.horizontalGradient(
+        listOf(
+            Color.Transparent,
+            this.goldSecondary.copy(alpha = 0.5f),
+            this.goldBullion.copy(alpha = 0.85f),
+            this.goldPrimary.copy(alpha = 0.5f),
+            Color.Transparent
+        )
+    )
+
 val DarkGoldExColors = GoldExAppColors(
     isDark = true,
     background = Color(0xFF0A0B0E),
@@ -62,6 +82,7 @@ val DarkGoldExColors = GoldExAppColors(
     border = Color(0xFF242938),
     goldPrimary = GoldPrimaryDark,
     goldSecondary = GoldSecondaryDark,
+    goldBullion = GoldSecondaryDark,
     goldContainer = GoldContainerDark,
     goldBorder = GoldBorderDark,
     textMain = Color(0xFFF3F4F8),
@@ -80,6 +101,7 @@ val LightGoldExColors = GoldExAppColors(
     border = Color(0x2E141B2B),                 // Stitch Subtle Hairline
     goldPrimary = GoldSecondaryLight,           // Deep Gold for text/buttons
     goldSecondary = GoldPrimaryLight,          // Champagne Gold
+    goldBullion = GoldSecondaryLight,          // Stitch Deep Bullion Gold #B8860B
     goldContainer = GoldContainerLight,
     goldBorder = GoldBorderLight,
     textMain = Color(0xFF141B2B),               // Stitch Primary Ink #141B2B

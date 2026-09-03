@@ -1,12 +1,16 @@
 package com.goldex.companion.ui.calculator
 
-import android.content.Context
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.goldex.companion.data.AppUpdateChecker
 import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
+import com.goldex.companion.data.PortfolioItem
+import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.data.PriceSource
+import com.goldex.companion.data.UpdateInfo
 import com.goldex.companion.model.*
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +55,9 @@ data class CalculatorUiState(
     val isAddCustomerDialogVisible: Boolean = false,
     val isCustomerManagerVisible: Boolean = false,
 
+    // Portfolio Items State
+    val portfolioItems: List<PortfolioItem> = emptyList(),
+
     // Melt Tab State
     val mesghalPriceInput: String = "101500000",
     val meltWeightInput: String = "10",
@@ -66,16 +73,27 @@ data class CalculatorUiState(
     val convertWeightInput: String = "10",
     val convertFromKarat: Karat = Karat.K18,
     val convertToKarat: Karat = Karat.K24,
-    val convertedWeight: Double = 7.5
+    val convertedWeight: Double = 7.5,
+
+    // In-App Auto-Updater State
+    val updateInfo: UpdateInfo? = null,
+    val isCheckingForUpdate: Boolean = false,
+    val isUpdateDialogDismissed: Boolean = false
 )
 
-class GoldCalculatorViewModel : ViewModel() {
+class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
+    private val customerRepository = CustomerRepository(application.applicationContext)
+    private val portfolioRepository = PortfolioRepository(application.applicationContext)
+
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
         loadInitialRates()
+        loadCustomers()
+        loadPortfolio()
         calculateAll()
+        checkForUpdates(manual = false)
     }
 
     fun toggleTheme() {
@@ -235,7 +253,7 @@ class GoldCalculatorViewModel : ViewModel() {
     fun resetJewelry() {
         _uiState.update {
             it.copy(
-                itemTitleInput = "قطعه طلا ${it.invoiceItems.size + 1}",
+                itemTitleInput = "قطعه طلا ",
                 grossWeightInput = "10",
                 stoneWeightInput = "0",
                 selectedKarat = Karat.K18,
@@ -249,13 +267,13 @@ class GoldCalculatorViewModel : ViewModel() {
         calculateJewelry()
     }
 
-    // --- Multi-Item Invoice Actions ---
+    // --- Multi-Item Invoice & Customer Actions (Pure Clean MVVM) ---
     fun addItemToInvoice() {
         val state = _uiState.value
         val res = state.jewelryResult ?: return
         val currentCount = state.invoiceItems.size
         val item = InvoiceItem(
-            title = state.itemTitleInput.ifBlank { "قطعه طلا ${currentCount + 1}" },
+            title = state.itemTitleInput.ifBlank { "قطعه طلا " },
             karat = state.selectedKarat,
             grossWeight = res.grossWeight,
             stoneWeight = res.stoneWeight,
@@ -275,7 +293,7 @@ class GoldCalculatorViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 invoiceItems = it.invoiceItems + item,
-                itemTitleInput = "قطعه طلا ${currentCount + 2}"
+                itemTitleInput = "قطعه طلا "
             )
         }
     }
@@ -304,18 +322,16 @@ class GoldCalculatorViewModel : ViewModel() {
         _uiState.update { it.copy(isCustomerManagerVisible = visible) }
     }
 
-    fun loadCustomers(context: Context) {
+    fun loadCustomers() {
         viewModelScope.launch {
-            val repo = CustomerRepository(context)
-            val list = repo.getCustomers()
+            val list = customerRepository.getCustomers()
             _uiState.update { it.copy(customerList = list) }
         }
     }
 
-    fun addCustomer(context: Context, customer: Customer, autoSelect: Boolean = true) {
-        val repo = CustomerRepository(context)
-        repo.addCustomer(customer)
-        val updated = repo.getCustomers()
+    fun addCustomer(customer: Customer, autoSelect: Boolean = true) {
+        customerRepository.addCustomer(customer)
+        val updated = customerRepository.getCustomers()
         _uiState.update {
             it.copy(
                 customerList = updated,
@@ -326,10 +342,9 @@ class GoldCalculatorViewModel : ViewModel() {
         }
     }
 
-    fun updateCustomer(context: Context, customer: Customer) {
-        val repo = CustomerRepository(context)
-        repo.updateCustomer(customer)
-        val updated = repo.getCustomers()
+    fun updateCustomer(customer: Customer) {
+        customerRepository.updateCustomer(customer)
+        val updated = customerRepository.getCustomers()
         _uiState.update {
             it.copy(
                 customerList = updated,
@@ -338,16 +353,62 @@ class GoldCalculatorViewModel : ViewModel() {
         }
     }
 
-    fun deleteCustomer(context: Context, customerId: String) {
-        val repo = CustomerRepository(context)
-        repo.deleteCustomer(customerId)
-        val updated = repo.getCustomers()
+    fun deleteCustomer(customerId: String) {
+        customerRepository.deleteCustomer(customerId)
+        val updated = customerRepository.getCustomers()
         _uiState.update {
             it.copy(
                 customerList = updated,
                 selectedCustomer = if (it.selectedCustomer?.id == customerId) null else it.selectedCustomer
             )
         }
+    }
+
+    // --- Portfolio Management Actions ---
+    fun loadPortfolio() {
+        val items = portfolioRepository.getItems()
+        _uiState.update { it.copy(portfolioItems = items) }
+    }
+
+    fun addPortfolioItem(item: PortfolioItem) {
+        portfolioRepository.addItem(item)
+        val updated = portfolioRepository.getItems()
+        _uiState.update { it.copy(portfolioItems = updated) }
+    }
+
+    fun deletePortfolioItem(itemId: String) {
+        portfolioRepository.deleteItem(itemId)
+        val updated = portfolioRepository.getItems()
+        _uiState.update { it.copy(portfolioItems = updated) }
+    }
+
+    fun updatePortfolioItem(item: PortfolioItem) {
+        portfolioRepository.deleteItem(item.id)
+        portfolioRepository.addItem(item)
+        val updated = portfolioRepository.getItems()
+        _uiState.update { it.copy(portfolioItems = updated) }
+    }
+
+    // --- In-App Auto-Updater Actions ---
+    fun checkForUpdates(manual: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingForUpdate = true, isUpdateDialogDismissed = false) }
+            val info = AppUpdateChecker.check()
+            _uiState.update {
+                it.copy(
+                    updateInfo = info,
+                    isCheckingForUpdate = false
+                )
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _uiState.update { it.copy(isUpdateDialogDismissed = true) }
+    }
+
+    fun resetUpdateDialog() {
+        _uiState.update { it.copy(isUpdateDialogDismissed = false) }
     }
 
     fun buildCurrentInvoice(): Invoice {
@@ -526,5 +587,27 @@ class GoldCalculatorViewModel : ViewModel() {
         val toRatio = state.convertToKarat.purityRatio
         val converted = if (toRatio > 0) weight * (fromRatio / toRatio) else 0.0
         _uiState.update { it.copy(convertedWeight = converted) }
+    }
+
+    fun checkForUpdates(manual: Boolean = false) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingForUpdate = true) }
+            val info = AppUpdateChecker.check()
+            _uiState.update {
+                it.copy(
+                    updateInfo = if (info.isAvailable || manual) info else null,
+                    isCheckingForUpdate = false,
+                    isUpdateDialogDismissed = false
+                )
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _uiState.update { it.copy(isUpdateDialogDismissed = true) }
+    }
+
+    fun showUpdateDialog() {
+        _uiState.update { it.copy(isUpdateDialogDismissed = false) }
     }
 }

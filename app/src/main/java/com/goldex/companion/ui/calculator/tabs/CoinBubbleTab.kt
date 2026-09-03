@@ -38,7 +38,9 @@ import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.ResultRow
+import com.goldex.companion.ui.components.SectionHeader
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.theme.heroCardGradient
@@ -74,60 +76,12 @@ fun CoinBubbleTab(
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surface,
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
-        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Gold gradient accent line on top
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp)
-                    .background(colors.goldGradient)
-            )
-
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Header with luxury coin badge
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.surfaceElevated)
-                            .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = CoinIconVector,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "حباب‌سنج تخصصی انواع سکه بانکی",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                        Text(
-                            text = "مقایسه ارزش طلای واقعی سکه با قیمت روز بازار آزاد",
-                            fontSize = 10.sp,
-                            color = colors.textMuted
-                        )
-                    }
-                }
+    LuxuryCard {
+        SectionHeader(
+            title = "حباب‌سنج تخصصی انواع سکه بانکی",
+            subtitle = "مقایسه ارزش طلای واقعی سکه با قیمت روز بازار آزاد",
+            icon = CoinIconVector
+        )
 
                 // Coins Selector List
                 Text(
@@ -372,7 +326,5 @@ fun CoinBubbleTab(
                         }
                     }
                 }
-            }
-        }
     }
 }
