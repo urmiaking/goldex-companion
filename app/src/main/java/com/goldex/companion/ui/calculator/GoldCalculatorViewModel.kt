@@ -24,12 +24,13 @@ data class CalculatorUiState(
     val rates: MarketRates = MarketRates(),
     val isRefreshingRates: Boolean = false,
     val autoSyncPrice: Boolean = true,
+    val isDarkTheme: Boolean = false,
 
     // Jewelry Tab State
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
-    val spotPriceInput: String = "22835100",
+    val spotPriceInput: String = "23360000",
     val wageType: WageType = WageType.PERCENTAGE,
     val wageInput: String = "12",
     val profitPercentInput: String = "7",
@@ -38,14 +39,14 @@ data class CalculatorUiState(
     val priceInWords: String = "",
 
     // Melt Tab State
-    val mesghalPriceInput: String = "98975000",
+    val mesghalPriceInput: String = "101500000",
     val meltWeightInput: String = "10",
-    val meltGram18kPrice: Long = 22848182L,
+    val meltGram18kPrice: Long = 23431000L,
     val meltTotalValue: Double = 0.0,
 
     // Coin Bubble State
     val selectedCoin: CoinType = CoinType.EMAMI,
-    val coinMarketPriceInput: String = "228000000",
+    val coinMarketPriceInput: String = "234000000",
     val coinBubbleResult: CoinBubbleResult? = null,
 
     // Karat Convert State
@@ -62,6 +63,10 @@ class GoldCalculatorViewModel : ViewModel() {
     init {
         loadInitialRates()
         calculateAll()
+    }
+
+    fun toggleTheme() {
+        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
     }
 
     private fun loadInitialRates() {
@@ -82,13 +87,8 @@ class GoldCalculatorViewModel : ViewModel() {
 
     fun togglePriceSource() {
         viewModelScope.launch {
-            val nextSource = if (_uiState.value.rates.source == PriceSource.ISIGNAL) {
-                PriceSource.TALA_IR
-            } else {
-                PriceSource.ISIGNAL
-            }
             _uiState.update { it.copy(isRefreshingRates = true) }
-            GoldMarketRepository.setSource(nextSource)
+            val nextSource = GoldMarketRepository.cycleSource()
             val updated = GoldMarketRepository.rates.value
             applyFetchedRates(updated)
         }

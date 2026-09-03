@@ -23,9 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.MarketRates
-import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun LiveRatesTicker(
@@ -35,6 +34,8 @@ fun LiveRatesTicker(
     onToggleSource: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = LocalGoldExColors.current
+
     val rotation by rememberInfiniteTransition(label = "spin").animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -47,8 +48,9 @@ fun LiveRatesTicker(
 
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = DarkSurface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, DarkBorder),
+        color = colors.surface,
+        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -66,15 +68,15 @@ fun LiveRatesTicker(
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(if (rates.isLive) ProfitGreen else TextMuted, CircleShape)
+                            .background(if (rates.isLive) colors.profitGreen else colors.textMuted, CircleShape)
                     )
 
                     // Clickable Provider Badge
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(GoldContainer)
-                            .border(0.5.dp, GoldBorder, RoundedCornerShape(8.dp))
+                            .background(colors.goldContainer)
+                            .border(0.6.dp, colors.goldBorder, RoundedCornerShape(8.dp))
                             .clickable { onToggleSource() }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -82,7 +84,7 @@ fun LiveRatesTicker(
                             text = rates.source.labelFa,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = GoldLight
+                            color = colors.goldPrimary
                         )
                     }
                 }
@@ -95,7 +97,7 @@ fun LiveRatesTicker(
                     Text(
                         text = PersianNumberFormatter.toPersianDigits(rates.lastUpdated),
                         fontSize = 11.sp,
-                        color = TextMuted
+                        color = colors.textMuted
                     )
 
                     IconButton(
@@ -105,7 +107,7 @@ fun LiveRatesTicker(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "بروزرسانی مظنه",
-                            tint = GoldSecondary,
+                            tint = colors.goldSecondary,
                             modifier = Modifier
                                 .size(16.dp)
                                 .then(if (isRefreshing) Modifier.rotate(rotation) else Modifier)
@@ -126,27 +128,27 @@ fun LiveRatesTicker(
                 RateChip(
                     title = "گرم ۱۸ عیار",
                     price = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
-                    accentColor = GoldPrimary
+                    accentColor = colors.goldPrimary
                 )
                 RateChip(
                     title = "مثقال آبشده",
                     price = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
-                    accentColor = GoldLight
+                    accentColor = colors.goldSecondary
                 )
                 RateChip(
                     title = "سکه امامی",
                     price = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
-                    accentColor = GoldSecondary
+                    accentColor = colors.goldPrimary
                 )
                 RateChip(
                     title = "دلار آزاد",
                     price = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
-                    accentColor = ProfitGreen
+                    accentColor = colors.profitGreen
                 )
                 RateChip(
                     title = "انس جهانی",
-                    price = "\$${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))}",
-                    accentColor = TextMain
+                    price = "$${PersianNumberFormatter.toPersianDigits("%.1f".format(rates.ons))}",
+                    accentColor = colors.textMain
                 )
             }
         }
@@ -159,10 +161,12 @@ private fun RateChip(
     price: String,
     accentColor: Color
 ) {
+    val colors = LocalGoldExColors.current
+
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = DarkSurfaceElevated,
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, DarkBorder)
+        color = colors.surfaceElevated,
+        border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -171,7 +175,7 @@ private fun RateChip(
             Text(
                 text = title,
                 fontSize = 10.sp,
-                color = TextSecondary
+                color = colors.textSecondary
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(

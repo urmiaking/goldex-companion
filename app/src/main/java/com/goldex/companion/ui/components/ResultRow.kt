@@ -9,16 +9,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.goldex.companion.ui.theme.TextMain
-import com.goldex.companion.ui.theme.TextSecondary
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun ResultRow(
     label: String,
     value: String,
-    valueColor: Color = TextMain,
+    valueColor: Color? = null,
     isHighlight: Boolean = false
 ) {
+    val colors = LocalGoldExColors.current
+    val actualValueColor = valueColor ?: (if (isHighlight) colors.goldPrimary else colors.textMain)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -29,14 +31,14 @@ fun ResultRow(
         Text(
             text = label,
             fontSize = if (isHighlight) 13.sp else 12.sp,
-            color = if (isHighlight) TextMain else TextSecondary,
+            color = if (isHighlight) colors.textMain else colors.textSecondary,
             fontWeight = if (isHighlight) FontWeight.SemiBold else FontWeight.Normal
         )
         Text(
             text = value,
             fontSize = if (isHighlight) 14.sp else 13.sp,
             fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
-            color = valueColor
+            color = actualValueColor
         )
     }
 }
