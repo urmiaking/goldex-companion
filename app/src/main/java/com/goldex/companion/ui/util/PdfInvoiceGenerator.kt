@@ -13,6 +13,7 @@ import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.InvoiceItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
+import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import java.io.File
 import java.io.FileOutputStream
