@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -16,7 +16,8 @@ fun ResultRow(
     label: String,
     value: String,
     valueColor: Color? = null,
-    isHighlight: Boolean = false
+    isHighlight: Boolean = false,
+    animated: Boolean = true
 ) {
     val colors = LocalGoldExColors.current
     val actualValueColor = valueColor ?: (if (isHighlight) colors.goldPrimary else colors.textMain)
@@ -34,11 +35,20 @@ fun ResultRow(
             color = if (isHighlight) colors.textMain else colors.textSecondary,
             fontWeight = if (isHighlight) FontWeight.SemiBold else FontWeight.Normal
         )
-        Text(
-            text = value,
-            fontSize = if (isHighlight) 14.sp else 13.sp,
-            fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
-            color = actualValueColor
-        )
+        if (animated) {
+            AnimatedPriceTicker(
+                text = value,
+                fontSize = if (isHighlight) 14.sp else 13.sp,
+                fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
+                color = actualValueColor
+            )
+        } else {
+            Text(
+                text = value,
+                fontSize = if (isHighlight) 14.sp else 13.sp,
+                fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
+                color = actualValueColor
+            )
+        }
     }
 }

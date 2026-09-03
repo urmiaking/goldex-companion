@@ -37,6 +37,7 @@ import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.util.PdfInvoiceGenerator
@@ -126,7 +127,7 @@ fun JewelryTab(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
+                                AnimatedPriceTicker(
                                     text = PersianNumberFormatter.formatPrice(uiState.spotPriceInput.toDoubleOrNull() ?: 0.0),
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
@@ -671,7 +672,7 @@ fun JewelryTab(
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(
+                                AnimatedPriceTicker(
                                     text = "${PersianNumberFormatter.formatPrice(res.totalPayable)} تومان",
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
@@ -793,7 +794,7 @@ private fun ItemRow(label: String, value: String, isBold: Boolean = false) {
             fontSize = 11.sp,
             color = colors.textSecondary
         )
-        Text(
+        AnimatedPriceTicker(
             text = value,
             fontSize = 12.sp,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,

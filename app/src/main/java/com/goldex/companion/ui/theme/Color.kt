@@ -1,7 +1,8 @@
-﻿package com.goldex.companion.ui.theme
+package com.goldex.companion.ui.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Stitch "Persian Sovereign Aurum" Design Tokens
@@ -33,6 +34,24 @@ data class GoldExAppColors(
     val profitGreen: Color,
     val errorRed: Color
 )
+
+val GoldExAppColors.goldGradient: Brush
+    get() = Brush.horizontalGradient(
+        listOf(
+            Color.Transparent,
+            this.goldSecondary,
+            this.goldPrimary,
+            Color.Transparent
+        )
+    )
+
+val GoldExAppColors.heroCardGradient: Brush
+    get() = Brush.verticalGradient(
+        listOf(
+            this.goldContainer.copy(alpha = if (isDark) 0.28f else 0.40f),
+            this.surface
+        )
+    )
 
 val DarkGoldExColors = GoldExAppColors(
     isDark = true,

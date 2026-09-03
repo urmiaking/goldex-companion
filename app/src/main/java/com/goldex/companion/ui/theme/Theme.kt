@@ -1,11 +1,13 @@
-﻿package com.goldex.companion.ui.theme
+package com.goldex.companion.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 
 private val DarkColorScheme = darkColorScheme(
     primary = GoldPrimaryDark,
@@ -46,8 +48,11 @@ fun GoldExCompanionTheme(
     CompositionLocalProvider(LocalGoldExColors provides appColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography,
-            content = content
-        )
+            typography = Typography
+        ) {
+            ProvideTextStyle(value = TextStyle(fontFamily = VazirmatnFamily)) {
+                content()
+            }
+        }
     }
 }

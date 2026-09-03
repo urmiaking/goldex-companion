@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,26 @@ fun LiveRatesTicker(
         label = "rotation"
     )
 
+    val pulseTransition = rememberInfiniteTransition(label = "pulseGlow")
+    val pulseScale by pulseTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 2.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulseScale"
+    )
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulseAlpha"
+    )
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -68,16 +89,31 @@ fun LiveRatesTicker(
                 modifier = Modifier.clickable { onToggleSource() }
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(if (rates.isLive) colors.profitGreen else Color(0xFFF59E0B))
-                    )
+                        modifier = Modifier.size(10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (rates.isLive) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .scale(pulseScale)
+                                    .clip(CircleShape)
+                                    .background(colors.profitGreen.copy(alpha = pulseAlpha))
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(if (rates.isLive) colors.profitGreen else Color(0xFFF59E0B))
+                        )
+                    }
+
                     Text(
                         text = "منبع: ${rates.source.labelFa}",
                         fontSize = 11.sp,
@@ -161,16 +197,21 @@ private fun TickerPill(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surface,
-        border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
-        shadowElevation = if (colors.isDark) 0.dp else 1.dp
+        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.35f)),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(text = title, fontSize = 11.sp, color = colors.textSecondary)
-            Text(text = value, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+            AnimatedPriceTicker(
+                text = value,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textMain
+            )
             Text(text = delta, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = deltaColor)
         }
     }

@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.calculator
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.LiveRatesTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.goldGradient
 
 private val CoinVector: ImageVector = ImageVector.Builder(
     name = "Coin",
@@ -108,104 +110,114 @@ fun GoldCalculatorScreen(
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.surfaceElevated)
-                                    .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
+                Column {
+                    TopAppBar(
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(colors.surfaceElevated)
+                                        .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "گلدکس پرو",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp,
-                                        color = colors.textMain
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(colors.goldContainer)
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                }
+                                Column {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
                                         Text(
-                                            text = "PRO",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = colors.goldPrimary
+                                            text = "گلدکس پرو",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 17.sp,
+                                            color = colors.textMain
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(colors.goldContainer)
+                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        ) {
+                                            Text(
+                                                text = "PRO",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = colors.goldPrimary
+                                            )
+                                        }
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.profitGreen)
+                                        )
+                                        Text(
+                                            text = "نرخ لحظه‌ای و دستیار معاملات",
+                                            fontSize = 10.sp,
+                                            color = colors.textMuted
                                         )
                                     }
                                 }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(colors.profitGreen)
-                                    )
-                                    Text(
-                                        text = "نرخ لحظه‌ای و دستیار معاملات",
-                                        fontSize = 10.sp,
-                                        color = colors.textMuted
-                                    )
-                                }
                             }
-                        }
-                    },
-                    actions = {
-                        // Dark / Light Theme Toggle Button
-                        IconButton(
-                            onClick = { viewModel.toggleTheme() },
-                            modifier = Modifier
-                                .padding(end = 4.dp)
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(colors.surfaceElevated)
-                        ) {
-                            Text(
-                                text = if (colors.isDark) "☀️" else "🌙",
-                                fontSize = 16.sp
-                            )
-                        }
-
-                        // Refresh Rates Button
-                        IconButton(onClick = { viewModel.refreshRates() }) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "بروزرسانی مظنه",
-                                tint = colors.goldSecondary,
+                        },
+                        actions = {
+                            // Dark / Light Theme Toggle Button
+                            IconButton(
+                                onClick = { viewModel.toggleTheme() },
                                 modifier = Modifier
-                                    .size(20.dp)
-                                    .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = colors.surface,
-                        titleContentColor = colors.goldPrimary
+                                    .padding(end = 4.dp)
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(colors.surfaceElevated)
+                            ) {
+                                Text(
+                                    text = if (colors.isDark) "☀️" else "🌙",
+                                    fontSize = 16.sp
+                                )
+                            }
+
+                            // Refresh Rates Button
+                            IconButton(onClick = { viewModel.refreshRates() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "بروزرسانی مظنه",
+                                    tint = colors.goldSecondary,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = colors.surface,
+                            titleContentColor = colors.goldPrimary
+                        )
                     )
-                )
+
+                    // Subtle hairline gold bottom border for TopBar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(colors.goldGradient)
+                    )
+                }
             },
             bottomBar = {
                 Box(
@@ -283,13 +295,38 @@ fun GoldCalculatorScreen(
                     onToggleSource = { viewModel.togglePriceSource() }
                 )
 
-                // Tab Contents
-                when (uiState.selectedTab) {
-                    AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
-                    AppTab.MELT -> MeltTab(viewModel, uiState)
-                    AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
-                    AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                    AppTab.PORTFOLIO -> PortfolioTab(uiState)
+                // Tab Contents with smooth AnimatedContent slide & fade transitions
+                AnimatedContent(
+                    targetState = uiState.selectedTab,
+                    transitionSpec = {
+                        val isForward = targetState.ordinal > initialState.ordinal
+                        (slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
+                            animationSpec = tween(260, easing = FastOutSlowInEasing)
+                        )).togetherWith(
+                            slideOutHorizontally(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) { fullWidth -> if (isForward) fullWidth / 4 else -fullWidth / 4 } + fadeOut(
+                                animationSpec = tween(180, easing = FastOutLinearInEasing)
+                            )
+                        )
+                    },
+                    label = "tabTransition"
+                ) { tab ->
+                    when (tab) {
+                        AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
+                        AppTab.MELT -> MeltTab(viewModel, uiState)
+                        AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
+                        AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
+                        AppTab.PORTFOLIO -> PortfolioTab(uiState)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
