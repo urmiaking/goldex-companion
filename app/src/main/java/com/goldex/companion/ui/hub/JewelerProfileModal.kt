@@ -291,7 +291,7 @@ fun JewelerProfileModal(
                                         modifier = Modifier.height(34.dp)
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.CameraAlt,
+                                            imageVector = HubCamera,
                                             contentDescription = null,
                                             tint = colors.goldPrimary,
                                             modifier = Modifier.size(14.dp)
@@ -335,7 +335,7 @@ fun JewelerProfileModal(
                                     ),
                                     trailingIcon = {
                                         Icon(
-                                            imageVector = Icons.Default.Storefront,
+                                            imageVector = HubStorefront,
                                             contentDescription = null,
                                             tint = colors.goldPrimary,
                                             modifier = Modifier.size(18.dp)
@@ -457,7 +457,7 @@ fun JewelerProfileModal(
                                     ),
                                     trailingIcon = {
                                         Icon(
-                                            imageVector = Icons.Default.VerifiedUser,
+                                            imageVector = HubShieldCheck,
                                             contentDescription = null,
                                             tint = colors.goldPrimary,
                                             modifier = Modifier.size(18.dp)
@@ -615,8 +615,8 @@ fun JewelerProfileModal(
                                         address.trim()
                                     )
                                 },
-                                isPrimary = true,
-                                leadingIcon = Icons.Default.Check,
+                                isSecondary = false,
+                                icon = Icons.Default.Check,
                                 modifier = Modifier.weight(1.6f)
                             )
 
@@ -624,7 +624,7 @@ fun JewelerProfileModal(
                             GoldButton(
                                 text = "انصراف",
                                 onClick = onDismiss,
-                                isPrimary = false,
+                                isSecondary = true,
                                 modifier = Modifier.weight(1f)
                             )
                         }

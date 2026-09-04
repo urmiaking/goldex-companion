@@ -10,8 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -164,7 +162,7 @@ fun MoreHubScreen(
                                         color = Color.White
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.CheckCircle,
+                                        imageVector = HubCheckCircle,
                                         contentDescription = "معتبر",
                                         tint = Color(0xFFF59E0B),
                                         modifier = Modifier.size(16.dp)
@@ -226,7 +224,7 @@ fun MoreHubScreen(
                                     color = Color(0xFFFDE68A)
                                 )
                                 Icon(
-                                    imageVector = Icons.Default.ChevronLeft,
+                                    imageVector = HubChevronLeft,
                                     contentDescription = null,
                                     tint = Color(0xFFFDE68A),
                                     modifier = Modifier.size(14.dp)
@@ -354,7 +352,7 @@ fun MoreHubScreen(
                     subtitle = "بدهکاران، بستانکاران و مانده‌ها",
                     badgeText = "۴ مانده‌دار",
                     badgeColor = colors.errorRed,
-                    icon = Icons.Default.MenuBook,
+                    icon = HubMenuBook,
                     iconBg = Color(0xFFFFF1F2),
                     iconTint = Color(0xFFE11D48),
                     modifier = Modifier.weight(1f),
@@ -367,7 +365,7 @@ fun MoreHubScreen(
                     subtitle = "ثبت شماره انگ، آزمایشگاه و عیار",
                     badgeText = "۳ پاکت",
                     badgeColor = colors.goldPrimary,
-                    icon = Icons.Default.Inbox,
+                    icon = HubInbox,
                     iconBg = Color(0xFFFFFBEB),
                     iconTint = Color(0xFFB45309),
                     modifier = Modifier.weight(1f),
@@ -385,7 +383,7 @@ fun MoreHubScreen(
                     subtitle = "پیگیری ریخته‌گری، مخراجی و تحویل",
                     badgeText = "در حال ساخت",
                     badgeColor = Color(0xFF2563EB),
-                    icon = Icons.Default.Handyman,
+                    icon = HubHandyman,
                     iconBg = Color(0xFFEFF6FF),
                     iconTint = Color(0xFF1D4ED8),
                     modifier = Modifier.weight(1f),
@@ -398,7 +396,7 @@ fun MoreHubScreen(
                     subtitle = "موجودی کارهای ساخته، سکه و سنگ",
                     badgeText = "بارکدخوان",
                     badgeColor = colors.profitGreen,
-                    icon = Icons.Default.Dashboard,
+                    icon = HubShowcase,
                     iconBg = Color(0xFFECFDF5),
                     iconTint = Color(0xFF059669),
                     modifier = Modifier.weight(1f),
@@ -448,7 +446,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "تبدیل عیار و محاسبه شرطی (۷۵۰ به ۷۰۵ و ۹۹۹)",
                     subtitle = "فرمول صنف همراه با کسر خطای ری‌گیری",
-                    icon = Icons.Default.SyncAlt,
+                    icon = HubKaratSync,
                     iconTint = Color(0xFFD97706),
                     iconBg = Color(0xFFFEF3C7),
                     onClick = onNavigateConvert
@@ -460,7 +458,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "تحلیلگر حباب انواع سکه و انس جهانی",
                     subtitle = "محاسبه ارزش ذاتی بر پایه دلار نیما و آزاد",
-                    icon = Icons.Default.TrendingUp,
+                    icon = HubTrending,
                     iconTint = Color(0xFF059669),
                     iconBg = Color(0xFFD1FAE5),
                     onClick = onNavigateCoinBubble
@@ -472,7 +470,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "پشتیبان‌گیری ابری و اکسل فاکتورها",
                     subtitle = "همگام‌سازی ابری و گزارش جامع مالیاتی",
-                    icon = Icons.Default.CloudSync,
+                    icon = HubCloudSync,
                     iconTint = Color(0xFF4F46E5),
                     iconBg = Color(0xFFE0E7FF),
                     onClick = onNavigateInvoices
@@ -530,7 +528,7 @@ fun MoreHubScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Percent,
+                                imageVector = HubPercent,
                                 contentDescription = null,
                                 tint = colors.textSecondary,
                                 modifier = Modifier.size(16.dp)
@@ -573,7 +571,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "طراحی سربرگ، مهر و QR سامانه جامع",
                     subtitle = "تنظیم لوگو، آدرس، تلفن و بارکد اصالت کالا",
-                    icon = Icons.Default.QrCode2,
+                    icon = HubQrCode,
                     iconTint = colors.textSecondary,
                     iconBg = colors.surfaceElevated,
                     onClick = onOpenJewelerProfile
@@ -602,7 +600,7 @@ fun MoreHubScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Fingerprint,
+                                imageVector = HubFingerprint,
                                 contentDescription = null,
                                 tint = colors.textSecondary,
                                 modifier = Modifier.size(16.dp)
@@ -672,7 +670,7 @@ fun MoreHubScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PhoneInTalk,
+                                imageVector = HubPhoneInTalk,
                                 contentDescription = null,
                                 tint = Color(0xFF059669),
                                 modifier = Modifier.size(16.dp)
@@ -715,7 +713,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "راهنمای فرمول‌های استاندارد اتحادیه طلا",
                     subtitle = "توضیح وزن نگین، کسر ناخالصی و اجرت",
-                    icon = Icons.Default.MenuBook,
+                    icon = HubMenuBook,
                     iconTint = Color(0xFFD97706),
                     iconBg = Color(0xFFFEF3C7),
                     onClick = {
@@ -744,7 +742,7 @@ fun MoreHubScreen(
                 modifier = Modifier.height(38.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.CloudDownload,
+                    imageVector = HubCloudDownload,
                     contentDescription = null,
                     tint = colors.goldPrimary,
                     modifier = Modifier.size(16.dp)
@@ -906,7 +904,7 @@ private fun HubListRowItem(
         }
 
         Icon(
-            imageVector = Icons.Default.ChevronLeft,
+            imageVector = HubChevronLeft,
             contentDescription = null,
             tint = colors.textMuted,
             modifier = Modifier.size(16.dp)

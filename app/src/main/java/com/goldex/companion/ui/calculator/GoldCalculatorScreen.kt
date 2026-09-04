@@ -664,7 +664,7 @@ private fun RatesTabPreviewCard(
                     ) {
                         Text(text = "مظنه آبشده ۱۷", fontSize = 10.sp, color = colors.textMuted)
                         Text(
-                            text = "${uiState.rates.melt} ت",
+                            text = "${uiState.rates.goldMelt} ت",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -745,7 +745,7 @@ private fun InvoicesTabPreviewCard(
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(imageVector = DockInvoiceVector, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(text = "مشاهده بایگانی فاکتورها و چاپ PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
