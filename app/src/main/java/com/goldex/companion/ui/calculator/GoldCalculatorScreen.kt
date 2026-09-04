@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,14 +27,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.goldex.companion.R
 import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.ui.calculator.tabs.*
@@ -42,39 +44,6 @@ import com.goldex.companion.ui.hub.JewelerProfileModal
 import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
-
-private val GoldIngotVector: ImageVector = ImageVector.Builder(
-    name = "GoldIngot",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(fill = SolidColor(Color(0xFFD97706))) {
-        moveTo(4f, 8f)
-        lineTo(12f, 4f)
-        lineTo(20f, 8f)
-        verticalLineTo(16f)
-        lineTo(12f, 20f)
-        lineTo(4f, 16f)
-        close()
-        moveTo(12f, 10.236f)
-        lineTo(6.528f, 8f)
-        lineTo(12f, 5.264f)
-        lineTo(17.472f, 8f)
-        close()
-        moveTo(6f, 10.517f)
-        verticalLineTo(15.737f)
-        lineTo(11f, 18.237f)
-        verticalLineTo(13.017f)
-        close()
-        moveTo(13f, 18.237f)
-        lineTo(18f, 15.737f)
-        verticalLineTo(10.517f)
-        lineTo(13f, 13.017f)
-        close()
-    }
-}.build()
 
 enum class CalculatorSubTab(val titleFa: String) {
     JEWELRY("طلا و جواهر"),
@@ -170,44 +139,41 @@ fun GoldCalculatorScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                // Golden Ingot App Icon
+                                // Qirat Official App Emblem
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .clip(RoundedCornerShape(13.dp))
-                                        .background(
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    Color(0xFFFEF3C7),
-                                                    Color(0xFFFDE68A)
-                                                )
-                                            )
-                                        )
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF0F141C))
                                         .border(
-                                            width = 1.dp,
-                                            color = Color(0xFFFCD34D).copy(alpha = 0.8f),
-                                            shape = RoundedCornerShape(13.dp)
+                                            width = 0.8.dp,
+                                            color = colors.goldBorder,
+                                            shape = RoundedCornerShape(12.dp)
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = GoldIngotVector,
-                                        contentDescription = null,
-                                        tint = Color(0xFFD97706),
-                                        modifier = Modifier.size(22.dp)
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                        contentDescription = "آیکن برنامه قیراط",
+                                        modifier = Modifier.size(34.dp)
                                     )
                                 }
 
-                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Column(
+                                    modifier = Modifier.padding(top = 3.dp),
+                                    verticalArrangement = Arrangement.spacedBy((-2).dp)
+                                ) {
                                     Text(
                                         text = "قیراط",
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
+                                        fontSize = 17.5.sp,
+                                        lineHeight = 22.sp,
                                         color = colors.textMain
                                     )
                                     Text(
                                         text = "دستیار جامع محاسبات و فاکتور طلا",
                                         fontSize = 10.sp,
+                                        lineHeight = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = colors.textMuted
                                     )
@@ -222,44 +188,49 @@ fun GoldCalculatorScreen(
                                 ConnectionStatus.OFFLINE -> colors.errorRed
                             }
 
-                            Box(
+                            Surface(
                                 modifier = Modifier
-                                    .padding(end = 6.dp)
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.surfaceElevated)
-                                    .border(1.dp, colors.border.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        Toast.makeText(
-                                            context,
-                                            "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                contentAlignment = Alignment.Center
+                                    .padding(end = 12.dp)
+                                    .size(40.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surface,
+                                border = BorderStroke(0.6.dp, colors.goldBorder),
+                                shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+                                onClick = {
+                                    Toast.makeText(
+                                        context,
+                                        "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "اعلان‌ها",
-                                    tint = colors.textSecondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-
                                 Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .offset(x = 8.dp, y = 8.dp)
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.surface)
-                                        .padding(1.dp)
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = "اعلان‌ها",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxSize()
+                                            .align(Alignment.TopStart)
+                                            .offset(x = 8.dp, y = 8.dp)
+                                            .size(8.dp)
                                             .clip(CircleShape)
-                                            .background(statusColor)
-                                    )
+                                            .background(colors.surface)
+                                            .padding(1.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clip(CircleShape)
+                                                .background(statusColor)
+                                        )
+                                    }
                                 }
                             }
                         },

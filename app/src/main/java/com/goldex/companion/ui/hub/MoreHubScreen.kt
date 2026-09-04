@@ -782,8 +782,8 @@ private fun ManagementGridCard(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
-        border = BorderStroke(0.8.dp, colors.border.copy(alpha = 0.7f)),
-        shadowElevation = 2.dp,
+        border = BorderStroke(0.6.dp, colors.goldBorder),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = modifier.clickable { onClick() }
     ) {
         Column(
