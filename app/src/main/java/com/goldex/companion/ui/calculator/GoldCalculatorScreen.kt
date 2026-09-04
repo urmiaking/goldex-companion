@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.data.ConnectionStatus
+import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -171,15 +172,24 @@ fun GoldCalculatorScreen(
         )
     }
 
+    val totalGoldWeight = remember(uiState.portfolioItems) {
+        val w = uiState.portfolioItems.filter { it.category == PortfolioCategory.GOLD }.sumOf { it.weightGrams }
+        if (w > 0.0) w else 342.500
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         LuxuryDrawer(
             drawerState = drawerState,
             rates = uiState.rates,
             customerCount = uiState.customerList.size,
             invoiceCount = uiState.savedInvoices.size,
+            selectedTab = uiState.selectedTab,
+            totalGoldWeight = totalGoldWeight,
+            appSettings = uiState.appSettings,
             connectionStatus = uiState.connectionStatus,
             isDarkTheme = uiState.isDarkTheme,
             onToggleTheme = { viewModel.toggleTheme() },
+            onSelectTab = { viewModel.selectTab(it) },
             onNavigateCustomers = {
                 viewModel.loadCustomers()
                 viewModel.setCustomerManagerVisible(true)

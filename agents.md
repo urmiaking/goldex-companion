@@ -71,6 +71,10 @@ All development, refactoring, and maintenance must strictly adhere to these six 
   - **Hairline Specular Borders**: `0.6.dp` stroke with gold or translucent tint
   - **Glassmorphism**: Translucent frosted containers (`background(surface.copy(alpha = 0.85f))`) with specular edge borders and soft elevation shadows.
 
+### Invariant 7: STREAMING CI RUNNER MONITORING
+- **Rule**: NEVER use arbitrary polling timers or sleep loops when waiting for GitHub Actions builds.
+- **Enforcement**: Always use native streaming watch commands such as `gh run watch <run-id>` or `gh run view <run-id> --watch`.
+
 ---
 
 ## 2. Reconciled System Architecture & Directory Layout
