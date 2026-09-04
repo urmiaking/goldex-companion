@@ -42,7 +42,9 @@ import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.hub.JewelerProfileModal
 import com.goldex.companion.ui.hub.MoreHubScreen
+import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
+import com.goldex.companion.ui.hub.TaxProfitModal
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
@@ -100,12 +102,27 @@ fun GoldCalculatorScreen(
         )
     }
 
-    // Luxury Settings Modal
-    if (uiState.isSettingsDialogVisible) {
-        SettingsDialog(
-            initialSettings = uiState.appSettings,
-            onSaveSettings = { viewModel.updateSettings(it) },
-            onDismiss = { viewModel.setSettingsDialogVisible(false) }
+    // Tax & Profit Configuration Bottom Sheet Modal
+    if (uiState.isTaxProfitModalVisible) {
+        TaxProfitModal(
+            settings = uiState.appSettings,
+            onDismiss = { viewModel.setTaxProfitModalVisible(false) },
+            onSave = { profit, tax, wageType ->
+                viewModel.updateTaxAndProfit(profit, tax, wageType)
+                Toast.makeText(context, "سود مصوب و مالیات با موفقیت ذخیره شد", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Price Source & Live Rates Bottom Sheet Modal
+    if (uiState.isPriceSourceModalVisible) {
+        PriceSourceModal(
+            settings = uiState.appSettings,
+            onDismiss = { viewModel.setPriceSourceModalVisible(false) },
+            onSave = { source, autoSync ->
+                viewModel.updatePriceSource(source, autoSync)
+                Toast.makeText(context, "مرجع قیمت‌ها با موفقیت همگام‌سازی شد", Toast.LENGTH_SHORT).show()
+            }
         )
     }
 
@@ -420,8 +437,11 @@ fun GoldCalculatorScreen(
                                         viewModel.loadInvoices()
                                         viewModel.setInvoiceManagerVisible(true)
                                     },
-                                    onNavigateSettings = {
-                                        viewModel.setSettingsDialogVisible(true)
+                                    onOpenTaxProfitModal = {
+                                        viewModel.setTaxProfitModalVisible(true)
+                                    },
+                                    onOpenPriceSourceModal = {
+                                        viewModel.setPriceSourceModalVisible(true)
                                     },
                                     onOpenJewelerProfile = {
                                         viewModel.setJewelerProfileModalVisible(true)

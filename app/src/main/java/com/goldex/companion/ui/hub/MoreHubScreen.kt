@@ -53,7 +53,8 @@ fun MoreHubScreen(
     onNavigateConvert: () -> Unit,
     onNavigateCoinBubble: () -> Unit,
     onNavigateInvoices: () -> Unit,
-    onNavigateSettings: () -> Unit,
+    onOpenTaxProfitModal: () -> Unit,
+    onOpenPriceSourceModal: () -> Unit,
     onOpenJewelerProfile: () -> Unit,
     onNavigateStandardFormulas: () -> Unit
 ) {
@@ -507,11 +508,72 @@ fun MoreHubScreen(
 
                 Divider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
 
-                // Setting 1: Profit and VAT
+                // Setting 1: Live Price Source & Auto-Sync
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNavigateSettings() }
+                        .clickable { onOpenPriceSourceModal() }
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.surfaceElevated),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = HubCloudDownload,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "منبع استعلام مظنه و طلا",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = "پایگاه قیمت زنده، انس جهانی و همگام‌سازی",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.goldContainer.copy(alpha = 0.4f),
+                        border = BorderStroke(0.6.dp, colors.goldBorder)
+                    ) {
+                        Text(
+                            text = settings.priceSource.labelFa,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
+                // Setting 2: Profit and VAT
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpenTaxProfitModal() }
                         .padding(horizontal = 14.dp, vertical = 11.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -544,7 +606,7 @@ fun MoreHubScreen(
                                 color = colors.textMain
                             )
                             Text(
-                                text = "سود مغازه ۷٪ • مالیات اجرت ۹٪ (قانون جدید)",
+                                text = "سود مغازه ۷٪ • مالیات اجرت ۹٪ (ماده ۲۶ ق.م.ا)",
                                 fontSize = 10.5.sp,
                                 color = colors.textMuted
                             )
@@ -557,7 +619,7 @@ fun MoreHubScreen(
                         border = BorderStroke(0.6.dp, colors.goldBorder)
                     ) {
                         Text(
-                            text = "پیش‌فرض صنف",
+                            text = "سود ${settings.defaultProfitPercent}٪ • مالیات ${settings.defaultTaxPercent}٪",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary,

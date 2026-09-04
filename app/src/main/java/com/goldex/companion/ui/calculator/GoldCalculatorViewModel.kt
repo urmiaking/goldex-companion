@@ -93,6 +93,8 @@ data class CalculatorUiState(
     // Settings & Gallery Branding
     val appSettings: AppSettings = AppSettings(),
     val isSettingsDialogVisible: Boolean = false,
+    val isTaxProfitModalVisible: Boolean = false,
+    val isPriceSourceModalVisible: Boolean = false,
 
     // Invoice Persistence & Management
     val savedInvoices: List<Invoice> = emptyList(),
@@ -160,6 +162,40 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     fun setSettingsDialogVisible(visible: Boolean) {
         _uiState.update { it.copy(isSettingsDialogVisible = visible) }
+    }
+
+    fun setTaxProfitModalVisible(visible: Boolean) {
+        _uiState.update { it.copy(isTaxProfitModalVisible = visible) }
+    }
+
+    fun setPriceSourceModalVisible(visible: Boolean) {
+        _uiState.update { it.copy(isPriceSourceModalVisible = visible) }
+    }
+
+    fun updateTaxAndProfit(profitPercent: String, taxPercent: String, wageType: WageType) {
+        val updated = _uiState.value.appSettings.copy(
+            defaultProfitPercent = profitPercent,
+            defaultTaxPercent = taxPercent,
+            defaultWageType = wageType
+        )
+        updateSettings(updated)
+        _uiState.update {
+            it.copy(
+                profitPercentInput = profitPercent,
+                taxPercentInput = taxPercent,
+                wageType = wageType
+            )
+        }
+        calculateAll()
+    }
+
+    fun updatePriceSource(source: PriceSource, autoSync: Boolean) {
+        val updated = _uiState.value.appSettings.copy(
+            priceSource = source,
+            autoSyncRates = autoSync
+        )
+        updateSettings(updated)
+        refreshRates()
     }
 
     fun setJewelerProfileModalVisible(visible: Boolean) {
