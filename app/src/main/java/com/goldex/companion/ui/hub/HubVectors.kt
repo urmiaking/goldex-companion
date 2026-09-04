@@ -457,3 +457,52 @@ internal val HubShieldCheck: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+internal val HubArrowRight: ImageVector = ImageVector.Builder(
+    name = "HubArrowRight",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(9f, 6f)
+        lineTo(15f, 12f)
+        lineTo(9f, 18f)
+    }
+}.build()
+
+internal val HubCopy: ImageVector = ImageVector.Builder(
+    name = "HubCopy",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(8f, 4f)
+        horizontalLineTo(18f)
+        curveTo(19.1f, 4f, 20f, 4.9f, 20f, 6f)
+        verticalLineTo(16f)
+        moveTo(16f, 8f)
+        horizontalLineTo(6f)
+        curveTo(4.9f, 8f, 4f, 8.9f, 4f, 10f)
+        verticalLineTo(20f)
+        curveTo(4f, 21.1f, 4.9f, 22f, 6f, 22f)
+        horizontalLineTo(16f)
+        curveTo(17.1f, 22f, 18f, 21.1f, 18f, 20f)
+        verticalLineTo(10f)
+        curveTo(18f, 8.9f, 17.1f, 8f, 16f, 8f)
+        close()
+    }
+}.build()
+

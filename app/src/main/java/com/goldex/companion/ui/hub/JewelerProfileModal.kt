@@ -27,10 +27,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +54,32 @@ fun JewelerProfileModal(
 
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "scrimAlpha"
+    )
 
     // Calculate 2-letter monogram from gallery name
     val monogram = remember(galleryName) {
@@ -59,7 +92,7 @@ fun JewelerProfileModal(
     }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = handleDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
@@ -69,45 +102,55 @@ fun JewelerProfileModal(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
+                    .background(Color.Black.copy(alpha = scrimAlpha))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = onDismiss
+                        onClick = handleDismiss
                     ),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                Surface(
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.92f)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {} // Consume click so it doesn't dismiss
-                        ),
-                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                    color = colors.surface,
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                colors.goldPrimary.copy(alpha = 0.6f),
-                                colors.border.copy(alpha = 0.3f)
-                            )
-                        )
-                    ),
-                    shadowElevation = 24.dp
+                        .wrapContentHeight()
                 ) {
-                    Column(
+                    Surface(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .navigationBarsPadding()
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {} // Consume click so it doesn't dismiss
+                            ),
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                        color = colors.surface,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
                     ) {
-                        // Grabber & Header
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .wrapContentHeight()
+                                .heightIn(max = 620.dp)
+                                .navigationBarsPadding()
+                        ) {
+                            // Grabber & Header
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 12.dp)
                         ) {
                             // Grabber Handle
@@ -169,7 +212,7 @@ fun JewelerProfileModal(
                                 }
 
                                 IconButton(
-                                    onClick = onDismiss,
+                                    onClick = handleDismiss,
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
@@ -190,7 +233,7 @@ fun JewelerProfileModal(
                         // Scrollable Form Body
                         Column(
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(1f, fill = false)
                                 .fillMaxWidth()
                                 .verticalScroll(scrollState)
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
@@ -537,6 +580,7 @@ fun JewelerProfileModal(
                                         phone.trim(),
                                         address.trim()
                                     )
+                                    handleDismiss()
                                 },
                                 isSecondary = false,
                                 icon = Icons.Default.Check,
@@ -546,7 +590,7 @@ fun JewelerProfileModal(
                             // Cancel Button
                             GoldButton(
                                 text = "انصراف",
-                                onClick = onDismiss,
+                                onClick = handleDismiss,
                                 isSecondary = true,
                                 modifier = Modifier.weight(1f)
                             )

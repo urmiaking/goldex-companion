@@ -99,7 +99,10 @@ data class CalculatorUiState(
     val isInvoiceManagerVisible: Boolean = false,
 
     // Jeweler Profile Modal (Stitch ID 4457d74b46974ee99ffc049b24feb860)
-    val isJewelerProfileModalVisible: Boolean = false
+    val isJewelerProfileModalVisible: Boolean = false,
+
+    // Gold Union Standard Formulas Guide (Stitch ID 1e8173ae11924cad8cabf7f74a1c042b)
+    val isStandardFormulasVisible: Boolean = false
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
@@ -161,6 +164,10 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     fun setJewelerProfileModalVisible(visible: Boolean) {
         _uiState.update { it.copy(isJewelerProfileModalVisible = visible) }
+    }
+
+    fun setStandardFormulasVisible(visible: Boolean) {
+        _uiState.update { it.copy(isStandardFormulasVisible = visible) }
     }
 
     fun updateJewelerProfile(

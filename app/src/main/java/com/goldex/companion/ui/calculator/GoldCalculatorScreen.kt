@@ -42,7 +42,9 @@ import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.hub.JewelerProfileModal
 import com.goldex.companion.ui.hub.MoreHubScreen
+import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
 
 enum class CalculatorSubTab(val titleFa: String) {
@@ -130,7 +132,8 @@ fun GoldCalculatorScreen(
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Scaffold(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Scaffold(
             topBar = {
                 Column {
                     TopAppBar(
@@ -422,14 +425,17 @@ fun GoldCalculatorScreen(
                                     },
                                     onOpenJewelerProfile = {
                                         viewModel.setJewelerProfileModalVisible(true)
+                                    },
+                                    onNavigateStandardFormulas = {
+                                        viewModel.setStandardFormulasVisible(true)
                                     }
                                 )
                             }
                         }
                     }
 
-                    // Clearance spacer so content scrolls completely above the floating dock
-                    Spacer(modifier = Modifier.height(115.dp))
+                    // Clearance spacer so content scrolls cleanly above the floating dock
+                    Spacer(modifier = Modifier.height(78.dp))
                 }
 
                 // Floating Glassmorphic Dock pinned to bottom center
@@ -439,6 +445,22 @@ fun GoldCalculatorScreen(
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
+        }
+
+        // Gold Union Standard Formulas Guide (Stitch Screen ID: 1e8173ae11924cad8cabf7f74a1c042b)
+        AnimatedVisibility(
+            visible = uiState.isStandardFormulasVisible,
+            enter = LuxuryMotion.ScreenPushEnter,
+            exit = LuxuryMotion.ScreenPopExit,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            StandardFormulasScreen(
+                onBack = { viewModel.setStandardFormulasVisible(false) },
+                onNavigateCalculator = {
+                    viewModel.setStandardFormulasVisible(false)
+                    viewModel.selectTab(AppTab.CALCULATOR)
+                }
+            )
         }
     }
 }

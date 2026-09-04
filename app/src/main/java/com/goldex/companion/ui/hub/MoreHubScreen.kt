@@ -54,7 +54,8 @@ fun MoreHubScreen(
     onNavigateCoinBubble: () -> Unit,
     onNavigateInvoices: () -> Unit,
     onNavigateSettings: () -> Unit,
-    onOpenJewelerProfile: () -> Unit
+    onOpenJewelerProfile: () -> Unit,
+    onNavigateStandardFormulas: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
@@ -716,9 +717,7 @@ fun MoreHubScreen(
                     icon = HubMenuBook,
                     iconTint = Color(0xFFD97706),
                     iconBg = Color(0xFFFEF3C7),
-                    onClick = {
-                        Toast.makeText(context, "استاندارد عیار ۷۵۰ و فرمول معافیت اصل طلا مصوب صنف", Toast.LENGTH_SHORT).show()
-                    }
+                    onClick = onNavigateStandardFormulas
                 )
             }
         }

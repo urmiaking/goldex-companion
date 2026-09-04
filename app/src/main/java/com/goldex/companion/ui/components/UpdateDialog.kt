@@ -27,10 +27,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.BuildConfig
 import com.goldex.companion.data.UpdateInfo
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun UpdateDialog(
@@ -40,21 +44,42 @@ fun UpdateDialog(
 ) {
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_DIALOG_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = handleDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, colors.goldPrimary.copy(alpha = 0.35f)),
-                shadowElevation = 12.dp,
-                modifier = modifier
-                    .fillMaxWidth(0.92f)
-                    .padding(vertical = 24.dp)
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = LuxuryMotion.DialogEnter,
+                exit = LuxuryMotion.DialogExit
             ) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.goldPrimary.copy(alpha = 0.35f)),
+                    shadowElevation = 12.dp,
+                    modifier = modifier
+                        .fillMaxWidth(0.92f)
+                        .padding(vertical = 24.dp)
+                ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -205,7 +230,7 @@ fun UpdateDialog(
 
                         // Secondary Dismiss Button
                         TextButton(
-                            onClick = onDismiss,
+                            onClick = handleDismiss,
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -223,4 +248,5 @@ fun UpdateDialog(
             }
         }
     }
+}
 }

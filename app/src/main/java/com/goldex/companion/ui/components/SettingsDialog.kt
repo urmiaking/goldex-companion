@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -30,6 +31,9 @@ import com.goldex.companion.data.PriceSource
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsDialog(
@@ -38,30 +42,50 @@ fun SettingsDialog(
     onSaveSettings: (AppSettings) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_DIALOG_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     var selectedSource by remember { mutableStateOf(initialSettings.priceSource) }
     var profitPct by remember { mutableStateOf(initialSettings.defaultProfitPercent) }
     var taxPct by remember { mutableStateOf(initialSettings.defaultTaxPercent) }
     var wageType by remember { mutableStateOf(initialSettings.defaultWageType) }
     var autoSync by remember { mutableStateOf(initialSettings.autoSyncRates) }
-
     var galleryName by remember { mutableStateOf(initialSettings.galleryName) }
     var galleryPhone by remember { mutableStateOf(initialSettings.galleryPhone) }
     var galleryAddress by remember { mutableStateOf(initialSettings.galleryAddress) }
     var galleryLicense by remember { mutableStateOf(initialSettings.galleryLicense) }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = handleDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = colors.surface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, colors.goldBorder),
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.88f)
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = LuxuryMotion.DialogEnter,
+            exit = LuxuryMotion.DialogExit
         ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = colors.surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, colors.goldBorder),
+                modifier = Modifier
+                    .fillMaxWidth(0.94f)
+                    .fillMaxHeight(0.88f)
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -107,7 +131,7 @@ fun SettingsDialog(
                     }
 
                     IconButton(
-                        onClick = onDismiss,
+                        onClick = handleDismiss,
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
@@ -335,7 +359,7 @@ fun SettingsDialog(
                             galleryLicense = galleryLicense.ifBlank { "صنف طلا و جواهر: ۱۱۰۲۴" }
                         )
                         onSaveSettings(updated)
-                        onDismiss()
+                        handleDismiss()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.goldPrimary),
                     shape = RoundedCornerShape(12.dp),
@@ -353,4 +377,5 @@ fun SettingsDialog(
             }
         }
     }
+}
 }
