@@ -1,4 +1,4 @@
-﻿*.iml
+*.iml
 .gradle
 /local.properties
 /.idea/
@@ -8,3 +8,4 @@ app/build/
 .cxx
 *.apk
 *.aab
+stitch_specs/

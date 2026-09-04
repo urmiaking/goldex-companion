@@ -118,16 +118,21 @@ All development, refactoring, and maintenance must strictly adhere to these six 
 │                                     │                                       │
 │                                     ▼                                       │
 │                     ┌────────────────────────────────┐                      │
-│                     │      GoldCalculatorScreen      │                      │
+│                     │         MainScreen (Host)      │                      │
 │                     └───────┬───────────────┬────────┘                      │
 │                             │               │                               │
 │            ┌────────────────┴──────┐ ┌──────┴────────────────┐              │
-│            │  LuxuryDrawer (RTL)   │ │  GlassmorphicDock     │              │
-│            │  - Customers Hub      │ │  - Spring Sliding     │              │
-│            │  - App Settings       │ │    Indicator Pill     │              │
-│            │  - Update & About     │ │  - Tab Micro-Bounces  │              │
-│            └───────────────────────┘ └───────────────────────┘              │
+│            │   MoreHubScreen       │ │  GlassmorphicDock (5) │              │
+│            │  (Replaces Drawer)    │ │  - Dashboard (خانه)   │              │
+│            │  - Counterparties/معین│ │  - Calculator (حساب)  │              │
+│            │  - Melt Lab / ری‌گیری │ │  - Live Rates (مظنه)  │              │
+│            │  - Inventory / انبار  │ │  - Invoices (فاکتور)  │              │
+│            │  - Workshop / کارگاه  │ │  - More & Hub (بیشتر) │              │
+│            │  - Jeweler Profile    │ └───────────────────────┘              │
+│            └───────────────────────┘                                        │
 │                             │                                               │
+│                             ▼                                               │
+│              .agents/workflows/ [00 to 05] Execution Phases                 │
 │            ┌────────────────┴────────────────────────────────┐              │
 │            │    5 Swappable Screen Tabs (AnimatedContent)    │              │
 │            │  1. JewelryTab (محاسبه طلا و فاکتور)            │              │
