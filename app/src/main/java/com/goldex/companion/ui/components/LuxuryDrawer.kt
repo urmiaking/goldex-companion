@@ -87,6 +87,45 @@ private val DrawerCustomerVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+private val DrawerInvoiceVector: ImageVector = ImageVector.Builder(
+    name = "DrawerInvoice",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(19f, 3f)
+        horizontalLineTo(5f)
+        curveTo(3.9f, 3f, 3f, 3.9f, 3f, 5f)
+        verticalLineTo(19f)
+        curveTo(3f, 20.1f, 3.9f, 21f, 5f, 21f)
+        horizontalLineTo(19f)
+        curveTo(20.1f, 21f, 21f, 20.1f, 21f, 19f)
+        verticalLineTo(5f)
+        curveTo(21f, 3.9f, 20.1f, 3f, 19f, 3f)
+        close()
+        moveTo(17f, 17f)
+        horizontalLineTo(7f)
+        verticalLineTo(15f)
+        horizontalLineTo(17f)
+        verticalLineTo(17f)
+        close()
+        moveTo(17f, 13f)
+        horizontalLineTo(7f)
+        verticalLineTo(11f)
+        horizontalLineTo(17f)
+        verticalLineTo(13f)
+        close()
+        moveTo(17f, 9f)
+        horizontalLineTo(7f)
+        verticalLineTo(7f)
+        horizontalLineTo(17f)
+        verticalLineTo(9f)
+        close()
+    }
+}.build()
+
 private val DrawerSettingsVector: ImageVector = ImageVector.Builder(
     name = "DrawerSettings",
     defaultWidth = 24.dp,
@@ -181,10 +220,12 @@ fun LuxuryDrawer(
     drawerState: DrawerState,
     rates: MarketRates,
     customerCount: Int,
+    invoiceCount: Int = 0,
     connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onNavigateCustomers: () -> Unit,
+    onNavigateInvoices: () -> Unit = {},
     onNavigateSettings: () -> Unit,
     onCheckForUpdates: () -> Unit,
     modifier: Modifier = Modifier,
@@ -201,12 +242,17 @@ fun LuxuryDrawer(
                 LuxuryDrawerSheetContent(
                     rates = rates,
                     customerCount = customerCount,
+                    invoiceCount = invoiceCount,
                     connectionStatus = connectionStatus,
                     isDarkTheme = isDarkTheme,
                     onToggleTheme = onToggleTheme,
                     onNavigateCustomers = {
                         coroutineScope.launch { drawerState.close() }
                         onNavigateCustomers()
+                    },
+                    onNavigateInvoices = {
+                        coroutineScope.launch { drawerState.close() }
+                        onNavigateInvoices()
                     },
                     onNavigateSettings = {
                         coroutineScope.launch { drawerState.close() }
@@ -233,10 +279,12 @@ fun LuxuryDrawer(
 fun LuxuryDrawerSheetContent(
     rates: MarketRates,
     customerCount: Int,
+    invoiceCount: Int = 0,
     connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onNavigateCustomers: () -> Unit,
+    onNavigateInvoices: () -> Unit = {},
     onNavigateSettings: () -> Unit,
     onCheckForUpdates: () -> Unit,
     onCloseDrawer: () -> Unit,
@@ -333,13 +381,13 @@ fun LuxuryDrawerSheetContent(
 
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    text = "زرنگار",
+                                    text = "قیراط",
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 19.sp,
                                     color = colors.goldPrimary
                                 )
                                 Text(
-                                    text = "دستیار جامع محاسبات طلا",
+                                    text = "دستیار جامع محاسبات و فاکتور طلا",
                                     fontSize = 11.sp,
                                     color = colors.textMuted
                                 )
@@ -455,7 +503,16 @@ fun LuxuryDrawerSheetContent(
                     onClick = onNavigateCustomers
                 )
 
-                // 3. Settings & Preferences
+                // 3. Invoice Archive & Management
+                LuxuryDrawerItem(
+                    title = "مدیریت و بایگانی فاکتورها",
+                    subtitle = "مشاهده، جستجو و چاپ فاکتورهای پیشین",
+                    icon = DrawerInvoiceVector,
+                    badgeText = if (invoiceCount > 0) "${PersianNumberFormatter.toPersianDigits(invoiceCount.toString())} فاکتور" else null,
+                    onClick = onNavigateInvoices
+                )
+
+                // 4. Settings & Preferences
                 LuxuryDrawerItem(
                     title = "تنظیمات نرم‌افزار",
                     subtitle = "پیکربندی سود، مالیات و مظنه",
@@ -464,12 +521,12 @@ fun LuxuryDrawerSheetContent(
                     onClick = onNavigateSettings
                 )
 
-                // 4. About & Check for Updates
+                // 5. About & Check for Updates
                 LuxuryDrawerItem(
                     title = "بررسی بروزرسانی و درباره ما",
                     subtitle = "نسخه فعال، تاریخچه و دریافت آپدیت",
                     icon = DrawerInfoVector,
-                    badgeText = "نسخه ۰.۸.۲",
+                    badgeText = "نسخه ۰.۹.۰",
                     onClick = onCheckForUpdates
                 )
             }
@@ -494,7 +551,7 @@ fun LuxuryDrawerSheetContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "زرنگار • نسخه ۰.۸.۲",
+                            text = "قیراط • نسخه ۰.۹.۰",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -521,7 +578,7 @@ fun LuxuryDrawerSheetContent(
                     )
 
                     Text(
-                        text = "Zarnegar Sovereign Aurum Edition",
+                        text = "Qirat Sovereign Edition",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Medium,
                         color = colors.goldSecondary

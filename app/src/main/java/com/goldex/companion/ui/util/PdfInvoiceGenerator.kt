@@ -15,6 +15,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.CalculatorUiState
+import com.goldex.companion.data.AppSettings
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -25,9 +26,10 @@ object PdfInvoiceGenerator {
     fun generateAndShareInvoice(
         context: Context,
         invoice: Invoice,
-        sourceName: String = "اتحادیه طلا"
+        sourceName: String = "اتحادیه طلا",
+        settings: AppSettings = AppSettings()
     ) {
-        val file = createInvoicePdf(context, invoice, sourceName)
+        val file = createInvoicePdf(context, invoice, sourceName, settings)
         if (file != null && file.exists()) {
             val uri = FileProvider.getUriForFile(
                 context,
@@ -38,8 +40,8 @@ object PdfInvoiceGenerator {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "فاکتور رسمی خرید طلا - گلدکس پرو")
-                putExtra(Intent.EXTRA_TEXT, "فاکتور رسمی صادر شده توسط سامانه معامله‌گران طلا (GoldEx Pro).")
+                putExtra(Intent.EXTRA_SUBJECT, "فاکتور رسمی خرید طلا - قیراط")
+                putExtra(Intent.EXTRA_TEXT, "فاکتور رسمی صادر شده توسط ${settings.galleryName} (سامانه هوشمند زرگری قیراط).")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(shareIntent, "اشتراک‌گذاری یا چاپ فاکتور PDF"))
@@ -49,7 +51,8 @@ object PdfInvoiceGenerator {
     fun generateAndShareInvoice(
         context: Context,
         uiState: CalculatorUiState,
-        result: DetailedJewelryResult
+        result: DetailedJewelryResult,
+        settings: AppSettings = AppSettings()
     ) {
         val singleItem = InvoiceItem(
             title = uiState.itemTitleInput.ifBlank { "قطعه طلا ۱" },
@@ -73,13 +76,14 @@ object PdfInvoiceGenerator {
             customer = uiState.selectedCustomer,
             items = listOf(singleItem)
         )
-        generateAndShareInvoice(context, invoice, uiState.rates.source.labelFa)
+        generateAndShareInvoice(context, invoice, uiState.rates.source.labelFa, settings)
     }
 
     private fun createInvoicePdf(
         context: Context,
         invoice: Invoice,
-        sourceName: String
+        sourceName: String,
+        settings: AppSettings = AppSettings()
     ): File? {
         val doc = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // Standard A4 (595x842 pt)
@@ -93,18 +97,19 @@ object PdfInvoiceGenerator {
 
             paint.color = Color.rgb(212, 175, 55) // Gold #D4AF37
             if (isFirstPage) {
-                c.drawRect(0f, 0f, 595f, 65f, paint)
+                c.drawRect(0f, 0f, 595f, 68f, paint)
 
                 paint.color = Color.rgb(17, 24, 39)
-                paint.textSize = 17f
+                paint.textSize = 16.5f
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
                 paint.textAlign = Paint.Align.CENTER
-                c.drawText("فاکتور رسمی برآورد و معامله طلا و جواهر", 595f / 2f, 36f, paint)
+                c.drawText(settings.galleryName, 595f / 2f, 32f, paint)
 
                 paint.color = Color.rgb(71, 85, 105)
-                paint.textSize = 10f
+                paint.textSize = 9.5f
                 paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-                c.drawText("سامانه هوشمند زرگری و معاملات طلا (GoldEx Pro)", 595f / 2f, 52f, paint)
+                c.drawText("فاکتور رسمی برآورد و معامله طلا و جواهر • ${settings.galleryLicense}", 595f / 2f, 47f, paint)
+                c.drawText("تلفن: ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)} • نشانی: ${settings.galleryAddress}", 595f / 2f, 60f, paint)
             } else {
                 c.drawRect(0f, 0f, 595f, 32f, paint)
 
@@ -349,7 +354,7 @@ object PdfInvoiceGenerator {
         // Save to cache directory
         return try {
             val invoiceDir = File(context.cacheDir, "invoices").apply { mkdirs() }
-            val invoiceFile = File(invoiceDir, "GoldEx_Invoice_${System.currentTimeMillis()}.pdf")
+            val invoiceFile = File(invoiceDir, "Qirat_Invoice_${invoice.invoiceNumber}_${System.currentTimeMillis()}.pdf")
             val outputStream = FileOutputStream(invoiceFile)
             doc.writeTo(outputStream)
             outputStream.flush()

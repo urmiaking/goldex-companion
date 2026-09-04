@@ -3,15 +3,18 @@ package com.goldex.companion.ui.calculator
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.goldex.companion.data.AppSettings
 import com.goldex.companion.data.AppUpdateChecker
 import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.InvoiceRepository
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.data.NetworkMonitor
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.data.PriceSource
+import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.UpdateInfo
 import com.goldex.companion.model.*
 import java.util.Locale
@@ -85,18 +88,30 @@ data class CalculatorUiState(
     val isUpdateDialogDismissed: Boolean = false,
 
     // Real-Time Internet Connection & Network Status (Green / Yellow / Red)
-    val connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE
+    val connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
+
+    // Settings & Gallery Branding
+    val appSettings: AppSettings = AppSettings(),
+    val isSettingsDialogVisible: Boolean = false,
+
+    // Invoice Persistence & Management
+    val savedInvoices: List<Invoice> = emptyList(),
+    val isInvoiceManagerVisible: Boolean = false
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
     private val customerRepository = CustomerRepository(application.applicationContext)
     private val portfolioRepository = PortfolioRepository(application.applicationContext)
+    private val settingsRepository = SettingsRepository(application.applicationContext)
+    private val invoiceRepository = InvoiceRepository(application.applicationContext)
     private val networkMonitor = NetworkMonitor(application.applicationContext)
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
+        loadSettings()
+        loadInvoices()
         observeNetwork()
         loadInitialRates()
         loadCustomers()
@@ -104,6 +119,59 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         calculateAll()
         checkForUpdates(manual = false)
         startAutoRatesRefresh()
+    }
+
+    fun loadSettings() {
+        val s = settingsRepository.loadSettings()
+        _uiState.update {
+            it.copy(
+                appSettings = s,
+                profitPercentInput = s.defaultProfitPercent,
+                taxPercentInput = s.defaultTaxPercent,
+                wageType = s.defaultWageType
+            )
+        }
+        viewModelScope.launch {
+            GoldMarketRepository.setSource(s.priceSource)
+        }
+    }
+
+    fun updateSettings(newSettings: AppSettings) {
+        settingsRepository.saveSettings(newSettings)
+        _uiState.update {
+            it.copy(
+                appSettings = newSettings,
+                profitPercentInput = newSettings.defaultProfitPercent,
+                taxPercentInput = newSettings.defaultTaxPercent,
+                wageType = newSettings.defaultWageType
+            )
+        }
+        viewModelScope.launch {
+            GoldMarketRepository.setSource(newSettings.priceSource)
+        }
+        calculateAll()
+    }
+
+    fun setSettingsDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isSettingsDialogVisible = visible) }
+    }
+
+    fun loadInvoices() {
+        _uiState.update { it.copy(savedInvoices = invoiceRepository.getInvoices()) }
+    }
+
+    fun saveInvoice(invoice: Invoice) {
+        invoiceRepository.saveInvoice(invoice)
+        loadInvoices()
+    }
+
+    fun deleteInvoice(id: String) {
+        invoiceRepository.deleteInvoice(id)
+        loadInvoices()
+    }
+
+    fun setInvoiceManagerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isInvoiceManagerVisible = visible) }
     }
 
     private fun observeNetwork() {

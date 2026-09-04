@@ -152,11 +152,31 @@ fun GoldCalculatorScreen(
         )
     }
 
+    // Luxury Settings Modal (Issue #21)
+    if (uiState.isSettingsDialogVisible) {
+        SettingsDialog(
+            initialSettings = uiState.appSettings,
+            onSaveSettings = { viewModel.updateSettings(it) },
+            onDismiss = { viewModel.setSettingsDialogVisible(false) }
+        )
+    }
+
+    // Invoice Manager & Archive Modal (Issue #19)
+    if (uiState.isInvoiceManagerVisible) {
+        InvoiceManagerDialog(
+            invoices = uiState.savedInvoices,
+            settings = uiState.appSettings,
+            onDismiss = { viewModel.setInvoiceManagerVisible(false) },
+            onDeleteInvoice = { viewModel.deleteInvoice(it) }
+        )
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         LuxuryDrawer(
             drawerState = drawerState,
             rates = uiState.rates,
             customerCount = uiState.customerList.size,
+            invoiceCount = uiState.savedInvoices.size,
             connectionStatus = uiState.connectionStatus,
             isDarkTheme = uiState.isDarkTheme,
             onToggleTheme = { viewModel.toggleTheme() },
@@ -164,8 +184,12 @@ fun GoldCalculatorScreen(
                 viewModel.loadCustomers()
                 viewModel.setCustomerManagerVisible(true)
             },
+            onNavigateInvoices = {
+                viewModel.loadInvoices()
+                viewModel.setInvoiceManagerVisible(true)
+            },
             onNavigateSettings = {
-                viewModel.toggleTheme()
+                viewModel.setSettingsDialogVisible(true)
             },
             onCheckForUpdates = {
                 viewModel.checkForUpdates(manual = true)
@@ -195,7 +219,7 @@ fun GoldCalculatorScreen(
                                     verticalArrangement = Arrangement.spacedBy(1.dp)
                                 ) {
                                     Text(
-                                        text = "زرنگار",
+                                        text = "قیراط",
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 18.sp,
                                         color = colors.goldPrimary

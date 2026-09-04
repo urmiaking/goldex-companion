@@ -1,4 +1,4 @@
-﻿name: Build and Release
+name: Build and Release
 
 on:
   push:
@@ -62,4 +62,4 @@ jobs:
         with:
           files: app/build/outputs/apk/release/*.apk
           generate_release_notes: true
-          name: "GoldEx Companion ${{ github.ref_name }}"
+          name: "قیراط (Qirat) ${{ github.ref_name }}"

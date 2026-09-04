@@ -356,30 +356,6 @@ fun JewelryTab(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Reset Pill
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = colors.surfaceElevated,
-                        border = androidx.compose.foundation.BorderStroke(0.5.dp, colors.border),
-                        modifier = Modifier.clickable { viewModel.onGrossWeightChanged("0") }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = colors.errorRed,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(text = "صفر", fontSize = 10.sp, color = colors.errorRed)
-                        }
-                    }
                 }
 
                 // Purity Grid
@@ -714,7 +690,7 @@ fun JewelryTab(
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "➕ افزودن این آیتم به فاکتور (${PersianNumberFormatter.toPersianDigits(uiState.invoiceItems.size.toString())} قلم تاکنون)",
+                                    text = "افزودن این آیتم به فاکتور (${PersianNumberFormatter.toPersianDigits(uiState.invoiceItems.size.toString())} قلم)",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -801,14 +777,15 @@ fun JewelryTab(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.surfaceElevated),
+                                    .background(colors.surfaceElevated)
+                                    .clickable { viewModel.setInvoiceManagerVisible(true) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
+                                    imageVector = Icons.Default.List,
+                                    contentDescription = "بایگانی فاکتورها",
                                     tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
@@ -1075,6 +1052,7 @@ fun JewelryTab(
                         // Big CTA: Share Official Invoice
                         Button(
                             onClick = {
+                                viewModel.saveInvoice(invoice)
                                 val textInvoice = invoice.formatTextInvoice(uiState.rates.source.labelFa)
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
@@ -1102,10 +1080,11 @@ fun JewelryTab(
                         ) {
                             OutlinedButton(
                                 onClick = {
+                                    viewModel.saveInvoice(invoice)
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val textInvoice = invoice.formatTextInvoice(uiState.rates.source.labelFa)
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("GoldEx Invoice", textInvoice))
-                                    Toast.makeText(context, "متن کامل فاکتور کپی شد ✓", Toast.LENGTH_SHORT).show()
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("Qirat Invoice", textInvoice))
+                                    Toast.makeText(context, "متن فاکتور کپی و در بایگانی ذخیره شد ✓", Toast.LENGTH_SHORT).show()
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
@@ -1119,7 +1098,13 @@ fun JewelryTab(
 
                             Button(
                                 onClick = {
-                                    PdfInvoiceGenerator.generateAndShareInvoice(context, invoice, uiState.rates.source.labelFa)
+                                    viewModel.saveInvoice(invoice)
+                                    PdfInvoiceGenerator.generateAndShareInvoice(
+                                        context = context,
+                                        invoice = invoice,
+                                        sourceName = uiState.rates.source.labelFa,
+                                        settings = uiState.appSettings
+                                    )
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(

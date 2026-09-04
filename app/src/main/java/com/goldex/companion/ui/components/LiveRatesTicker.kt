@@ -75,59 +75,6 @@ fun LiveRatesTicker(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Source Selector & Live Status Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = colors.surface,
-                border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
-                shadowElevation = if (colors.isDark) 0.dp else 1.dp,
-                modifier = Modifier.clickable { onToggleSource() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.size(10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (rates.isLive) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .scale(pulseScale)
-                                    .clip(CircleShape)
-                                    .background(colors.profitGreen.copy(alpha = pulseAlpha))
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(if (rates.isLive) colors.profitGreen else Color(0xFFF59E0B))
-                        )
-                    }
-
-                    Text(
-                        text = "منبع: ${rates.source.labelFa}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary
-                    )
-                    Text(
-                        text = "• بروز: ${PersianNumberFormatter.toPersianDigits(rates.lastUpdated)}",
-                        fontSize = 10.sp,
-                        color = colors.textMuted
-                    )
-                }
-            }
-        }
 
         // Horizontal Stitch Pill Ticker
         Row(
