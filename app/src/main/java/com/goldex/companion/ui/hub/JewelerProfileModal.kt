@@ -601,3 +601,4 @@ fun JewelerProfileModal(
         }
     }
 }
+}

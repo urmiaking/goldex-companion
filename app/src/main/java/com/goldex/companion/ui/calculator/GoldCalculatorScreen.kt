@@ -464,6 +464,7 @@ fun GoldCalculatorScreen(
         }
     }
 }
+}
 
 @Composable
 private fun DashboardPreviewCard(

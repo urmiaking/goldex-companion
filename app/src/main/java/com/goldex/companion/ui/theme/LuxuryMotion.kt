@@ -11,6 +11,11 @@ import androidx.compose.ui.unit.IntOffset
  * all modals, bottom sheets, full-screen sheets, and center dialogs.
  */
 object LuxuryMotion {
+    const val DURATION_MODAL_ENTER = 280
+    const val DURATION_MODAL_EXIT = 220
+    const val DURATION_DIALOG_ENTER = 240
+    const val DURATION_DIALOG_EXIT = 180
+
     // Standard and Emphasized Easings
     val StandardEasing: Easing = FastOutSlowInEasing
     val EmphasizedEasing: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
