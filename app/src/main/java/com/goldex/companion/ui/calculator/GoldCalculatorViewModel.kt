@@ -27,15 +27,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class AppTab(val titleFa: String) {
-    JEWELRY("طلا و جواهر"),
-    MELT("مظنه آبشده"),
-    COIN("حباب سکه"),
-    CONVERT("تبدیل عیار"),
-    PORTFOLIO("سبد دارایی")
+    HOME("خانه"),
+    RATES("تابلوی مظنه"),
+    CALCULATOR("ماشین‌حساب"),
+    INVOICES("فاکتورها"),
+    MORE("بیشتر")
 }
 
 data class CalculatorUiState(
-    val selectedTab: AppTab = AppTab.JEWELRY,
+    val selectedTab: AppTab = AppTab.HOME,
     val rates: MarketRates = MarketRates(),
     val isRefreshingRates: Boolean = false,
     val autoSyncPrice: Boolean = true,
@@ -96,7 +96,10 @@ data class CalculatorUiState(
 
     // Invoice Persistence & Management
     val savedInvoices: List<Invoice> = emptyList(),
-    val isInvoiceManagerVisible: Boolean = false
+    val isInvoiceManagerVisible: Boolean = false,
+
+    // Jeweler Profile Modal (Stitch ID 4457d74b46974ee99ffc049b24feb860)
+    val isJewelerProfileModalVisible: Boolean = false
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
@@ -154,6 +157,36 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     fun setSettingsDialogVisible(visible: Boolean) {
         _uiState.update { it.copy(isSettingsDialogVisible = visible) }
+    }
+
+    fun setJewelerProfileModalVisible(visible: Boolean) {
+        _uiState.update { it.copy(isJewelerProfileModalVisible = visible) }
+    }
+
+    fun updateJewelerProfile(
+        galleryName: String,
+        managerName: String,
+        unionCode: String,
+        phone: String,
+        address: String
+    ) {
+        val updated = _uiState.value.appSettings.copy(
+            galleryName = galleryName,
+            managerName = managerName,
+            unionCode = unionCode,
+            galleryPhone = phone,
+            galleryAddress = address,
+            galleryLicense = "صنف طلا و جواهر: $unionCode"
+        )
+        updateSettings(updated)
+        setJewelerProfileModalVisible(false)
+    }
+
+    fun toggleBiometricLock(enabled: Boolean) {
+        val updated = _uiState.value.appSettings.copy(
+            isBiometricLockEnabled = enabled
+        )
+        updateSettings(updated)
     }
 
     fun loadInvoices() {

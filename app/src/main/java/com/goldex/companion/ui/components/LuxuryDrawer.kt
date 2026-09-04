@@ -548,13 +548,14 @@ private val DrawerLogoutVector: ImageVector = ImageVector.Builder(
 /**
  * Stitch Luxury Persian Sovereign Aurum RTL Navigation Drawer wrapper.
  */
+@Deprecated("Navigation Drawer is officially replaced by MoreHubScreen in Phase 1")
 @Composable
 fun LuxuryDrawer(
     drawerState: DrawerState,
     rates: MarketRates,
     customerCount: Int,
     invoiceCount: Int = 0,
-    selectedTab: AppTab = AppTab.JEWELRY,
+    selectedTab: AppTab = AppTab.HOME,
     totalGoldWeight: Double = 342.500,
     appSettings: AppSettings = AppSettings(),
     connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
@@ -619,12 +620,13 @@ fun LuxuryDrawer(
 /**
  * Stitch Persian Sovereign Aurum Modal Drawer Sheet Content.
  */
+@Deprecated("Navigation Drawer is officially replaced by MoreHubScreen in Phase 1")
 @Composable
 fun LuxuryDrawerSheetContent(
     rates: MarketRates,
     customerCount: Int,
     invoiceCount: Int = 0,
-    selectedTab: AppTab = AppTab.JEWELRY,
+    selectedTab: AppTab = AppTab.HOME,
     totalGoldWeight: Double = 342.500,
     appSettings: AppSettings = AppSettings(),
     connectionStatus: ConnectionStatus = ConnectionStatus.ONLINE,
@@ -948,15 +950,15 @@ fun LuxuryDrawerSheetContent(
                     StitchDrawerNavItem(
                         title = "ماشین‌حساب طلا و جواهر",
                         icon = DrawerCalculatorVector,
-                        isActive = selectedTab == AppTab.JEWELRY,
+                        isActive = selectedTab == AppTab.CALCULATOR,
                         badgeText = "اصلی",
-                        onClick = { onSelectTab(AppTab.JEWELRY) }
+                        onClick = { onSelectTab(AppTab.CALCULATOR) }
                     )
 
                     StitchDrawerNavItem(
                         title = "مدیریت فاکتورهای رسمی",
                         icon = DrawerInvoiceDollarVector,
-                        isActive = false,
+                        isActive = selectedTab == AppTab.INVOICES,
                         badgeText = if (invoiceCount > 0) "${PersianNumberFormatter.toPersianDigits(invoiceCount.toString())} فاکتور" else "بایگانی",
                         badgeIsGold = true,
                         onClick = onNavigateInvoices
@@ -965,16 +967,16 @@ fun LuxuryDrawerSheetContent(
                     StitchDrawerNavItem(
                         title = "تابلو زنده مظنه و آبشده",
                         icon = DrawerChartLineVector,
-                        isActive = selectedTab == AppTab.MELT,
+                        isActive = selectedTab == AppTab.RATES,
                         hasLiveDot = rates.isLive,
-                        onClick = { onSelectTab(AppTab.MELT) }
+                        onClick = { onSelectTab(AppTab.RATES) }
                     )
 
                     StitchDrawerNavItem(
                         title = "رادار حباب انواع مسکوکات",
                         icon = DrawerCoinBubbleVector,
-                        isActive = selectedTab == AppTab.COIN,
-                        onClick = { onSelectTab(AppTab.COIN) }
+                        isActive = selectedTab == AppTab.CALCULATOR,
+                        onClick = { onSelectTab(AppTab.CALCULATOR) }
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -985,8 +987,8 @@ fun LuxuryDrawerSheetContent(
                     StitchDrawerNavItem(
                         title = "موجودی و کارگاه ساخت",
                         icon = DrawerBoxesVector,
-                        isActive = selectedTab == AppTab.PORTFOLIO,
-                        onClick = { onSelectTab(AppTab.PORTFOLIO) }
+                        isActive = selectedTab == AppTab.CALCULATOR,
+                        onClick = { onSelectTab(AppTab.CALCULATOR) }
                     )
 
                     StitchDrawerNavItem(
@@ -1000,9 +1002,9 @@ fun LuxuryDrawerSheetContent(
                     StitchDrawerNavItem(
                         title = "تبدیل عیار ری‌گیری",
                         icon = DrawerScaleVector,
-                        isActive = selectedTab == AppTab.CONVERT,
+                        isActive = selectedTab == AppTab.CALCULATOR,
                         badgeText = "دقت ۰.۰۰۱",
-                        onClick = { onSelectTab(AppTab.CONVERT) }
+                        onClick = { onSelectTab(AppTab.CALCULATOR) }
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))

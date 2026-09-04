@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.data
+package com.goldex.companion.data
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -13,10 +13,13 @@ data class AppSettings(
     val defaultTaxPercent: String = "9",
     val defaultWageType: WageType = WageType.PERCENTAGE,
     val autoSyncRates: Boolean = true,
-    val galleryName: String = "گالری طلای قیراط",
-    val galleryPhone: String = "۰۲۱-۸۸۸۸۸۸۸۸",
-    val galleryAddress: String = "تهران، بازار بزرگ طلافروشان",
-    val galleryLicense: String = "صنف طلا و جواهر: ۱۱۰۲۴"
+    val galleryName: String = "جواهری و بنکداری آریا",
+    val managerName: String = "حاج احمد کاظمی",
+    val unionCode: String = "۴۴۰۲",
+    val galleryPhone: String = "۰۲۱-۵۵۶۲۳۴۸۱",
+    val galleryAddress: String = "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
+    val galleryLicense: String = "صنف طلا و جواهر: ۴۴۰۲",
+    val isBiometricLockEnabled: Boolean = true
 )
 
 class SettingsRepository(context: Context) {
@@ -47,10 +50,13 @@ class SettingsRepository(context: Context) {
             defaultTaxPercent = prefs.getString("key_tax_pct", "9") ?: "9",
             defaultWageType = defaultWageType,
             autoSyncRates = prefs.getBoolean("key_auto_sync", true),
-            galleryName = prefs.getString("key_gallery_name", "گالری طلای قیراط") ?: "گالری طلای قیراط",
-            galleryPhone = prefs.getString("key_gallery_phone", "۰۲۱-۸۸۸۸۸۸۸۸") ?: "۰۲۱-۸۸۸۸۸۸۸۸",
-            galleryAddress = prefs.getString("key_gallery_address", "تهران، بازار بزرگ طلافروشان") ?: "تهران، بازار بزرگ طلافروشان",
-            galleryLicense = prefs.getString("key_gallery_license", "صنف طلا و جواهر: ۱۱۰۲۴") ?: "صنف طلا و جواهر: ۱۱۰۲۴"
+            galleryName = prefs.getString("key_gallery_name", "جواهری و بنکداری آریا") ?: "جواهری و بنکداری آریا",
+            managerName = prefs.getString("key_manager_name", "حاج احمد کاظمی") ?: "حاج احمد کاظمی",
+            unionCode = prefs.getString("key_union_code", "۴۴۰۲") ?: "۴۴۰۲",
+            galleryPhone = prefs.getString("key_gallery_phone", "۰۲۱-۵۵۶۲۳۴۸۱") ?: "۰۲۱-۵۵۶۲۳۴۸۱",
+            galleryAddress = prefs.getString("key_gallery_address", "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲") ?: "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
+            galleryLicense = prefs.getString("key_gallery_license", "صنف طلا و جواهر: ۴۴۰۲") ?: "صنف طلا و جواهر: ۴۴۰۲",
+            isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", true)
         )
     }
 
@@ -62,9 +68,12 @@ class SettingsRepository(context: Context) {
             .putString("key_default_wage_type", newSettings.defaultWageType.name)
             .putBoolean("key_auto_sync", newSettings.autoSyncRates)
             .putString("key_gallery_name", newSettings.galleryName)
+            .putString("key_manager_name", newSettings.managerName)
+            .putString("key_union_code", newSettings.unionCode)
             .putString("key_gallery_phone", newSettings.galleryPhone)
             .putString("key_gallery_address", newSettings.galleryAddress)
             .putString("key_gallery_license", newSettings.galleryLicense)
+            .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
             .apply()
 
         _settings.value = newSettings

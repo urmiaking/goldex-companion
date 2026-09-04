@@ -1,10 +1,13 @@
 package com.goldex.companion.ui.calculator
 
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -37,65 +38,51 @@ import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
+import com.goldex.companion.ui.hub.JewelerProfileModal
+import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
-import kotlinx.coroutines.launch
 
-private val CoinVector: ImageVector = ImageVector.Builder(
-    name = "Coin",
+private val GoldIngotVector: ImageVector = ImageVector.Builder(
+    name = "GoldIngot",
     defaultWidth = 24.dp,
     defaultHeight = 24.dp,
     viewportWidth = 24f,
     viewportHeight = 24f
 ).apply {
-    path(fill = SolidColor(Color.White)) {
-        moveTo(12f, 2f)
-        curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
-        curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
-        curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
-        curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+    path(fill = SolidColor(Color(0xFFD97706))) {
+        moveTo(4f, 8f)
+        lineTo(12f, 4f)
+        lineTo(20f, 8f)
+        verticalLineTo(16f)
+        lineTo(12f, 20f)
+        lineTo(4f, 16f)
         close()
-        moveTo(12f, 19.5f)
-        curveTo(7.86f, 19.5f, 4.5f, 16.14f, 4.5f, 12f)
-        curveTo(4.5f, 7.86f, 7.86f, 4.5f, 12f, 4.5f)
-        curveTo(16.14f, 4.5f, 19.5f, 7.86f, 19.5f, 12f)
-        curveTo(19.5f, 16.14f, 16.14f, 19.5f, 12f, 19.5f)
+        moveTo(12f, 10.236f)
+        lineTo(6.528f, 8f)
+        lineTo(12f, 5.264f)
+        lineTo(17.472f, 8f)
+        close()
+        moveTo(6f, 10.517f)
+        verticalLineTo(15.737f)
+        lineTo(11f, 18.237f)
+        verticalLineTo(13.017f)
+        close()
+        moveTo(13f, 18.237f)
+        lineTo(18f, 15.737f)
+        verticalLineTo(10.517f)
+        lineTo(13f, 13.017f)
         close()
     }
 }.build()
 
-private val PortfolioVector: ImageVector = ImageVector.Builder(
-    name = "Portfolio",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(fill = SolidColor(Color.White)) {
-        moveTo(20f, 6f)
-        horizontalLineTo(16f)
-        verticalLineTo(4f)
-        curveTo(16f, 2.89f, 15.11f, 2f, 14f, 2f)
-        horizontalLineTo(10f)
-        curveTo(8.89f, 2f, 8f, 2.89f, 8f, 4f)
-        verticalLineTo(6f)
-        horizontalLineTo(4f)
-        curveTo(2.89f, 6f, 2f, 6.89f, 2f, 8f)
-        verticalLineTo(19f)
-        curveTo(2f, 20.11f, 2.89f, 21f, 4f, 21f)
-        horizontalLineTo(20f)
-        curveTo(21.11f, 21f, 22f, 20.11f, 22f, 19f)
-        verticalLineTo(8f)
-        curveTo(22f, 6.89f, 21.11f, 6f, 20f, 6f)
-        close()
-        moveTo(10f, 4f)
-        horizontalLineTo(14f)
-        verticalLineTo(6f)
-        horizontalLineTo(10f)
-        verticalLineTo(4f)
-        close()
-    }
-}.build()
+enum class CalculatorSubTab(val titleFa: String) {
+    JEWELRY("طلا و جواهر"),
+    MELT("مظنه آبشده"),
+    COIN("حباب سکه"),
+    CONVERT("تبدیل عیار"),
+    PORTFOLIO("سبد دارایی")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,19 +93,8 @@ fun GoldCalculatorScreen(
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
 
-    val spinTransition = rememberInfiniteTransition(label = "spin")
-    val rotation by spinTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val coroutineScope = rememberCoroutineScope()
+    // Sub-tab selection for Calculator destination
+    var calcSubTab by remember { mutableStateOf(CalculatorSubTab.JEWELRY) }
 
     // In-App Auto-Update Dialog Prompt
     uiState.updateInfo?.let { info ->
@@ -130,7 +106,7 @@ fun GoldCalculatorScreen(
         }
     }
 
-    // Customer Management Modal from Top Bar / Drawer
+    // Customer Management Modal from Top Bar / Hub
     if (uiState.isCustomerManagerVisible) {
         CustomerPickerDialog(
             customers = uiState.customerList,
@@ -153,7 +129,7 @@ fun GoldCalculatorScreen(
         )
     }
 
-    // Luxury Settings Modal (Issue #21)
+    // Luxury Settings Modal
     if (uiState.isSettingsDialogVisible) {
         SettingsDialog(
             initialSettings = uiState.appSettings,
@@ -162,7 +138,7 @@ fun GoldCalculatorScreen(
         )
     }
 
-    // Invoice Manager & Archive Modal (Issue #19)
+    // Invoice Manager & Archive Modal
     if (uiState.isInvoiceManagerVisible) {
         InvoiceManagerDialog(
             invoices = uiState.savedInvoices,
@@ -172,67 +148,62 @@ fun GoldCalculatorScreen(
         )
     }
 
-    val totalGoldWeight = remember(uiState.portfolioItems) {
-        val w = uiState.portfolioItems.filter { it.category == PortfolioCategory.GOLD }.sumOf { it.weightGrams }
-        if (w > 0.0) w else 342.500
+    // Jeweler Profile Modal (Stitch ID: 4457d74b46974ee99ffc049b24feb860)
+    if (uiState.isJewelerProfileModalVisible) {
+        JewelerProfileModal(
+            settings = uiState.appSettings,
+            onDismiss = { viewModel.setJewelerProfileModalVisible(false) },
+            onSaveProfile = { galleryName, managerName, unionCode, phone, address ->
+                viewModel.updateJewelerProfile(galleryName, managerName, unionCode, phone, address)
+                Toast.makeText(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد", Toast.LENGTH_SHORT).show()
+            }
+        )
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        LuxuryDrawer(
-            drawerState = drawerState,
-            rates = uiState.rates,
-            customerCount = uiState.customerList.size,
-            invoiceCount = uiState.savedInvoices.size,
-            selectedTab = uiState.selectedTab,
-            totalGoldWeight = totalGoldWeight,
-            appSettings = uiState.appSettings,
-            connectionStatus = uiState.connectionStatus,
-            isDarkTheme = uiState.isDarkTheme,
-            onToggleTheme = { viewModel.toggleTheme() },
-            onSelectTab = { viewModel.selectTab(it) },
-            onNavigateCustomers = {
-                viewModel.loadCustomers()
-                viewModel.setCustomerManagerVisible(true)
-            },
-            onNavigateInvoices = {
-                viewModel.loadInvoices()
-                viewModel.setInvoiceManagerVisible(true)
-            },
-            onNavigateSettings = {
-                viewModel.setSettingsDialogVisible(true)
-            },
-            onCheckForUpdates = {
-                viewModel.checkForUpdates(manual = true)
-            }
-        ) {
-            Scaffold(
-                topBar = {
-                    Column {
-                        TopAppBar(
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = { coroutineScope.launch { drawerState.open() } },
+        Scaffold(
+            topBar = {
+                Column {
+                    TopAppBar(
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Golden Ingot App Icon
+                                Box(
                                     modifier = Modifier
-                                        .padding(start = 2.dp)
                                         .size(40.dp)
+                                        .clip(RoundedCornerShape(13.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    Color(0xFFFEF3C7),
+                                                    Color(0xFFFDE68A)
+                                                )
+                                            )
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = Color(0xFFFCD34D).copy(alpha = 0.8f),
+                                            shape = RoundedCornerShape(13.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Menu,
-                                        contentDescription = "منوی اصلی",
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(24.dp)
+                                        imageVector = GoldIngotVector,
+                                        contentDescription = null,
+                                        tint = Color(0xFFD97706),
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
-                            },
-                            title = {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(1.dp)
-                                ) {
+
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text(
                                         text = "قیراط",
-                                        fontWeight = FontWeight.ExtraBold,
+                                        fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        color = colors.goldPrimary
+                                        color = colors.textMain
                                     )
                                     Text(
                                         text = "دستیار جامع محاسبات و فاکتور طلا",
@@ -241,140 +212,543 @@ fun GoldCalculatorScreen(
                                         color = colors.textMuted
                                     )
                                 }
-                            },
-                            actions = {
-                                val statusColor = when (uiState.connectionStatus) {
-                                    ConnectionStatus.ONLINE -> colors.profitGreen
-                                    ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
-                                    ConnectionStatus.OFFLINE -> colors.errorRed
-                                }
+                            }
+                        },
+                        actions = {
+                            // Notification Bell with Golden Live Dot
+                            val statusColor = when (uiState.connectionStatus) {
+                                ConnectionStatus.ONLINE -> colors.profitGreen
+                                ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
+                                ConnectionStatus.OFFLINE -> colors.errorRed
+                            }
 
-                                IconButton(
-                                    onClick = { coroutineScope.launch { drawerState.open() } },
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = 6.dp)
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(colors.surfaceElevated)
+                                    .border(1.dp, colors.border.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        Toast.makeText(
+                                            context,
+                                            "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "اعلان‌ها",
+                                    tint = colors.textSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+
+                                Box(
                                     modifier = Modifier
-                                        .padding(end = 6.dp)
-                                        .size(40.dp)
+                                        .align(Alignment.TopStart)
+                                        .offset(x = 8.dp, y = 8.dp)
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.surface)
+                                        .padding(1.dp)
                                 ) {
-                                    Box(contentAlignment = Alignment.BottomStart) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.surfaceElevated)
-                                                .border(1.dp, colors.goldBorder, CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Person,
-                                                contentDescription = "پروفایل کاربر",
-                                                tint = colors.goldPrimary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.surface)
-                                                .padding(1.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape)
-                                                    .background(statusColor)
-                                            )
-                                        }
-                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(statusColor)
+                                    )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = colors.surface,
-                                titleContentColor = colors.goldPrimary
-                            )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = colors.surface,
+                            titleContentColor = colors.textMain
                         )
+                    )
 
-                        // Subtle hairline gold bottom border for TopBar
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(colors.goldGradient)
-                        )
-                    }
-                },
-                containerColor = colors.background
-            ) { paddingValues ->
-                val scrollState = rememberScrollState()
-                LaunchedEffect(uiState.selectedTab) {
-                    scrollState.scrollTo(0)
-                }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
+                    // Subtle hairline gold bottom border for TopBar
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = paddingValues.calculateTopPadding())
-                            .verticalScroll(scrollState)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        LiveRatesTicker(
-                            rates = uiState.rates,
-                            isRefreshing = uiState.isRefreshingRates,
-                            onRefresh = { viewModel.refreshRates() },
-                            onToggleSource = { viewModel.togglePriceSource() }
-                        )
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(colors.goldGradient)
+                    )
+                }
+            },
+            containerColor = colors.background
+        ) { paddingValues ->
+            val scrollState = rememberScrollState()
+            LaunchedEffect(uiState.selectedTab) {
+                scrollState.scrollTo(0)
+            }
 
-                        // Tab Contents with smooth AnimatedContent slide & fade transitions
-                        AnimatedContent(
-                            targetState = uiState.selectedTab,
-                            transitionSpec = {
-                                val isForward = targetState.ordinal > initialState.ordinal
-                                (slideInHorizontally(
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Live Rates Ticker (Visible across app for live market intelligence)
+                    LiveRatesTicker(
+                        rates = uiState.rates,
+                        isRefreshing = uiState.isRefreshingRates,
+                        onRefresh = { viewModel.refreshRates() },
+                        onToggleSource = { viewModel.togglePriceSource() }
+                    )
+
+                    // 5 Main System Destinations via AnimatedContent
+                    AnimatedContent(
+                        targetState = uiState.selectedTab,
+                        transitionSpec = {
+                            val isForward = targetState.ordinal > initialState.ordinal
+                            (slideInHorizontally(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
+                                animationSpec = tween(240, easing = FastOutSlowInEasing)
+                            )).togetherWith(
+                                slideOutHorizontally(
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
+                                        stiffness = Spring.StiffnessMedium
                                     )
-                                ) { fullWidth -> if (isForward) -fullWidth / 4 else fullWidth / 4 } + fadeIn(
-                                    animationSpec = tween(240, easing = FastOutSlowInEasing)
-                                )).togetherWith(
-                                    slideOutHorizontally(
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMedium
-                                        )
-                                    ) { fullWidth -> if (isForward) fullWidth / 4 else -fullWidth / 4 } + fadeOut(
-                                        animationSpec = tween(180, easing = FastOutLinearInEasing)
-                                    )
+                                ) { fullWidth -> if (isForward) fullWidth / 4 else -fullWidth / 4 } + fadeOut(
+                                    animationSpec = tween(180, easing = FastOutLinearInEasing)
                                 )
-                            },
-                            label = "tabTransition",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clipToBounds()
-                        ) { tab ->
-                            when (tab) {
-                                AppTab.JEWELRY -> JewelryTab(viewModel, uiState)
-                                AppTab.MELT -> MeltTab(viewModel, uiState)
-                                AppTab.COIN -> CoinBubbleTab(viewModel, uiState)
-                                AppTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                                AppTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
+                            )
+                        },
+                        label = "mainDestinationTransition",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clipToBounds()
+                    ) { destination ->
+                        when (destination) {
+                            AppTab.HOME -> {
+                                // Phase 2 Preview: پیشخوان زرگری (Dashboard)
+                                DashboardPreviewCard(
+                                    viewModel = viewModel,
+                                    uiState = uiState,
+                                    onNavigateCalculator = {
+                                        calcSubTab = CalculatorSubTab.JEWELRY
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateMelt = {
+                                        calcSubTab = CalculatorSubTab.MELT
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateInvoices = {
+                                        viewModel.loadInvoices()
+                                        viewModel.setInvoiceManagerVisible(true)
+                                    }
+                                )
+                            }
+
+                            AppTab.RATES -> {
+                                // Phase 2 Preview: تابلوی مظنه زنده (Rates)
+                                RatesTabPreviewCard(
+                                    uiState = uiState,
+                                    onRefresh = { viewModel.refreshRates() }
+                                )
+                            }
+
+                            AppTab.CALCULATOR -> {
+                                // Calculator Destination with Specialized Sub-tabs Segmented Control
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    // Segmented Control Pill Row
+                                    val subTabScrollState = rememberScrollState()
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(subTabScrollState),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        CalculatorSubTab.values().forEach { subTab ->
+                                            val isSelected = calcSubTab == subTab
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surface,
+                                                border = BorderStroke(
+                                                    width = 0.8.dp,
+                                                    color = if (isSelected) colors.goldPrimary else colors.border
+                                                ),
+                                                modifier = Modifier.clickable { calcSubTab = subTab }
+                                            ) {
+                                                Text(
+                                                    text = subTab.titleFa,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Render selected calculator engine
+                                    when (calcSubTab) {
+                                        CalculatorSubTab.JEWELRY -> JewelryTab(viewModel, uiState)
+                                        CalculatorSubTab.MELT -> MeltTab(viewModel, uiState)
+                                        CalculatorSubTab.COIN -> CoinBubbleTab(viewModel, uiState)
+                                        CalculatorSubTab.CONVERT -> KaratConvertTab(viewModel, uiState)
+                                        CalculatorSubTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
+                                    }
+                                }
+                            }
+
+                            AppTab.INVOICES -> {
+                                // Phase 3 Preview: سامانه فاکتورها (Invoices)
+                                InvoicesTabPreviewCard(
+                                    uiState = uiState,
+                                    onOpenInvoiceManager = {
+                                        viewModel.loadInvoices()
+                                        viewModel.setInvoiceManagerVisible(true)
+                                    }
+                                )
+                            }
+
+                            AppTab.MORE -> {
+                                // Phase 1 Hub Screen (Stitch ID: a4fb5e02179f4ce0b4ac213ee29bca16)
+                                MoreHubScreen(
+                                    viewModel = viewModel,
+                                    uiState = uiState,
+                                    onNavigateLedger = {
+                                        viewModel.loadCustomers()
+                                        viewModel.setCustomerManagerVisible(true)
+                                    },
+                                    onNavigateMelt = {
+                                        calcSubTab = CalculatorSubTab.MELT
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateWorkshop = {
+                                        Toast.makeText(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onNavigateInventory = {
+                                        calcSubTab = CalculatorSubTab.PORTFOLIO
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateConvert = {
+                                        calcSubTab = CalculatorSubTab.CONVERT
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateCoinBubble = {
+                                        calcSubTab = CalculatorSubTab.COIN
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateInvoices = {
+                                        viewModel.loadInvoices()
+                                        viewModel.setInvoiceManagerVisible(true)
+                                    },
+                                    onNavigateSettings = {
+                                        viewModel.setSettingsDialogVisible(true)
+                                    },
+                                    onOpenJewelerProfile = {
+                                        viewModel.setJewelerProfileModalVisible(true)
+                                    }
+                                )
                             }
                         }
-
-                        // Clearance spacer so content scrolls completely above the floating dock
-                        Spacer(modifier = Modifier.height(105.dp))
                     }
 
-                    // Floating Glassmorphic Dock pinned to bottom center
-                    GlassmorphicDock(
-                        selectedTab = uiState.selectedTab,
-                        onTabSelected = { viewModel.selectTab(it) },
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                    // Clearance spacer so content scrolls completely above the floating dock
+                    Spacer(modifier = Modifier.height(115.dp))
+                }
+
+                // Floating Glassmorphic Dock pinned to bottom center
+                GlassmorphicDock(
+                    selectedTab = uiState.selectedTab,
+                    onTabSelected = { viewModel.selectTab(it) },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardPreviewCard(
+    viewModel: GoldCalculatorViewModel,
+    uiState: CalculatorUiState,
+    onNavigateCalculator: () -> Unit,
+    onNavigateMelt: () -> Unit,
+    onNavigateInvoices: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        // Vault Balance Hero Card
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Color(0xFF131722),
+            border = BorderStroke(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(Color(0xFFF59E0B).copy(alpha = 0.5f), Color(0xFF1E2433))
+                )
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "پیشخوان زرگری و تراز گاوصندوق",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.goldContainer.copy(alpha = 0.4f),
+                        border = BorderStroke(0.6.dp, colors.goldBorder)
+                    ) {
+                        Text(
+                            text = "پیش‌نمایش فاز ۲",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFBBF24),
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "۱,۸۴۲.۶۰۰ گرم طلا",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "ارزش تخمینی: ۴۳,۰۴۳,۱۳۶,۰۰۰ تومان",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFFDE68A)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onNavigateCalculator,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF59E0B),
+                            contentColor = Color(0xFF0F172A)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = "محاسبه طلا", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = onNavigateMelt,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White.copy(alpha = 0.1f),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = "مظنه آبشده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = onNavigateInvoices,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White.copy(alpha = 0.1f),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(text = "فاکتورها", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RatesTabPreviewCard(
+    uiState: CalculatorUiState,
+    onRefresh: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    LuxuryCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "تابلوی مظنه و نرخ لحظه‌ای بازار",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textMain
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.goldContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder)
+                ) {
+                    Text(
+                        text = "پیش‌نمایش فاز ۲",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                     )
                 }
             }
+
+            // Key rate summaries
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.surfaceElevated,
+                    border = BorderStroke(0.6.dp, colors.border),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(text = "طلای ۱۸ عیار", fontSize = 10.sp, color = colors.textMuted)
+                        Text(
+                            text = "${uiState.rates.gold18} ت",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.surfaceElevated,
+                    border = BorderStroke(0.6.dp, colors.border),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(text = "مظنه آبشده ۱۷", fontSize = 10.sp, color = colors.textMuted)
+                        Text(
+                            text = "${uiState.rates.melt} ت",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = onRefresh,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.goldPrimary,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "بروزرسانی تابلوی قیمت‌ها", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
+
+@Composable
+private fun InvoicesTabPreviewCard(
+    uiState: CalculatorUiState,
+    onOpenInvoiceManager: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    LuxuryCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "مدیریت و بایگانی فاکتورها",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textMain
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.goldContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder)
+                ) {
+                    Text(
+                        text = "پیش‌نمایش فاز ۳",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = "تعداد فاکتورهای ذخیره‌شده: ${uiState.savedInvoices.size} فقره",
+                fontSize = 12.sp,
+                color = colors.textSecondary
+            )
+
+            Button(
+                onClick = onOpenInvoiceManager,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.goldPrimary,
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "مشاهده بایگانی فاکتورها و چاپ PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
 }
