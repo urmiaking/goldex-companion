@@ -5,9 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,18 +26,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.CoinBubbleResult
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.theme.heroCardGradient
 
 /**
@@ -148,7 +144,7 @@ fun CoinBubbleTab(
                     modifier = Modifier.height(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Sync,
+                        imageVector = CalcSync,
                         contentDescription = "بروزرسانی",
                         modifier = Modifier.size(16.dp)
                     )
@@ -583,7 +579,7 @@ fun CoinBubbleTab(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(
-                                imageVector = if (isSelectedForInput && isManualPriceExpanded) Icons.Default.ExpandLess else Icons.Default.Edit,
+                                imageVector = if (isSelectedForInput && isManualPriceExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.Edit,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
                                 tint = colors.goldPrimary
@@ -625,7 +621,7 @@ fun CoinBubbleTab(
                 contentColor = Color.Black
             )
         ) {
-            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text("کپی گزارش کامل حباب تمام سکه‌ها", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
         }

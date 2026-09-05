@@ -20,7 +20,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,8 +38,7 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -90,7 +91,7 @@ fun JewelryTab(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Calculate,
+                            imageVector = CalcCalculate,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(20.dp)
@@ -127,7 +128,7 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.RestartAlt,
+                            imageVector = CalcRestartAlt,
                             contentDescription = "بازنشانی",
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(15.dp)
@@ -176,7 +177,7 @@ fun JewelryTab(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Stars,
+                                imageVector = CalcStars,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(18.dp)
@@ -219,7 +220,7 @@ fun JewelryTab(
                                     color = if (uiState.autoSyncPrice) colors.profitGreen else colors.goldPrimary
                                 )
                                 Icon(
-                                    imageVector = if (isManualSpotExpanded) Icons.Default.ExpandLess else Icons.Default.Edit,
+                                    imageVector = if (isManualSpotExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.Edit,
                                     contentDescription = null,
                                     tint = if (uiState.autoSyncPrice) colors.profitGreen else colors.goldPrimary,
                                     modifier = Modifier.size(13.dp)
@@ -297,7 +298,7 @@ fun JewelryTab(
                                     border = BorderStroke(0.6.dp, colors.profitGreen.copy(alpha = 0.5f)),
                                     modifier = Modifier.fillMaxWidth().height(36.dp)
                                 ) {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Icon(CalcSync, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "بازگشت به نرخ زنده تابلوی بازار (${PersianNumberFormatter.formatPrice(uiState.rates.gold18.toDouble())} ت)",
@@ -383,7 +384,7 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Scale,
+                            imageVector = CalcScale,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -464,7 +465,7 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Architecture,
+                            imageVector = CalcArchitecture,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -526,7 +527,7 @@ fun JewelryTab(
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Remove, contentDescription = "کاهش", tint = colors.goldPrimary)
+                            Icon(CalcRemove, contentDescription = "کاهش", tint = colors.goldPrimary)
                         }
                     }
 
@@ -650,7 +651,7 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Percent,
+                            imageVector = CalcPercent,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -795,7 +796,7 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Diamond,
+                            imageVector = CalcDiamond,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -855,7 +856,7 @@ fun JewelryTab(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ReceiptLong,
+                                imageVector = CalcReceiptLong,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(20.dp)
@@ -887,7 +888,7 @@ fun JewelryTab(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.ContentCopy,
+                                    imageVector = CalcContentCopy,
                                     contentDescription = "کپی",
                                     tint = colors.goldPrimary,
                                     modifier = Modifier.size(16.dp)
@@ -1016,7 +1017,7 @@ fun JewelryTab(
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.PostAdd,
+                    imageVector = CalcPostAdd,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
@@ -1050,7 +1051,7 @@ fun JewelryTab(
                 border = BorderStroke(0.8.dp, colors.goldBorder)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ContentCopy,
+                    imageVector = CalcContentCopy,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp)
                 )

@@ -12,8 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,8 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -108,7 +105,7 @@ fun KaratConvertTab(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.SwapHoriz,
+                            imageVector = CalcSwapHoriz,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(20.dp)
@@ -144,7 +141,7 @@ fun KaratConvertTab(
                     modifier = Modifier.height(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.SwapHoriz,
+                        imageVector = CalcSwapHoriz,
                         contentDescription = "معکوس",
                         modifier = Modifier
                             .size(16.dp)
@@ -330,7 +327,7 @@ fun KaratConvertTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Scale,
+                            imageVector = CalcScale,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -507,7 +504,7 @@ fun KaratConvertTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.FactCheck,
+                            imageVector = CalcFactCheck,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -628,7 +625,7 @@ fun KaratConvertTab(
                     contentColor = Color.Black
                 )
             ) {
-                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("کپی نتیجه تبدیل و گزارش تراز", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
             }

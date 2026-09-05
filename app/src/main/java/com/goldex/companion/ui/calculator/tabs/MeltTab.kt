@@ -11,7 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,12 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.theme.heroCardGradient
 
 /**
@@ -112,7 +110,7 @@ fun MeltTab(
                     modifier = Modifier.height(36.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Sync,
+                        imageVector = CalcSync,
                         contentDescription = "درج مظنه زنده",
                         modifier = Modifier.size(15.dp)
                     )
@@ -312,7 +310,7 @@ fun MeltTab(
                 contentColor = Color.Black
             )
         ) {
-            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text("کپی نتیجه محاسبه آبشده", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
         }
