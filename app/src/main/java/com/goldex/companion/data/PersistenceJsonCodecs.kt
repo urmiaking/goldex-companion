@@ -13,24 +13,22 @@ internal object PersistenceJsonCodecs {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val array = JSONArray(json)
-            buildList {
-                for (index in 0 until array.length()) {
-                    val obj = array.optJSONObject(index) ?: continue
-                    val id = obj.optString("id", "").trim()
-                    val name = obj.optString("name", "").trim()
-                    if (id.isEmpty() || name.isEmpty()) continue
-                    add(
-                        Customer(
-                            id = id,
-                            name = name,
-                            phone = obj.optString("phone", ""),
-                            nationalId = obj.optString("nationalId", ""),
-                            note = obj.optString("note", ""),
-                            createdAt = obj.optLong("createdAt", System.currentTimeMillis())
-                        )
+            val customers = mutableListOf<Customer>()
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                val id = obj.optString("id", "").trim()
+                val name = obj.optString("name", "").trim()
+                if (id.isEmpty() || name.isEmpty()) continue
+                customers += Customer(
+                    id = id,
+                    name = name,
+                    phone = obj.optString("phone", ""),
+                    nationalId = obj.optString("nationalId", ""),
+                    note = obj.optString("note", ""),
+                    createdAt = obj.optLong("createdAt", System.currentTimeMillis())
                     )
-                }
             }
+            customers
         }.getOrDefault(emptyList())
     }
 
@@ -53,32 +51,30 @@ internal object PersistenceJsonCodecs {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val array = JSONArray(json)
-            buildList {
-                for (index in 0 until array.length()) {
-                    val obj = array.optJSONObject(index) ?: continue
-                    val id = obj.optString("id", "").trim()
-                    val title = obj.optString("title", "").trim()
-                    if (id.isEmpty() || title.isEmpty()) continue
-                    val category = enumOrDefault(obj.optString("category"), PortfolioCategory.GOLD)
-                    val karat = enumOrDefault(obj.optString("karat"), Karat.K18)
-                    val coinType = obj.optString("coinType", "")
-                        .takeIf { it.isNotBlank() }
-                        ?.let { value -> runCatching { com.goldex.companion.model.CoinType.valueOf(value) }.getOrNull() }
-                    add(
-                        PortfolioItem(
-                            id = id,
-                            title = title,
-                            category = category,
-                            weightGrams = obj.optDouble("weightGrams", 0.0),
-                            karat = karat,
-                            quantity = obj.optInt("quantity", 1),
-                            coinType = coinType,
-                            purchasePriceTotal = obj.optLong("purchasePriceTotal", 0L),
-                            purchaseDate = obj.optString("purchaseDate", "")
-                        )
+            val items = mutableListOf<PortfolioItem>()
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                val id = obj.optString("id", "").trim()
+                val title = obj.optString("title", "").trim()
+                if (id.isEmpty() || title.isEmpty()) continue
+                val category = enumOrDefault(obj.optString("category"), PortfolioCategory.GOLD)
+                val karat = enumOrDefault(obj.optString("karat"), Karat.K18)
+                val coinType = obj.optString("coinType", "")
+                    .takeIf { it.isNotBlank() }
+                    ?.let { value -> runCatching { com.goldex.companion.model.CoinType.valueOf(value) }.getOrNull() }
+                items += PortfolioItem(
+                    id = id,
+                    title = title,
+                    category = category,
+                    weightGrams = obj.optDouble("weightGrams", 0.0),
+                    karat = karat,
+                    quantity = obj.optInt("quantity", 1),
+                    coinType = coinType,
+                    purchasePriceTotal = obj.optLong("purchasePriceTotal", 0L),
+                    purchaseDate = obj.optString("purchaseDate", "")
                     )
-                }
             }
+            items
         }.getOrDefault(emptyList())
     }
 
@@ -104,31 +100,29 @@ internal object PersistenceJsonCodecs {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val array = JSONArray(json)
-            buildList {
-                for (index in 0 until array.length()) {
-                    val obj = array.optJSONObject(index) ?: continue
-                    val customer = obj.optJSONObject("customer")?.let { customerObj ->
-                        Customer(
-                            id = customerObj.optString("id", ""),
-                            name = customerObj.optString("name", "مشتری"),
-                            phone = customerObj.optString("phone", ""),
-                            nationalId = customerObj.optString("nationalId", ""),
-                            note = customerObj.optString("note", "")
-                        )
-                    }
-                    val items = decodeInvoiceItems(obj.optJSONArray("items"))
-                    add(
-                        Invoice(
-                            id = obj.optString("id", ""),
-                            invoiceNumber = obj.optString("invoiceNumber", ""),
-                            createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
-                            customer = customer,
-                            items = items,
-                            note = obj.optString("note", "")
-                        )
+            val invoices = mutableListOf<Invoice>()
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                val customer = obj.optJSONObject("customer")?.let { customerObj ->
+                    Customer(
+                        id = customerObj.optString("id", ""),
+                        name = customerObj.optString("name", "مشتری"),
+                        phone = customerObj.optString("phone", ""),
+                        nationalId = customerObj.optString("nationalId", ""),
+                        note = customerObj.optString("note", "")
                     )
                 }
+                val items = decodeInvoiceItems(obj.optJSONArray("items"))
+                invoices += Invoice(
+                    id = obj.optString("id", ""),
+                    invoiceNumber = obj.optString("invoiceNumber", ""),
+                    createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                    customer = customer,
+                    items = items,
+                    note = obj.optString("note", "")
+                )
             }
+            invoices
         }.getOrDefault(emptyList())
     }
 
@@ -157,32 +151,30 @@ internal object PersistenceJsonCodecs {
 
     private fun decodeInvoiceItems(array: JSONArray?): List<InvoiceItem> {
         if (array == null) return emptyList()
-        return buildList {
-            for (index in 0 until array.length()) {
-                val obj = array.optJSONObject(index) ?: continue
-                add(
-                    InvoiceItem(
-                        id = obj.optString("id", ""),
-                        title = obj.optString("title", "قطعه طلا"),
-                        karat = enumOrDefault(obj.optString("karat"), Karat.K18),
-                        grossWeight = obj.optDouble("grossWeight", 0.0),
-                        stoneWeight = obj.optDouble("stoneWeight", 0.0),
-                        netWeight = obj.optDouble("netWeight", 0.0),
-                        spotPrice = obj.optLong("spotPrice", 0L),
-                        wageType = enumOrDefault(obj.optString("wageType"), WageType.PERCENTAGE),
-                        wageInput = obj.optDouble("wageInput", 0.0),
-                        wageAmount = obj.optDouble("wageAmount", 0.0),
-                        profitPercent = obj.optDouble("profitPercent", 0.0),
-                        profitAmount = obj.optDouble("profitAmount", 0.0),
-                        taxPercent = obj.optDouble("taxPercent", 0.0),
-                        taxAmount = obj.optDouble("taxAmount", 0.0),
-                        rawGoldValue = obj.optDouble("rawGoldValue", 0.0),
-                        totalPayable = obj.optDouble("totalPayable", 0.0),
-                        effectiveGramPrice = obj.optDouble("effectiveGramPrice", 0.0)
-                    )
+        val items = mutableListOf<InvoiceItem>()
+        for (index in 0 until array.length()) {
+            val obj = array.optJSONObject(index) ?: continue
+            items += InvoiceItem(
+                id = obj.optString("id", ""),
+                title = obj.optString("title", "قطعه طلا"),
+                karat = enumOrDefault(obj.optString("karat"), Karat.K18),
+                grossWeight = obj.optDouble("grossWeight", 0.0),
+                stoneWeight = obj.optDouble("stoneWeight", 0.0),
+                netWeight = obj.optDouble("netWeight", 0.0),
+                spotPrice = obj.optLong("spotPrice", 0L),
+                wageType = enumOrDefault(obj.optString("wageType"), WageType.PERCENTAGE),
+                wageInput = obj.optDouble("wageInput", 0.0),
+                wageAmount = obj.optDouble("wageAmount", 0.0),
+                profitPercent = obj.optDouble("profitPercent", 0.0),
+                profitAmount = obj.optDouble("profitAmount", 0.0),
+                taxPercent = obj.optDouble("taxPercent", 0.0),
+                taxAmount = obj.optDouble("taxAmount", 0.0),
+                rawGoldValue = obj.optDouble("rawGoldValue", 0.0),
+                totalPayable = obj.optDouble("totalPayable", 0.0),
+                effectiveGramPrice = obj.optDouble("effectiveGramPrice", 0.0)
                 )
-            }
         }
+        return items
     }
 
     private fun encodeInvoiceItems(items: List<InvoiceItem>): JSONArray {
