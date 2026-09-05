@@ -399,10 +399,258 @@ internal val CalcMonetizationOn: ImageVector = ImageVector.Builder(
         curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
         close()
         moveTo(12f, 19.5f)
-        curveTo(7.86f, 19.5f, 4.5f, 16.14f, 4.5f, 12f)
-        curveTo(4.5f, 7.86f, 7.86f, 4.5f, 12f, 4.5f)
-        curveTo(16.14f, 4.5f, 19.5f, 7.86f, 19.5f, 12f)
-        curveTo(19.5f, 16.14f, 16.14f, 19.5f, 12f, 19.5f)
+        curveTo(16.14f, 19.5f, 19.5f, 16.14f, 19.5f, 12f)
+        curveTo(19.5f, 7.86f, 16.14f, 4.5f, 12f, 4.5f)
+        curveTo(7.86f, 4.5f, 4.5f, 7.86f, 4.5f, 12f)
+        curveTo(4.5f, 16.14f, 7.86f, 19.5f, 12f, 19.5f)
         close()
+    }
+}.build()
+
+internal val CalcToll: ImageVector = ImageVector.Builder(
+    name = "CalcToll",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(15f, 4f)
+        curveTo(19.42f, 4f, 23f, 7.58f, 23f, 12f)
+        curveTo(23f, 16.42f, 19.42f, 20f, 15f, 20f)
+        curveTo(10.58f, 20f, 7f, 16.42f, 7f, 12f)
+        curveTo(7f, 7.58f, 10.58f, 4f, 15f, 4f)
+        close()
+        moveTo(9f, 6.5f)
+        curveTo(4.58f, 6.5f, 1f, 10.08f, 1f, 14.5f)
+        curveTo(1f, 18.92f, 4.58f, 22.5f, 9f, 22.5f)
+    }
+}.build()
+
+internal val CalcHandyman: ImageVector = ImageVector.Builder(
+    name = "CalcHandyman",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(16.5f, 3.5f)
+        lineTo(20.5f, 7.5f)
+        moveTo(15f, 5f)
+        lineTo(9f, 11f)
+        lineTo(13f, 15f)
+        lineTo(19f, 9f)
+        moveTo(10.5f, 12.5f)
+        lineTo(3.5f, 19.5f)
+        curveTo(2.8f, 20.2f, 2.8f, 21.3f, 3.5f, 22f)
+        curveTo(4.2f, 22.7f, 5.3f, 22.7f, 6f, 22f)
+        lineTo(13f, 15f)
+    }
+}.build()
+
+internal val CalcAccountBalance: ImageVector = ImageVector.Builder(
+    name = "CalcAccountBalance",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(4f, 10f)
+        verticalLineTo(17f)
+        moveTo(9f, 10f)
+        verticalLineTo(17f)
+        moveTo(15f, 10f)
+        verticalLineTo(17f)
+        moveTo(20f, 10f)
+        verticalLineTo(17f)
+        moveTo(2f, 19f)
+        horizontalLineTo(22f)
+        moveTo(2f, 22f)
+        horizontalLineTo(22f)
+        moveTo(12f, 2f)
+        lineTo(2f, 7f)
+        horizontalLineTo(22f)
+        close()
+    }
+}.build()
+
+internal val CalcCheckCircle: ImageVector = ImageVector.Builder(
+    name = "CalcCheckCircle",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 2f)
+        curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+        curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
+        curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+        curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+        close()
+        moveTo(8f, 12f)
+        lineTo(11f, 15f)
+        lineTo(16f, 9f)
+    }
+}.build()
+
+internal val CalcReceipt: ImageVector = ImageVector.Builder(
+    name = "CalcReceipt",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(18f, 17f)
+        horizontalLineTo(6f)
+        moveTo(18f, 13f)
+        horizontalLineTo(6f)
+        moveTo(18f, 9f)
+        horizontalLineTo(6f)
+        moveTo(3f, 22f)
+        lineTo(5f, 20f)
+        lineTo(7f, 22f)
+        lineTo(9f, 20f)
+        lineTo(11f, 22f)
+        lineTo(13f, 20f)
+        lineTo(15f, 22f)
+        lineTo(17f, 20f)
+        lineTo(19f, 22f)
+        lineTo(21f, 20f)
+        verticalLineTo(2f)
+        lineTo(19f, 4f)
+        lineTo(17f, 2f)
+        lineTo(15f, 4f)
+        lineTo(13f, 2f)
+        lineTo(11f, 4f)
+        lineTo(9f, 2f)
+        lineTo(7f, 4f)
+        lineTo(5f, 2f)
+        lineTo(3f, 4f)
+        close()
+    }
+}.build()
+
+internal val CalcShare: ImageVector = ImageVector.Builder(
+    name = "CalcShare",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(18f, 5f)
+        curveTo(19.66f, 5f, 21f, 3.66f, 21f, 2f)
+        moveTo(18f, 5f)
+        lineTo(8.59f, 10.42f)
+        moveTo(6f, 15f)
+        curveTo(4.34f, 15f, 3f, 13.66f, 3f, 12f)
+        curveTo(3f, 10.34f, 4.34f, 9f, 6f, 9f)
+        curveTo(7.66f, 9f, 9f, 10.34f, 9f, 12f)
+        moveTo(8.59f, 13.58f)
+        lineTo(18f, 19f)
+        moveTo(18f, 22f)
+        curveTo(19.66f, 22f, 21f, 20.66f, 21f, 19f)
+        curveTo(21f, 17.34f, 19.66f, 16f, 18f, 16f)
+        curveTo(16.34f, 16f, 15f, 17.34f, 15f, 19f)
+        curveTo(15f, 20.66f, 16.34f, 22f, 18f, 22f)
+        close()
+        moveTo(18f, 8f)
+        curveTo(19.66f, 8f, 21f, 6.66f, 21f, 5f)
+        curveTo(21f, 3.34f, 19.66f, 2f, 18f, 2f)
+        curveTo(16.34f, 2f, 15f, 3.34f, 15f, 5f)
+        curveTo(15f, 6.66f, 16.34f, 8f, 18f, 8f)
+        close()
+    }
+}.build()
+
+internal val CalcTune: ImageVector = ImageVector.Builder(
+    name = "CalcTune",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(3f, 17f)
+        horizontalLineTo(9f)
+        moveTo(13f, 17f)
+        horizontalLineTo(21f)
+        moveTo(3f, 7f)
+        horizontalLineTo(11f)
+        moveTo(15f, 7f)
+        horizontalLineTo(21f)
+        moveTo(9f, 14f)
+        verticalLineTo(20f)
+        moveTo(13f, 4f)
+        verticalLineTo(10f)
+    }
+}.build()
+
+internal val CalcBalance: ImageVector = ImageVector.Builder(
+    name = "CalcBalance",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 3f)
+        verticalLineTo(21f)
+        moveTo(4f, 7f)
+        horizontalLineTo(20f)
+        moveTo(4f, 7f)
+        lineTo(2f, 14f)
+        curveTo(2f, 16f, 6f, 16f, 6f, 14f)
+        lineTo(4f, 7f)
+        moveTo(20f, 7f)
+        lineTo(18f, 14f)
+        curveTo(18f, 16f, 22f, 16f, 22f, 14f)
+        lineTo(20f, 7f)
+        moveTo(9f, 21f)
+        horizontalLineTo(15f)
     }
 }.build()

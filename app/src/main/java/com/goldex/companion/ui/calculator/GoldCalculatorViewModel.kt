@@ -34,6 +34,17 @@ enum class AppTab(val titleFa: String) {
     MORE("بیشتر")
 }
 
+enum class PriceBasisTab(val labelFa: String) {
+    K18("۱۸ عیار (۷۵۰)"),
+    K24("۲۴ عیار (۹۹۹)"),
+    MESGHAL("مظنه (مثقال)")
+}
+
+enum class KaratConvertMode(val labelFa: String) {
+    DIRECT("تبدیل مستقیم عیار"),
+    SETTLEMENT("محاسبه شرطی ری‌گیری")
+}
+
 data class CalculatorUiState(
     val selectedTab: AppTab = AppTab.HOME,
     val rates: MarketRates = MarketRates(),
@@ -43,6 +54,9 @@ data class CalculatorUiState(
 
     // Jewelry Tab State
     val itemTitleInput: String = "قطعه طلا ۱",
+    val priceBasisTab: PriceBasisTab = PriceBasisTab.K18,
+    val isManualSpotDialogVisible: Boolean = false,
+    val isStoneWeightDialogVisible: Boolean = false,
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
@@ -77,10 +91,13 @@ data class CalculatorUiState(
     val coinBubbleResult: CoinBubbleResult? = null,
 
     // Karat Convert State
+    val convertMode: KaratConvertMode = KaratConvertMode.DIRECT,
     val convertWeightInput: String = "10",
     val convertFromKarat: Karat = Karat.K18,
     val convertToKarat: Karat = Karat.K24,
     val convertedWeight: Double = 7.5,
+    val assayKaratInput: String = "742",
+    val agreedKaratInput: String = "750",
 
     // In-App Auto-Updater State
     val updateInfo: UpdateInfo? = null,
@@ -487,6 +504,53 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         calculateJewelry()
     }
 
+    fun setPriceBasisTab(tab: PriceBasisTab) {
+        _uiState.update { state ->
+            val newPrice = when (tab) {
+                PriceBasisTab.K18 -> state.rates.gold18.toString()
+                PriceBasisTab.K24 -> state.rates.gold24.toString()
+                PriceBasisTab.MESGHAL -> state.rates.goldMelt.toString()
+            }
+            val newKarat = when (tab) {
+                PriceBasisTab.K18 -> Karat.K18
+                PriceBasisTab.K24 -> Karat.K24
+                PriceBasisTab.MESGHAL -> Karat.K18
+            }
+            state.copy(
+                priceBasisTab = tab,
+                spotPriceInput = if (newPrice != "0") newPrice else state.spotPriceInput,
+                selectedKarat = newKarat
+            )
+        }
+        calculateJewelry()
+    }
+
+    fun incrementWage() {
+        val current = PersianNumberFormatter.parsePersianOrEnglish(_uiState.value.wageInput) ?: 0.0
+        val step = if (_uiState.value.wageType == WageType.PERCENTAGE) 1.0 else 50_000.0
+        val next = current + step
+        val formatted = if (next % 1.0 == 0.0) next.toLong().toString() else "%.1f".format(Locale.US, next)
+        _uiState.update { it.copy(wageInput = formatted) }
+        calculateJewelry()
+    }
+
+    fun decrementWage() {
+        val current = PersianNumberFormatter.parsePersianOrEnglish(_uiState.value.wageInput) ?: 0.0
+        val step = if (_uiState.value.wageType == WageType.PERCENTAGE) 1.0 else 50_000.0
+        val next = (current - step).coerceAtLeast(0.0)
+        val formatted = if (next % 1.0 == 0.0) next.toLong().toString() else "%.1f".format(Locale.US, next)
+        _uiState.update { it.copy(wageInput = formatted) }
+        calculateJewelry()
+    }
+
+    fun setManualSpotDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isManualSpotDialogVisible = visible) }
+    }
+
+    fun setStoneWeightDialogVisible(visible: Boolean) {
+        _uiState.update { it.copy(isStoneWeightDialogVisible = visible) }
+    }
+
     // --- Multi-Item Invoice & Customer Actions (Pure Clean MVVM) ---
     fun addItemToInvoice() {
         val state = _uiState.value
@@ -726,6 +790,20 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
             it.copy(convertFromKarat = to, convertToKarat = from)
         }
         calculateConvert()
+    }
+
+    fun setConvertMode(mode: KaratConvertMode) {
+        _uiState.update { it.copy(convertMode = mode) }
+    }
+
+    fun onAssayKaratChanged(newKarat: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newKarat).filter { it.isDigit() }
+        _uiState.update { it.copy(assayKaratInput = clean) }
+    }
+
+    fun onAgreedKaratChanged(newKarat: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newKarat).filter { it.isDigit() }
+        _uiState.update { it.copy(agreedKaratInput = clean) }
     }
 
     // --- Calculations ---
