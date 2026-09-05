@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +36,13 @@ import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
 
+data class MeltSummary(
+    val weightGrams: Double,
+    val mesghalPrice: Double,
+    val gramPrice18k: Double,
+    val totalPrice: Double
+)
+
 /**
  * Dedicated Full Screen: Melt Gold Calculator (مظنه آبشده و تبدیل مثقال)
  * Adheres strictly to Stitch Persian Sovereign Aurum design system.
@@ -50,7 +58,12 @@ fun MeltCalcScreen(
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
 
-    val meltResult = uiState.meltResult
+    val meltResult = MeltSummary(
+        weightGrams = PersianNumberFormatter.parsePersianOrEnglish(uiState.meltWeightInput) ?: 0.0,
+        mesghalPrice = PersianNumberFormatter.parsePersianOrEnglish(uiState.mesghalPriceInput) ?: 0.0,
+        gramPrice18k = uiState.meltGram18kPrice.toDouble(),
+        totalPrice = uiState.meltTotalValue
+    )
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(

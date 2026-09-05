@@ -9,7 +9,10 @@ import java.util.Locale
 enum class Karat(val labelFa: String, val karatNumber: Int, val purityRatio: Double) {
     K18("۱۸ عیار (۷۵۰)", 18, 18.0 / 24.0),
     K21("۲۱ عیار (۸۷۵)", 21, 21.0 / 24.0),
-    K24("۲۴ عیار (۹۹۹)", 24, 24.0 / 24.0)
+    K24("۲۴ عیار (۹۹۹)", 24, 24.0 / 24.0);
+
+    val displayName: String get() = labelFa
+    val value: Int get() = karatNumber
 }
 
 enum class PriceBasis(val labelFa: String, val ratio: Double) {
@@ -35,6 +38,8 @@ enum class CoinType(
     GERAMI("سکه یک گرمی بانک مرکزی", 1.01, 0.900, 50_000.0);
 
     val pureWeightGrams: Double get() = totalWeightGrams * purity
+    val displayName: String get() = titleFa
+    val weightGrams: Double get() = totalWeightGrams
 }
 
 data class CalculationResult(
@@ -154,6 +159,10 @@ object PersianNumberFormatter {
             "%.2f".format(Locale.US, value).trimEnd('0').trimEnd('.')
         }
         return toPersianDigits(formatted)
+    }
+
+    fun formatDouble(value: Double, decimals: Int = 2): String {
+        return toPersianDigits("%.${decimals}f".format(Locale.US, value))
     }
 
     fun normalizeForSearch(text: String): String {

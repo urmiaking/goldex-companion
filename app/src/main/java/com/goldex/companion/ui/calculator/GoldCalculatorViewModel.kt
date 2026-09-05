@@ -710,10 +710,14 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         calculateConvert()
     }
 
+    fun onConvertFromKaratChanged(karat: Karat) = onConvertFromKarat(karat)
+
     fun onConvertToKarat(karat: Karat) {
         _uiState.update { it.copy(convertToKarat = karat) }
         calculateConvert()
     }
+
+    fun onConvertToKaratChanged(karat: Karat) = onConvertToKarat(karat)
 
     fun swapConvertKarats() {
         _uiState.update {
