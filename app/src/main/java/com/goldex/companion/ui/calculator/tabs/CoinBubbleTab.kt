@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -108,7 +107,7 @@ fun CoinBubbleTab(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MonetizationOn,
+                            imageVector = CalcMonetizationOn,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(20.dp)
@@ -391,7 +390,7 @@ fun CoinBubbleTab(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.MonetizationOn,
+                                    imageVector = CalcMonetizationOn,
                                     contentDescription = null,
                                     tint = colors.goldPrimary,
                                     modifier = Modifier.size(20.dp)

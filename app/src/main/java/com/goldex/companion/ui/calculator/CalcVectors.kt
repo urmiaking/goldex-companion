@@ -383,3 +383,26 @@ internal val CalcSync: ImageVector = ImageVector.Builder(
         moveTo(12f, 23f); lineTo(12f, 19f); lineTo(16f, 21f)
     }
 }.build()
+
+internal val CalcMonetizationOn: ImageVector = ImageVector.Builder(
+    name = "CalcMonetizationOn",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(12f, 2f)
+        curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+        curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
+        curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+        curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+        close()
+        moveTo(12f, 19.5f)
+        curveTo(7.86f, 19.5f, 4.5f, 16.14f, 4.5f, 12f)
+        curveTo(4.5f, 7.86f, 7.86f, 4.5f, 12f, 4.5f)
+        curveTo(16.14f, 4.5f, 19.5f, 7.86f, 19.5f, 12f)
+        curveTo(19.5f, 16.14f, 16.14f, 19.5f, 12f, 19.5f)
+        close()
+    }
+}.build()
