@@ -38,8 +38,12 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import com.goldex.companion.ui.theme.heroCardGradient
 
 /**
@@ -167,15 +171,15 @@ fun KaratConvertScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(13.dp)
             ) {
                 // ─── 1. Dark Card: مانیتور تبدیل زنده ─────────────────────────
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = Color.Transparent,
-                    border = BorderStroke(0.8.dp, colors.goldBorder),
-                    shadowElevation = if (colors.isDark) 0.dp else 4.dp,
+                    border = BorderStroke(0.6.dp, colors.goldBorder),
+                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -341,55 +345,20 @@ fun KaratConvertScreen(
                 }
 
                 // ─── 2. Mode Selector: مستقیم vs شرطی ری‌گیری ────────────────
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = colors.surfaceElevated,
+                LuxurySegmentedControl(
+                    items = listOf(KaratConvertMode.DIRECT, KaratConvertMode.SETTLEMENT),
+                    selectedItem = uiState.convertMode,
+                    onItemSelected = { viewModel.setConvertMode(it) },
+                    label = { it.labelFa },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        KaratConvertMode.values().forEach { mode ->
-                            val isSel = uiState.convertMode == mode
-                            Surface(
-                                shape = RoundedCornerShape(11.dp),
-                                color = if (isSel) colors.surface else Color.Transparent,
-                                shadowElevation = if (isSel && !colors.isDark) 1.dp else 0.dp,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.setConvertMode(mode) }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = if (mode == KaratConvertMode.DIRECT) CalcTune else CalcBalance,
-                                        contentDescription = null,
-                                        tint = if (isSel) colors.goldPrimary else colors.textMuted,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = mode.labelFa,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSel) colors.textMain else colors.textMuted
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                )
 
                 // ─── 3. Inputs Card: مشخصات طلای مبدا ─────────────────────────
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = colors.surface,
-                    border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                    shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -460,6 +429,8 @@ fun KaratConvertScreen(
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         singleLine = true,
                                         textStyle = TextStyle(
+                                            fontFamily = VazirmatnFamily,
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textMain,
@@ -598,10 +569,10 @@ fun KaratConvertScreen(
                 // ─── 4. Card: محاسبه معامله شرطی و ری‌گیری ───────────────────
                 AnimatedVisibility(visible = uiState.convertMode == KaratConvertMode.SETTLEMENT) {
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = colors.surface,
-                        border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -659,6 +630,8 @@ fun KaratConvertScreen(
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         textStyle = TextStyle(
+                                            fontFamily = VazirmatnFamily,
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textMain,
@@ -679,6 +652,8 @@ fun KaratConvertScreen(
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         textStyle = TextStyle(
+                                            fontFamily = VazirmatnFamily,
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.goldPrimary,
@@ -753,31 +728,19 @@ fun KaratConvertScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
+                    GoldButton(
+                        text = "انتقال به فاکتور",
                         onClick = {
                             viewModel.addItemToInvoice()
                             viewModel.selectTab(AppTab.INVOICES)
                             Toast.makeText(context, "به فاکتور منتقل شد ✓", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.goldPrimary,
-                            contentColor = Color(0xFF141B2B)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = CalcReceiptLong,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("انتقال به فاکتور", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+                        icon = CalcReceiptLong,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    Button(
+                    GoldButton(
+                        text = "اشتراک گزارش",
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val report = buildString {
@@ -793,25 +756,10 @@ fun KaratConvertScreen(
                             clipboard.setPrimaryClip(ClipData.newPlainText("Karat Report", report))
                             Toast.makeText(context, "گزارش در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.surfaceElevated,
-                            contentColor = colors.textMain
-                        ),
-                        border = BorderStroke(0.6.dp, colors.border)
-                    ) {
-                        Icon(
-                            imageVector = CalcShare,
-                            contentDescription = null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("اشتراک گزارش", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    }
+                        icon = CalcShare,
+                        isSecondary = true,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))

@@ -68,6 +68,9 @@ All development, refactoring, and maintenance must strictly adhere to these ten 
   - **Text Primary (Obsidian)**: `#141B2B` (Light) / `#F1F5F9` (Dark)
   - **Market Bull / Positive**: `#10B981` (Emerald)
   - **Market Bear / Negative**: `#EF4444` (Ruby)
+  - **Primary Action Buttons**: Sovereign Warm Radiant Gold Gradient (`#FAC24B` to `#E7B342`, solid `#EBB644`) with antique dark bronze bold typography (`#554300`) and 24.dp pill shape (`RoundedCornerShape(24.dp)`).
+  - **Cards & Containers**: Standardized `RoundedCornerShape(16.dp)` with `0.6.dp` gold border (`colors.goldBorder`), light elevation 2.dp / dark 0.dp.
+  - **Segmented Controls**: Spring-animated sliding pill (`LuxurySegmentedControl`) with RTL support, avoiding dark or solid black outlines.
   - **Hairline Specular Borders**: `0.6.dp` stroke with gold or translucent tint
   - **Glassmorphism**: Translucent frosted containers (`background(surface.copy(alpha = 0.85f))`) with specular edge borders and soft elevation shadows.
 

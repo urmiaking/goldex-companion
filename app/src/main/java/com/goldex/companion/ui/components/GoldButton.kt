@@ -24,15 +24,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
+import com.goldex.companion.ui.theme.goldButtonGradient
+import com.goldex.companion.ui.theme.goldButtonText
 import com.goldex.companion.ui.theme.hairlineBorder
 
 /**
- * Stitch "Persian Sovereign Aurum" luxury button.
+ * Sovereign Aurum luxury button matching user-approved button style (media_1788630349237.png).
  *
  * Primary:
- * - Horizontal gradient (goldBullion -> goldPrimary -> goldBullion)
- * - White bold text (14.sp)
- * - 14.dp rounded corners, 48.dp height
+ * - Horizontal gradient (#FAC24B -> #E7B342)
+ * - Antique dark bronze bold text (#554300, 14.sp)
+ * - 24.dp pill shape, 48.dp height
  *
  * Secondary:
  * - surfaceElevated background
@@ -57,7 +61,7 @@ fun GoldButton(
             onClick = onClick,
             enabled = enabled && !isLoading,
             modifier = modifier.height(48.dp),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.surfaceElevated,
                 contentColor = colors.textMain,
@@ -92,6 +96,7 @@ fun GoldButton(
                     }
                     Text(
                         text = text,
+                        fontFamily = VazirmatnFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (enabled) colors.textMain else colors.textMuted
@@ -100,10 +105,9 @@ fun GoldButton(
             }
         }
     } else {
+        val buttonTextAndIconColor = colors.goldButtonText
         val gradientBrush = if (enabled) {
-            Brush.horizontalGradient(
-                listOf(colors.goldBullion, colors.goldPrimary, colors.goldBullion)
-            )
+            colors.goldButtonGradient
         } else {
             Brush.horizontalGradient(
                 listOf(
@@ -118,18 +122,18 @@ fun GoldButton(
             onClick = onClick,
             enabled = enabled && !isLoading,
             modifier = modifier.height(48.dp),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
-                contentColor = Color.White,
+                contentColor = buttonTextAndIconColor,
                 disabledContainerColor = Color.Transparent,
-                disabledContentColor = Color.White.copy(alpha = 0.5f)
+                disabledContentColor = buttonTextAndIconColor.copy(alpha = 0.5f)
             ),
             elevation = ButtonDefaults.buttonElevation(
-                defaultElevation = 0.dp,
-                pressedElevation = 0.dp,
-                focusedElevation = 0.dp,
-                hoveredElevation = 0.dp,
+                defaultElevation = if (enabled) 1.5.dp else 0.dp,
+                pressedElevation = 0.5.dp,
+                focusedElevation = 1.5.dp,
+                hoveredElevation = 2.dp,
                 disabledElevation = 0.dp
             ),
             contentPadding = PaddingValues()
@@ -139,34 +143,35 @@ fun GoldButton(
                     .fillMaxSize()
                     .background(
                         brush = gradientBrush,
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(24.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.White,
+                        color = buttonTextAndIconColor,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
                     ) {
                         if (icon != null) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (enabled) Color.White else Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
+                                tint = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f),
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                         Text(
                             text = text,
+                            fontFamily = VazirmatnFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f)
+                            color = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f)
                         )
                     }
                 }

@@ -61,7 +61,7 @@ val GoldExAppColors.hairlineBorder: BorderStroke
     get() = BorderStroke(0.6.dp, this.border)
 
 val GoldExAppColors.goldHairlineBorder: BorderStroke
-    get() = BorderStroke(0.8.dp, this.goldBorder)
+    get() = BorderStroke(0.6.dp, this.goldBorder)
 
 val GoldExAppColors.specularHairlineBrush: Brush
     get() = Brush.horizontalGradient(
@@ -73,6 +73,20 @@ val GoldExAppColors.specularHairlineBrush: Brush
             Color.Transparent
         )
     )
+
+val GoldExAppColors.goldButtonGradient: Brush
+    get() = Brush.horizontalGradient(
+        listOf(
+            Color(0xFFFAC24B),
+            Color(0xFFE7B342)
+        )
+    )
+
+val GoldExAppColors.goldButtonContainer: Color
+    get() = Color(0xFFEBB644)
+
+val GoldExAppColors.goldButtonText: Color
+    get() = Color(0xFF554300)
 
 val DarkGoldExColors = GoldExAppColors(
     isDark = true,

@@ -35,6 +35,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -529,31 +530,15 @@ fun DashboardScreen(
                     }
 
                     // Timeframe Toggle Tabs
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.6f))
-                    ) {
-                        Row(modifier = Modifier.padding(2.dp)) {
-                            listOf("امروز", "هفتگی", "ماهانه").forEachIndexed { index, label ->
-                                val isSelected = selectedTimeframe == index
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) colors.surface else Color.Transparent,
-                                    shadowElevation = if (isSelected) 1.dp else 0.dp,
-                                    modifier = Modifier.clickable { selectedTimeframe = index }
-                                ) {
-                                    Text(
-                                        text = label,
-                                        fontSize = 10.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) colors.goldPrimary else colors.textMuted,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    LuxurySegmentedControl(
+                        items = listOf(0, 1, 2),
+                        selectedItem = selectedTimeframe,
+                        onItemSelected = { selectedTimeframe = it },
+                        label = { when(it) { 0 -> "امروز" 1 -> "هفتگی" else -> "ماهانه" } },
+                        modifier = Modifier.width(184.dp),
+                        height = 32.dp,
+                        fontSize = 10.5.sp
+                    )
                 }
 
                 // Active Quote & Intraday Delta

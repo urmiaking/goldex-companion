@@ -6,12 +6,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
 @Composable
@@ -74,6 +77,13 @@ fun GoldInputField(
             ),
             singleLine = true,
             enabled = enabled,
+            textStyle = TextStyle(
+                fontFamily = VazirmatnFamily,
+                fontFeatureSettings = VazirmatnFeatureSettings,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textMain
+            ),
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(

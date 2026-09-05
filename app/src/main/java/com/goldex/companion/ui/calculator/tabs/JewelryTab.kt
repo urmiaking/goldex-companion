@@ -39,8 +39,14 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
+import com.goldex.companion.ui.theme.goldButtonGradient
+import com.goldex.companion.ui.theme.goldButtonText
 import com.goldex.companion.ui.theme.heroCardGradient
 
 /**
@@ -63,11 +69,17 @@ fun JewelryTab(
     val taxAmount = result?.taxAmount ?: 0.0
     val totalPayable = result?.totalPayable ?: 0.0
 
+    // Custom Profit & Tax Dialog States (per Items 4 and 5)
+    var isCustomProfitDialogVisible by remember { mutableStateOf(false) }
+    var isCustomTaxDialogVisible by remember { mutableStateOf(false) }
+    var tempProfitInput by remember(uiState.profitPercentInput) { mutableStateOf(uiState.profitPercentInput) }
+    var tempTaxInput by remember(uiState.taxPercentInput) { mutableStateOf(uiState.taxPercentInput) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(11.dp)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // ─── Header: Icon + Title & Subtitle ────────────────────────
         Row(
@@ -109,16 +121,16 @@ fun JewelryTab(
 
         // ─── Card 1: Benchmark Rate (نرخ مبنا) ────────────────────────
         Surface(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-            shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(13.dp),
+                    .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Top Row: نرخ مبنا & تغییر نرخ
@@ -176,50 +188,26 @@ fun JewelryTab(
                     }
                 }
 
-                // Segmented Pill Container: ۱۸ عیار / ۲۴ عیار / مظنه
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        PriceBasisTab.values().forEach { tab ->
-                            val isSelected = uiState.priceBasisTab == tab
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) colors.surface else Color.Transparent,
-                                border = if (isSelected) BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)) else null,
-                                shadowElevation = if (isSelected && !colors.isDark) 1.dp else 0.dp,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.setPriceBasisTab(tab) }
-                            ) {
-                                Text(
-                                    text = tab.labelFa,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.goldPrimary else colors.textMuted,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
-                }
+                // Segmented Pill Container: ۱۸ عیار / ۲۴ عیار / مظنه (Animated)
+                LuxurySegmentedControl(
+                    items = PriceBasisTab.values().toList(),
+                    selectedItem = uiState.priceBasisTab,
+                    onItemSelected = { viewModel.setPriceBasisTab(it) },
+                    label = { it.labelFa },
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 36.dp,
+                    fontSize = 11.sp
+                )
             }
         }
 
         // ─── Card 2: Gold Weight (وزن طلای کارشده) ────────────────────
+        // ─── Card 2: Gold Weight (وزن طلای کارشده) ────────────────────
         Surface(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-            shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -245,6 +233,7 @@ fun JewelryTab(
                         )
                         Text(
                             text = "وزن طلای کارشده",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -252,6 +241,8 @@ fun JewelryTab(
                     }
                     Text(
                         text = "عیار ۷۵۰",
+                        fontFamily = VazirmatnFamily,
+                        fontFeatureSettings = VazirmatnFeatureSettings,
                         fontSize = 11.5.sp,
                         color = colors.textMuted
                     )
@@ -273,6 +264,7 @@ fun JewelryTab(
                     ) {
                         Text(
                             text = "گرم",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMuted
@@ -283,6 +275,8 @@ fun JewelryTab(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
                             textStyle = TextStyle(
+                                fontFamily = VazirmatnFamily,
+                                fontFeatureSettings = VazirmatnFeatureSettings,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
@@ -299,10 +293,10 @@ fun JewelryTab(
 
         // ─── Card 3: Wage (اجرت ساخت طلا) ─────────────────────────────
         Surface(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-            shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -329,133 +323,170 @@ fun JewelryTab(
                         )
                         Text(
                             text = "اجرت ساخت طلا",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                     }
 
-                    // Mode Toggle (درصدی / تومانی)
+                    // Animated Mode Toggle (درصدی / تومانی)
+                    LuxurySegmentedControl(
+                        items = listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM),
+                        selectedItem = uiState.wageType,
+                        onItemSelected = { viewModel.onWageTypeChanged(it) },
+                        label = { if (it == WageType.PERCENTAGE) "درصدی (٪)" else "تومانی / گرم" },
+                        modifier = Modifier.width(176.dp),
+                        height = 32.dp,
+                        fontSize = 10.5.sp
+                    )
+                }
+
+                if (uiState.wageType == WageType.PERCENTAGE) {
+                    // Stepper + Equivalent Wage Row (درصدی)
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = colors.surfaceElevated,
-                        modifier = Modifier.padding(2.dp)
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(modifier = Modifier.padding(2.dp)) {
-                            val isPercentage = uiState.wageType == WageType.PERCENTAGE
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (isPercentage) colors.surface else Color.Transparent,
-                                shadowElevation = if (isPercentage && !colors.isDark) 1.dp else 0.dp,
-                                modifier = Modifier.clickable { viewModel.onWageTypeChanged(WageType.PERCENTAGE) }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Stepper: [-]  Value  [+]
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = colors.surface,
+                                    border = BorderStroke(0.5.dp, colors.border),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clickable { viewModel.decrementWage() }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = CalcRemove,
+                                            contentDescription = "کاهش",
+                                            tint = colors.goldPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
                                 Text(
-                                    text = "درصدی (٪)",
-                                    fontSize = 10.sp,
-                                    fontWeight = if (isPercentage) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isPercentage) colors.goldPrimary else colors.textMuted,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                    text = "${PersianNumberFormatter.toPersianDigits(uiState.wageInput)}٪",
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
                                 )
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = colors.surface,
+                                    border = BorderStroke(0.5.dp, colors.border),
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clickable { viewModel.incrementWage() }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "افزایش",
+                                            tint = colors.goldPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             }
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (!isPercentage) colors.surface else Color.Transparent,
-                                shadowElevation = if (!isPercentage && !colors.isDark) 1.dp else 0.dp,
-                                modifier = Modifier.clickable { viewModel.onWageTypeChanged(WageType.TOMAN_PER_GRAM) }
-                            ) {
+
+                            // Equivalent Toman Wage
+                            Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "تومانی / گرم",
+                                    text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary
+                                )
+                                Text(
+                                    text = "معادل ریالی اجرت",
+                                    fontFamily = VazirmatnFamily,
                                     fontSize = 10.sp,
-                                    fontWeight = if (!isPercentage) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (!isPercentage) colors.goldPrimary else colors.textMuted,
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                    color = colors.textMuted
                                 )
                             }
                         }
                     }
-                }
-
-                // Stepper + Equivalent Wage Row
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                } else {
+                    // Direct Toman Input Box (تومانی) - Steppers removed per Item 3!
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Stepper: [-]  Value  [+]
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.surface,
-                                border = BorderStroke(0.5.dp, colors.border),
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clickable { viewModel.decrementWage() }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = CalcRemove,
-                                        contentDescription = "کاهش",
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            val wageDisplay = if (uiState.wageType == WageType.PERCENTAGE) {
-                                "${PersianNumberFormatter.toPersianDigits(uiState.wageInput)}٪"
-                            } else {
-                                "${PersianNumberFormatter.formatPrice(uiState.wageInput.toDoubleOrNull() ?: 0.0)} ت"
-                            }
                             Text(
-                                text = wageDisplay,
-                                fontSize = 15.sp,
+                                text = "تومان / گرم",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.surface,
-                                border = BorderStroke(0.5.dp, colors.border),
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clickable { viewModel.incrementWage() }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "افزایش",
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Equivalent Toman Wage
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
-                            Text(
-                                text = "معادل ریالی اجرت",
-                                fontSize = 10.sp,
                                 color = colors.textMuted
+                            )
+                            val cleanWage = PersianNumberFormatter.toEnglishDigits(uiState.wageInput).filter { it.isDigit() }
+                            val displayWage = if (cleanWage.isNotBlank()) {
+                                PersianNumberFormatter.formatPrice(cleanWage.toDoubleOrNull() ?: 0.0)
+                            } else ""
+
+                            BasicTextField(
+                                value = displayWage,
+                                onValueChange = { input ->
+                                    val digitsOnly = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
+                                    viewModel.onWageChanged(digitsOnly)
+                                },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    textAlign = TextAlign.Right,
+                                    textDirection = TextDirection.Rtl
+                                ),
+                                cursorBrush = SolidColor(colors.goldPrimary),
+                                modifier = Modifier.weight(1f).padding(start = 12.dp),
+                                decorationBox = { innerTextField ->
+                                    if (displayWage.isEmpty()) {
+                                        Text(
+                                            text = "مبلغ اجرت هر گرم طلا...",
+                                            fontFamily = VazirmatnFamily,
+                                            fontSize = 12.5.sp,
+                                            color = colors.textMuted.copy(alpha = 0.55f),
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    innerTextField()
+                                }
                             )
                         }
                     }
@@ -470,10 +501,10 @@ fun JewelryTab(
         ) {
             // Card 4A: سود
             Surface(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
-                border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                 modifier = Modifier.weight(1f)
             ) {
                 Column(
@@ -497,6 +528,7 @@ fun JewelryTab(
                             )
                             Text(
                                 text = "سود",
+                                fontFamily = VazirmatnFamily,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain
@@ -508,6 +540,7 @@ fun JewelryTab(
                         ) {
                             Text(
                                 text = "اتحادیه",
+                                fontFamily = VazirmatnFamily,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.goldPrimary,
@@ -523,26 +556,31 @@ fun JewelryTab(
                     ) {
                         Text(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.profitPercentInput)}٪",
+                            fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                         Text(
                             text = "${PersianNumberFormatter.formatPrice(profitAmount)} ت",
+                            fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
                     }
 
-                    // Quick Preset Chips (۵٪, ۷٪, ۱۰٪)
+                    // Quick Preset Chips (۷٪, ۲۰٪ و مداد ویرایش سفارشی per Item 4)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        listOf(5.0 to "۵٪", 7.0 to "۷٪", 10.0 to "۱۰٪").forEach { (preset, label) ->
+                        listOf(7.0 to "۷٪", 20.0 to "۲۰٪").forEach { (preset, label) ->
                             val isSel = (PersianNumberFormatter.parsePersianOrEnglish(uiState.profitPercentInput) ?: 0.0) == preset
                             Surface(
-                                shape = RoundedCornerShape(6.dp),
+                                shape = RoundedCornerShape(7.dp),
                                 color = if (isSel) colors.goldContainer else colors.surfaceElevated,
                                 border = if (isSel) BorderStroke(0.6.dp, colors.goldPrimary) else null,
                                 modifier = Modifier
@@ -551,11 +589,36 @@ fun JewelryTab(
                             ) {
                                 Text(
                                     text = label,
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSel) colors.goldPrimary else colors.textMain,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        // Pencil icon button for custom profit
+                        val isCustom = (PersianNumberFormatter.parsePersianOrEnglish(uiState.profitPercentInput) ?: 0.0) !in listOf(7.0, 20.0)
+                        Surface(
+                            shape = RoundedCornerShape(7.dp),
+                            color = if (isCustom) colors.goldContainer else colors.surfaceElevated,
+                            border = if (isCustom) BorderStroke(0.6.dp, colors.goldPrimary) else null,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable {
+                                    tempProfitInput = uiState.profitPercentInput
+                                    isCustomProfitDialogVisible = true
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "سود دلخواه",
+                                    tint = if (isCustom) colors.goldPrimary else colors.textMuted,
+                                    modifier = Modifier.size(13.dp)
                                 )
                             }
                         }
@@ -565,10 +628,10 @@ fun JewelryTab(
 
             // Card 4B: مالیات
             Surface(
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
-                border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                 modifier = Modifier.weight(1f)
             ) {
                 Column(
@@ -592,6 +655,7 @@ fun JewelryTab(
                             )
                             Text(
                                 text = "مالیات",
+                                fontFamily = VazirmatnFamily,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain
@@ -603,6 +667,7 @@ fun JewelryTab(
                         ) {
                             Text(
                                 text = "قانونی",
+                                fontFamily = VazirmatnFamily,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.profitGreen,
@@ -618,18 +683,22 @@ fun JewelryTab(
                     ) {
                         Text(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.taxPercentInput)}٪",
+                            fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                         Text(
                             text = "${PersianNumberFormatter.formatPrice(taxAmount)} ت",
+                            fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
                     }
 
-                    // Subtitle & Green Checkmark
+                    // Subtitle & Pencil Edit Button (per Item 5)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -639,15 +708,29 @@ fun JewelryTab(
                     ) {
                         Text(
                             text = "روی اجرت و سود",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 10.sp,
                             color = colors.textMuted
                         )
-                        Icon(
-                            imageVector = CalcCheckCircle,
-                            contentDescription = "تایید قانون مالیات",
-                            tint = colors.profitGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(7.dp),
+                            color = colors.surfaceElevated,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable {
+                                    tempTaxInput = uiState.taxPercentInput
+                                    isCustomTaxDialogVisible = true
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "ویرایش مالیات",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -655,10 +738,10 @@ fun JewelryTab(
 
         // ─── Card 5: Stone Deduction (کسر وزن سنگ و نگین) ──────────────
         Surface(
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(16.dp),
             color = colors.surface,
-            border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
-            shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -689,12 +772,14 @@ fun JewelryTab(
                     Column {
                         Text(
                             text = "کسر وزن سنگ و نگین",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                         Text(
                             text = "کسر خودکار از وزن کل",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 9.5.sp,
                             color = colors.textMuted
                         )
@@ -708,6 +793,8 @@ fun JewelryTab(
                     val stoneVal = PersianNumberFormatter.parsePersianOrEnglish(uiState.stoneWeightInput) ?: 0.0
                     Text(
                         text = "${PersianNumberFormatter.formatWeight(stoneVal)} گرم",
+                        fontFamily = VazirmatnFamily,
+                        fontFeatureSettings = VazirmatnFeatureSettings,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
@@ -735,9 +822,9 @@ fun JewelryTab(
 
         // ─── Card 6: Hero Obsidian Dark Monitor (مبلغ نهایی قابل پرداخت) ─
         Surface(
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(16.dp),
             color = Color.Transparent,
-            border = BorderStroke(0.8.dp, colors.goldBorder),
+            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
             shadowElevation = if (colors.isDark) 0.dp else 4.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -914,36 +1001,17 @@ fun JewelryTab(
         }
 
         // ─── Action Buttons ──────────────────────────────────────────
-        // 1. Primary Button: صدور و ثبت فاکتور رسمی
-        Button(
+        // 1. Primary Button: صدور و ثبت فاکتور رسمی (پیل زرین با متن برنزی تیره)
+        GoldButton(
+            text = "صدور و ثبت فاکتور رسمی",
+            icon = CalcPostAdd,
             onClick = {
                 viewModel.addItemToInvoice()
                 viewModel.selectTab(AppTab.INVOICES)
                 Toast.makeText(context, "قطعه به سبد فاکتور افزوده شد ✓", Toast.LENGTH_SHORT).show()
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF735C00),
-                contentColor = Color.White
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-        ) {
-            Icon(
-                imageVector = CalcPostAdd,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(19.dp)
-            )
-            Spacer(modifier = Modifier.width(7.dp))
-            Text(
-                text = "صدور و ثبت فاکتور رسمی",
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
 
         // 2. Secondary Row: صفر کردن مقادیر & کپی خلاصه محاسبه
         Row(
@@ -1035,10 +1103,10 @@ fun JewelryTab(
     if (uiState.isManualSpotDialogVisible) {
         Dialog(onDismissRequest = { viewModel.setManualSpotDialogVisible(false) }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
-                border = BorderStroke(0.8.dp, colors.goldBorder),
-                shadowElevation = 8.dp,
+                border = BorderStroke(0.6.dp, colors.goldBorder),
+                shadowElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -1052,6 +1120,7 @@ fun JewelryTab(
                     ) {
                         Text(
                             text = "تنظیم و تغییر نرخ مبنا",
+                            fontFamily = VazirmatnFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -1068,6 +1137,7 @@ fun JewelryTab(
                             ) {
                                 Text(
                                     text = "نرخ زنده: ${PersianNumberFormatter.formatPrice(uiState.rates.gold18.toDouble())}",
+                                    fontFamily = VazirmatnFamily,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.profitGreen,
@@ -1085,17 +1155,11 @@ fun JewelryTab(
                         useThousandsSeparator = true
                     )
 
-                    Button(
+                    GoldButton(
+                        text = "تایید نرخ مبنا",
                         onClick = { viewModel.setManualSpotDialogVisible(false) },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.goldPrimary,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Text("تایید نرخ مبنا", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
@@ -1105,10 +1169,10 @@ fun JewelryTab(
     if (uiState.isStoneWeightDialogVisible) {
         Dialog(onDismissRequest = { viewModel.setStoneWeightDialogVisible(false) }) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = colors.surface,
-                border = BorderStroke(0.8.dp, colors.goldBorder),
-                shadowElevation = 8.dp,
+                border = BorderStroke(0.6.dp, colors.goldBorder),
+                shadowElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -1117,6 +1181,7 @@ fun JewelryTab(
                 ) {
                     Text(
                         text = "کسر وزن سنگ، نگین و چرم",
+                        fontFamily = VazirmatnFamily,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
@@ -1131,16 +1196,303 @@ fun JewelryTab(
                         useThousandsSeparator = false
                     )
 
-                    Button(
+                    GoldButton(
+                        text = "تایید کسر وزن",
                         onClick = { viewModel.setStoneWeightDialogVisible(false) },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.goldPrimary,
-                            contentColor = Color.Black
-                        )
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+
+    // ─── Dialog: تنظیم سود دلخواه (per Item 4) ────────────────────
+    if (isCustomProfitDialogVisible) {
+        Dialog(onDismissRequest = { isCustomProfitDialogVisible = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(0.6.dp, colors.goldBorder),
+                shadowElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("تایید کسر وزن", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(colors.goldContainer.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = CalcMonetizationOn,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Text(
+                            text = "تنظیم سود فروشندگی",
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                    }
+
+                    Text(
+                        text = "درصد سود مورد نظر را وارد کرده یا از مقادیر پیش‌فرض انتخاب فرمایید:",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 11.5.sp,
+                        color = colors.textMuted
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "٪",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                            BasicTextField(
+                                value = PersianNumberFormatter.toPersianDigits(tempProfitInput),
+                                onValueChange = { tempProfitInput = PersianNumberFormatter.toEnglishDigits(it) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    textAlign = TextAlign.Right,
+                                    textDirection = TextDirection.Rtl
+                                ),
+                                cursorBrush = SolidColor(colors.goldPrimary),
+                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                            )
+                        }
+                    }
+
+                    // Quick Chips in dialog
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("۵", "۷", "۱۰", "۱۵", "۲۰").forEach { chip ->
+                            val isSel = tempProfitInput == chip || tempProfitInput.toDoubleOrNull() == chip.toDoubleOrNull()
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = if (isSel) colors.goldContainer else colors.surfaceElevated,
+                                border = if (isSel) BorderStroke(0.6.dp, colors.goldPrimary) else null,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tempProfitInput = chip }
+                            ) {
+                                Text(
+                                    text = "${PersianNumberFormatter.toPersianDigits(chip)}٪",
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSel) colors.goldPrimary else colors.textMain,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        GoldButton(
+                            text = "ثبت و تایید",
+                            onClick = {
+                                viewModel.onProfitPercentChanged(tempProfitInput)
+                                isCustomProfitDialogVisible = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedButton(
+                            onClick = { isCustomProfitDialogVisible = false },
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.weight(0.7f).height(48.dp),
+                            border = BorderStroke(0.6.dp, colors.border)
+                        ) {
+                            Text(
+                                text = "انصراف",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ─── Dialog: تنظیم مالیات دلخواه (per Item 5) ───────────────────
+    if (isCustomTaxDialogVisible) {
+        Dialog(onDismissRequest = { isCustomTaxDialogVisible = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(0.6.dp, colors.goldBorder),
+                shadowElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(colors.goldContainer.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = CalcAccountBalance,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Text(
+                            text = "تنظیم مالیات بر ارزش افزوده",
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                    }
+
+                    Text(
+                        text = "درصد مالیات ارزش افزوده (طبق قانون مالیات، ۹٪ روی اجرت و سود اعمال می‌شود):",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 11.sp,
+                        color = colors.textMuted,
+                        lineHeight = 16.sp
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "٪",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                            BasicTextField(
+                                value = PersianNumberFormatter.toPersianDigits(tempTaxInput),
+                                onValueChange = { tempTaxInput = PersianNumberFormatter.toEnglishDigits(it) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    textAlign = TextAlign.Right,
+                                    textDirection = TextDirection.Rtl
+                                ),
+                                cursorBrush = SolidColor(colors.goldPrimary),
+                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                            )
+                        }
+                    }
+
+                    // Quick Chips for Tax (۰٪ معاف, ۹٪ قانونی)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("0" to "۰٪ (معافیت)", "9" to "۹٪ (نرخ مصوب)").forEach { (chip, label) ->
+                            val isSel = tempTaxInput == chip || (chip == "0" && tempTaxInput.toDoubleOrNull() == 0.0) || (chip == "9" && tempTaxInput.toDoubleOrNull() == 9.0)
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = if (isSel) colors.goldContainer else colors.surfaceElevated,
+                                border = if (isSel) BorderStroke(0.6.dp, colors.goldPrimary) else null,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { tempTaxInput = chip }
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontFamily = VazirmatnFamily,
+                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSel) colors.goldPrimary else colors.textMain,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        GoldButton(
+                            text = "ثبت و تایید",
+                            onClick = {
+                                viewModel.onTaxPercentChanged(tempTaxInput)
+                                isCustomTaxDialogVisible = false
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedButton(
+                            onClick = { isCustomTaxDialogVisible = false },
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.weight(0.7f).height(48.dp),
+                            border = BorderStroke(0.6.dp, colors.border)
+                        ) {
+                            Text(
+                                text = "انصراف",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
                     }
                 }
             }

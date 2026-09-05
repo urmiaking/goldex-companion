@@ -549,19 +549,12 @@ private fun InvoicesTabPreviewCard(
                 color = colors.textSecondary
             )
 
-            Button(
+            GoldButton(
+                text = "مشاهده بایگانی فاکتورها و چاپ PDF",
                 onClick = onOpenInvoiceManager,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.goldPrimary,
-                    contentColor = Color.White
-                ),
+                icon = DockInvoiceVector,
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(imageVector = DockInvoiceVector, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "مشاهده بایگانی فاکتورها و چاپ PDF", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
+            )
         }
     }
 }

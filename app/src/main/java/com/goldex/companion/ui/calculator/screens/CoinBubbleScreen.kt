@@ -35,6 +35,7 @@ import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -177,15 +178,15 @@ fun CoinBubbleScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // ─── 1. Hero Dark Card (شاخص‌های مبنای محاسبه حباب) ─────────
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = Color.Transparent,
-                    border = BorderStroke(0.8.dp, colors.goldBorder),
-                    shadowElevation = if (colors.isDark) 0.dp else 4.dp,
+                    border = BorderStroke(0.6.dp, colors.goldBorder),
+                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -407,9 +408,9 @@ fun CoinBubbleScreen(
                     val isBubbleHigh = metrics.bubblePercent > 18.0
 
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = colors.surface,
-                        border = BorderStroke(0.8.dp, colors.goldBorder),
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
                         shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -598,7 +599,8 @@ fun CoinBubbleScreen(
                 }
 
                 // ─── 4. Quick Actions ────────────────────────────────────────
-                Button(
+                GoldButton(
+                    text = "کپی جدول تحلیلی حباب مسکوکات",
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val reportText = buildString {
@@ -613,28 +615,9 @@ fun CoinBubbleScreen(
                         clipboard.setPrimaryClip(ClipData.newPlainText("Coin Bubble Report", reportText))
                         Toast.makeText(context, "گزارش تحلیلی حباب سکه‌ها کپی شد ✓", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.goldPrimary,
-                        contentColor = Color(0xFF141B2B)
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-                ) {
-                    Icon(
-                        imageVector = CalcContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "کپی جدول تحلیلی حباب مسکوکات",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    icon = CalcContentCopy,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
             }
