@@ -52,6 +52,7 @@ import com.goldex.companion.ui.theme.heroCardGradient
  */
 @Composable
 fun KaratConvertScreen(
+    viewModel: GoldCalculatorViewModel,
     uiState: CalculatorUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier

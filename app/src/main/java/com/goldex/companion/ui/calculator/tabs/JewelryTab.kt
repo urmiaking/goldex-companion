@@ -105,6 +105,7 @@ fun JewelryTab(
                     modifier = Modifier.size(22.dp)
                 )
             }
+            Column {
                 Text(
                     text = "ماشین‌حساب تخصصی طلا و جواهر",
                     fontSize = 16.sp,

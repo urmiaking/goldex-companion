@@ -41,6 +41,7 @@ private val Karat.standardCode: String
         Karat.K24 -> "۹۹۹"
     }
 
+/**
  * Rebuilt Karat Converter Tab adhering strictly to Google Stitch
  * Design Screen ID: 3d1b87d2ad7d4d659884f0a454e9aab3
  * ("قیراط - تبدیل عیار و محاسبه شرطی طلا")

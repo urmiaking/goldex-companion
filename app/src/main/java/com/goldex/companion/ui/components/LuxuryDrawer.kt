@@ -111,9 +111,7 @@ private val DrawerCalculatorVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
-    @Deprecated("Navigation Drawer is officially replaced by MoreHubScreen in Phase 1")
-    // Other UI components...
-    fun LuxuryDrawerSheetContent(
+private val DrawerInvoiceDollarVector: ImageVector = ImageVector.Builder(
     name = "DrawerInvoiceDollar",
     defaultWidth = 24.dp,
     defaultHeight = 24.dp,

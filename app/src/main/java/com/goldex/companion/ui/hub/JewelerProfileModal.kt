@@ -66,6 +66,7 @@ fun JewelerProfileModal(
                 onDismiss()
             }
         }
+    }
 
     LaunchedEffect(Unit) {
         isVisible = true
