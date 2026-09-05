@@ -26,7 +26,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.PersianNumberFormatter
@@ -251,24 +253,33 @@ fun DashboardScreen(
                 }
 
                 // Main Weight Balance
+                val weightFormatted = PersianNumberFormatter.formatWeight(342.500)
+                val weightFontSize = when {
+                    weightFormatted.length > 11 -> 22.sp
+                    weightFormatted.length > 8 -> 26.sp
+                    else -> 30.sp
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = PersianNumberFormatter.formatWeight(342.500),
-                            fontSize = 32.sp,
+                            text = weightFormatted,
+                            fontSize = weightFontSize,
                             fontWeight = FontWeight.Black,
                             color = Color.White,
-                            letterSpacing = (-0.5).sp
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = "گرم ۷۵۰",
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFFDEA6),
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(bottom = 3.dp)
                         )
                     }
 
@@ -280,18 +291,24 @@ fun DashboardScreen(
                         Text(
                             text = "ارزش ریالی روز بازار:",
                             fontSize = 11.sp,
-                            color = Color(0xFFA5B2CD)
+                            color = Color(0xFFA5B2CD),
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = PersianNumberFormatter.format(1468500000),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary
+                            color = colors.goldPrimary,
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = "تومان",
                             fontSize = 11.sp,
-                            color = Color(0xFFE2E8F0)
+                            color = Color(0xFFE2E8F0),
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -597,18 +614,20 @@ fun DashboardScreen(
                     goldColor = colors.goldPrimary
                 )
 
-                // Time Labels
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰ (زنده)").forEachIndexed { idx, hour ->
-                        Text(
-                            text = hour,
-                            fontSize = 9.5.sp,
-                            fontWeight = if (idx == 4) FontWeight.Bold else FontWeight.Normal,
-                            color = if (idx == 4) colors.goldPrimary else colors.textMuted
-                        )
+                // Time Labels (LTR: 10:00 on the left to 18:00 live on the right)
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰ (زنده)").forEachIndexed { idx, hour ->
+                            Text(
+                                text = hour,
+                                fontSize = 9.5.sp,
+                                fontWeight = if (idx == 4) FontWeight.Bold else FontWeight.Normal,
+                                color = if (idx == 4) colors.goldPrimary else colors.textMuted
+                            )
+                        }
                     }
                 }
             }
@@ -785,8 +804,8 @@ private fun QuickActionButton(
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = colors.surface,
-        border = BorderStroke(0.6.dp, colors.border),
-        shadowElevation = 1.dp,
+        border = BorderStroke(0.6.dp, colors.goldBorder),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = modifier.clickable { onClick() }
     ) {
         Column(
@@ -835,8 +854,8 @@ private fun TransactionRowItem(
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = colors.surface,
-        border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.7f)),
-        shadowElevation = 0.5.dp,
+        border = BorderStroke(0.6.dp, colors.goldBorder),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }

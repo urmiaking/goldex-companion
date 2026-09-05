@@ -252,23 +252,33 @@ fun LiveRatesScreen(
                         )
                     }
 
+                    // Price Section
+                    val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
+                    val meltPriceText = PersianNumberFormatter.format(meltPrice)
+                    val meltFontSize = when {
+                        meltPriceText.length > 13 -> 22.sp
+                        meltPriceText.length > 10 -> 25.sp
+                        else -> 28.sp
+                    }
                     Row(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
                         Text(
-                            text = PersianNumberFormatter.format(meltPrice),
-                            fontSize = 30.sp,
+                            text = meltPriceText,
+                            fontSize = meltFontSize,
                             fontWeight = FontWeight.Black,
                             color = Color.White,
-                            letterSpacing = (-0.5).sp
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = "تومان",
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary,
+                            maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(bottom = 3.dp)
                         )
                     }
@@ -601,13 +611,17 @@ private fun MiniMetricItem(
                 text = value,
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                maxLines = 1,
+                softWrap = false
             )
             Text(
                 text = delta,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF4EDEA3)
+                color = Color(0xFF4EDEA3),
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
@@ -629,8 +643,8 @@ private fun MarketRateDetailCard(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
-        border = BorderStroke(0.6.dp, if (hasAccentRibbon) colors.goldPrimary.copy(alpha = 0.5f) else colors.border),
-        shadowElevation = 0.8.dp,
+        border = BorderStroke(0.6.dp, if (hasAccentRibbon) colors.goldPrimary.copy(alpha = 0.5f) else colors.goldBorder),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -723,12 +737,16 @@ private fun MarketRateDetailCard(
                                 text = price,
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.Black,
-                                color = colors.textMain
+                                color = colors.textMain,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             Text(
                                 text = "تومان",
                                 fontSize = 10.sp,
-                                color = colors.textMuted
+                                color = colors.textMuted,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
