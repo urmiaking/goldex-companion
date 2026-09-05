@@ -41,7 +41,6 @@ private val Karat.standardCode: String
         Karat.K24 -> "۹۹۹"
     }
 
-/**
  * Rebuilt Karat Converter Tab adhering strictly to Google Stitch
  * Design Screen ID: 3d1b87d2ad7d4d659884f0a454e9aab3
  * ("قیراط - تبدیل عیار و محاسبه شرطی طلا")
@@ -54,15 +53,6 @@ fun KaratConvertTab(
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
 
-    var swapRotationTarget by remember { mutableFloatStateOf(0f) }
-    val swapRotation by animateFloatAsState(
-        targetValue = swapRotationTarget,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "swapRotation"
-    )
 
     // Calculate pure 24K equivalent and standard 18K equivalent
     val inputWeight = PersianNumberFormatter.parsePersianOrEnglish(uiState.convertWeightInput) ?: 0.0
@@ -132,7 +122,6 @@ fun KaratConvertTab(
                     text = "معکوس",
                     icon = CalcSwapHoriz,
                     onClick = {
-                        swapRotationTarget += 180f
                         viewModel.swapConvertKarats()
                     },
                     modifier = Modifier.height(36.dp)
@@ -566,7 +555,7 @@ fun KaratConvertTab(
                         }
 
                         if (spot18k > 0) {
-                            Divider(color = colors.border.copy(alpha = 0.5f), thickness = 0.5.dp)
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.5.dp)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,

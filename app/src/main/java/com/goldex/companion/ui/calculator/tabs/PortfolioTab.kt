@@ -307,7 +307,6 @@ fun PortfolioTab(
     // Add Asset Dialog Modal
     if (showAddDialog) {
         AddAssetDialog(
-            rates = uiState.rates,
             onDismiss = { showAddDialog = false },
             onConfirm = { newItem ->
                 onAddPortfolioItem(newItem)
@@ -319,7 +318,6 @@ fun PortfolioTab(
 
 @Composable
 fun AddAssetDialog(
-    rates: com.goldex.companion.data.MarketRates,
     onDismiss: () -> Unit,
     onConfirm: (PortfolioItem) -> Unit
 ) {

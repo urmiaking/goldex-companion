@@ -58,7 +58,6 @@ fun CoinBubbleScreen(
     val scrollState = rememberScrollState()
 
     var selectedFilterCoin by remember { mutableStateOf<CoinType?>(null) }
-    var isManualPriceExpanded by remember { mutableStateOf(false) }
 
     fun calculateMetrics(coin: CoinType, overridePrice: Double? = null): CoinBubbleResult {
         val usd = uiState.rates.usd.toDouble()

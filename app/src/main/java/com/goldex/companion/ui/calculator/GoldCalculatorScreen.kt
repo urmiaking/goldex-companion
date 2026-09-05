@@ -284,10 +284,7 @@ fun GoldCalculatorScreen(
                 ) {
                     // Live Rates Ticker (Visible across app for live market intelligence)
                     LiveRatesTicker(
-                        rates = uiState.rates,
-                        isRefreshing = uiState.isRefreshingRates,
-                        onRefresh = { viewModel.refreshRates() },
-                        onToggleSource = { viewModel.togglePriceSource() }
+                        rates = uiState.rates
                     )
 
                     // 5 Main System Destinations via AnimatedContent

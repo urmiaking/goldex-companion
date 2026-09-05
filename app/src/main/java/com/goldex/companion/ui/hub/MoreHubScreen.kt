@@ -33,7 +33,6 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  * MoreHubScreen: The Central Command Hub & Operations Center.
  *
  * Faithfully designed after Google Stitch Screen ID: a4fb5e02179f4ce0b4ac213ee29bca16
- *
  * Replaces the obsolete Navigation Drawer with an ergonomic, luxury Persian Sovereign Aurum hub:
  * 1. Jeweler Profile & Guild Hero Card with Live Union Accreditation Badge
  * 2. Quick Metrics Ribbon (Active Counterparties, Bullion Inventory, License Validity)
@@ -443,7 +442,7 @@ fun MoreHubScreen(
                     }
                 }
 
-                Divider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
 
                 // Item 1: Karat conversion
                 HubListRowItem(
@@ -455,7 +454,7 @@ fun MoreHubScreen(
                     onClick = onNavigateConvert
                 )
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Item 2: Coin bubble
                 HubListRowItem(
@@ -467,7 +466,7 @@ fun MoreHubScreen(
                     onClick = onNavigateCoinBubble
                 )
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Item 3: Cloud & Excel backup
                 HubListRowItem(
@@ -507,7 +506,7 @@ fun MoreHubScreen(
                     )
                 }
 
-                Divider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
 
                 // Setting 1: Live Price Source & Auto-Sync
                 Row(
@@ -568,7 +567,7 @@ fun MoreHubScreen(
                     }
                 }
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Setting 2: Profit and VAT
                 Row(
@@ -629,7 +628,7 @@ fun MoreHubScreen(
                     }
                 }
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Setting 2: Letterhead & QR Code
                 HubListRowItem(
@@ -641,7 +640,7 @@ fun MoreHubScreen(
                     onClick = onOpenJewelerProfile
                 )
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Setting 3: Biometric Lock Switch
                 Row(
@@ -771,7 +770,7 @@ fun MoreHubScreen(
                     }
                 }
 
-                Divider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Gold Guild Standards Guide
                 HubListRowItem(

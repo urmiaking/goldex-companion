@@ -66,7 +66,6 @@ fun JewelerProfileModal(
                 onDismiss()
             }
         }
-    }
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -228,7 +227,7 @@ fun JewelerProfileModal(
                             }
                         }
 
-                        Divider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
+                        HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
 
                         // Scrollable Form Body
                         Column(
@@ -542,7 +541,7 @@ fun JewelerProfileModal(
                             }
                         }
 
-                        Divider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
+                        HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
 
                         // Actions Footer
                         Row(

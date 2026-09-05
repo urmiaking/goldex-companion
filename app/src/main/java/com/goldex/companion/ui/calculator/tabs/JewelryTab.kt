@@ -105,7 +105,6 @@ fun JewelryTab(
                     modifier = Modifier.size(22.dp)
                 )
             }
-            Column {
                 Text(
                     text = "ماشین‌حساب تخصصی طلا و جواهر",
                     fontSize = 16.sp,
@@ -914,7 +913,7 @@ fun JewelryTab(
                 }
 
                 // 3-Columns Metrics Breakdown
-                Divider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

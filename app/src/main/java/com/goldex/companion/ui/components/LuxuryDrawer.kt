@@ -111,7 +111,9 @@ private val DrawerCalculatorVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
-private val DrawerInvoiceDollarVector: ImageVector = ImageVector.Builder(
+    @Deprecated("Navigation Drawer is officially replaced by MoreHubScreen in Phase 1")
+    // Other UI components...
+    fun LuxuryDrawerSheetContent(
     name = "DrawerInvoiceDollar",
     defaultWidth = 24.dp,
     defaultHeight = 24.dp,
@@ -620,7 +622,6 @@ fun LuxuryDrawer(
 /**
  * Stitch Persian Sovereign Aurum Modal Drawer Sheet Content.
  */
-@Deprecated("Navigation Drawer is officially replaced by MoreHubScreen in Phase 1")
 @Composable
 fun LuxuryDrawerSheetContent(
     rates: MarketRates,

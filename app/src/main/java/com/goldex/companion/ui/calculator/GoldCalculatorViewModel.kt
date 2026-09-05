@@ -562,7 +562,6 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
     fun addItemToInvoice() {
         val state = _uiState.value
         val res = state.jewelryResult ?: return
-        val currentCount = state.invoiceItems.size
         val item = InvoiceItem(
             title = state.itemTitleInput.ifBlank { "قطعه طلا " },
             karat = state.selectedKarat,
@@ -681,7 +680,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
     }
 
     // --- In-App Auto-Updater Actions ---
-    fun checkForUpdates(manual: Boolean = false) {
+    fun checkForUpdates(@Suppress("UNUSED_PARAMETER") manual: Boolean = false) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingForUpdate = true, isUpdateDialogDismissed = false) }
             val info = AppUpdateChecker.check()

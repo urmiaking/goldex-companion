@@ -52,7 +52,6 @@ import com.goldex.companion.ui.theme.heroCardGradient
  */
 @Composable
 fun KaratConvertScreen(
-    viewModel: GoldCalculatorViewModel,
     uiState: CalculatorUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -655,7 +654,7 @@ fun KaratConvertScreen(
                                             color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
                                         )
                                     }
-                                    Divider(color = colors.border, thickness = 0.5.dp)
+                                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
