@@ -50,7 +50,6 @@ fun LiveRatesScreen(
     onNavigateCalculator: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val scrollState = rememberScrollState()
 
     var selectedFilterIndex by remember { mutableStateOf(0) }
     val filterTabs = listOf("همه بازارها", "طلای خام و آبشده", "سکه‌های رسمی", "ارز و تتر", "انس و نقره")
@@ -68,9 +67,7 @@ fun LiveRatesScreen(
     )
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(scrollState),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // ==========================================

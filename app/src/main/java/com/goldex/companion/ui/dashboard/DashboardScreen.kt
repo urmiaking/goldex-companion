@@ -53,14 +53,10 @@ fun DashboardScreen(
     onNavigateLedger: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val scrollState = rememberScrollState()
-
     var selectedTimeframe by remember { mutableStateOf(0) } // 0: امروز, 1: هفتگی, 2: ماهانه
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(scrollState),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ==========================================
