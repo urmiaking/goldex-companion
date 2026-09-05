@@ -3,7 +3,9 @@ package com.goldex.companion.ui.components
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -12,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
 fun LiveRatesTicker(
