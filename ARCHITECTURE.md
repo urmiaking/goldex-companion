@@ -236,6 +236,8 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - `DashboardScreen` consumes `DashboardUiState` instead of the global ViewModel.
 - `LiveRatesScreen` consumes `MarketRatesUiState` instead of the aggregate calculator state.
 - `PortfolioTab` receives explicit mutation callbacks and no longer creates a hidden ViewModel.
+- Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`; the app shell retains only navigation visibility and invoice-transfer orchestration.
+- Customer, portfolio, and invoice JSON compatibility is centralized in `data/PersistenceJsonCodecs.kt` and covered by pure compatibility tests.
 - CI now compiles the application through the unit-test gate before release assembly; compiler issues found by that gate must be fixed before tagging a release.
 
 These changes intentionally preserve the existing `CalculatorUiState` and global ViewModel as the current composition root while feature state is migrated incrementally.
@@ -243,7 +245,7 @@ These changes intentionally preserve the existing `CalculatorUiState` and global
 ## 14. Known current compromises
 
 - The application still has a large global calculator ViewModel.
-- Some persistence is collection-level SharedPreferences JSON.
+- Some persistence is collection-level SharedPreferences JSON, now behind tested compatibility codecs.
 - The market layer contains provider-specific HTTP and parsing code.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 - The architecture documentation is being migrated alongside the codebase.

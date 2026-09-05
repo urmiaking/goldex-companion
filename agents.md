@@ -74,6 +74,8 @@ Already-established migration seams must be reused:
 - Repository consumers should depend on contracts from `data/RepositoryContracts.kt`.
 - Dashboard rendering consumes `DashboardUiState` rather than the global ViewModel.
 - Portfolio UI emits explicit add/delete callbacks rather than creating its own ViewModel.
+- Karat conversion state belongs in `ui/calculator/KaratConvertViewModel.kt`; the global ViewModel must not regain those fields or events.
+- JSON persistence changes must use and extend `data/PersistenceJsonCodecs.kt` with compatibility tests.
 
 ## 5. State and event rules
 

@@ -85,29 +85,7 @@ class PortfolioRepository(context: Context) : PortfolioStore {
             return defaults
         }
 
-        val list = mutableListOf<PortfolioItem>()
-        try {
-            val arr = JSONArray(jsonString)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                list.add(
-                    PortfolioItem(
-                        id = obj.getString("id"),
-                        title = obj.getString("title"),
-                        category = PortfolioCategory.valueOf(obj.getString("category")),
-                        weightGrams = obj.optDouble("weightGrams", 0.0),
-                        karat = Karat.valueOf(obj.optString("karat", "K18")),
-                        quantity = obj.optInt("quantity", 1),
-                        coinType = if (obj.has("coinType")) CoinType.valueOf(obj.getString("coinType")) else null,
-                        purchasePriceTotal = obj.optLong("purchasePriceTotal", 0L),
-                        purchaseDate = obj.optString("purchaseDate", "")
-                    )
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return list
+        return PersistenceJsonCodecs.decodePortfolioItems(jsonString)
     }
 
     override fun addItem(item: PortfolioItem) {
@@ -122,21 +100,6 @@ class PortfolioRepository(context: Context) : PortfolioStore {
     }
 
     private fun saveItems(items: List<PortfolioItem>) {
-        val arr = JSONArray()
-        for (item in items) {
-            val obj = JSONObject().apply {
-                put("id", item.id)
-                put("title", item.title)
-                put("category", item.category.name)
-                put("weightGrams", item.weightGrams)
-                put("karat", item.karat.name)
-                put("quantity", item.quantity)
-                item.coinType?.let { put("coinType", it.name) }
-                put("purchasePriceTotal", item.purchasePriceTotal)
-                put("purchaseDate", item.purchaseDate)
-            }
-            arr.put(obj)
-        }
-        prefs.edit().putString("items_json", arr.toString()).apply()
+        prefs.edit().putString("items_json", PersistenceJsonCodecs.encodePortfolioItems(items)).apply()
     }
 }

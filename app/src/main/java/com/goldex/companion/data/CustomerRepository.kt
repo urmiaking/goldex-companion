@@ -31,27 +31,7 @@ class CustomerRepository(context: Context) : CustomerStore {
             saveCustomers(defaults)
             return defaults
         }
-
-        val list = mutableListOf<Customer>()
-        try {
-            val arr = JSONArray(json)
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                list.add(
-                    Customer(
-                        id = obj.getString("id"),
-                        name = obj.getString("name"),
-                        phone = obj.optString("phone", ""),
-                        nationalId = obj.optString("nationalId", ""),
-                        note = obj.optString("note", ""),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
-                    )
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return list
+        return PersistenceJsonCodecs.decodeCustomers(json)
     }
 
     override fun addCustomer(customer: Customer) {
@@ -71,18 +51,6 @@ class CustomerRepository(context: Context) : CustomerStore {
     }
 
     private fun saveCustomers(customers: List<Customer>) {
-        val arr = JSONArray()
-        for (c in customers) {
-            val obj = JSONObject().apply {
-                put("id", c.id)
-                put("name", c.name)
-                put("phone", c.phone)
-                put("nationalId", c.nationalId)
-                put("note", c.note)
-                put("createdAt", c.createdAt)
-            }
-            arr.put(obj)
-        }
-        prefs.edit().putString("customers_json", arr.toString()).apply()
+        prefs.edit().putString("customers_json", PersistenceJsonCodecs.encodeCustomers(customers)).apply()
     }
 }

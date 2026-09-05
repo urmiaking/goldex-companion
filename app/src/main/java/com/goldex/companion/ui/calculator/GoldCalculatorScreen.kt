@@ -63,6 +63,8 @@ fun GoldCalculatorScreen(
     viewModel: GoldCalculatorViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val karatConvertViewModel: KaratConvertViewModel = viewModel()
+    val karatConvertUiState by karatConvertViewModel.uiState.collectAsState()
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
 
@@ -470,9 +472,21 @@ fun GoldCalculatorScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             KaratConvertScreen(
-                viewModel = viewModel,
-                uiState = uiState,
-                onBack = { viewModel.setKaratConvertVisible(false) }
+                uiState = karatConvertUiState,
+                rates = uiState.rates,
+                onBack = { viewModel.setKaratConvertVisible(false) },
+                onConvertWeightChanged = karatConvertViewModel::onConvertWeightChanged,
+                onConvertFromKarat = karatConvertViewModel::onConvertFromKarat,
+                onConvertToKarat = karatConvertViewModel::onConvertToKarat,
+                onSwapConvertKarats = karatConvertViewModel::swapConvertKarats,
+                onSetConvertMode = karatConvertViewModel::setConvertMode,
+                onAssayKaratChanged = karatConvertViewModel::onAssayKaratChanged,
+                onAgreedKaratChanged = karatConvertViewModel::onAgreedKaratChanged,
+                onTransferToInvoice = {
+                    viewModel.addItemToInvoice()
+                    viewModel.setKaratConvertVisible(false)
+                    viewModel.selectTab(AppTab.INVOICES)
+                }
             )
         }
 

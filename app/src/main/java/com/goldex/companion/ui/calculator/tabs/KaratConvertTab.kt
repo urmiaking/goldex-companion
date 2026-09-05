@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
@@ -48,8 +49,12 @@ private val Karat.standardCode: String
  */
 @Composable
 fun KaratConvertTab(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState
+    uiState: KaratConvertUiState,
+    rates: MarketRates,
+    onSwapConvertKarats: () -> Unit,
+    onConvertWeightChanged: (String) -> Unit,
+    onConvertFromKarat: (Karat) -> Unit,
+    onConvertToKarat: (Karat) -> Unit
 ) {
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
@@ -62,7 +67,7 @@ fun KaratConvertTab(
 
     // Conditional lab calculation (اختلاف ری‌گیری نسبت به استاندارد ۷۵۰)
     val labDiffWeight = standardGold18k - inputWeight
-    val spot18k = uiState.rates.gold18.toDouble()
+    val spot18k = rates.gold18.toDouble()
     val labDiffRial = labDiffWeight * spot18k
 
     Column(
@@ -123,7 +128,7 @@ fun KaratConvertTab(
                     text = "معکوس",
                     icon = CalcSwapHoriz,
                     onClick = {
-                        viewModel.swapConvertKarats()
+                        onSwapConvertKarats()
                     },
                     modifier = Modifier.height(36.dp)
                 )
@@ -326,7 +331,7 @@ fun KaratConvertTab(
                 // Weight Input
                 GoldInputField(
                     value = uiState.convertWeightInput,
-                    onValueChange = { viewModel.onConvertWeightChanged(it) },
+                    onValueChange = onConvertWeightChanged,
                     label = "وزن دقیق مبدا",
                     trailingText = "گرم",
                     isDecimal = true,
@@ -349,7 +354,7 @@ fun KaratConvertTab(
                             ),
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { viewModel.onConvertWeightChanged(w) }
+                                .clickable { onConvertWeightChanged(w) }
                         ) {
                             Text(
                                 text = label,
@@ -386,7 +391,7 @@ fun KaratConvertTab(
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { viewModel.onConvertFromKarat(k) }
+                                    .clickable { onConvertFromKarat(k) }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(vertical = 7.dp),
@@ -432,7 +437,7 @@ fun KaratConvertTab(
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clickable { viewModel.onConvertToKarat(k) }
+                                    .clickable { onConvertToKarat(k) }
                             ) {
                                 Column(
                                     modifier = Modifier.padding(vertical = 7.dp),

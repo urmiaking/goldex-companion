@@ -46,11 +46,6 @@ enum class PriceBasisTab(val labelFa: String) {
     MESGHAL("مظنه (مثقال)")
 }
 
-enum class KaratConvertMode(val labelFa: String) {
-    DIRECT("تبدیل مستقیم عیار"),
-    SETTLEMENT("محاسبه شرطی ری‌گیری")
-}
-
 data class CalculatorUiState(
     val selectedTab: AppTab = AppTab.HOME,
     val rates: MarketRates = MarketRates(),
@@ -95,15 +90,6 @@ data class CalculatorUiState(
     val selectedCoin: CoinType = CoinType.EMAMI,
     val coinMarketPriceInput: String = "234000000",
     val coinBubbleResult: CoinBubbleResult? = null,
-
-    // Karat Convert State
-    val convertMode: KaratConvertMode = KaratConvertMode.DIRECT,
-    val convertWeightInput: String = "10",
-    val convertFromKarat: Karat = Karat.K18,
-    val convertToKarat: Karat = Karat.K24,
-    val convertedWeight: Double = 7.5,
-    val assayKaratInput: String = "742",
-    val agreedKaratInput: String = "750",
 
     // In-App Auto-Updater State
     val updateInfo: UpdateInfo? = null,
@@ -769,55 +755,11 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
     }
 
     // --- Karat Convert Actions ---
-    fun onConvertWeightChanged(newWeight: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newWeight).filter { it.isDigit() || it == '.' }
-        _uiState.update { it.copy(convertWeightInput = clean) }
-        calculateConvert()
-    }
-
-    fun onConvertFromKarat(karat: Karat) {
-        _uiState.update { it.copy(convertFromKarat = karat) }
-        calculateConvert()
-    }
-
-    fun onConvertFromKaratChanged(karat: Karat) = onConvertFromKarat(karat)
-
-    fun onConvertToKarat(karat: Karat) {
-        _uiState.update { it.copy(convertToKarat = karat) }
-        calculateConvert()
-    }
-
-    fun onConvertToKaratChanged(karat: Karat) = onConvertToKarat(karat)
-
-    fun swapConvertKarats() {
-        _uiState.update {
-            val from = it.convertFromKarat
-            val to = it.convertToKarat
-            it.copy(convertFromKarat = to, convertToKarat = from)
-        }
-        calculateConvert()
-    }
-
-    fun setConvertMode(mode: KaratConvertMode) {
-        _uiState.update { it.copy(convertMode = mode) }
-    }
-
-    fun onAssayKaratChanged(newKarat: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newKarat).filter { it.isDigit() }
-        _uiState.update { it.copy(assayKaratInput = clean) }
-    }
-
-    fun onAgreedKaratChanged(newKarat: String) {
-        val clean = PersianNumberFormatter.toEnglishDigits(newKarat).filter { it.isDigit() }
-        _uiState.update { it.copy(agreedKaratInput = clean) }
-    }
-
     // --- Calculations ---
     private fun calculateAll() {
         calculateJewelry()
         calculateMelt()
         calculateCoin()
-        calculateConvert()
     }
 
     private fun calculateJewelry() {
@@ -864,14 +806,4 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         _uiState.update { it.copy(coinBubbleResult = result) }
     }
 
-    private fun calculateConvert() {
-        val state = _uiState.value
-        val weight = PersianNumberFormatter.parsePersianOrEnglish(state.convertWeightInput) ?: 0.0
-        val converted = GoldCalculationUseCases.calculateKaratConversion(
-            weight = weight,
-            from = state.convertFromKarat,
-            to = state.convertToKarat
-        )
-        _uiState.update { it.copy(convertedWeight = converted) }
-    }
 }

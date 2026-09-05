@@ -52,9 +52,17 @@ import com.goldex.companion.ui.theme.heroCardGradient
  */
 @Composable
 fun KaratConvertScreen(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
+    uiState: KaratConvertUiState,
+    rates: com.goldex.companion.data.MarketRates,
     onBack: () -> Unit,
+    onConvertWeightChanged: (String) -> Unit,
+    onConvertFromKarat: (Karat) -> Unit,
+    onConvertToKarat: (Karat) -> Unit,
+    onSwapConvertKarats: () -> Unit,
+    onSetConvertMode: (KaratConvertMode) -> Unit,
+    onAssayKaratChanged: (String) -> Unit,
+    onAgreedKaratChanged: (String) -> Unit,
+    onTransferToInvoice: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -74,7 +82,7 @@ fun KaratConvertScreen(
     val karatDiff = assayKaratNum - agreedKaratNum
     val settlementWeight = if (agreedKaratNum > 0) inputWeight * (assayKaratNum / agreedKaratNum) else inputWeight
     val weightDiff = settlementWeight - inputWeight
-    val spot18k = uiState.rates.gold18.toDouble()
+    val spot18k = rates.gold18.toDouble()
     val settlementRial = (weightDiff * spot18k)
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -147,7 +155,7 @@ fun KaratConvertScreen(
                         GoldButton(
                             text = "معکوس",
                             icon = CalcSwapHoriz,
-                            onClick = { viewModel.swapConvertKarats() },
+                            onClick = onSwapConvertKarats,
                             modifier = Modifier.height(36.dp)
                         )
                     }
@@ -336,7 +344,7 @@ fun KaratConvertScreen(
                 LuxurySegmentedControl(
                     items = listOf(KaratConvertMode.DIRECT, KaratConvertMode.SETTLEMENT),
                     selectedItem = uiState.convertMode,
-                    onItemSelected = { viewModel.setConvertMode(it) },
+                    onItemSelected = onSetConvertMode,
                     label = { it.labelFa },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -407,7 +415,7 @@ fun KaratConvertScreen(
                                 ) {
                                     BasicTextField(
                                         value = PersianNumberFormatter.toPersianDigits(uiState.convertWeightInput),
-                                        onValueChange = { viewModel.onConvertWeightChanged(it) },
+                                        onValueChange = onConvertWeightChanged,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                         singleLine = true,
                                         textStyle = TextStyle(
@@ -460,7 +468,7 @@ fun KaratConvertScreen(
                                             border = if (isSel) BorderStroke(0.8.dp, colors.goldPrimary) else null,
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .clickable { viewModel.onConvertFromKarat(k) }
+                                                .clickable { onConvertFromKarat(k) }
                                         ) {
                                             Text(
                                                 text = "${k.karatNumber}",
@@ -498,7 +506,7 @@ fun KaratConvertScreen(
                                             border = if (isSel) BorderStroke(0.8.dp, colors.goldPrimary) else null,
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .clickable { viewModel.onConvertToKarat(k) }
+                                                .clickable { onConvertToKarat(k) }
                                         ) {
                                             Text(
                                                 text = "${k.karatNumber}",
@@ -576,7 +584,7 @@ fun KaratConvertScreen(
                                     Text("عیار شرط‌شده:", fontSize = 10.sp, color = colors.textSecondary)
                                     BasicTextField(
                                         value = PersianNumberFormatter.toPersianDigits(uiState.agreedKaratInput),
-                                        onValueChange = { viewModel.onAgreedKaratChanged(it) },
+                                        onValueChange = onAgreedKaratChanged,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         textStyle = TextStyle(
@@ -599,7 +607,7 @@ fun KaratConvertScreen(
                                     Text("عیار جواب آزمایشگاه:", fontSize = 10.sp, color = colors.textSecondary)
                                     BasicTextField(
                                         value = PersianNumberFormatter.toPersianDigits(uiState.assayKaratInput),
-                                        onValueChange = { viewModel.onAssayKaratChanged(it) },
+                                        onValueChange = onAssayKaratChanged,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         textStyle = TextStyle(
@@ -683,8 +691,7 @@ fun KaratConvertScreen(
                     GoldButton(
                         text = "انتقال به فاکتور",
                         onClick = {
-                            viewModel.addItemToInvoice()
-                            viewModel.selectTab(AppTab.INVOICES)
+                            onTransferToInvoice()
                             Toast.makeText(context, "به فاکتور منتقل شد ✓", Toast.LENGTH_SHORT).show()
                         },
                         icon = CalcReceiptLong,
