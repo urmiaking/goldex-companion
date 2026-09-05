@@ -45,6 +45,7 @@ import com.goldex.companion.ui.calculator.screens.MeltCalcScreen
 import com.goldex.companion.ui.calculator.tabs.JewelryTab
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.dashboard.DashboardScreen
+import com.goldex.companion.ui.dashboard.DashboardUiState
 import com.goldex.companion.ui.hub.JewelerProfileModal
 import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal

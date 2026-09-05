@@ -236,6 +236,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - `DashboardScreen` consumes `DashboardUiState` instead of the global ViewModel.
 - `LiveRatesScreen` consumes `MarketRatesUiState` instead of the aggregate calculator state.
 - `PortfolioTab` receives explicit mutation callbacks and no longer creates a hidden ViewModel.
+- CI now compiles the application through the unit-test gate before release assembly; compiler issues found by that gate must be fixed before tagging a release.
 
 These changes intentionally preserve the existing `CalculatorUiState` and global ViewModel as the current composition root while feature state is migrated incrementally.
 

@@ -9,7 +9,7 @@ import org.json.JSONObject
 class CustomerRepository(context: Context) : CustomerStore {
     private val prefs: SharedPreferences = context.getSharedPreferences("goldex_customers_prefs", Context.MODE_PRIVATE)
 
-    fun getCustomers(): List<Customer> {
+    override fun getCustomers(): List<Customer> {
         val json = prefs.getString("customers_json", null)
         if (json.isNullOrBlank()) {
             val defaults = listOf(
@@ -54,18 +54,18 @@ class CustomerRepository(context: Context) : CustomerStore {
         return list
     }
 
-    fun addCustomer(customer: Customer) {
+    override fun addCustomer(customer: Customer) {
         val list = getCustomers().toMutableList()
         list.add(0, customer)
         saveCustomers(list)
     }
 
-    fun updateCustomer(customer: Customer) {
+    override fun updateCustomer(customer: Customer) {
         val list = getCustomers().map { if (it.id == customer.id) customer else it }
         saveCustomers(list)
     }
 
-    fun deleteCustomer(id: String) {
+    override fun deleteCustomer(id: String) {
         val list = getCustomers().filter { it.id != id }
         saveCustomers(list)
     }

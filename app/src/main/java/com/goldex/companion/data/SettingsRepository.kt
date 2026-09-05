@@ -27,9 +27,9 @@ class SettingsRepository(context: Context) : SettingsStore {
         context.getSharedPreferences("qirat_settings_prefs", Context.MODE_PRIVATE)
 
     private val _settings = MutableStateFlow(loadSettings())
-    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+    override val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
-    fun loadSettings(): AppSettings {
+    override fun loadSettings(): AppSettings {
         val sourceStr = prefs.getString("key_price_source", PriceSource.TGJU.name) ?: PriceSource.TGJU.name
         val priceSource = try {
             PriceSource.valueOf(sourceStr)
@@ -60,7 +60,7 @@ class SettingsRepository(context: Context) : SettingsStore {
         )
     }
 
-    fun saveSettings(newSettings: AppSettings) {
+    override fun saveSettings(newSettings: AppSettings) {
         prefs.edit()
             .putString("key_price_source", newSettings.priceSource.name)
             .putString("key_profit_pct", newSettings.defaultProfitPercent)

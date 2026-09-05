@@ -18,17 +18,17 @@ import kotlin.math.abs
 
 object GoldMarketRepository : MarketRatesStore {
     private val _rates = MutableStateFlow(MarketRates())
-    val rates: StateFlow<MarketRates> = _rates.asStateFlow()
+    override val rates: StateFlow<MarketRates> = _rates.asStateFlow()
 
     private val _currentSource = MutableStateFlow(PriceSource.ISIGNAL)
-    val currentSource: StateFlow<PriceSource> = _currentSource.asStateFlow()
+    override val currentSource: StateFlow<PriceSource> = _currentSource.asStateFlow()
 
-    suspend fun setSource(source: PriceSource) {
+    override suspend fun setSource(source: PriceSource) {
         _currentSource.value = source
         refreshRates()
     }
 
-    suspend fun cycleSource(): PriceSource {
+    override suspend fun cycleSource(): PriceSource {
         val next = when (_currentSource.value) {
             PriceSource.ISIGNAL -> PriceSource.TALA_IR
             PriceSource.TALA_IR -> PriceSource.TGJU
@@ -38,7 +38,7 @@ object GoldMarketRepository : MarketRatesStore {
         return next
     }
 
-    suspend fun refreshRates(): MarketRates = withContext(Dispatchers.IO) {
+    override suspend fun refreshRates(): MarketRates = withContext(Dispatchers.IO) {
         val preferred = _currentSource.value
         val result = when (preferred) {
             PriceSource.ISIGNAL -> fetchFromISignal() ?: fetchFromTgju() ?: fetchFromTalaIr()

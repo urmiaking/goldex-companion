@@ -10,7 +10,7 @@ class InvoiceRepository(context: Context) : InvoiceStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("qirat_invoices_prefs", Context.MODE_PRIVATE)
 
-    fun getInvoices(): List<Invoice> {
+    override fun getInvoices(): List<Invoice> {
         val json = prefs.getString("invoices_json", null) ?: return emptyList()
         val list = mutableListOf<Invoice>()
         try {
@@ -77,7 +77,7 @@ class InvoiceRepository(context: Context) : InvoiceStore {
         return list
     }
 
-    fun saveInvoice(invoice: Invoice) {
+    override fun saveInvoice(invoice: Invoice) {
         val list = getInvoices().toMutableList()
         val index = list.indexOfFirst { it.id == invoice.id }
         if (index >= 0) {
@@ -88,7 +88,7 @@ class InvoiceRepository(context: Context) : InvoiceStore {
         persist(list)
     }
 
-    fun deleteInvoice(id: String) {
+    override fun deleteInvoice(id: String) {
         val list = getInvoices().filterNot { it.id == id }
         persist(list)
     }

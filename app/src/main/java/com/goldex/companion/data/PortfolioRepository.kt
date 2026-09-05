@@ -58,7 +58,7 @@ data class PortfolioItem(
 class PortfolioRepository(context: Context) : PortfolioStore {
     private val prefs: SharedPreferences = context.getSharedPreferences("goldex_portfolio_prefs", Context.MODE_PRIVATE)
 
-    fun getItems(): List<PortfolioItem> {
+    override fun getItems(): List<PortfolioItem> {
         val jsonString = prefs.getString("items_json", null)
         if (jsonString.isNullOrBlank()) {
             val defaults = listOf(
@@ -110,13 +110,13 @@ class PortfolioRepository(context: Context) : PortfolioStore {
         return list
     }
 
-    fun addItem(item: PortfolioItem) {
+    override fun addItem(item: PortfolioItem) {
         val current = getItems().toMutableList()
         current.add(0, item)
         saveItems(current)
     }
 
-    fun deleteItem(id: String) {
+    override fun deleteItem(id: String) {
         val current = getItems().filter { it.id != id }
         saveItems(current)
     }
