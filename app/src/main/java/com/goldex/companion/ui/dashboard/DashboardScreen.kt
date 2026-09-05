@@ -261,9 +261,7 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = PersianNumberFormatter.formatWithCommas(342500)
-                                .replace(",", ".")
-                                .let { if (it.length > 3) "${it.dropLast(3)}.${it.takeLast(3)}" else "۳۴۲.۵۰۰" },
+                            text = PersianNumberFormatter.formatWeight(342.500),
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Black,
                             color = Color.White,
@@ -404,7 +402,7 @@ fun DashboardScreen(
                 // Pill 5: انس جهانی طلا
                 QuickRatePill(
                     title = "انس جهانی طلا",
-                    price = if (uiState.rates.ounceUsd > 0) PersianNumberFormatter.formatWithCommas(uiState.rates.ounceUsd.toLong()) else "۲,۶۸۴.۲۰",
+                    price = if (uiState.rates.ons > 0) PersianNumberFormatter.formatWithCommas(uiState.rates.ons.toLong()) else "۲,۶۸۴.۲۰",
                     delta = "+۱.۱٪",
                     isPositive = true,
                     unit = "دلار / اونس",
