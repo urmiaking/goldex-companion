@@ -156,12 +156,11 @@ All development, refactoring, and maintenance must strictly adhere to these ten 
 │                             ▼                                               │
 │              .agents/workflows/ [00 to 05] Execution Phases                 │
 │            ┌────────────────┴────────────────────────────────┐              │
-│            │    5 Swappable Screen Tabs (AnimatedContent)    │              │
+│            │    4 Swappable Screen Tabs (AnimatedContent)    │              │
 │            │  1. JewelryTab (محاسبه طلا و فاکتور)            │              │
 │            │  2. MeltTab (مظنه آبشده و تبدیل مثقال)          │              │
 │            │  3. CoinBubbleTab (حباب سکه‌های بانکی)           │              │
 │            │  4. KaratConvertTab (تبدیل تخصصی عیار)          │              │
-│            │  5. PortfolioTab (مدیریت سبد سرمایه‌گذاری)      │              │
 │            └─────────────────────────────────────────────────┘              │
 │                             │                                               │
 │            ┌────────────────┴────────────────────────────────┐              │
