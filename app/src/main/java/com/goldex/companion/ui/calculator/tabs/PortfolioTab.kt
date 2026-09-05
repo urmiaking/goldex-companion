@@ -480,15 +480,15 @@ fun AddAssetDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(
+                    GoldButton(
+                        text = "انصراف",
                         onClick = onDismiss,
-                        shape = RoundedCornerShape(10.dp),
+                        isSecondary = true,
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Text("انصراف", fontSize = 11.sp)
-                    }
+                    )
 
-                    Button(
+                    GoldButton(
+                        text = "ذخیره دارایی",
                         onClick = {
                             val w = PersianNumberFormatter.parsePersianOrEnglish(weightInput) ?: 0.0
                             val q = coinQuantity.toIntOrNull() ?: 1
@@ -506,15 +506,8 @@ fun AddAssetDialog(
                             )
                             onConfirm(item)
                         },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.goldPrimary,
-                            contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
-                        ),
                         modifier = Modifier.weight(1f)
-                    ) {
-                        Text("ذخیره دارایی", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                    )
                 }
             }
         }

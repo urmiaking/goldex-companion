@@ -163,7 +163,9 @@ fun UpdateDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Direct Download Button (Luxury Gold Gradient)
-                        Button(
+                        GoldButton(
+                            text = "دانلود و نصب مستقیم نسخه جدید",
+                            icon = Icons.Default.Refresh,
                             onClick = {
                                 val targetUrl = updateInfo.downloadUrl.ifBlank { updateInfo.releasePageUrl }
                                 if (targetUrl.isNotBlank()) {
@@ -186,62 +188,16 @@ fun UpdateDialog(
                                 }
                                 onDismiss()
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(14.dp),
-                            contentPadding = PaddingValues(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            listOf(colors.goldSecondary, colors.goldPrimary, colors.goldSecondary)
-                                        ),
-                                        shape = RoundedCornerShape(14.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "دانلود و نصب مستقیم نسخه جدید",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         // Secondary Dismiss Button
-                        TextButton(
+                        GoldButton(
+                            text = "بعداً یادآوری کن",
                             onClick = handleDismiss,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(42.dp)
-                        ) {
-                            Text(
-                                text = "بعداً یادآوری کن",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = colors.textMuted
-                            )
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

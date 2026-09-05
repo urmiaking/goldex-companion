@@ -345,7 +345,8 @@ fun SettingsDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Bottom Action
-                Button(
+                GoldButton(
+                    text = "ذخیره تغییرات",
                     onClick = {
                         val updated = AppSettings(
                             priceSource = selectedSource,
@@ -361,19 +362,8 @@ fun SettingsDialog(
                         onSaveSettings(updated)
                         handleDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.goldPrimary),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                ) {
-                    Text(
-                        text = "ذخیره تغییرات",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color.Black
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

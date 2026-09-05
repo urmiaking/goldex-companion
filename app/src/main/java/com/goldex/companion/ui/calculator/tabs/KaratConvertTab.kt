@@ -28,6 +28,7 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
@@ -127,29 +128,15 @@ fun KaratConvertTab(
                 }
 
                 // Swap Button: معکوس
-                Button(
+                GoldButton(
+                    text = "معکوس",
+                    icon = CalcSwapHoriz,
                     onClick = {
                         swapRotationTarget += 180f
                         viewModel.swapConvertKarats()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.goldPrimary,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(
-                        imageVector = CalcSwapHoriz,
-                        contentDescription = "معکوس",
-                        modifier = Modifier
-                            .size(16.dp)
-                            .rotate(swapRotation)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "معکوس", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
+                )
             }
         }
 
@@ -603,7 +590,9 @@ fun KaratConvertTab(
 
         // ─── 4. Action Buttons ───────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+            GoldButton(
+                text = "اشتراک‌گذاری و کپی نتیجه",
+                icon = CalcContentCopy,
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clipText = """
@@ -616,19 +605,8 @@ fun KaratConvertTab(
                     clipboard.setPrimaryClip(ClipData.newPlainText("Karat Convert", clipText))
                     Toast.makeText(context, "گزارش تبدیل عیار در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.goldPrimary,
-                    contentColor = Color.Black
-                )
-            ) {
-                Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("کپی نتیجه تبدیل و گزارش تراز", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

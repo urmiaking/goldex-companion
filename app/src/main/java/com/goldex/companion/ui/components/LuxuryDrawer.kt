@@ -1128,38 +1128,20 @@ fun LuxuryDrawerSheetContent(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
+                        GoldButton(
+                            text = "پشتیبانی صنف",
+                            icon = DrawerHeadsetVector,
                             onClick = onNavigateSettings,
-                            shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            isSecondary = true,
                             modifier = Modifier.weight(1f).height(38.dp)
-                        ) {
-                            Icon(
-                                imageVector = DrawerHeadsetVector,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = colors.textMuted
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "پشتیبانی صنف", fontSize = 10.5.sp, fontWeight = FontWeight.Medium)
-                        }
+                        )
 
-                        OutlinedButton(
+                        GoldButton(
+                            text = if (isDarkTheme) "حالت روز ☀️" else "حالت شب 🌙",
                             onClick = onToggleTheme,
-                            shape = RoundedCornerShape(10.dp),
-                            border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            isSecondary = true,
                             modifier = Modifier.weight(1f).height(38.dp)
-                        ) {
-                            Text(
-                                text = if (isDarkTheme) "حالت روز ☀️" else "حالت شب 🌙",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        )
                     }
                 }
             }

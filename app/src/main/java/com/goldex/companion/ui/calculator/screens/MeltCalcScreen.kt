@@ -133,27 +133,15 @@ fun MeltCalcScreen(
                         }
 
                         // Bind Live Melt Rate
-                        Button(
+                        GoldButton(
+                            text = "مظنه زنده",
+                            icon = CalcSync,
                             onClick = {
                                 viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString())
                                 Toast.makeText(context, "مظنه زنده آبشده درج شد ✓", Toast.LENGTH_SHORT).show()
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = Color(0xFF141B2B)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(
-                                imageVector = CalcSync,
-                                contentDescription = "درج مظنه زنده",
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "مظنه زنده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.height(36.dp)
+                        )
                     }
                 }
             }
@@ -238,7 +226,7 @@ fun MeltCalcScreen(
                                 text = "${PersianNumberFormatter.formatPrice(meltResult.totalPrice)} تومان",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Black,
-                                color = colors.goldPrimary
+                                color = Color.White
                             )
 
                             Spacer(modifier = Modifier.height(3.dp))

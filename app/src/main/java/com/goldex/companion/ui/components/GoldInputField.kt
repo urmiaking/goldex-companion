@@ -10,6 +10,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -82,7 +83,8 @@ fun GoldInputField(
                 fontFeatureSettings = VazirmatnFeatureSettings,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = colors.textMain
+                color = colors.textMain,
+                textDirection = if (isText) TextDirection.Rtl else TextDirection.Ltr
             ),
             shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),

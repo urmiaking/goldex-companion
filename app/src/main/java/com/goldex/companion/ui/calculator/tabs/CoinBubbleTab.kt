@@ -32,6 +32,7 @@ import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
@@ -129,27 +130,15 @@ fun CoinBubbleTab(
                 }
 
                 // Refresh Live Rates Button
-                Button(
+                GoldButton(
+                    text = "بروزرسانی",
+                    icon = CalcSync,
                     onClick = {
                         viewModel.refreshRates()
                         Toast.makeText(context, "در حال همگام‌سازی نرخ‌ها...", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.goldPrimary,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(
-                        imageVector = CalcSync,
-                        contentDescription = "بروزرسانی",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "بروزرسانی", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
+                )
             }
         }
 
@@ -597,7 +586,9 @@ fun CoinBubbleTab(
         }
 
         // ─── 4. Quick Action Button ──────────────────────────────────
-        Button(
+        GoldButton(
+            text = "کپی گزارش کامل حباب تمام سکه‌ها",
+            icon = CalcContentCopy,
             onClick = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val sb = StringBuilder()
@@ -611,18 +602,7 @@ fun CoinBubbleTab(
                 clipboard.setPrimaryClip(ClipData.newPlainText("Coin Bubbles", sb.toString()))
                 Toast.makeText(context, "گزارش حباب انواع سکه در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.goldPrimary,
-                contentColor = Color.Black
-            )
-        ) {
-            Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("کپی گزارش کامل حباب تمام سکه‌ها", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

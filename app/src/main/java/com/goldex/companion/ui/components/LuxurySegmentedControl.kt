@@ -56,7 +56,6 @@ fun <T> LuxurySegmentedControl(
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp
 ) {
     val colors = LocalGoldExColors.current
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val selectedIndex = items.indexOf(selectedItem).coerceAtLeast(0)
 
     Surface(
@@ -74,12 +73,9 @@ fun <T> LuxurySegmentedControl(
             val itemCount = items.size.coerceAtLeast(1)
             val itemWidth = totalWidth / itemCount
 
-            // Calculate target offset respecting RTL layout direction
-            val targetOffset = if (isRtl) {
-                itemWidth * (itemCount - 1 - selectedIndex)
-            } else {
-                itemWidth * selectedIndex
-            }
+            // Calculate target offset. In Jetpack Compose, Modifier.offset(x) is layout-direction aware:
+            // in RTL layouts, positive x naturally offsets from the Start edge (Right) towards End (Left).
+            val targetOffset = itemWidth * selectedIndex
 
             val animatedOffset by animateDpAsState(
                 targetValue = targetOffset,

@@ -322,30 +322,13 @@ fun JewelerProfileModal(
                                         }
                                     }
 
-                                    Button(
+                                    GoldButton(
+                                        text = "تغییر نشان",
+                                        icon = HubCamera,
                                         onClick = { /* Change stamp visual action */ },
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colors.surface,
-                                            contentColor = colors.goldPrimary
-                                        ),
-                                        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                        modifier = Modifier.height(34.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = HubCamera,
-                                            contentDescription = null,
-                                            tint = colors.goldPrimary,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "تغییر نشان",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
+                                        isSecondary = true,
+                                        modifier = Modifier.height(36.dp)
+                                    )
                                 }
                             }
 

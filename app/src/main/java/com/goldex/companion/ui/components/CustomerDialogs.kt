@@ -218,32 +218,22 @@ fun CustomerPickerDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
+                        GoldButton(
+                            text = "مشتری جدید",
+                            icon = Icons.Default.Add,
                             onClick = onAddNewCustomerClick,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
-                            ),
-                            modifier = Modifier.weight(1f).height(42.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "مشتری جدید", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        OutlinedButton(
+                        GoldButton(
+                            text = "مشتری عمومی (نقدی)",
                             onClick = {
                                 onSelectCustomer(null)
                                 onDismiss()
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textSecondary),
-                            border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.border),
-                            modifier = Modifier.weight(1f).height(42.dp)
-                        ) {
-                            Text(text = "مشتری عمومی (نقدی)", fontSize = 11.sp)
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
                     // Search Field
@@ -460,25 +450,21 @@ fun CustomerPickerDialog(
                     )
                 },
                 confirmButton = {
-                    Button(
+                    GoldButton(
+                        text = "حذف نهایی",
                         onClick = {
                             val toDelete = customerToDelete
                             customerToDelete = null
                             toDelete?.let { onDeleteCustomer(it.id) }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.errorRed),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("حذف نهایی", fontSize = 11.sp, color = Color.White)
-                    }
+                        }
+                    )
                 },
                 dismissButton = {
-                    OutlinedButton(
+                    GoldButton(
+                        text = "انصراف",
                         onClick = { customerToDelete = null },
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("انصراف", fontSize = 11.sp, color = colors.textSecondary)
-                    }
+                        isSecondary = true
+                    )
                 },
                 containerColor = colors.surface,
                 shape = RoundedCornerShape(18.dp)
@@ -642,15 +628,15 @@ fun AddCustomerDialog(
                             .padding(top = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
+                        GoldButton(
+                            text = "انصراف",
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        ) {
-                            Text(text = "انصراف", fontSize = 12.sp, color = colors.textSecondary)
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        Button(
+                        GoldButton(
+                            text = "ثبت و انتخاب",
                             onClick = {
                                 if (name.trim().isBlank()) {
                                     hasError = true
@@ -664,15 +650,8 @@ fun AddCustomerDialog(
                                     onSaveCustomer(customer)
                                 }
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
-                            ),
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        ) {
-                            Text(text = "ثبت و انتخاب", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -824,15 +803,15 @@ fun EditCustomerDialog(
                             .padding(top = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
+                        GoldButton(
+                            text = "انصراف",
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        ) {
-                            Text(text = "انصراف", fontSize = 12.sp, color = colors.textSecondary)
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                        Button(
+                        GoldButton(
+                            text = "ذخیره تغییرات",
                             onClick = {
                                 if (name.trim().isBlank()) {
                                     hasError = true
@@ -846,15 +825,8 @@ fun EditCustomerDialog(
                                     onSaveCustomer(updated)
                                 }
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = if (colors.isDark) Color(0xFF0A0B0E) else Color.White
-                            ),
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        ) {
-                            Text(text = "ذخیره تغییرات", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }

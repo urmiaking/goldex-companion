@@ -39,6 +39,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
@@ -261,13 +262,6 @@ fun JewelryTab(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "گرم",
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMuted
-                        )
                         BasicTextField(
                             value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
                             onValueChange = { viewModel.onGrossWeightChanged(it) },
@@ -280,10 +274,17 @@ fun JewelryTab(
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
                                 textAlign = TextAlign.Right,
-                                textDirection = TextDirection.Rtl
+                                textDirection = TextDirection.Ltr
                             ),
                             cursorBrush = SolidColor(colors.goldPrimary),
-                            modifier = Modifier.weight(1f).padding(start = 12.dp)
+                            modifier = Modifier.weight(1f).padding(end = 12.dp)
+                        )
+                        Text(
+                            text = "گرم",
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMuted
                         )
                     }
                 }
@@ -409,9 +410,8 @@ fun JewelryTab(
 
                             // Equivalent Toman Wage
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(
+                                AnimatedPriceTicker(
                                     text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
-                                    fontFamily = VazirmatnFamily,
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.goldPrimary
@@ -440,13 +440,6 @@ fun JewelryTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "تومان / گرم",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMuted
-                            )
                             val cleanWage = PersianNumberFormatter.toEnglishDigits(uiState.wageInput).filter { it.isDigit() }
                             val displayWage = if (cleanWage.isNotBlank()) {
                                 PersianNumberFormatter.formatPrice(cleanWage.toDoubleOrNull() ?: 0.0)
@@ -467,10 +460,10 @@ fun JewelryTab(
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textMain,
                                     textAlign = TextAlign.Right,
-                                    textDirection = TextDirection.Rtl
+                                    textDirection = TextDirection.Ltr
                                 ),
                                 cursorBrush = SolidColor(colors.goldPrimary),
-                                modifier = Modifier.weight(1f).padding(start = 12.dp),
+                                modifier = Modifier.weight(1f).padding(end = 12.dp),
                                 decorationBox = { innerTextField ->
                                     if (displayWage.isEmpty()) {
                                         Text(
@@ -484,6 +477,13 @@ fun JewelryTab(
                                     }
                                     innerTextField()
                                 }
+                            )
+                            Text(
+                                text = "تومان / گرم",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMuted
                             )
                         }
                     }
@@ -551,16 +551,14 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
+                        AnimatedPriceTicker(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.profitPercentInput)}٪",
-                            fontFamily = VazirmatnFamily,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
-                        Text(
+                        AnimatedPriceTicker(
                             text = "${PersianNumberFormatter.formatPrice(profitAmount)} ت",
-                            fontFamily = VazirmatnFamily,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
@@ -675,16 +673,14 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
+                        AnimatedPriceTicker(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.taxPercentInput)}٪",
-                            fontFamily = VazirmatnFamily,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
-                        Text(
+                        AnimatedPriceTicker(
                             text = "${PersianNumberFormatter.formatPrice(taxAmount)} ت",
-                            fontFamily = VazirmatnFamily,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
@@ -783,9 +779,8 @@ fun JewelryTab(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val stoneVal = PersianNumberFormatter.parsePersianOrEnglish(uiState.stoneWeightInput) ?: 0.0
-                    Text(
+                    AnimatedPriceTicker(
                         text = "${PersianNumberFormatter.formatWeight(stoneVal)} گرم",
-                        fontFamily = VazirmatnFamily,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
@@ -892,7 +887,7 @@ fun JewelryTab(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
+                        AnimatedPriceTicker(
                             text = PersianNumberFormatter.formatPrice(totalPayable),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
@@ -937,7 +932,7 @@ fun JewelryTab(
                         ) {
                             Text("وزن خالص", fontSize = 10.sp, color = Color.White.copy(alpha = 0.55f))
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(
+                            AnimatedPriceTicker(
                                 text = "${PersianNumberFormatter.formatWeight(netWeight)} گرم",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -958,7 +953,7 @@ fun JewelryTab(
                         ) {
                             Text("طلای خام", fontSize = 10.sp, color = Color.White.copy(alpha = 0.55f))
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(
+                            AnimatedPriceTicker(
                                 text = PersianNumberFormatter.formatPrice(rawGoldValue),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -979,7 +974,7 @@ fun JewelryTab(
                         ) {
                             Text("اجرت+سود+مالیات", fontSize = 9.5.sp, color = Color.White.copy(alpha = 0.55f))
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(
+                            AnimatedPriceTicker(
                                 text = PersianNumberFormatter.formatPrice(wageAmount + profitAmount + taxAmount),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1256,13 +1251,6 @@ fun JewelryTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "٪",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
                             BasicTextField(
                                 value = PersianNumberFormatter.toPersianDigits(tempProfitInput),
                                 onValueChange = { tempProfitInput = PersianNumberFormatter.toEnglishDigits(it) },
@@ -1275,10 +1263,17 @@ fun JewelryTab(
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textMain,
                                     textAlign = TextAlign.Right,
-                                    textDirection = TextDirection.Rtl
+                                    textDirection = TextDirection.Ltr
                                 ),
                                 cursorBrush = SolidColor(colors.goldPrimary),
-                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                            Text(
+                                text = "٪",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
                             )
                         }
                     }
@@ -1323,19 +1318,12 @@ fun JewelryTab(
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        OutlinedButton(
+                        GoldButton(
+                            text = "انصراف",
                             onClick = { isCustomProfitDialogVisible = false },
-                            shape = RoundedCornerShape(24.dp),
-                            modifier = Modifier.weight(0.7f).height(48.dp),
-                            border = BorderStroke(0.6.dp, colors.border)
-                        ) {
-                            Text(
-                                text = "انصراف",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.5.sp,
-                                color = colors.textMuted
-                            )
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.weight(0.7f)
+                        )
                     }
                 }
             }
@@ -1402,13 +1390,6 @@ fun JewelryTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = "٪",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
                             BasicTextField(
                                 value = PersianNumberFormatter.toPersianDigits(tempTaxInput),
                                 onValueChange = { tempTaxInput = PersianNumberFormatter.toEnglishDigits(it) },
@@ -1421,10 +1402,17 @@ fun JewelryTab(
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textMain,
                                     textAlign = TextAlign.Right,
-                                    textDirection = TextDirection.Rtl
+                                    textDirection = TextDirection.Ltr
                                 ),
                                 cursorBrush = SolidColor(colors.goldPrimary),
-                                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            )
+                            Text(
+                                text = "٪",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
                             )
                         }
                     }
@@ -1469,19 +1457,12 @@ fun JewelryTab(
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        OutlinedButton(
+                        GoldButton(
+                            text = "انصراف",
                             onClick = { isCustomTaxDialogVisible = false },
-                            shape = RoundedCornerShape(24.dp),
-                            modifier = Modifier.weight(0.7f).height(48.dp),
-                            border = BorderStroke(0.6.dp, colors.border)
-                        ) {
-                            Text(
-                                text = "انصراف",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.5.sp,
-                                color = colors.textMuted
-                            )
-                        }
+                            isSecondary = true,
+                            modifier = Modifier.weight(0.7f)
+                        )
                     }
                 }
             }

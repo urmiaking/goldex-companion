@@ -144,24 +144,12 @@ fun KaratConvertScreen(
                         }
 
                         // Action معکوس
-                        Button(
+                        GoldButton(
+                            text = "معکوس",
+                            icon = CalcSwapHoriz,
                             onClick = { viewModel.swapConvertKarats() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = Color(0xFF141B2B)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(
-                                imageVector = CalcSwapHoriz,
-                                contentDescription = "معکوس",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "معکوس", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.height(36.dp)
+                        )
                     }
                 }
             }
@@ -417,12 +405,6 @@ fun KaratConvertScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        text = "گرم",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMuted
-                                    )
                                     BasicTextField(
                                         value = PersianNumberFormatter.toPersianDigits(uiState.convertWeightInput),
                                         onValueChange = { viewModel.onConvertWeightChanged(it) },
@@ -435,10 +417,16 @@ fun KaratConvertScreen(
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textMain,
                                             textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Rtl
+                                            textDirection = TextDirection.Ltr
                                         ),
                                         cursorBrush = SolidColor(colors.goldPrimary),
-                                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                    )
+                                    Text(
+                                        text = "گرم",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMuted
                                     )
                                 }
                             }
@@ -525,44 +513,6 @@ fun KaratConvertScreen(
                                 }
                             }
                         }
-
-                        // Quick Chips: عیارهای پرکاربرد بازار
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = "عیارهای پرکاربرد بازار زرگری:",
-                                fontSize = 10.sp,
-                                color = colors.textMuted
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                listOf(
-                                    Karat.K18 to "۷۵۰ (۱۸K)",
-                                    Karat.K21 to "۸۷۵ (۲۱K)",
-                                    Karat.K24 to "۹۹۹ (شمش)"
-                                ).forEach { (k, label) ->
-                                    val isSel = uiState.convertFromKarat == k
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isSel) colors.goldContainer else colors.surfaceElevated,
-                                        border = if (isSel) BorderStroke(0.6.dp, colors.goldPrimary) else null,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clickable { viewModel.onConvertFromKarat(k) }
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSel) colors.goldPrimary else colors.textSecondary,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(vertical = 5.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -635,7 +585,8 @@ fun KaratConvertScreen(
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textMain,
-                                            textAlign = TextAlign.Right
+                                            textAlign = TextAlign.Right,
+                                            textDirection = TextDirection.Ltr
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -657,7 +608,8 @@ fun KaratConvertScreen(
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.goldPrimary,
-                                            textAlign = TextAlign.Right
+                                            textAlign = TextAlign.Right,
+                                            textDirection = TextDirection.Ltr
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()

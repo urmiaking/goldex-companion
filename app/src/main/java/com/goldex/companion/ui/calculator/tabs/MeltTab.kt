@@ -25,6 +25,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
@@ -94,27 +95,15 @@ fun MeltTab(
                 }
 
                 // Bind Live Melt Rate
-                Button(
+                GoldButton(
+                    text = "مظنه زنده",
+                    icon = CalcSync,
                     onClick = {
                         viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString())
                         Toast.makeText(context, "مظنه زنده آبشده درج شد ✓", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.goldPrimary,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                     modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(
-                        imageVector = CalcSync,
-                        contentDescription = "درج مظنه زنده",
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "مظنه زنده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
+                )
             }
         }
 
@@ -179,7 +168,7 @@ fun MeltTab(
                         text = "${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
-                        color = colors.goldPrimary
+                        color = Color.White
                     )
 
                     Spacer(modifier = Modifier.height(3.dp))
@@ -292,25 +281,16 @@ fun MeltTab(
         }
 
         // ─── 3. Action Buttons ───────────────────────────────────────
-        Button(
+        GoldButton(
+            text = "کپی نتیجه محاسبه آبشده",
+            icon = CalcContentCopy,
             onClick = {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clipText = "ارزش قطعه آبشده (${PersianNumberFormatter.toPersianDigits(uiState.meltWeightInput)} گرم با مظنه ${PersianNumberFormatter.formatPrice(uiState.mesghalPriceInput.toDoubleOrNull() ?: 0.0)} ت): ${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان"
                 clipboard.setPrimaryClip(ClipData.newPlainText("Melt Value", clipText))
                 Toast.makeText(context, "ارزش آبشده در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.goldPrimary,
-                contentColor = Color.Black
-            )
-        ) {
-            Icon(CalcContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("کپی نتیجه محاسبه آبشده", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

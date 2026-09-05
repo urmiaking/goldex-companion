@@ -70,7 +70,9 @@ All development, refactoring, and maintenance must strictly adhere to these ten 
   - **Market Bear / Negative**: `#EF4444` (Ruby)
   - **Primary Action Buttons**: Sovereign Warm Radiant Gold Gradient (`#FAC24B` to `#E7B342`, solid `#EBB644`) with antique dark bronze bold typography (`#554300`) and 24.dp pill shape (`RoundedCornerShape(24.dp)`).
   - **Cards & Containers**: Standardized `RoundedCornerShape(16.dp)` with `0.6.dp` gold border (`colors.goldBorder`), light elevation 2.dp / dark 0.dp.
-  - **Segmented Controls**: Spring-animated sliding pill (`LuxurySegmentedControl`) with RTL support, avoiding dark or solid black outlines.
+  - **Segmented Controls**: Spring-animated sliding pill (`LuxurySegmentedControl`) with RTL support, avoiding dark or solid black outlines (see `.agents/rules/segmented-switch-design-system.md`).
+  - **Input Fields & Numeric Formatting**: Standardized Persian inputs with unit adornments ("گرم", "تومان", "٪") on visual LEFT and digits enforced LTR (`TextDirection.Ltr`) to prevent decimal inversion bugs (see `.agents/rules/input-field-design-system.md`).
+  - **Animated Numeric Tickers**: Dynamic financial amounts and calculation labels must be wrapped in `AnimatedPriceTicker` for smooth spring transitions (see `.agents/rules/animated-price-ticker.md`).
   - **Hairline Specular Borders**: `0.6.dp` stroke with gold or translucent tint
   - **Glassmorphism**: Translucent frosted containers (`background(surface.copy(alpha = 0.85f))`) with specular edge borders and soft elevation shadows.
 
@@ -221,6 +223,7 @@ C:\Users\Masoud\.gemini\antigravity\scratch\goldex-companion\
 │   │   │   │       │   ├── LiveRatesTicker.kt         # Horizontal auto-scrolling live market ticker pills
 │   │   │   │       │   ├── LuxuryCard.kt              # Elevated card with hairline border & subtle gradient header
 │   │   │   │       │   ├── LuxuryDrawer.kt            # Persian RTL ModalNavigationDrawer sheet content
+│   │   │   │       │   ├── LuxurySegmentedControl.kt  # Spring-animated sliding pill segmented switch with RTL support
 │   │   │   │       │   ├── PresetPill.kt              # Quick preset chips for weight, profit, and tax percentages
 │   │   │   │       │   ├── ResultRow.kt               # Key-value financial row with copy-to-clipboard action
 │   │   │   │       │   ├── SectionHeader.kt           # Standardized icon container with Persian title & subtitle

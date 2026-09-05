@@ -148,27 +148,15 @@ fun CoinBubbleScreen(
                         }
 
                         // Refresh Rates Button
-                        Button(
+                        GoldButton(
+                            text = "بروزرسانی",
+                            icon = CalcSync,
                             onClick = {
                                 viewModel.refreshRates()
                                 Toast.makeText(context, "در حال همگام‌سازی نرخ‌ها...", Toast.LENGTH_SHORT).show()
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = colors.goldPrimary,
-                                contentColor = Color(0xFF141B2B)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
-                        ) {
-                            Icon(
-                                imageVector = CalcSync,
-                                contentDescription = "بروزرسانی",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = "بروزرسانی", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                            modifier = Modifier.height(36.dp)
+                        )
                     }
                 }
             }

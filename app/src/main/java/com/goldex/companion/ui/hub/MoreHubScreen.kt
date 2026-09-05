@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
@@ -795,26 +796,13 @@ fun MoreHubScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Check Update Action Button
-            OutlinedButton(
+            GoldButton(
+                text = "بررسی بروزرسانی نرم‌افزار",
+                icon = HubCloudDownload,
                 onClick = { viewModel.checkForUpdates(manual = true) },
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, colors.goldBorder),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
+                isSecondary = true,
                 modifier = Modifier.height(38.dp)
-            ) {
-                Icon(
-                    imageVector = HubCloudDownload,
-                    contentDescription = null,
-                    tint = colors.goldPrimary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "بررسی بروزرسانی نرم‌افزار",
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            )
 
             // App Version Badge
             Text(
