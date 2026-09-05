@@ -40,11 +40,13 @@ import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.ui.calculator.tabs.*
 import com.goldex.companion.ui.components.*
+import com.goldex.companion.ui.dashboard.DashboardScreen
 import com.goldex.companion.ui.hub.JewelerProfileModal
 import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
+import com.goldex.companion.ui.rates.LiveRatesScreen
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
@@ -323,30 +325,44 @@ fun GoldCalculatorScreen(
                     ) { destination ->
                         when (destination) {
                             AppTab.HOME -> {
-                                // Phase 2 Preview: پیشخوان زرگری (Dashboard)
-                                DashboardPreviewCard(
+                                DashboardScreen(
                                     viewModel = viewModel,
                                     uiState = uiState,
                                     onNavigateCalculator = {
                                         calcSubTab = CalculatorSubTab.JEWELRY
                                         viewModel.selectTab(AppTab.CALCULATOR)
                                     },
+                                    onNavigateInvoices = {
+                                        viewModel.loadInvoices()
+                                        viewModel.setInvoiceManagerVisible(true)
+                                    },
+                                    onNavigateConvert = {
+                                        calcSubTab = CalculatorSubTab.CONVERT
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
+                                    onNavigateCoinBubble = {
+                                        calcSubTab = CalculatorSubTab.COIN
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    },
                                     onNavigateMelt = {
                                         calcSubTab = CalculatorSubTab.MELT
                                         viewModel.selectTab(AppTab.CALCULATOR)
                                     },
-                                    onNavigateInvoices = {
-                                        viewModel.loadInvoices()
-                                        viewModel.setInvoiceManagerVisible(true)
+                                    onNavigateLedger = {
+                                        viewModel.loadCustomers()
+                                        viewModel.setCustomerManagerVisible(true)
                                     }
                                 )
                             }
 
                             AppTab.RATES -> {
-                                // Phase 2 Preview: تابلوی مظنه زنده (Rates)
-                                RatesTabPreviewCard(
+                                LiveRatesScreen(
                                     uiState = uiState,
-                                    onRefresh = { viewModel.refreshRates() }
+                                    onRefresh = { viewModel.refreshRates() },
+                                    onNavigateCalculator = {
+                                        calcSubTab = CalculatorSubTab.JEWELRY
+                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                    }
                                 )
                             }
 
@@ -486,223 +502,6 @@ fun GoldCalculatorScreen(
 }
 }
 
-@Composable
-private fun DashboardPreviewCard(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
-    onNavigateCalculator: () -> Unit,
-    onNavigateMelt: () -> Unit,
-    onNavigateInvoices: () -> Unit
-) {
-    val colors = LocalGoldExColors.current
-
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // Vault Balance Hero Card
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF131722),
-            border = BorderStroke(
-                1.dp,
-                Brush.verticalGradient(
-                    listOf(Color(0xFFF59E0B).copy(alpha = 0.5f), Color(0xFF1E2433))
-                )
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "پیشخوان زرگری و تراز گاوصندوق",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8)
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.goldContainer.copy(alpha = 0.4f),
-                        border = BorderStroke(0.6.dp, colors.goldBorder)
-                    ) {
-                        Text(
-                            text = "پیش‌نمایش فاز ۲",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFBBF24),
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "۱,۸۴۲.۶۰۰ گرم طلا",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "ارزش تخمینی: ۴۳,۰۴۳,۱۳۶,۰۰۰ تومان",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFFFDE68A)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = onNavigateCalculator,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF59E0B),
-                            contentColor = Color(0xFF0F172A)
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(text = "محاسبه طلا", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = onNavigateMelt,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White.copy(alpha = 0.1f),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(text = "مظنه آبشده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = onNavigateInvoices,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White.copy(alpha = 0.1f),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(text = "فاکتورها", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RatesTabPreviewCard(
-    uiState: CalculatorUiState,
-    onRefresh: () -> Unit
-) {
-    val colors = LocalGoldExColors.current
-
-    LuxuryCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "تابلوی مظنه و نرخ لحظه‌ای بازار",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.goldContainer.copy(alpha = 0.4f),
-                    border = BorderStroke(0.6.dp, colors.goldBorder)
-                ) {
-                    Text(
-                        text = "پیش‌نمایش فاز ۲",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary,
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                    )
-                }
-            }
-
-            // Key rate summaries
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Text(text = "طلای ۱۸ عیار", fontSize = 10.sp, color = colors.textMuted)
-                        Text(
-                            text = "${uiState.rates.gold18} ت",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Text(text = "مظنه آبشده ۱۷", fontSize = 10.sp, color = colors.textMuted)
-                        Text(
-                            text = "${uiState.rates.goldMelt} ت",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                    }
-                }
-            }
-
-            Button(
-                onClick = onRefresh,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.goldPrimary,
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "بروزرسانی تابلوی قیمت‌ها", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
 
 @Composable
 private fun InvoicesTabPreviewCard(
