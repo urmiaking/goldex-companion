@@ -100,13 +100,13 @@ fun JewelryTab(
                     Column {
                         Text(
                             text = "ماشین‌حساب تخصصی طلا و جواهر",
-                            fontSize = 13.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                         Text(
-                            text = "فرمول رسمی مصوب اتحادیه طلا و جواهر کشور",
-                            fontSize = 10.sp,
+                            text = "فرمول استاندارد اتحادیه طلا و جواهر ایران",
+                            fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
                     }
@@ -862,7 +862,7 @@ fun JewelryTab(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "مبلغ نهایی و قابل پرداخت",
+                                text = "مبلغ نهایی قابل پرداخت (فروش طلا)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White

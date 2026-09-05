@@ -49,10 +49,11 @@ val GoldExAppColors.goldGradient: Brush
     )
 
 val GoldExAppColors.heroCardGradient: Brush
-    get() = Brush.verticalGradient(
+    get() = Brush.linearGradient(
         listOf(
-            this.goldContainer.copy(alpha = if (isDark) 0.28f else 0.40f),
-            this.surface
+            Color(0xFF141B2B),
+            Color(0xFF1C2436),
+            Color(0xFF141B2B)
         )
     )
 

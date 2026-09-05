@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -38,7 +39,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.R
 import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.data.PortfolioCategory
-import com.goldex.companion.ui.calculator.tabs.*
+import com.goldex.companion.ui.calculator.screens.CoinBubbleScreen
+import com.goldex.companion.ui.calculator.screens.KaratConvertScreen
+import com.goldex.companion.ui.calculator.screens.MeltCalcScreen
+import com.goldex.companion.ui.calculator.tabs.JewelryTab
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.dashboard.DashboardScreen
 import com.goldex.companion.ui.hub.JewelerProfileModal
@@ -51,13 +55,6 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
 
-enum class CalculatorSubTab(val titleFa: String) {
-    JEWELRY("طلا و جواهر"),
-    MELT("مظنه آبشده"),
-    COIN("حباب سکه"),
-    CONVERT("تبدیل عیار")
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GoldCalculatorScreen(
@@ -66,9 +63,6 @@ fun GoldCalculatorScreen(
     val uiState by viewModel.uiState.collectAsState()
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
-
-    // Sub-tab selection for Calculator destination
-    var calcSubTab by remember { mutableStateOf(CalculatorSubTab.JEWELRY) }
 
     // In-App Auto-Update Dialog Prompt
     uiState.updateInfo?.let { info ->
@@ -328,7 +322,6 @@ fun GoldCalculatorScreen(
                                     viewModel = viewModel,
                                     uiState = uiState,
                                     onNavigateCalculator = {
-                                        calcSubTab = CalculatorSubTab.JEWELRY
                                         viewModel.selectTab(AppTab.CALCULATOR)
                                     },
                                     onNavigateInvoices = {
@@ -336,16 +329,13 @@ fun GoldCalculatorScreen(
                                         viewModel.setInvoiceManagerVisible(true)
                                     },
                                     onNavigateConvert = {
-                                        calcSubTab = CalculatorSubTab.CONVERT
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setKaratConvertVisible(true)
                                     },
                                     onNavigateCoinBubble = {
-                                        calcSubTab = CalculatorSubTab.COIN
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setCoinBubbleVisible(true)
                                     },
                                     onNavigateMelt = {
-                                        calcSubTab = CalculatorSubTab.MELT
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setMeltVisible(true)
                                     },
                                     onNavigateLedger = {
                                         viewModel.loadCustomers()
@@ -359,53 +349,14 @@ fun GoldCalculatorScreen(
                                     uiState = uiState,
                                     onRefresh = { viewModel.refreshRates() },
                                     onNavigateCalculator = {
-                                        calcSubTab = CalculatorSubTab.JEWELRY
                                         viewModel.selectTab(AppTab.CALCULATOR)
                                     }
                                 )
                             }
 
                             AppTab.CALCULATOR -> {
-                                // Calculator Destination with Specialized Sub-tabs Segmented Control
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    // Segmented Control Pill Row
-                                    val subTabScrollState = rememberScrollState()
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .horizontalScroll(subTabScrollState),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        CalculatorSubTab.values().forEach { subTab ->
-                                            val isSelected = calcSubTab == subTab
-                                            Surface(
-                                                shape = RoundedCornerShape(10.dp),
-                                                color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surface,
-                                                border = BorderStroke(
-                                                    width = 0.8.dp,
-                                                    color = if (isSelected) colors.goldPrimary else colors.border
-                                                ),
-                                                modifier = Modifier.clickable { calcSubTab = subTab }
-                                            ) {
-                                                Text(
-                                                    text = subTab.titleFa,
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Render selected calculator engine
-                                    when (calcSubTab) {
-                                        CalculatorSubTab.JEWELRY -> JewelryTab(viewModel, uiState)
-                                        CalculatorSubTab.MELT -> MeltTab(viewModel, uiState)
-                                        CalculatorSubTab.COIN -> CoinBubbleTab(viewModel, uiState)
-                                        CalculatorSubTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                                    }
-                                }
+                                // Dedicated Single-Tab: قیراط • ماشین‌حساب تخصصی طلا و جواهر (Stitch ID: 5e8f08bf3eea421a888f20d95c28262c)
+                                JewelryTab(viewModel, uiState)
                             }
 
                             AppTab.INVOICES -> {
@@ -429,8 +380,7 @@ fun GoldCalculatorScreen(
                                         viewModel.setCustomerManagerVisible(true)
                                     },
                                     onNavigateMelt = {
-                                        calcSubTab = CalculatorSubTab.MELT
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setMeltVisible(true)
                                     },
                                     onNavigateWorkshop = {
                                         Toast.makeText(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
@@ -439,12 +389,10 @@ fun GoldCalculatorScreen(
                                         Toast.makeText(context, "سامانه انبارداری و موجودی در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateConvert = {
-                                        calcSubTab = CalculatorSubTab.CONVERT
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setKaratConvertVisible(true)
                                     },
                                     onNavigateCoinBubble = {
-                                        calcSubTab = CalculatorSubTab.COIN
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        viewModel.setCoinBubbleVisible(true)
                                     },
                                     onNavigateInvoices = {
                                         viewModel.loadInvoices()
@@ -480,6 +428,19 @@ fun GoldCalculatorScreen(
             }
         }
 
+        // BackHandler for all sub-screens
+        BackHandler(
+            enabled = uiState.isStandardFormulasVisible ||
+                      uiState.isKaratConvertVisible ||
+                      uiState.isCoinBubbleVisible ||
+                      uiState.isMeltVisible
+        ) {
+            if (uiState.isStandardFormulasVisible) viewModel.setStandardFormulasVisible(false)
+            if (uiState.isKaratConvertVisible) viewModel.setKaratConvertVisible(false)
+            if (uiState.isCoinBubbleVisible) viewModel.setCoinBubbleVisible(false)
+            if (uiState.isMeltVisible) viewModel.setMeltVisible(false)
+        }
+
         // Gold Union Standard Formulas Guide (Stitch Screen ID: 1e8173ae11924cad8cabf7f74a1c042b)
         AnimatedVisibility(
             visible = uiState.isStandardFormulasVisible,
@@ -493,6 +454,48 @@ fun GoldCalculatorScreen(
                     viewModel.setStandardFormulasVisible(false)
                     viewModel.selectTab(AppTab.CALCULATOR)
                 }
+            )
+        }
+
+        // Karat Converter & Lab Settlement Screen (Stitch Screen ID: 3d1b87d2ad7d4d659884f0a454e9aab3)
+        AnimatedVisibility(
+            visible = uiState.isKaratConvertVisible,
+            enter = LuxuryMotion.ScreenPushEnter,
+            exit = LuxuryMotion.ScreenPopExit,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            KaratConvertScreen(
+                viewModel = viewModel,
+                uiState = uiState,
+                onBack = { viewModel.setKaratConvertVisible(false) }
+            )
+        }
+
+        // Coin Bubble Analyzer Screen (Stitch Screen ID: 738122c0846041f986ec5dc86a8bea7c)
+        AnimatedVisibility(
+            visible = uiState.isCoinBubbleVisible,
+            enter = LuxuryMotion.ScreenPushEnter,
+            exit = LuxuryMotion.ScreenPopExit,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            CoinBubbleScreen(
+                viewModel = viewModel,
+                uiState = uiState,
+                onBack = { viewModel.setCoinBubbleVisible(false) }
+            )
+        }
+
+        // Melt Gold Calculator Screen
+        AnimatedVisibility(
+            visible = uiState.isMeltVisible,
+            enter = LuxuryMotion.ScreenPushEnter,
+            exit = LuxuryMotion.ScreenPopExit,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            MeltCalcScreen(
+                viewModel = viewModel,
+                uiState = uiState,
+                onBack = { viewModel.setMeltVisible(false) }
             )
         }
     }

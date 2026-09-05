@@ -104,7 +104,12 @@ data class CalculatorUiState(
     val isJewelerProfileModalVisible: Boolean = false,
 
     // Gold Union Standard Formulas Guide (Stitch ID 1e8173ae11924cad8cabf7f74a1c042b)
-    val isStandardFormulasVisible: Boolean = false
+    val isStandardFormulasVisible: Boolean = false,
+
+    // Supplementary Calculation Tool Screens (Stitch IDs: 3d1b87d2ad7d4d659884f0a454e9aab3 & 738122c0846041f986ec5dc86a8bea7c)
+    val isKaratConvertVisible: Boolean = false,
+    val isCoinBubbleVisible: Boolean = false,
+    val isMeltVisible: Boolean = false
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
@@ -204,6 +209,18 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     fun setStandardFormulasVisible(visible: Boolean) {
         _uiState.update { it.copy(isStandardFormulasVisible = visible) }
+    }
+
+    fun setKaratConvertVisible(visible: Boolean) {
+        _uiState.update { it.copy(isKaratConvertVisible = visible) }
+    }
+
+    fun setCoinBubbleVisible(visible: Boolean) {
+        _uiState.update { it.copy(isCoinBubbleVisible = visible) }
+    }
+
+    fun setMeltVisible(visible: Boolean) {
+        _uiState.update { it.copy(isMeltVisible = visible) }
     }
 
     fun updateJewelerProfile(
