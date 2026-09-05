@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 
 /**
  * Sovereign Aurum Animated Segmented Control.
@@ -77,9 +76,9 @@ fun <T> LuxurySegmentedControl(
 
             // Calculate target offset respecting RTL layout direction
             val targetOffset = if (isRtl) {
-                (itemCount - 1 - selectedIndex) * itemWidth
+                itemWidth * (itemCount - 1 - selectedIndex)
             } else {
-                selectedIndex * itemWidth
+                itemWidth * selectedIndex
             }
 
             val animatedOffset by animateDpAsState(
@@ -125,7 +124,6 @@ fun <T> LuxurySegmentedControl(
                         Text(
                             text = label(item),
                             fontFamily = VazirmatnFamily,
-                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = fontSize,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = animatedTextColor,

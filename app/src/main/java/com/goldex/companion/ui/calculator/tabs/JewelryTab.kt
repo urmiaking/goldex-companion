@@ -242,7 +242,6 @@ fun JewelryTab(
                     Text(
                         text = "عیار ۷۵۰",
                         fontFamily = VazirmatnFamily,
-                        fontFeatureSettings = VazirmatnFeatureSettings,
                         fontSize = 11.5.sp,
                         color = colors.textMuted
                     )
@@ -557,7 +556,6 @@ fun JewelryTab(
                         Text(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.profitPercentInput)}٪",
                             fontFamily = VazirmatnFamily,
-                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -565,7 +563,6 @@ fun JewelryTab(
                         Text(
                             text = "${PersianNumberFormatter.formatPrice(profitAmount)} ت",
                             fontFamily = VazirmatnFamily,
-                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
@@ -684,7 +681,6 @@ fun JewelryTab(
                         Text(
                             text = "${PersianNumberFormatter.toPersianDigits(uiState.taxPercentInput)}٪",
                             fontFamily = VazirmatnFamily,
-                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -692,7 +688,6 @@ fun JewelryTab(
                         Text(
                             text = "${PersianNumberFormatter.formatPrice(taxAmount)} ت",
                             fontFamily = VazirmatnFamily,
-                            fontFeatureSettings = VazirmatnFeatureSettings,
                             fontSize = 10.5.sp,
                             color = colors.textMuted
                         )
@@ -794,7 +789,6 @@ fun JewelryTab(
                     Text(
                         text = "${PersianNumberFormatter.formatWeight(stoneVal)} گرم",
                         fontFamily = VazirmatnFamily,
-                        fontFeatureSettings = VazirmatnFeatureSettings,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
