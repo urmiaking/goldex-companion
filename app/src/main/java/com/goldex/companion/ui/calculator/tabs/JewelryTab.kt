@@ -382,7 +382,6 @@ fun JewelryTab(
                                 Text(
                                     text = "${PersianNumberFormatter.toPersianDigits(uiState.wageInput)}٪",
                                     fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textMain,
@@ -413,7 +412,6 @@ fun JewelryTab(
                                 Text(
                                     text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
                                     fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.goldPrimary
@@ -587,7 +585,6 @@ fun JewelryTab(
                                 Text(
                                     text = label,
                                     fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 11.sp,
                                     fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSel) colors.goldPrimary else colors.textMain,
@@ -1304,7 +1301,6 @@ fun JewelryTab(
                                 Text(
                                     text = "${PersianNumberFormatter.toPersianDigits(chip)}٪",
                                     fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSel) colors.goldPrimary else colors.textMain,
@@ -1451,7 +1447,6 @@ fun JewelryTab(
                                 Text(
                                     text = label,
                                     fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSel) colors.goldPrimary else colors.textMain,
