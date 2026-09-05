@@ -55,8 +55,7 @@ enum class CalculatorSubTab(val titleFa: String) {
     JEWELRY("طلا و جواهر"),
     MELT("مظنه آبشده"),
     COIN("حباب سکه"),
-    CONVERT("تبدیل عیار"),
-    PORTFOLIO("سبد دارایی")
+    CONVERT("تبدیل عیار")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -405,7 +404,6 @@ fun GoldCalculatorScreen(
                                         CalculatorSubTab.MELT -> MeltTab(viewModel, uiState)
                                         CalculatorSubTab.COIN -> CoinBubbleTab(viewModel, uiState)
                                         CalculatorSubTab.CONVERT -> KaratConvertTab(viewModel, uiState)
-                                        CalculatorSubTab.PORTFOLIO -> PortfolioTab(viewModel, uiState)
                                     }
                                 }
                             }
@@ -438,8 +436,7 @@ fun GoldCalculatorScreen(
                                         Toast.makeText(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateInventory = {
-                                        calcSubTab = CalculatorSubTab.PORTFOLIO
-                                        viewModel.selectTab(AppTab.CALCULATOR)
+                                        Toast.makeText(context, "سامانه انبارداری و موجودی در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
                                     },
                                     onNavigateConvert = {
                                         calcSubTab = CalculatorSubTab.CONVERT

@@ -698,6 +698,15 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         calculateConvert()
     }
 
+    fun swapConvertKarats() {
+        _uiState.update {
+            val from = it.convertFromKarat
+            val to = it.convertToKarat
+            it.copy(convertFromKarat = to, convertToKarat = from)
+        }
+        calculateConvert()
+    }
+
     // --- Calculations ---
     private fun calculateAll() {
         calculateJewelry()

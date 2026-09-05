@@ -4,23 +4,20 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,12 +29,13 @@ import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxuryCard
-import com.goldex.companion.ui.components.SectionHeader
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.theme.heroCardGradient
 
+/**
+ * Rebuilt Melt Tab (مظنه آبشده و مثقال) harmonized with Stitch Sovereign Aurum
+ */
 @Composable
 fun MeltTab(
     viewModel: GoldCalculatorViewModel,
@@ -46,14 +44,202 @@ fun MeltTab(
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
 
-    LuxuryCard {
-        SectionHeader(
-            title = "مظنه آبشده و مثقال (فرمول ۱۷ به ۱۸)",
-            subtitle = "محاسبه ارزش طلا بر مبنای مثقال ۴.۶۰۸۳ گرم و تبدیل عیار ۷۰۵ به ۷۵۰",
-            icon = Icons.Default.Build
-        )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // ─── Subheader / Navigation Bar ──────────────────────────────
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(0.8.dp, colors.goldBorder),
+            shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.surfaceElevated)
+                            .border(0.8.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "مظنه آبشده و مثقال بازار",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "فرمول تبدیل ۱۷ به ۱۸ و مثقال ۴.۶۰۸۳ گرم",
+                            fontSize = 10.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
 
-                // Mesghal price input with live badge button
+                // Bind Live Melt Rate
+                Button(
+                    onClick = {
+                        viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString())
+                        Toast.makeText(context, "مظنه زنده آبشده درج شد ✓", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.goldPrimary,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "درج مظنه زنده",
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "مظنه زنده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // ─── 1. Hero Dark Card (ارزش کل قطعه آبشده) ─────────────────
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color.Transparent,
+            border = BorderStroke(0.8.dp, colors.goldBorder),
+            shadowElevation = if (colors.isDark) 0.dp else 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.heroCardGradient)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.profitGreen)
+                        )
+                        Text(
+                            text = "ارزش کل قطعه آبشده ۱۸ عیار",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.goldPrimary.copy(alpha = 0.2f),
+                        border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = "ارزش معاملاتی",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    AnimatedPriceTicker(
+                        text = "${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.goldPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong()) + " تومان",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.75f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Breakdown: Equivalent 18k Gram price
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.Black.copy(alpha = 0.35f),
+                    border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "قیمت معادل هر گرم ۱۸ عیار (مظنه ÷ ۴.۳۳۱۸):",
+                            fontSize = 10.5.sp,
+                            color = Color.White.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(uiState.meltGram18kPrice.toDouble())} تومان",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // ─── 2. Inputs Card ──────────────────────────────────────────
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = colors.surface,
+            border = BorderStroke(0.8.dp, colors.goldBorder),
+            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Mesghal price input
                 GoldInputField(
                     value = uiState.mesghalPriceInput,
                     onValueChange = { viewModel.onMesghalPriceChanged(it) },
@@ -62,71 +248,11 @@ fun MeltTab(
                     useThousandsSeparator = true
                 )
 
-                // Live rate quick bind chip
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = colors.surfaceElevated,
-                    border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.goldBorder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString()) }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(colors.profitGreen)
-                            )
-                            Text(text = "درج مظنه زنده بازار:", fontSize = 11.sp, color = colors.textSecondary)
-                        }
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(uiState.rates.goldMelt.toDouble())} تومان",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary
-                        )
-                    }
-                }
-
-                // Equivalent 18k Gram rate pill
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    border = androidx.compose.foundation.BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("قیمت معادل هر گرم ۱۸ عیار:", fontSize = 12.sp, color = colors.textSecondary)
-                            Text("محاسبه: مظنه ÷ ۴.۳۳۱۸", fontSize = 9.sp, color = colors.textMuted)
-                        }
-                        AnimatedPriceTicker(
-                            text = "${PersianNumberFormatter.formatPrice(uiState.meltGram18kPrice.toDouble())} تومان",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.goldSecondary
-                        )
-                    }
-                }
-
                 // Melt piece weight input
                 GoldInputField(
                     value = uiState.meltWeightInput,
                     onValueChange = { viewModel.onMeltWeightChanged(it) },
-                    label = "وزن قطعه آبشده",
+                    label = "وزن قطعه آبشده (گرم)",
                     trailingText = "گرم",
                     isDecimal = true,
                     useThousandsSeparator = false
@@ -144,105 +270,51 @@ fun MeltTab(
                         "50" to "۵۰ گرم"
                     ).forEach { (weight, label) ->
                         val isSel = PersianNumberFormatter.toEnglishDigits(uiState.meltWeightInput) == weight
-                        Box(
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSel) colors.goldContainer else colors.surfaceElevated,
+                            border = BorderStroke(
+                                if (isSel) 1.dp else 0.5.dp,
+                                if (isSel) colors.goldPrimary else colors.border
+                            ),
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSel) colors.goldContainer else colors.surfaceElevated)
-                                .border(
-                                    if (isSel) 1.dp else 0.5.dp,
-                                    if (isSel) colors.goldPrimary else colors.border,
-                                    RoundedCornerShape(8.dp)
-                                )
                                 .clickable { viewModel.onMeltWeightChanged(weight) }
-                                .padding(vertical = 7.dp),
-                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
                                 fontSize = 10.sp,
-                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSel) colors.goldPrimary else colors.textSecondary
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSel) colors.goldPrimary else colors.textSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 6.dp)
                             )
                         }
                     }
                 }
+            }
+        }
 
-                // Final Lot Value Result (Stitch Sovereign Aurum Box)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(colors.heroCardGradient)
-                        .border(0.8.dp, colors.goldBorder, RoundedCornerShape(14.dp))
-                        .padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "ارزش کل قطعه آبشده ۱۸ عیار", fontSize = 12.sp, color = colors.textSecondary)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(colors.goldPrimary)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(text = "ارزش معاملاتی", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    AnimatedPriceTicker(
-                        text = "${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong()),
-                        fontSize = 11.sp,
-                        color = colors.textMain,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Perforated tear line
-                    Canvas(modifier = Modifier.fillMaxWidth().height(1.dp)) {
-                        drawLine(
-                            color = colors.border,
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
-                            strokeWidth = 1.2f
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clipText = "ارزش قطعه آبشده (${PersianNumberFormatter.toPersianDigits(uiState.meltWeightInput)} گرم): ${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان"
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Melt Value", clipText))
-                            Toast.makeText(context, "ارزش آبشده کپی شد ✓", Toast.LENGTH_SHORT).show()
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary),
-                        border = androidx.compose.foundation.BorderStroke(0.7.dp, colors.goldBorder),
-                        modifier = Modifier.fillMaxWidth().height(38.dp)
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(text = "کپی سریع ارزش آبشده", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
+        // ─── 3. Action Buttons ───────────────────────────────────────
+        Button(
+            onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipText = "ارزش قطعه آبشده (${PersianNumberFormatter.toPersianDigits(uiState.meltWeightInput)} گرم با مظنه ${PersianNumberFormatter.formatPrice(uiState.mesghalPriceInput.toDoubleOrNull() ?: 0.0)} ت): ${PersianNumberFormatter.formatPrice(uiState.meltTotalValue)} تومان"
+                clipboard.setPrimaryClip(ClipData.newPlainText("Melt Value", clipText))
+                Toast.makeText(context, "ارزش آبشده در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.goldPrimary,
+                contentColor = Color.Black
+            )
+        ) {
+            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("کپی نتیجه محاسبه آبشده", fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
