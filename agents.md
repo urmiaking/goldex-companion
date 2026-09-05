@@ -5,9 +5,9 @@
 
 ---
 
-## 1. Core Invariants (The 9 Non-Negotiable Rules)
+## 1. Core Invariants (The 10 Non-Negotiable Rules)
 
-All development, refactoring, and maintenance must strictly adhere to these nine inviolable rules. Any violation will trigger immediate rejection by the Forensic Auditor.
+All development, refactoring, and maintenance must strictly adhere to these ten inviolable rules. Any violation will trigger immediate rejection by the Forensic Auditor.
 
 ### Invariant 1: NO LOCAL GRADLE BUILDS
 - **Rule**: NEVER execute `./gradlew assembleRelease`, `./gradlew build`, `./gradlew test`, or background daemon builds on the user's host PC.
@@ -83,6 +83,19 @@ All development, refactoring, and maintenance must strictly adhere to these nine
 
 ### Invariant 9: CONTINUOUS MARKDOWN & DOCUMENTATION MAINTENANCE
 - **Rule**: The agent is explicitly authorized and required to update relevant markdown (`.md`) files across the repository (including `README.md`, `AGENTS.md`, architecture guides, workflow files in `.agents/workflows/`, and rule definitions in `.agents/rules/`) whenever changes to UI design tokens, navigation, financial formulas, or workflows warrant synchronization.
+
+### Invariant 10: USER-CENTRIC NON-TECHNICAL RELEASE CHANGELOGS
+- **Rule**: NEVER publish or leave a GitHub release with empty notes, raw commit logs, or auto-generated comparison links (`**Full Changelog**: https://...`).
+- **Specifications**:
+  - Every release body MUST be written in simple, non-technical Persian tailored for bazaar goldsmiths and jewelers.
+  - The changelog must highlight visible benefits, new features, and bug fixes in 3 to 5 clean bullet points.
+  - Technical details, PR numbers, commit hashes, and internal code file paths are strictly prohibited.
+- **Enforcement**:
+  - Immediately after the cloud CI workflow creates the release, update the release body using:
+    ```bash
+    gh release edit <tag> --notes "<Persian changelog>"
+    ```
+  - This guarantees that the in-app `UpdateDialog` renders a friendly, meaningful changelog directly to the user.
 
 ---
 

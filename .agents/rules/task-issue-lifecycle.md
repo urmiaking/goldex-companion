@@ -14,10 +14,15 @@ Whenever the user assigns a new task, feature request, or bug fix:
      ```
    - Note the issue number created for reference during the task.
 2. **Task Completion (پایان هر تسک)**:
-   - AFTER the task is implemented, cloud CI build succeeds, and the APK release is published, CLOSE the issue:
-     ```bash
-     gh issue close <issue-number> --comment "<Summary of implementation and release link>"
-     ```
+   - AFTER the task is implemented, cloud CI build succeeds, and the APK release is published:
+     a. **Update GitHub Release Notes**: Ensure the release has a simple, non-technical Persian changelog for in-app display:
+        ```bash
+        gh release edit <tag> --notes "<Persian changelog tailored for goldsmiths>"
+        ```
+     b. **Close GitHub Issue**:
+        ```bash
+        gh issue close <issue-number> --comment "<Summary of implementation and release link>"
+        ```
 
 ## 2. Continuous Markdown & Documentation Maintenance
 After implementing changes in the codebase:
