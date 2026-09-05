@@ -55,7 +55,7 @@ data class PortfolioItem(
     }
 }
 
-class PortfolioRepository(context: Context) {
+class PortfolioRepository(context: Context) : PortfolioStore {
     private val prefs: SharedPreferences = context.getSharedPreferences("goldex_portfolio_prefs", Context.MODE_PRIVATE)
 
     fun getItems(): List<PortfolioItem> {

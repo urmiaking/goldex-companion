@@ -16,7 +16,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-object GoldMarketRepository {
+object GoldMarketRepository : MarketRatesStore {
     private val _rates = MutableStateFlow(MarketRates())
     val rates: StateFlow<MarketRates> = _rates.asStateFlow()
 

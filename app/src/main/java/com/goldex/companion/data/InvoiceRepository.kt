@@ -6,7 +6,7 @@ import com.goldex.companion.model.*
 import org.json.JSONArray
 import org.json.JSONObject
 
-class InvoiceRepository(context: Context) {
+class InvoiceRepository(context: Context) : InvoiceStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("qirat_invoices_prefs", Context.MODE_PRIVATE)
 

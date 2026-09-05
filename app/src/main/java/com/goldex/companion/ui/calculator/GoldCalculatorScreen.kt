@@ -51,6 +51,7 @@ import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
 import com.goldex.companion.ui.rates.LiveRatesScreen
+import com.goldex.companion.ui.rates.MarketRatesUiState
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
@@ -319,8 +320,11 @@ fun GoldCalculatorScreen(
                         when (destination) {
                             AppTab.HOME -> {
                                 DashboardScreen(
-                                    viewModel = viewModel,
-                                    uiState = uiState,
+                                    uiState = DashboardUiState(
+                                        appSettings = uiState.appSettings,
+                                        rates = uiState.rates,
+                                        savedInvoiceCount = uiState.savedInvoices.size
+                                    ),
                                     onNavigateCalculator = {
                                         viewModel.selectTab(AppTab.CALCULATOR)
                                     },
@@ -346,7 +350,10 @@ fun GoldCalculatorScreen(
 
                             AppTab.RATES -> {
                                 LiveRatesScreen(
-                                    uiState = uiState,
+                                    uiState = MarketRatesUiState(
+                                        rates = uiState.rates,
+                                        isRefreshing = uiState.isRefreshingRates
+                                    ),
                                     onRefresh = { viewModel.refreshRates() },
                                     onNavigateCalculator = {
                                         viewModel.selectTab(AppTab.CALCULATOR)

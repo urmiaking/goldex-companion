@@ -6,7 +6,7 @@ import com.goldex.companion.model.Customer
 import org.json.JSONArray
 import org.json.JSONObject
 
-class CustomerRepository(context: Context) {
+class CustomerRepository(context: Context) : CustomerStore {
     private val prefs: SharedPreferences = context.getSharedPreferences("goldex_customers_prefs", Context.MODE_PRIVATE)
 
     fun getCustomers(): List<Customer> {

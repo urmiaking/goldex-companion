@@ -32,8 +32,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -46,8 +44,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  */
 @Composable
 fun DashboardScreen(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
+    uiState: DashboardUiState,
     onNavigateCalculator: () -> Unit,
     onNavigateInvoices: () -> Unit,
     onNavigateConvert: () -> Unit,
@@ -646,7 +643,7 @@ fun DashboardScreen(
                 }
 
                 Text(
-                    text = "مشاهده همه (${uiState.savedInvoices.size.coerceAtLeast(3)})",
+                    text = "مشاهده همه (${uiState.savedInvoiceCount.coerceAtLeast(3)})",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.goldPrimary,

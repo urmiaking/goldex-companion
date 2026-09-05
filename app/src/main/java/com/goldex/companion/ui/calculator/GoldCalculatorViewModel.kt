@@ -16,6 +16,7 @@ import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.data.PriceSource
 import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.UpdateInfo
+import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.model.*
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -130,10 +131,11 @@ data class CalculatorUiState(
 )
 
 class GoldCalculatorViewModel(application: Application) : AndroidViewModel(application) {
-    private val customerRepository = CustomerRepository(application.applicationContext)
-    private val portfolioRepository = PortfolioRepository(application.applicationContext)
-    private val settingsRepository = SettingsRepository(application.applicationContext)
-    private val invoiceRepository = InvoiceRepository(application.applicationContext)
+    private val customerRepository: CustomerStore = CustomerRepository(application.applicationContext)
+    private val portfolioRepository: PortfolioStore = PortfolioRepository(application.applicationContext)
+    private val settingsRepository: SettingsStore = SettingsRepository(application.applicationContext)
+    private val invoiceRepository: InvoiceStore = InvoiceRepository(application.applicationContext)
+    private val marketRatesRepository: MarketRatesStore = GoldMarketRepository
     private val networkMonitor = NetworkMonitor(application.applicationContext)
 
     private val _uiState = MutableStateFlow(CalculatorUiState())
@@ -162,7 +164,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
             )
         }
         viewModelScope.launch {
-            GoldMarketRepository.setSource(s.priceSource)
+            marketRatesRepository.setSource(s.priceSource)
         }
     }
 
@@ -177,7 +179,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
             )
         }
         viewModelScope.launch {
-            GoldMarketRepository.setSource(newSettings.priceSource)
+            marketRatesRepository.setSource(newSettings.priceSource)
         }
         calculateAll()
     }
@@ -311,7 +313,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
             try {
-                val updated = GoldMarketRepository.refreshRates()
+                val updated = marketRatesRepository.refreshRates()
                 applyFetchedRates(updated)
             } catch (_: Exception) {
             } finally {
@@ -329,7 +331,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
             try {
-                val rates = GoldMarketRepository.refreshRates()
+                val rates = marketRatesRepository.refreshRates()
                 applyFetchedRates(rates)
             } catch (_: Exception) {
             } finally {
@@ -343,7 +345,7 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true, connectionStatus = ConnectionStatus.CONNECTING) }
             try {
-                val updated = GoldMarketRepository.refreshRates()
+                val updated = marketRatesRepository.refreshRates()
                 applyFetchedRates(updated)
             } catch (_: Exception) {
             } finally {
@@ -356,8 +358,8 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
     fun togglePriceSource() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshingRates = true) }
-            GoldMarketRepository.cycleSource()
-            val updated = GoldMarketRepository.rates.value
+            marketRatesRepository.cycleSource()
+            val updated = marketRatesRepository.rates.value
             applyFetchedRates(updated)
         }
     }
@@ -818,42 +820,21 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         val state = _uiState.value
         val gross = PersianNumberFormatter.parsePersianOrEnglish(state.grossWeightInput) ?: 0.0
         val stone = PersianNumberFormatter.parsePersianOrEnglish(state.stoneWeightInput) ?: 0.0
-        val net = (gross - stone).coerceAtLeast(0.0)
         val spot18 = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L
         val wageVal = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0
         val profitPercent = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0
         val taxPercent = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0
 
         val words = if (spot18 > 0) PersianWordsFormatter.toWords(spot18) else ""
-
-        if (net <= 0.0 || spot18 <= 0L) {
-            _uiState.update { it.copy(jewelryResult = null, priceInWords = words) }
-            return
-        }
-
-        val pureGramSpot = spot18.toDouble() / (18.0 / 24.0)
-        val rawValue = net * state.selectedKarat.purityRatio * pureGramSpot
-
-        val wageAmount = when (state.wageType) {
-            WageType.PERCENTAGE -> rawValue * (wageVal / 100.0)
-            WageType.TOMAN_PER_GRAM -> net * wageVal
-        }
-
-        val profitAmount = (rawValue + wageAmount) * (profitPercent / 100.0)
-        val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0)
-        val totalPayable = rawValue + wageAmount + profitAmount + taxAmount
-        val effectivePrice = if (net > 0) totalPayable / net else 0.0
-
-        val result = DetailedJewelryResult(
+        val result = GoldCalculationUseCases.calculateJewelry(
             grossWeight = gross,
             stoneWeight = stone,
-            netWeight = net,
-            rawGoldValue = rawValue,
-            wageAmount = wageAmount,
-            profitAmount = profitAmount,
-            taxAmount = taxAmount,
-            totalPayable = totalPayable,
-            effectiveGramPrice = effectivePrice
+            karat = state.selectedKarat,
+            spotPrice18k = spot18,
+            wageType = state.wageType,
+            wageInput = wageVal,
+            profitPercent = profitPercent,
+            taxPercent = taxPercent
         )
 
         _uiState.update { it.copy(jewelryResult = result, priceInWords = words) }
@@ -863,30 +844,18 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
         val state = _uiState.value
         val mesghal = PersianNumberFormatter.parsePersianOrEnglish(state.mesghalPriceInput) ?: 0.0
         val weight = PersianNumberFormatter.parsePersianOrEnglish(state.meltWeightInput) ?: 0.0
-        val gram18k = (mesghal / 4.33185).toLong()
-        val total = (gram18k * weight)
-        _uiState.update { it.copy(meltGram18kPrice = gram18k, meltTotalValue = total) }
+        val result = GoldCalculationUseCases.calculateMelt(mesghal, weight)
+        _uiState.update { it.copy(meltGram18kPrice = result.gram18kPrice, meltTotalValue = result.totalValue) }
     }
 
     private fun calculateCoin() {
         val state = _uiState.value
         val marketPrice = PersianNumberFormatter.parsePersianOrEnglish(state.coinMarketPriceInput) ?: 0.0
-        val coin = state.selectedCoin
-        val pureWeight = coin.pureWeightGrams
-
-        val usd = state.rates.usd.toDouble()
-        val ons = state.rates.ons
-        val gram24Price = (ons * usd) / 31.1035
-        val intrinsic = (pureWeight * gram24Price) + coin.mintFee
-        val bubble = marketPrice - intrinsic
-        val bubblePercent = if (intrinsic > 0) (bubble / intrinsic) * 100.0 else 0.0
-
-        val result = CoinBubbleResult(
-            coinType = coin,
+        val result = GoldCalculationUseCases.calculateCoinBubble(
+            coin = state.selectedCoin,
             marketPrice = marketPrice,
-            intrinsicValue = intrinsic,
-            bubbleAmount = bubble,
-            bubblePercent = bubblePercent
+            usd = state.rates.usd,
+            ounce = state.rates.ons
         )
         _uiState.update { it.copy(coinBubbleResult = result) }
     }
@@ -894,9 +863,11 @@ class GoldCalculatorViewModel(application: Application) : AndroidViewModel(appli
     private fun calculateConvert() {
         val state = _uiState.value
         val weight = PersianNumberFormatter.parsePersianOrEnglish(state.convertWeightInput) ?: 0.0
-        val fromRatio = state.convertFromKarat.purityRatio
-        val toRatio = state.convertToKarat.purityRatio
-        val converted = if (toRatio > 0) weight * (fromRatio / toRatio) else 0.0
+        val converted = GoldCalculationUseCases.calculateKaratConversion(
+            weight = weight,
+            from = state.convertFromKarat,
+            to = state.convertToKarat
+        )
         _uiState.update { it.copy(convertedWeight = converted) }
     }
 }

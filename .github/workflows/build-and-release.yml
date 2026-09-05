@@ -28,6 +28,9 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
+      - name: Run Unit Tests
+        run: ./gradlew test --stacktrace
+
       - name: Build Release APK
         run: |
           set -e -o pipefail
@@ -61,5 +64,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/*.apk
-          generate_release_notes: true
+          body: |
+            - معماری داخلی برنامه برای توسعه مرحله‌ای و پایدار آماده شد.
+            - محاسبات طلا، آبشده، حباب سکه و تبدیل عیار ساختاریافته‌تر و قابل تست شدند.
+            - داشبورد، تابلو مظنه و سبد دارایی با قراردادهای مستقل‌تر کار می‌کنند.
+            - رفتار ظاهری، اطلاعات ذخیره‌شده و طراحی فارسی برنامه حفظ شده است.
           name: "قیراط (Qirat) ${{ github.ref_name }}"

@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.dashboard.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
@@ -45,7 +44,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  */
 @Composable
 fun LiveRatesScreen(
-    uiState: CalculatorUiState,
+    uiState: MarketRatesUiState,
     onRefresh: () -> Unit,
     onNavigateCalculator: () -> Unit
 ) {
@@ -139,7 +138,7 @@ fun LiveRatesScreen(
                         tint = colors.goldPrimary,
                         modifier = Modifier
                             .size(16.dp)
-                            .then(if (uiState.isRefreshingRates) Modifier.rotate(rotation) else Modifier)
+                            .then(if (uiState.isRefreshing) Modifier.rotate(rotation) else Modifier)
                     )
                 }
             }

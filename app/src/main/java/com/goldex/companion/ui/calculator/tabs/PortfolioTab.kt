@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.model.CoinType
@@ -31,6 +30,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.calculator.CalculatorUiState
 import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.domain.portfolio.PortfolioValuation
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
@@ -63,16 +63,9 @@ private val PortfolioCoinVector: ImageVector = ImageVector.Builder(
 
 @Composable
 fun PortfolioTab(
-    uiState: CalculatorUiState
-) {
-    val vm: GoldCalculatorViewModel = viewModel()
-    PortfolioTab(viewModel = vm, uiState = uiState)
-}
-
-@Composable
-fun PortfolioTab(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState
+    uiState: CalculatorUiState,
+    onAddPortfolioItem: (PortfolioItem) -> Unit,
+    onDeletePortfolioItem: (String) -> Unit
 ) {
     val colors = LocalGoldExColors.current
     var showAddDialog by remember { mutableStateOf(false) }
@@ -80,10 +73,11 @@ fun PortfolioTab(
     // Use unified portfolio items from ViewModel StateFlow
     val items = uiState.portfolioItems
 
-    val totalCurrentVal = items.sumOf { it.calculateCurrentValue(uiState.rates) }
-    val totalPurchaseVal = items.sumOf { it.purchasePriceTotal }
-    val totalProfit = totalCurrentVal - totalPurchaseVal
-    val totalProfitPercent = if (totalPurchaseVal > 0) (totalProfit.toDouble() / totalPurchaseVal.toDouble()) * 100.0 else 0.0
+    val summary = PortfolioValuation.summarize(items, uiState.rates)
+    val totalCurrentVal = summary.currentValue
+    val totalPurchaseVal = summary.purchaseValue
+    val totalProfit = summary.profit
+    val totalProfitPercent = summary.profitPercent
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // Hero Portfolio Summary Card (Stitch Sovereign Aurum with LuxuryCard & SectionHeader)
@@ -265,7 +259,7 @@ fun PortfolioTab(
 
                     IconButton(
                         onClick = {
-                            viewModel.deletePortfolioItem(item.id)
+                            onDeletePortfolioItem(item.id)
                         },
                         modifier = Modifier.size(28.dp)
                     ) {
@@ -316,7 +310,7 @@ fun PortfolioTab(
             rates = uiState.rates,
             onDismiss = { showAddDialog = false },
             onConfirm = { newItem ->
-                viewModel.addPortfolioItem(newItem)
+                onAddPortfolioItem(newItem)
                 showAddDialog = false
             }
         )

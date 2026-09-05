@@ -22,7 +22,7 @@ data class AppSettings(
     val isBiometricLockEnabled: Boolean = true
 )
 
-class SettingsRepository(context: Context) {
+class SettingsRepository(context: Context) : SettingsStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("qirat_settings_prefs", Context.MODE_PRIVATE)
 
