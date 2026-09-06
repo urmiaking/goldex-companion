@@ -25,6 +25,10 @@ val hasReleaseSigningConfig = !releaseStoreFilePath.isNullOrBlank()
     && !releaseKeyAlias.isNullOrBlank()
     && !releaseKeyPassword.isNullOrBlank()
 
+if (System.getenv("CI") == "true" && !hasReleaseSigningConfig) {
+    throw GradleException("Release signing is not configured in CI; refusing to produce an unsigned APK")
+}
+
 android {
     namespace = "com.goldex.companion"
     compileSdk = 34
