@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import com.goldex.companion.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -364,6 +368,36 @@ fun SettingsDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Brand Signature Footer (QIRATO English Wordmark & Tagline)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.text_english),
+                        contentDescription = "QIRATO",
+                        modifier = Modifier.height(20.dp)
+                    )
+                    Text(
+                        text = "اپلیکیشن هوشمند مدیریت و حسابداری طلافروشان",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textMuted
+                    )
+                    Text(
+                        text = "PRO EDITION • VERSION 2.4.0",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = colors.goldPrimary.copy(alpha = 0.75f)
+                    )
+                }
             }
         }
     }

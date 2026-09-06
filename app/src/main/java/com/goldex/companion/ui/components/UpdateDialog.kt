@@ -3,9 +3,12 @@ package com.goldex.companion.ui.components
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.res.painterResource
+import com.goldex.companion.R
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,7 +90,7 @@ fun UpdateDialog(
                     // Header Icon Badge
                     Box(
                         modifier = Modifier
-                            .size(60.dp)
+                            .size(64.dp)
                             .background(
                                 brush = Brush.linearGradient(
                                     listOf(colors.goldContainer, colors.surfaceElevated)
@@ -97,11 +100,10 @@ fun UpdateDialog(
                             .border(BorderStroke(1.dp, colors.goldBorder), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "بروزرسانی نرم‌افزار",
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(30.dp)
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_logo_raw),
+                            contentDescription = "نشان قیراط",
+                            modifier = Modifier.size(44.dp)
                         )
                     }
 

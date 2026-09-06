@@ -1,6 +1,7 @@
 package com.goldex.companion.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.painterResource
+import com.goldex.companion.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -1063,33 +1066,31 @@ fun LuxuryDrawerSheetContent(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(colors.goldContainer)
-                                    .border(0.6.dp, colors.goldBorder, RoundedCornerShape(8.dp)),
+                                    .size(34.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF0F141C))
+                                    .border(0.6.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "ق",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 17.sp,
-                                    color = colors.goldPrimary
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_logo_raw),
+                                    contentDescription = "نشان قیراط",
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
 
                             Column {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(
-                                        text = "قیراط",
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
-                                        color = colors.textMain
+                                    Image(
+                                        painter = painterResource(id = R.drawable.text_persian),
+                                        contentDescription = "قیراط",
+                                        modifier = Modifier.height(18.dp)
                                     )
                                     Text(
-                                        text = "QIRAT",
+                                        text = "QIRATO",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 9.sp,
                                         color = colors.goldPrimary,

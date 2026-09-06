@@ -2,6 +2,7 @@ package com.goldex.companion.ui.main
 
 import android.app.Application
 import android.widget.Toast
+import com.goldex.companion.ui.components.QiratoToast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -142,7 +143,7 @@ fun MainScreen(
             onSave = { profit, tax, wageType ->
                 settingsViewModel.updateTaxAndProfit(profit, tax, wageType)
                 mainViewModel.applySettingsDefaults(profit, tax, wageType)
-                Toast.makeText(context, "سود مصوب و مالیات با موفقیت ذخیره شد", Toast.LENGTH_SHORT).show()
+                QiratoToast.show(context, "سود مصوب و مالیات با موفقیت ذخیره شد")
             }
         )
     }
@@ -155,7 +156,7 @@ fun MainScreen(
             onSave = { source, autoSync ->
                 settingsViewModel.updatePriceSource(source, autoSync)
                 mainViewModel.updatePriceSource(source, autoSync)
-                Toast.makeText(context, "مرجع قیمت‌ها با موفقیت همگام‌سازی شد", Toast.LENGTH_SHORT).show()
+                QiratoToast.show(context, "مرجع قیمت‌ها با موفقیت همگام‌سازی شد")
             }
         )
     }
@@ -177,7 +178,7 @@ fun MainScreen(
             onDismiss = { settingsViewModel.setJewelerProfileModalVisible(false) },
             onSaveProfile = { galleryName, managerName, unionCode, phone, address ->
                 settingsViewModel.updateJewelerProfile(galleryName, managerName, unionCode, phone, address)
-                Toast.makeText(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد", Toast.LENGTH_SHORT).show()
+                QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
             }
         )
     }
@@ -207,26 +208,24 @@ fun MainScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Image(
-                                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                            painter = painterResource(id = R.drawable.ic_logo_raw),
                                             contentDescription = "آیکن برنامه قیراط",
-                                            modifier = Modifier.size(34.dp)
+                                            modifier = Modifier.size(30.dp)
                                         )
                                     }
 
                                     Column(
-                                        modifier = Modifier.padding(top = 3.dp),
-                                        verticalArrangement = Arrangement.spacedBy((-2).dp)
+                                        modifier = Modifier.padding(top = 2.dp),
+                                        verticalArrangement = Arrangement.spacedBy(1.dp)
                                     ) {
-                                        Text(
-                                            text = "قیراط",
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 17.5.sp,
-                                            lineHeight = 22.sp,
-                                            color = colors.textMain
+                                        Image(
+                                            painter = painterResource(id = R.drawable.text_persian),
+                                            contentDescription = "قیراط",
+                                            modifier = Modifier.height(23.dp)
                                         )
                                         Text(
                                             text = "دستیار جامع محاسبات و فاکتور طلا",
-                                            fontSize = 10.sp,
+                                            fontSize = 9.5.sp,
                                             lineHeight = 12.sp,
                                             fontWeight = FontWeight.Medium,
                                             color = colors.textMuted
@@ -251,11 +250,10 @@ fun MainScreen(
                                     border = BorderStroke(0.6.dp, colors.goldBorder),
                                     shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
                                     onClick = {
-                                        Toast.makeText(
+                                        QiratoToast.show(
                                             context,
-                                            "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                            "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است"
+                                        )
                                     }
                                 ) {
                                     Box(
@@ -427,10 +425,10 @@ fun MainScreen(
                                             mainViewModel.setMeltVisible(true)
                                         },
                                         onNavigateWorkshop = {
-                                            Toast.makeText(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
+                                            QiratoToast.show(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد")
                                         },
                                         onNavigateInventory = {
-                                            Toast.makeText(context, "سامانه انبارداری و موجودی در فاز ۴ فعال خواهد شد", Toast.LENGTH_SHORT).show()
+                                            QiratoToast.show(context, "سامانه انبارداری و موجودی در فاز ۴ فعال خواهد شد")
                                         },
                                         onNavigateConvert = {
                                             mainViewModel.setKaratConvertVisible(true)
