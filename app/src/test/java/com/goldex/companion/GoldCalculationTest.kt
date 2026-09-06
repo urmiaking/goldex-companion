@@ -89,6 +89,7 @@ class GoldCalculationTest {
         val bubble = marketPrice - intrinsic
 
         assertTrue(intrinsic > 200_000_000.0)
+        assertTrue(bubble > 0.0)
     }
 
     @Test

@@ -28,7 +28,8 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 
 ## 2. Build and verification policy
 
-- Do not run local Gradle builds or tests on the constrained host.
+- Before triggering GitHub Actions CI, run a local compile-only check using the fastest available Gradle task (e.g., `./gradlew compileDebugKotlin`) to catch syntax and compilation errors early.
+- Do not run full Gradle builds, test suites, or APK assembly on the local machine. Those remain CI-only.
 - Compilation, unit tests, instrumentation tests, APK assembly, signing, and release verification run in GitHub Actions.
 - The workflow source of truth is `.github/workflows/build-and-release.yml`.
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.

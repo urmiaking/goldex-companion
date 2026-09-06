@@ -1,7 +1,29 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+val releaseStoreFilePath = System.getenv("GOLD_EX_RELEASE_STORE_FILE")
+    ?: localProperties.getProperty("goldex.release.storeFile")
+val releaseStorePassword = System.getenv("GOLD_EX_RELEASE_STORE_PASSWORD")
+    ?: localProperties.getProperty("goldex.release.storePassword")
+val releaseKeyAlias = System.getenv("GOLD_EX_RELEASE_KEY_ALIAS")
+    ?: localProperties.getProperty("goldex.release.keyAlias")
+val releaseKeyPassword = System.getenv("GOLD_EX_RELEASE_KEY_PASSWORD")
+    ?: localProperties.getProperty("goldex.release.keyPassword")
+val hasReleaseSigningConfig = !releaseStoreFilePath.isNullOrBlank()
+    && !releaseStorePassword.isNullOrBlank()
+    && !releaseKeyAlias.isNullOrBlank()
+    && !releaseKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.goldex.companion"
@@ -11,8 +33,8 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 38
-        versionName = "0.13.6"
+        versionCode = 41
+        versionName = "0.13.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -20,12 +42,14 @@ android {
         }
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file("keystore/goldex-release.keystore")
-            storePassword = "goldexcompanion"
-            keyAlias = "goldex"
-            keyPassword = "goldexcompanion"
+    if (hasReleaseSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFilePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
@@ -36,7 +60,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -69,6 +95,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("org.json:json:20240303")
 
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")

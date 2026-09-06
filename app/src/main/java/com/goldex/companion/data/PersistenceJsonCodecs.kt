@@ -16,16 +16,16 @@ internal object PersistenceJsonCodecs {
             val customers = mutableListOf<Customer>()
             for (index in 0 until array.length()) {
                 val obj = array.optJSONObject(index) ?: continue
-                val id = obj.optString("id", "").trim()
-                val name = obj.optString("name", "").trim()
+                val id = obj.stringValue("id").trim()
+                val name = obj.stringValue("name").trim()
                 if (id.isEmpty() || name.isEmpty()) continue
                 customers += Customer(
                     id = id,
                     name = name,
-                    phone = obj.optString("phone", ""),
-                    nationalId = obj.optString("nationalId", ""),
-                    note = obj.optString("note", ""),
-                    createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                    phone = obj.stringValue("phone"),
+                    nationalId = obj.stringValue("nationalId"),
+                    note = obj.stringValue("note"),
+                    createdAt = obj.longValue("createdAt", System.currentTimeMillis())
                     )
             }
             customers
@@ -54,24 +54,24 @@ internal object PersistenceJsonCodecs {
             val items = mutableListOf<PortfolioItem>()
             for (index in 0 until array.length()) {
                 val obj = array.optJSONObject(index) ?: continue
-                val id = obj.optString("id", "").trim()
-                val title = obj.optString("title", "").trim()
+                val id = obj.stringValue("id").trim()
+                val title = obj.stringValue("title").trim()
                 if (id.isEmpty() || title.isEmpty()) continue
-                val category = enumOrDefault(obj.optString("category"), PortfolioCategory.GOLD)
-                val karat = enumOrDefault(obj.optString("karat"), Karat.K18)
-                val coinType = obj.optString("coinType", "")
+                val category = enumOrDefault(obj.stringValue("category"), PortfolioCategory.GOLD)
+                val karat = enumOrDefault(obj.stringValue("karat"), Karat.K18)
+                val coinType = obj.stringValue("coinType")
                     .takeIf { it.isNotBlank() }
                     ?.let { value -> runCatching { com.goldex.companion.model.CoinType.valueOf(value) }.getOrNull() }
                 items += PortfolioItem(
                     id = id,
                     title = title,
                     category = category,
-                    weightGrams = obj.optDouble("weightGrams", 0.0),
+                    weightGrams = obj.doubleValue("weightGrams", 0.0),
                     karat = karat,
-                    quantity = obj.optInt("quantity", 1),
+                    quantity = obj.intValue("quantity", 1),
                     coinType = coinType,
-                    purchasePriceTotal = obj.optLong("purchasePriceTotal", 0L),
-                    purchaseDate = obj.optString("purchaseDate", "")
+                    purchasePriceTotal = obj.longValue("purchasePriceTotal", 0L),
+                    purchaseDate = obj.stringValue("purchaseDate")
                     )
             }
             items
@@ -105,21 +105,21 @@ internal object PersistenceJsonCodecs {
                 val obj = array.optJSONObject(index) ?: continue
                 val customer = obj.optJSONObject("customer")?.let { customerObj ->
                     Customer(
-                        id = customerObj.optString("id", ""),
-                        name = customerObj.optString("name", "مشتری"),
-                        phone = customerObj.optString("phone", ""),
-                        nationalId = customerObj.optString("nationalId", ""),
-                        note = customerObj.optString("note", "")
+                        id = customerObj.stringValue("id"),
+                        name = customerObj.stringValue("name", "مشتری"),
+                        phone = customerObj.stringValue("phone"),
+                        nationalId = customerObj.stringValue("nationalId"),
+                        note = customerObj.stringValue("note")
                     )
                 }
                 val items = decodeInvoiceItems(obj.optJSONArray("items"))
                 invoices += Invoice(
-                    id = obj.optString("id", ""),
-                    invoiceNumber = obj.optString("invoiceNumber", ""),
-                    createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                    id = obj.stringValue("id"),
+                    invoiceNumber = obj.stringValue("invoiceNumber"),
+                    createdAt = obj.longValue("createdAt", System.currentTimeMillis()),
                     customer = customer,
                     items = items,
-                    note = obj.optString("note", "")
+                    note = obj.stringValue("note")
                 )
             }
             invoices
@@ -155,23 +155,23 @@ internal object PersistenceJsonCodecs {
         for (index in 0 until array.length()) {
             val obj = array.optJSONObject(index) ?: continue
             items += InvoiceItem(
-                id = obj.optString("id", ""),
-                title = obj.optString("title", "قطعه طلا"),
-                karat = enumOrDefault(obj.optString("karat"), Karat.K18),
-                grossWeight = obj.optDouble("grossWeight", 0.0),
-                stoneWeight = obj.optDouble("stoneWeight", 0.0),
-                netWeight = obj.optDouble("netWeight", 0.0),
-                spotPrice = obj.optLong("spotPrice", 0L),
-                wageType = enumOrDefault(obj.optString("wageType"), WageType.PERCENTAGE),
-                wageInput = obj.optDouble("wageInput", 0.0),
-                wageAmount = obj.optDouble("wageAmount", 0.0),
-                profitPercent = obj.optDouble("profitPercent", 0.0),
-                profitAmount = obj.optDouble("profitAmount", 0.0),
-                taxPercent = obj.optDouble("taxPercent", 0.0),
-                taxAmount = obj.optDouble("taxAmount", 0.0),
-                rawGoldValue = obj.optDouble("rawGoldValue", 0.0),
-                totalPayable = obj.optDouble("totalPayable", 0.0),
-                effectiveGramPrice = obj.optDouble("effectiveGramPrice", 0.0)
+                id = obj.stringValue("id"),
+                title = obj.stringValue("title", "قطعه طلا"),
+                karat = enumOrDefault(obj.stringValue("karat"), Karat.K18),
+                grossWeight = obj.doubleValue("grossWeight", 0.0),
+                stoneWeight = obj.doubleValue("stoneWeight", 0.0),
+                netWeight = obj.doubleValue("netWeight", 0.0),
+                spotPrice = obj.longValue("spotPrice", 0L),
+                wageType = enumOrDefault(obj.stringValue("wageType"), WageType.PERCENTAGE),
+                wageInput = obj.doubleValue("wageInput", 0.0),
+                wageAmount = obj.doubleValue("wageAmount", 0.0),
+                profitPercent = obj.doubleValue("profitPercent", 0.0),
+                profitAmount = obj.doubleValue("profitAmount", 0.0),
+                taxPercent = obj.doubleValue("taxPercent", 0.0),
+                taxAmount = obj.doubleValue("taxAmount", 0.0),
+                rawGoldValue = obj.doubleValue("rawGoldValue", 0.0),
+                totalPayable = obj.doubleValue("totalPayable", 0.0),
+                effectiveGramPrice = obj.doubleValue("effectiveGramPrice", 0.0)
                 )
         }
         return items
@@ -205,5 +205,17 @@ internal object PersistenceJsonCodecs {
 
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, default: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(default)
+
+    private fun JSONObject.stringValue(key: String, default: String = ""): String =
+        optString(key).takeUnless { it == "" || it == "null" } ?: default
+
+    private fun JSONObject.longValue(key: String, default: Long): Long =
+        opt(key)?.toString()?.toLongOrNull() ?: default
+
+    private fun JSONObject.intValue(key: String, default: Int): Int =
+        opt(key)?.toString()?.toIntOrNull() ?: default
+
+    private fun JSONObject.doubleValue(key: String, default: Double): Double =
+        opt(key)?.toString()?.toDoubleOrNull() ?: default
 
 }
