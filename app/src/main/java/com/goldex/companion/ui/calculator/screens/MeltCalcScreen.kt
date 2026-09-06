@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.calculator.*
@@ -36,6 +37,14 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
+
+data class MeltUiState(
+    val meltWeightInput: String = "10",
+    val mesghalPriceInput: String = "101500000",
+    val meltGram18kPrice: Long = 23431000L,
+    val meltTotalValue: Double = 0.0,
+    val rates: MarketRates = MarketRates()
+)
 
 data class MeltSummary(
     val weightGrams: Double,
@@ -50,8 +59,9 @@ data class MeltSummary(
  */
 @Composable
 fun MeltCalcScreen(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
+    uiState: MeltUiState,
+    onMeltWeightChanged: (String) -> Unit,
+    onMesghalPriceChanged: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -137,7 +147,7 @@ fun MeltCalcScreen(
                             text = "مظنه زنده",
                             icon = CalcSync,
                             onClick = {
-                                viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString())
+                                onMesghalPriceChanged(uiState.rates.goldMelt.toString())
                                 Toast.makeText(context, "مظنه زنده آبشده درج شد ✓", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.height(36.dp)
@@ -357,7 +367,7 @@ fun MeltCalcScreen(
 
                         GoldInputField(
                             value = uiState.meltWeightInput,
-                            onValueChange = { viewModel.onMeltWeightChanged(it) },
+                            onValueChange = { onMeltWeightChanged(it) },
                             label = "وزن آبشده بر حسب گرم",
                             trailingText = "گرم",
                             isDecimal = true,
@@ -379,7 +389,7 @@ fun MeltCalcScreen(
                                         .clickable {
                                             val current = PersianNumberFormatter.parsePersianOrEnglish(uiState.meltWeightInput) ?: 0.0
                                             val next = current + step
-                                            viewModel.onMeltWeightChanged(
+                                            onMeltWeightChanged(
                                                 if (next % 1.0 == 0.0) next.toLong().toString() else next.toString()
                                             )
                                         }
@@ -441,7 +451,7 @@ fun MeltCalcScreen(
                                     color = colors.profitGreen.copy(alpha = 0.12f),
                                     border = BorderStroke(0.5.dp, colors.profitGreen.copy(alpha = 0.4f)),
                                     modifier = Modifier.clickable {
-                                        viewModel.onMesghalPriceChanged(uiState.rates.goldMelt.toString())
+                                        onMesghalPriceChanged(uiState.rates.goldMelt.toString())
                                     }
                                 ) {
                                     Text(
@@ -457,7 +467,7 @@ fun MeltCalcScreen(
 
                         GoldInputField(
                             value = uiState.mesghalPriceInput,
-                            onValueChange = { viewModel.onMesghalPriceChanged(it) },
+                            onValueChange = { onMesghalPriceChanged(it) },
                             label = "قیمت یک مثقال طلای ۱۷ عیار",
                             trailingText = "تومان",
                             useThousandsSeparator = true

@@ -27,9 +27,8 @@ import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.PersianWordsFormatter
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
 import com.goldex.companion.domain.portfolio.PortfolioValuation
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
@@ -63,7 +62,8 @@ private val PortfolioCoinVector: ImageVector = ImageVector.Builder(
 
 @Composable
 fun PortfolioTab(
-    uiState: CalculatorUiState,
+    portfolioItems: List<PortfolioItem>,
+    rates: MarketRates,
     onAddPortfolioItem: (PortfolioItem) -> Unit,
     onDeletePortfolioItem: (String) -> Unit
 ) {
@@ -71,9 +71,9 @@ fun PortfolioTab(
     var showAddDialog by remember { mutableStateOf(false) }
 
     // Use unified portfolio items from ViewModel StateFlow
-    val items = uiState.portfolioItems
+    val items = portfolioItems
 
-    val summary = PortfolioValuation.summarize(items, uiState.rates)
+    val summary = PortfolioValuation.summarize(items, rates)
     val totalCurrentVal = summary.currentValue
     val totalPurchaseVal = summary.purchaseValue
     val totalProfit = summary.profit
@@ -201,9 +201,9 @@ fun PortfolioTab(
 
         // Assets List
         items.forEach { item ->
-            val curVal = item.calculateCurrentValue(uiState.rates)
-            val profit = item.calculateProfit(uiState.rates)
-            val profitPct = item.calculateProfitPercent(uiState.rates)
+            val curVal = item.calculateCurrentValue(rates)
+            val profit = item.calculateProfit(rates)
+            val profitPct = item.calculateProfitPercent(rates)
             val isItemProfit = profit >= 0
             val itemProfitColor = if (isItemProfit) colors.profitGreen else colors.errorRed
             val itemProfitSign = if (isItemProfit) "+" else ""

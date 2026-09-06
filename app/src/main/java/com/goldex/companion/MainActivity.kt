@@ -1,4 +1,4 @@
-﻿package com.goldex.companion
+package com.goldex.companion
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,15 +10,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.goldex.companion.ui.calculator.GoldCalculatorScreen
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.ui.main.MainScreen
+import com.goldex.companion.ui.main.MainViewModel
 import com.goldex.companion.ui.theme.GoldExCompanionTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val viewModel: GoldCalculatorViewModel = viewModel()
+            val viewModel: MainViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsState()
 
             GoldExCompanionTheme(isDarkTheme = uiState.isDarkTheme) {
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    GoldCalculatorScreen(viewModel = viewModel)
+                    MainScreen(mainViewModel = viewModel)
                 }
             }
         }

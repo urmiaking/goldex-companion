@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.CoinBubbleResult
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.PersianNumberFormatter
@@ -48,8 +49,8 @@ import com.goldex.companion.ui.theme.heroCardGradient
  */
 @Composable
 fun CoinBubbleScreen(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
+    rates: MarketRates,
+    onRefreshRates: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -60,17 +61,17 @@ fun CoinBubbleScreen(
     var selectedFilterCoin by remember { mutableStateOf<CoinType?>(null) }
 
     fun calculateMetrics(coin: CoinType, overridePrice: Double? = null): CoinBubbleResult {
-        val usd = uiState.rates.usd.toDouble()
-        val ons = uiState.rates.ons
+        val usd = rates.usd.toDouble()
+        val ons = rates.ons
         val gram24Price = if (ons > 0 && usd > 0) (ons * usd) / 31.1035 else 0.0
         val intrinsic = (coin.pureWeightGrams * gram24Price) + coin.mintFee
 
         val marketPrice = overridePrice ?: when (coin) {
-            CoinType.EMAMI -> uiState.rates.coinEmami.toDouble()
-            CoinType.BAHAR -> uiState.rates.coinBahar.toDouble()
-            CoinType.HALF -> uiState.rates.coinHalf.toDouble()
-            CoinType.QUARTER -> uiState.rates.coinQuarter.toDouble()
-            CoinType.GERAMI -> uiState.rates.coinGerami.toDouble()
+            CoinType.EMAMI -> rates.coinEmami.toDouble()
+            CoinType.BAHAR -> rates.coinBahar.toDouble()
+            CoinType.HALF -> rates.coinHalf.toDouble()
+            CoinType.QUARTER -> rates.coinQuarter.toDouble()
+            CoinType.GERAMI -> rates.coinGerami.toDouble()
         }
 
         val bubble = marketPrice - intrinsic
@@ -151,7 +152,7 @@ fun CoinBubbleScreen(
                             text = "بروزرسانی",
                             icon = CalcSync,
                             onClick = {
-                                viewModel.refreshRates()
+                                onRefreshRates()
                                 Toast.makeText(context, "در حال همگام‌سازی نرخ‌ها...", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.height(36.dp)
@@ -247,7 +248,7 @@ fun CoinBubbleScreen(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Text(
-                                            text = PersianNumberFormatter.formatDouble(uiState.rates.ons, 2),
+                                            text = PersianNumberFormatter.formatDouble(rates.ons, 2),
                                             fontSize = 20.sp,
                                             fontWeight = FontWeight.Black,
                                             color = Color(0xFFFBBF24)
@@ -289,7 +290,7 @@ fun CoinBubbleScreen(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Text(
-                                            text = PersianNumberFormatter.formatPrice(uiState.rates.usd.toDouble()),
+                                            text = PersianNumberFormatter.formatPrice(rates.usd.toDouble()),
                                             fontSize = 20.sp,
                                             fontWeight = FontWeight.Black,
                                             color = Color.White
@@ -593,7 +594,7 @@ fun CoinBubbleScreen(
                         val reportText = buildString {
                             appendLine("📊 گزارش حباب انواع مسکوکات طلا (قیراط)")
                             appendLine("─────────────────────────")
-                            appendLine("انس جهانی: ${uiState.rates.ons}$ | دلار مبنا: ${PersianNumberFormatter.formatPrice(uiState.rates.usd.toDouble())} تومان")
+                            appendLine("انس جهانی: ${rates.ons}$ | دلار مبنا: ${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} تومان")
                             CoinType.values().forEach { c ->
                                 val m = calculateMetrics(c)
                                 appendLine("• ${c.displayName}: بازار ${PersianNumberFormatter.formatPrice(m.marketPrice)} ت | ذاتی ${PersianNumberFormatter.formatPrice(m.intrinsicValue)} ت | حباب: ${PersianNumberFormatter.formatDouble(m.bubblePercent, 1)}٪")

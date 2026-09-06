@@ -23,8 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.goldex.companion.ui.calculator.CalculatorUiState
-import com.goldex.companion.ui.calculator.GoldCalculatorViewModel
+import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -44,8 +43,10 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  */
 @Composable
 fun MoreHubScreen(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState,
+    settings: AppSettings,
+    customerCount: Int,
+    onToggleBiometricLock: (Boolean) -> Unit,
+    onCheckForUpdates: () -> Unit,
     onNavigateLedger: () -> Unit,
     onNavigateMelt: () -> Unit,
     onNavigateWorkshop: () -> Unit,
@@ -60,7 +61,6 @@ fun MoreHubScreen(
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
-    val settings = uiState.appSettings
 
     // Calculate 2-letter monogram from gallery name
     val monogram = remember(settings.galleryName) {
@@ -260,7 +260,7 @@ fun MoreHubScreen(
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
-                                text = "${uiState.customerList.size.coerceAtLeast(84)} مشتری",
+                                text = "${customerCount.coerceAtLeast(84)} مشتری",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFBBF24)
@@ -687,7 +687,7 @@ fun MoreHubScreen(
 
                     Switch(
                         checked = settings.isBiometricLockEnabled,
-                        onCheckedChange = { viewModel.toggleBiometricLock(it) },
+                        onCheckedChange = { onToggleBiometricLock(it) },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
                             checkedTrackColor = colors.goldPrimary,
@@ -798,7 +798,7 @@ fun MoreHubScreen(
             GoldButton(
                 text = "بررسی بروزرسانی نرم‌افزار",
                 icon = HubCloudDownload,
-                onClick = { viewModel.checkForUpdates(manual = true) },
+                onClick = { onCheckForUpdates() },
                 isSecondary = true,
                 modifier = Modifier.height(38.dp)
             )

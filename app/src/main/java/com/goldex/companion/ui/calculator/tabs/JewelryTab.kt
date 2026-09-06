@@ -56,8 +56,8 @@ import com.goldex.companion.ui.theme.heroCardGradient
  */
 @Composable
 fun JewelryTab(
-    viewModel: GoldCalculatorViewModel,
-    uiState: CalculatorUiState
+    viewModel: JewelryActions,
+    uiState: JewelryUiState
 ) {
     val context = LocalContext.current
     val colors = LocalGoldExColors.current

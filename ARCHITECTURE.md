@@ -16,29 +16,36 @@ Do not perform a broad rewrite to satisfy this document. Migrations are incremen
 ```text
 MainActivity
   -> GoldExCompanionTheme
-  -> GoldCalculatorViewModel
-  -> GoldCalculatorScreen
-       -> DashboardScreen
-       -> LiveRatesScreen
-       -> calculator tabs
-       -> invoice and customer dialogs
-       -> MoreHubScreen
+  -> MainViewModel (App Shell, Market Rates & Calculator Core)
+  -> MainScreen
+       -> DashboardScreen (DashboardUiState)
+       -> LiveRatesScreen (MarketRatesUiState)
+       -> JewelryTab (JewelryUiState & JewelryActions)
+       -> KaratConvertScreen (KaratConvertViewModel)
+       -> CoinBubbleScreen (MarketRates & explicit callbacks)
+       -> MeltCalcScreen (MeltUiState & explicit callbacks)
+       -> MoreHubScreen (AppSettings & explicit callbacks)
+       -> InvoicesTabPreviewCard (InvoiceManagerViewModel)
+       -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog)
 
-GoldCalculatorViewModel
-  -> CalculatorUiState (StateFlow)
-  -> market-rate repository
-  -> customer, invoice, portfolio, and settings repositories
-  -> network monitor and update checker
+Feature ViewModels & State Holders:
+  -> CustomerManagerViewModel (CustomerStore)
+  -> InvoiceManagerViewModel (InvoiceStore)
+  -> PortfolioManagerViewModel (PortfolioStore)
+  -> SettingsViewModel (SettingsStore)
+  -> UpdateViewModel (AppUpdateChecker)
+  -> KaratConvertViewModel (GoldCalculationUseCases)
+  -> MainViewModel (MarketRatesStore, SettingsStore, Navigation & Calculator Core)
 
 model/ -> domain data types, calculations, formatting, invoice aggregation
-data/  -> HTTP integrations and SharedPreferences/JSON persistence
+data/  -> HTTP integrations and SharedPreferences/JSON persistence via PersistenceJsonCodecs
 ```
 
 ### Current source of truth
 
 - Entry point: `app/src/main/java/com/goldex/companion/MainActivity.kt`
-- Current global state: `ui/calculator/GoldCalculatorViewModel.kt`
-- Main shell: `ui/calculator/GoldCalculatorScreen.kt`
+- App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
+- Feature ViewModels: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
 - Financial models and formatters: `model/`
 - Integrations: `data/`
@@ -230,25 +237,24 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 
 ## 13. Completed migration slices
 
-- Calculation policies now live in `domain/calculator/GoldCalculationUseCases.kt`; the ViewModel parses UI input and publishes results without owning the formulas.
-- Portfolio aggregation now lives in `domain/portfolio/PortfolioValuation.kt`.
-- Existing concrete repositories implement contracts in `data/RepositoryContracts.kt`, preserving the current JSON and HTTP implementations while creating replacement seams.
+- Calculation policies live in `domain/calculator/GoldCalculationUseCases.kt`; the ViewModel parses UI input and publishes results without owning the formulas.
+- Portfolio aggregation lives in `domain/portfolio/PortfolioValuation.kt`.
+- Existing concrete repositories implement contracts in `data/RepositoryContracts.kt` (`CustomerStore`, `InvoiceStore`, `PortfolioStore`, `SettingsStore`, `MarketRatesStore`).
 - `DashboardScreen` consumes `DashboardUiState` instead of the global ViewModel.
 - `LiveRatesScreen` consumes `MarketRatesUiState` instead of the aggregate calculator state.
-- `PortfolioTab` receives explicit mutation callbacks and no longer creates a hidden ViewModel.
-- Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`; the app shell retains only navigation visibility and invoice-transfer orchestration.
+- `PortfolioTab` receives explicit mutation callbacks and items/rates, decoupled from ViewModels.
+- Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`.
 - Customer, portfolio, and invoice JSON compatibility is centralized in `data/PersistenceJsonCodecs.kt` and covered by pure compatibility tests.
-- CI now compiles the application through the unit-test gate before release assembly; compiler issues found by that gate must be fixed before tagging a release.
-
-These changes intentionally preserve the existing `CalculatorUiState` and global ViewModel as the current composition root while feature state is migrated incrementally.
+- Independent feature ViewModels (`CustomerManagerViewModel`, `InvoiceManagerViewModel`, `PortfolioManagerViewModel`, `SettingsViewModel`, `UpdateViewModel`, `KaratConvertViewModel`) are fully wired into the UI and coordinate directly with dialogs and preview cards.
+- The root composition shell has been extracted into `MainViewModel` and `MainScreen`, dropping the primary coordinator size by ~50% (from ~810 to ~420 lines).
+- Calculator and tool composables (`JewelryTab`, `CoinBubbleScreen`, `MeltCalcScreen`, `MoreHubScreen`) are decoupled from concrete ViewModels, depending only on focused UI state data classes and callback interfaces (`JewelryActions`).
+- Backward compatibility typealiases (`GoldCalculatorViewModel`, `GoldCalculatorScreen`, `CalculatorUiState`) ensure zero external breakage.
+- Release signing credentials are securely configured using protected GitHub Actions repository secrets.
 
 ## 14. Known current compromises
 
-- The application still has a large global calculator ViewModel.
-- Some persistence is collection-level SharedPreferences JSON, now behind tested compatibility codecs.
+- Some persistence is collection-level SharedPreferences JSON, now behind tested compatibility codecs (to be migrated to Room when dataset scale justifies).
 - The market layer contains provider-specific HTTP and parsing code.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
-- The architecture documentation is being migrated alongside the codebase.
-- Release signing credentials still require migration from the tracked legacy configuration to protected GitHub Secrets; this must happen before broad public distribution.
 
 These are tracked migration items, not reasons to break existing features through a broad rewrite.
