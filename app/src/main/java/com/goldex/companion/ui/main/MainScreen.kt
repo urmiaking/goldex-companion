@@ -93,7 +93,11 @@ fun MainScreen(
 
     val colors = LocalGoldExColors.current
 
-    // In-App Auto-Update Dialog Prompt
+    // In-App Auto-Update Check & Dialog Prompt
+    LaunchedEffect(Unit) {
+        updateViewModel.checkForUpdates(manual = false)
+    }
+
     updateState.updateInfo?.let { info ->
         if (info.isAvailable && !updateState.isUpdateDialogDismissed) {
             UpdateDialog(

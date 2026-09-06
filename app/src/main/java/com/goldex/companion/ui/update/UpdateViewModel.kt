@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.AppUpdateChecker
 import com.goldex.companion.data.UpdateInfo
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,14 +21,14 @@ class UpdateViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(UpdateUiState())
     val uiState: StateFlow<UpdateUiState> = _uiState.asStateFlow()
 
-    init {
-        checkForUpdates(manual = false)
-    }
-
     fun checkForUpdates(@Suppress("UNUSED_PARAMETER") manual: Boolean = false) {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isCheckingForUpdate = true, isUpdateDialogDismissed = false) }
-            val info = AppUpdateChecker.check()
+            val info = try {
+                AppUpdateChecker.check()
+            } catch (_: Exception) {
+                null
+            }
             _uiState.update {
                 it.copy(
                     updateInfo = info,
