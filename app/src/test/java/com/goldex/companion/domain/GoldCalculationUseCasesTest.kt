@@ -7,6 +7,7 @@ import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.domain.portfolio.PortfolioValuation
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -93,5 +94,78 @@ class GoldCalculationUseCasesTest {
         assertEquals(560_000_000L, summary.purchaseValue)
         assertEquals(40_000_000L, summary.profit)
         assertEquals(7.1428, summary.profitPercent, 0.001)
+    }
+
+    @Test
+    fun priceBasisConversionToAndFrom18k() {
+        val base18k = 23_360_000L
+
+        // 18k basis returns same value
+        assertEquals(base18k, GoldCalculationUseCases.toSpotPrice18k(base18k, PriceBasisTab.K18))
+        assertEquals(base18k, GoldCalculationUseCases.fromSpotPrice18k(base18k, PriceBasisTab.K18))
+
+        // 24k conversion
+        val expected24k = 31_146_667L // 23_360_000 * 24 / 18
+        assertEquals(expected24k, GoldCalculationUseCases.fromSpotPrice18k(base18k, PriceBasisTab.K24))
+        assertEquals(base18k, GoldCalculationUseCases.toSpotPrice18k(expected24k, PriceBasisTab.K24))
+
+        // Mesghal conversion
+        val expectedMesghal = 101_192_016L // 23_360_000 * 4.33185
+        assertEquals(expectedMesghal, GoldCalculationUseCases.fromSpotPrice18k(base18k, PriceBasisTab.MESGHAL))
+        assertEquals(base18k, GoldCalculationUseCases.toSpotPrice18k(expectedMesghal, PriceBasisTab.MESGHAL))
+
+        // Edge cases
+        assertEquals(0L, GoldCalculationUseCases.toSpotPrice18k(0L, PriceBasisTab.MESGHAL))
+        assertEquals(0L, GoldCalculationUseCases.fromSpotPrice18k(0L, PriceBasisTab.K24))
+    }
+
+    @Test
+    fun priceBasisConversionMaintainsCalculationConsistency() {
+        val spot18k = 23_360_000L
+        val spot24k = GoldCalculationUseCases.fromSpotPrice18k(spot18k, PriceBasisTab.K24)
+        val spotMesghal = GoldCalculationUseCases.fromSpotPrice18k(spot18k, PriceBasisTab.MESGHAL)
+
+        val res18k = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            spotPrice18k = GoldCalculationUseCases.toSpotPrice18k(spot18k, PriceBasisTab.K18),
+            wageType = WageType.PERCENTAGE,
+            wageInput = 10.0,
+            profitPercent = 7.0,
+            taxPercent = 9.0
+        )
+
+        val res24k = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            spotPrice18k = GoldCalculationUseCases.toSpotPrice18k(spot24k, PriceBasisTab.K24),
+            wageType = WageType.PERCENTAGE,
+            wageInput = 10.0,
+            profitPercent = 7.0,
+            taxPercent = 9.0
+        )
+
+        val resMesghal = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            spotPrice18k = GoldCalculationUseCases.toSpotPrice18k(spotMesghal, PriceBasisTab.MESGHAL),
+            wageType = WageType.PERCENTAGE,
+            wageInput = 10.0,
+            profitPercent = 7.0,
+            taxPercent = 9.0
+        )
+
+        assertNotNull(res18k)
+        assertNotNull(res24k)
+        assertNotNull(resMesghal)
+
+        // All three should have virtually identical total payable
+        assertEquals(res18k!!.rawGoldValue, res24k!!.rawGoldValue, 1.0)
+        assertEquals(res18k.rawGoldValue, resMesghal!!.rawGoldValue, 1.0)
+        assertEquals(res18k.totalPayable, res24k.totalPayable, 1.0)
+        assertEquals(res18k.totalPayable, resMesghal.totalPayable, 1.0)
     }
 }

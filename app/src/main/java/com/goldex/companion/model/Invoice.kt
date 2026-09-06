@@ -46,7 +46,7 @@ data class Invoice(
     fun formatTextInvoice(sourceName: String = "اتحادیه طلا"): String {
         val dateStr = SimpleDateFormat("yyyy/MM/dd - HH:mm", Locale.getDefault()).format(Date(createdAt))
         val sb = StringBuilder()
-        sb.append("🧾 فاکتور رسمی زرگری و معامله طلا (گلدکس پرو)\n")
+        sb.append("🧾 فاکتور رسمی زرگری و معامله طلا (قیراط)\n")
         sb.append("════════════════════════════════════════\n")
         sb.append("شماره فاکتور: #${PersianNumberFormatter.toPersianDigits(invoiceNumber)} • تاریخ: ${PersianNumberFormatter.toPersianDigits(dateStr)}\n")
         sb.append("منبع مظنه: $sourceName\n")

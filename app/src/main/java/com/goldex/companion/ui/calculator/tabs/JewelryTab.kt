@@ -34,9 +34,11 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
+import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceTicker
@@ -150,8 +152,13 @@ fun JewelryTab(
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(17.dp)
                         )
+                        val basisLabel = when (uiState.priceBasisTab) {
+                            PriceBasisTab.MESGHAL -> "مظنه مثقال:"
+                            PriceBasisTab.K24 -> "نرخ گرم ۲۴:"
+                            PriceBasisTab.K18 -> "نرخ گرم ۱۸:"
+                        }
                         Text(
-                            text = "نرخ مبنا:",
+                            text = basisLabel,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = colors.textSecondary
@@ -199,6 +206,30 @@ fun JewelryTab(
                     height = 36.dp,
                     fontSize = 11.sp
                 )
+
+                if (uiState.priceBasisTab != PriceBasisTab.K18) {
+                    val rawSpot = PersianNumberFormatter.parseToCleanLong(uiState.spotPriceInput) ?: 0L
+                    val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, uiState.priceBasisTab)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "معادل هر گرم ۱۸ عیار (مبنای محاسبه):",
+                            fontSize = 11.sp,
+                            color = colors.textMuted
+                        )
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(spot18k.toDouble())} تومان",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
+                    }
+                }
             }
         }
 
@@ -1111,18 +1142,23 @@ fun JewelryTab(
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
-                        if (uiState.rates.gold18 > 0L) {
+                        val liveRate = when (uiState.priceBasisTab) {
+                            PriceBasisTab.K18 -> uiState.rates.gold18
+                            PriceBasisTab.K24 -> if (uiState.rates.gold24 > 0L) uiState.rates.gold24 else GoldCalculationUseCases.fromSpotPrice18k(uiState.rates.gold18, PriceBasisTab.K24)
+                            PriceBasisTab.MESGHAL -> uiState.rates.goldMelt
+                        }
+                        if (liveRate > 0L) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = colors.profitGreen.copy(alpha = 0.12f),
                                 border = BorderStroke(0.5.dp, colors.profitGreen.copy(alpha = 0.4f)),
                                 modifier = Modifier.clickable {
-                                    viewModel.applyPresetSpotPrice(uiState.rates.gold18)
+                                    viewModel.applyPresetSpotPrice(liveRate)
                                     viewModel.setManualSpotDialogVisible(false)
                                 }
                             ) {
                                 Text(
-                                    text = "نرخ زنده: ${PersianNumberFormatter.formatPrice(uiState.rates.gold18.toDouble())}",
+                                    text = "نرخ زنده: ${PersianNumberFormatter.formatPrice(liveRate.toDouble())}",
                                     fontFamily = VazirmatnFamily,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
@@ -1133,10 +1169,15 @@ fun JewelryTab(
                         }
                     }
 
+                    val inputLabel = when (uiState.priceBasisTab) {
+                        PriceBasisTab.K18 -> "نرخ هر گرم ۱۸ عیار به تومان"
+                        PriceBasisTab.K24 -> "نرخ هر گرم ۲۴ عیار به تومان"
+                        PriceBasisTab.MESGHAL -> "مظنه یک مثقال طلا (۱۷ عیار) به تومان"
+                    }
                     GoldInputField(
                         value = uiState.spotPriceInput,
                         onValueChange = { viewModel.onSpotPriceChanged(it) },
-                        label = "نرخ هر گرم به تومان",
+                        label = inputLabel,
                         trailingText = "تومان",
                         useThousandsSeparator = true
                     )

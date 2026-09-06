@@ -4,9 +4,30 @@ import com.goldex.companion.model.CoinBubbleResult
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.DetailedJewelryResult
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
+import kotlin.math.round
 
 object GoldCalculationUseCases {
+    const val MESGHAL_TO_GRAM_18K_RATIO: Double = 4.33185
+
+    fun toSpotPrice18k(spotInput: Long, basis: PriceBasisTab): Long {
+        if (spotInput <= 0L) return 0L
+        return when (basis) {
+            PriceBasisTab.K18 -> spotInput
+            PriceBasisTab.K24 -> round(spotInput * (18.0 / 24.0)).toLong()
+            PriceBasisTab.MESGHAL -> round(spotInput / MESGHAL_TO_GRAM_18K_RATIO).toLong()
+        }
+    }
+
+    fun fromSpotPrice18k(spot18k: Long, targetBasis: PriceBasisTab): Long {
+        if (spot18k <= 0L) return 0L
+        return when (targetBasis) {
+            PriceBasisTab.K18 -> spot18k
+            PriceBasisTab.K24 -> round(spot18k * (24.0 / 18.0)).toLong()
+            PriceBasisTab.MESGHAL -> round(spot18k * MESGHAL_TO_GRAM_18K_RATIO).toLong()
+        }
+    }
     fun calculateJewelry(
         grossWeight: Double,
         stoneWeight: Double,
@@ -44,7 +65,7 @@ object GoldCalculationUseCases {
     }
 
     fun calculateMelt(mesghalPrice: Double, weight: Double): MeltCalculation {
-        val gram18kPrice = (mesghalPrice / 4.33185).toLong()
+        val gram18kPrice = (mesghalPrice / MESGHAL_TO_GRAM_18K_RATIO).toLong()
         return MeltCalculation(
             gram18kPrice = gram18kPrice,
             totalValue = gram18kPrice * weight

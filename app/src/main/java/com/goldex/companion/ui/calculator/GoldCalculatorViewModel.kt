@@ -11,11 +11,5 @@ enum class AppTab(val titleFa: String) {
     MORE("بیشتر")
 }
 
-enum class PriceBasisTab(val labelFa: String) {
-    K18("۱۸ عیار (۷۵۰)"),
-    K24("۲۴ عیار (۹۹۹)"),
-    MESGHAL("مظنه (مثقال)")
-}
-
 typealias CalculatorUiState = MainUiState
 typealias GoldCalculatorViewModel = MainViewModel

@@ -3,6 +3,7 @@ package com.goldex.companion.ui.calculator
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.DetailedJewelryResult
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 
 data class JewelryUiState(

@@ -13,6 +13,7 @@ import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.model.*
+import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.calculator.screens.MeltUiState
 import kotlinx.coroutines.Dispatchers
@@ -194,7 +195,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             grossWeight = res.grossWeight,
             stoneWeight = res.stoneWeight,
             netWeight = res.netWeight,
-            spotPrice = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+            spotPrice = GoldCalculationUseCases.toSpotPrice18k(
+                PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+                state.priceBasisTab
+            ),
             wageType = state.wageType,
             wageInput = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0,
             wageAmount = res.wageAmount,
@@ -233,7 +237,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                     grossWeight = res.grossWeight,
                     stoneWeight = res.stoneWeight,
                     netWeight = res.netWeight,
-                    spotPrice = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+                    spotPrice = GoldCalculationUseCases.toSpotPrice18k(
+                        PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L,
+                        state.priceBasisTab
+                    ),
                     wageType = state.wageType,
                     wageInput = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0,
                     wageAmount = res.wageAmount,
@@ -320,8 +327,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     private fun applyFetchedRates(newRates: MarketRates) {
         _uiState.update { current ->
-            val updatedSpot = if (current.autoSyncPrice && newRates.gold18 > 0L) {
-                newRates.gold18.toString()
+            val updatedSpot = if (current.autoSyncPrice) {
+                when (current.priceBasisTab) {
+                    PriceBasisTab.K18 -> if (newRates.gold18 > 0L) newRates.gold18.toString() else current.spotPriceInput
+                    PriceBasisTab.K24 -> if (newRates.gold24 > 0L) newRates.gold24.toString() else GoldCalculationUseCases.fromSpotPrice18k(newRates.gold18, PriceBasisTab.K24).toString()
+                    PriceBasisTab.MESGHAL -> if (newRates.goldMelt > 0L) newRates.goldMelt.toString() else GoldCalculationUseCases.fromSpotPrice18k(newRates.gold18, PriceBasisTab.MESGHAL).toString()
+                }
             } else {
                 current.spotPriceInput
             }
@@ -461,12 +472,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     override fun setPriceBasisTab(tab: PriceBasisTab) {
         _uiState.update { current ->
-            val updatedSpot = if (tab == PriceBasisTab.MESGHAL && current.rates.goldMelt > 0L) {
-                (current.rates.goldMelt / 4.3318).toLong().toString()
-            } else if (tab == PriceBasisTab.K18 && current.rates.gold18 > 0L) {
-                current.rates.gold18.toString()
+            val updatedSpot = if (current.autoSyncPrice) {
+                when (tab) {
+                    PriceBasisTab.K18 -> if (current.rates.gold18 > 0L) current.rates.gold18.toString() else current.spotPriceInput
+                    PriceBasisTab.K24 -> if (current.rates.gold24 > 0L) current.rates.gold24.toString() else GoldCalculationUseCases.fromSpotPrice18k(current.rates.gold18, PriceBasisTab.K24).toString()
+                    PriceBasisTab.MESGHAL -> if (current.rates.goldMelt > 0L) current.rates.goldMelt.toString() else GoldCalculationUseCases.fromSpotPrice18k(current.rates.gold18, PriceBasisTab.MESGHAL).toString()
+                }
             } else {
-                current.spotPriceInput
+                val currentSpot = PersianNumberFormatter.parseToCleanLong(current.spotPriceInput) ?: 0L
+                val spot18k = GoldCalculationUseCases.toSpotPrice18k(currentSpot, current.priceBasisTab)
+                GoldCalculationUseCases.fromSpotPrice18k(spot18k, tab).toString()
             }
             current.copy(priceBasisTab = tab, spotPriceInput = updatedSpot)
         }
@@ -545,7 +560,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         val state = _uiState.value
         val gross = PersianNumberFormatter.parsePersianOrEnglish(state.grossWeightInput) ?: 0.0
         val stone = PersianNumberFormatter.parsePersianOrEnglish(state.stoneWeightInput) ?: 0.0
-        val spot = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L
+        val rawSpot = PersianNumberFormatter.parseToCleanLong(state.spotPriceInput) ?: 0L
+        val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, state.priceBasisTab)
         val wage = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0
         val profit = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0
         val tax = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0
@@ -554,7 +570,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             grossWeight = gross,
             stoneWeight = stone,
             karat = state.selectedKarat,
-            spotPrice18k = spot,
+            spotPrice18k = spot18k,
             wageType = state.wageType,
             wageInput = wage,
             profitPercent = profit,

@@ -111,7 +111,7 @@ fun UpdateDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "نسخه جدید گلدکس پرو",
+                            text = "نسخه جدید قیراط",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain,

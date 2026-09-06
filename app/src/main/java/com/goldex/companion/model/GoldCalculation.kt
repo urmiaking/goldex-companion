@@ -20,6 +20,12 @@ enum class PriceBasis(val labelFa: String, val ratio: Double) {
     PER_GRAM_24K("مبنای هر گرم ۲۴ عیار (شِمش)", 1.0)
 }
 
+enum class PriceBasisTab(val labelFa: String) {
+    K18("۱۸ عیار (۷۵۰)"),
+    K24("۲۴ عیار (۹۹۹)"),
+    MESGHAL("مظنه (مثقال)")
+}
+
 enum class WageType(val labelFa: String) {
     PERCENTAGE("درصدی (٪)"),
     TOMAN_PER_GRAM("تومانی به ازای هر گرم")
@@ -65,7 +71,7 @@ data class DetailedJewelryResult(
         val dateStr = SimpleDateFormat("yyyy/MM/dd - HH:mm", Locale.getDefault()).format(Date())
         return """
             ========================================
-            🧾 فاکتور رسمی محاسبات طلای گلدکس (GoldEx)
+            🧾 فاکتور رسمی محاسبات طلای قیراط
             تاریخ و زمان: $dateStr
             ========================================
             • وزن کل: ${PersianNumberFormatter.formatWeight(grossWeight)} گرم
@@ -82,7 +88,7 @@ data class DetailedJewelryResult(
             💰 جمع کل پرداختی: ${PersianNumberFormatter.formatPrice(totalPayable)} تومان
             ✨ نرخ تمام‌شده هر گرم: ${PersianNumberFormatter.formatPrice(effectiveGramPrice)} تومان
             ========================================
-            GoldEx Companion - همراه هوشمند معامله‌گران طلا
+            قیراط - همراه هوشمند معامله‌گران طلا
         """.trimIndent()
     }
 }
