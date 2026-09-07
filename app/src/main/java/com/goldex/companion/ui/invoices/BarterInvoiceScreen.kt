@@ -1,0 +1,1304 @@
+package com.goldex.companion.ui.invoices
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.BankCoinItem
+import com.goldex.companion.model.BarterItem
+import com.goldex.companion.model.CraftedGoldItem
+import com.goldex.companion.model.Customer
+import com.goldex.companion.model.CustomerRole
+import com.goldex.companion.model.InvoiceItemCategory
+import com.goldex.companion.model.MeltGoldItem
+import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.ScrapGoldItem
+import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
+import com.goldex.companion.ui.invoices.components.InvoiceEditVector
+import com.goldex.companion.ui.invoices.components.InvoiceOfficialHeader
+import com.goldex.companion.ui.invoices.components.InvoicePdfVector
+import com.goldex.companion.ui.invoices.components.InvoicePlusVector
+import com.goldex.companion.ui.invoices.components.InvoiceSmsVector
+import com.goldex.companion.ui.invoices.components.InvoiceTrashVector
+import com.goldex.companion.ui.invoices.modals.AddInvoiceItemModal
+import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldGradient
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun BarterInvoiceScreen(
+    uiState: BarterInvoiceUiState,
+    onSetCustomerRole: (CustomerRole) -> Unit,
+    onSetSettlementMethod: (SettlementMethod) -> Unit,
+    onSetCashPosAmount: (Long) -> Unit,
+    onSetNote: (String) -> Unit,
+    onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
+    onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
+    onCloseItemModal: () -> Unit,
+    onSaveItem: (BarterItem) -> Unit,
+    onDeleteSalesItem: (String) -> Unit,
+    onDeleteReceivedItem: (String) -> Unit,
+    onSetRateEditDialogVisible: (Boolean) -> Unit,
+    onUpdateSpotPrice: (Long) -> Unit,
+    onOpenCustomerPicker: () -> Unit,
+    onOpenInvoiceManager: () -> Unit,
+    onPreviewPdf: () -> Unit,
+    onSendSms: () -> Unit,
+    onFinalSubmit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val invoice = uiState.invoice
+    val balance = uiState.balance
+
+    val dateSolar = remember(invoice.createdAt) {
+        // Formatted timestamp
+        SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(invoice.createdAt))
+    }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // 1. Meta & Live Gold Rate Bar
+            InvoiceMetaAndRateCard(
+                invoiceNumber = invoice.invoiceNumber,
+                dateSolar = dateSolar,
+                spotPrice18k = invoice.spotPrice18k,
+                onEditRateClick = { onSetRateEditDialogVisible(true) }
+            )
+
+            // 2. Customer & Account Card
+            CustomerAndAccountCard(
+                customer = invoice.customer,
+                customerRole = invoice.customerRole,
+                onRoleChange = onSetCustomerRole,
+                onChangeCustomerClick = onOpenCustomerPicker
+            )
+
+            // 3. Barter Balance & Net Settlement Overview
+            BarterBalanceCard(
+                balance = balance,
+                spotPrice18k = invoice.spotPrice18k
+            )
+
+            // 4. Sales Items Section (اقلام فروش ما)
+            ItemsSectionCard(
+                sectionNumber = 1,
+                title = "اقلام فروش ما (تحویلی)",
+                items = invoice.salesItems,
+                onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.CRAFTED, true) },
+                onEditItemClick = { onOpenEditItemModal(it, true) },
+                onDeleteItemClick = onDeleteSalesItem,
+                isSales = true
+            )
+
+            // 5. Received Items Section (اقلام دریافتی تهاتر)
+            ItemsSectionCard(
+                sectionNumber = 2,
+                title = "اقلام دریافتی / تهاتر (از مشتری)",
+                items = invoice.receivedItems,
+                onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.SCRAP, false) },
+                onEditItemClick = { onOpenEditItemModal(it, false) },
+                onDeleteItemClick = onDeleteReceivedItem,
+                isSales = false
+            )
+
+            // 6. Payment & Settlement Methods
+            SettlementCard(
+                selectedMethod = invoice.settlementMethod,
+                onMethodSelect = onSetSettlementMethod,
+                cashPosAmount = invoice.cashPosAmount,
+                onCashPosAmountChange = onSetCashPosAmount,
+                netPayableAmount = balance.netPayableAmount,
+                note = invoice.note,
+                onNoteChange = onSetNote
+            )
+
+            // 7. Final Action Buttons
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldButton(
+                    text = "ثبت نهایی و صدور فاکتور رسمی تهاتر",
+                    onClick = onFinalSubmit,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    GoldButton(
+                        text = "پیش‌نمایش PDF",
+                        onClick = onPreviewPdf,
+                        icon = InvoicePdfVector,
+                        isSecondary = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GoldButton(
+                        text = "ارسال پیامک فاکتور",
+                        onClick = onSendSms,
+                        icon = InvoiceSmsVector,
+                        isSecondary = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                GoldButton(
+                    text = "مشاهده بایگانی فاکتورها",
+                    onClick = onOpenInvoiceManager,
+                    isSecondary = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+        }
+
+        // Add / Edit Item Modal
+        if (uiState.isItemModalVisible) {
+            AddInvoiceItemModal(
+                spotPrice18k = invoice.spotPrice18k,
+                defaultCategory = uiState.targetCategory,
+                existingItem = uiState.editingItem,
+                onDismiss = onCloseItemModal,
+                onSaveItem = onSaveItem
+            )
+        }
+
+        // Manual Rate Edit Dialog
+        if (uiState.isRateEditDialogVisible) {
+            EditRateDialog(
+                currentRate = invoice.spotPrice18k,
+                onDismiss = { onSetRateEditDialogVisible(false) },
+                onConfirm = onUpdateSpotPrice
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Meta & Rate Card
+// ---------------------------------------------------------------------------
+@Composable
+private fun InvoiceMetaAndRateCard(
+    invoiceNumber: String,
+    dateSolar: String,
+    spotPrice18k: Long,
+    onEditRateClick: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.borderSubtle),
+        shadowElevation = 1.5.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.goldContainer.copy(alpha = 0.5f),
+                        border = BorderStroke(0.6.dp, colors.goldBorder)
+                    ) {
+                        Text(
+                            text = "فاکتور دوطرفه تهاتر",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                    Text(
+                        text = PersianNumberFormatter.toPersianDigits(invoiceNumber),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Text(
+                    text = PersianNumberFormatter.toPersianDigits(dateSolar),
+                    fontSize = 11.sp,
+                    color = colors.textMuted,
+                    fontFamily = VazirmatnFamily
+                )
+            }
+
+            // Dark Luxury Live Rate Bar
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF16161A),
+                border = BorderStroke(1.dp, Color(0x33D4AF37)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0x33D4AF37)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "⚡", fontSize = 11.sp)
+                        }
+                        Text(
+                            text = "مظنه ۱۸ عیار:",
+                            fontSize = 11.5.sp,
+                            color = Color(0xCCFFFFFF),
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(spotPrice18k)} تومان",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE6CA65),
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0x22FFFFFF),
+                        modifier = Modifier.clickable { onEditRateClick() }
+                    ) {
+                        Text(
+                            text = "تغییر نرخ",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Customer & Account Card
+// ---------------------------------------------------------------------------
+@Composable
+private fun CustomerAndAccountCard(
+    customer: Customer?,
+    customerRole: CustomerRole,
+    onRoleChange: (CustomerRole) -> Unit,
+    onChangeCustomerClick: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.borderSubtle),
+        shadowElevation = 1.5.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp, 14.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(colors.goldPrimary)
+                    )
+                    Text(
+                        text = "مشخصات طرف معامله و حساب",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.surfaceContainer,
+                    border = BorderStroke(0.6.dp, colors.borderSubtle),
+                    modifier = Modifier.clickable { onChangeCustomerClick() }
+                ) {
+                    Text(
+                        text = "دفتر معین",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+
+            // Role Toggle Grid
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surfaceContainer)
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                CustomerRole.entries.forEach { role ->
+                    val isSelected = customerRole == role
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isSelected) colors.surfaceElevated else Color.Transparent)
+                            .clickable { onRoleChange(role) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = role.titleFa,
+                            fontSize = 10.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                            fontFamily = VazirmatnFamily,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Customer Details Card
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceContainer.copy(alpha = 0.6f),
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.goldContainer.copy(alpha = 0.5f))
+                                .border(1.dp, colors.goldBorder, RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = customer?.name?.take(2) ?: "طرف",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = customer?.name ?: "انتخاب مشتری یا همکار...",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Text(
+                                text = customer?.note?.ifBlank { customer.phone } ?: "بدون مانده حسابی قبلی",
+                                fontSize = 10.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "تغییر",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        modifier = Modifier
+                            .clickable { onChangeCustomerClick() }
+                            .padding(4.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Barter Balance & Net Settlement Overview
+// ---------------------------------------------------------------------------
+@Composable
+private fun BarterBalanceCard(
+    balance: com.goldex.companion.model.BarterBalance,
+    spotPrice18k: Long
+) {
+    val colors = LocalGoldExColors.current
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.2.dp, colors.goldBorder),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp, 14.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(colors.goldPrimary)
+                    )
+                    Text(
+                        text = "تراز مالی و تهاتر دوطرفه",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.marketBullish.copy(alpha = 0.12f),
+                    border = BorderStroke(0.6.dp, colors.marketBullish.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "تسویه ترکیبی ریالی-وزنی",
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.marketBullish,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+
+            // Two Columns: Sales vs Received
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Column 1: Sales
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.goldContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(0.8.dp, colors.goldBorder),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.goldPrimary)
+                            )
+                            Text(
+                                text = "فروش ما (بستانکاری):",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(balance.totalSalesAmount)} ت",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "معادل: ${PersianNumberFormatter.formatWeight(balance.totalSales18kWeight)}g",
+                            fontSize = 9.5.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+
+                // Column 2: Received
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = colors.surfaceContainer,
+                    border = BorderStroke(0.8.dp, colors.borderSubtle),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.textSecondary)
+                            )
+                            Text(
+                                text = "دریافتی ما (بدهکاری):",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(balance.totalReceivedAmount)} ت",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "معادل: ${PersianNumberFormatter.formatWeight(balance.totalReceived18kWeight)}g",
+                            fontSize = 9.5.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+            }
+
+            // Net Balance Bar (صافی مانده)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.goldContainer.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, colors.goldPrimary.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "صافی مانده:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.textMain,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (balance.isCustomerDebtor) colors.marketBearish.copy(alpha = 0.12f) else colors.marketBullish.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = if (balance.isSettled) "تسویه کامل" else if (balance.isCustomerDebtor) "مشتری بدهکار" else "مشتری بستانکار",
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (balance.isCustomerDebtor) colors.marketBearish else colors.marketBullish,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp),
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+                        Text(
+                            text = "پس از کسر تهاتر طلای مستعمل و آبشده",
+                            fontSize = 9.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        Text(
+                            text = "${PersianNumberFormatter.formatPrice(kotlin.math.abs(balance.netPayableAmount))} تومان",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.goldPrimary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "معادل: ${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 4 & 5. Items Section Card
+// ---------------------------------------------------------------------------
+@Composable
+private fun ItemsSectionCard(
+    sectionNumber: Int,
+    title: String,
+    items: List<BarterItem>,
+    onAddItemClick: () -> Unit,
+    onEditItemClick: (BarterItem) -> Unit,
+    onDeleteItemClick: (String) -> Unit,
+    isSales: Boolean
+) {
+    val colors = LocalGoldExColors.current
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.borderSubtle),
+        shadowElevation = 1.5.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isSales) colors.goldContainer else colors.surfaceContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = PersianNumberFormatter.toPersianDigits(sectionNumber.toString()),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            color = if (isSales) colors.goldPrimary else colors.textSecondary
+                        )
+                    }
+                    Text(
+                        text = title,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Text(
+                        text = "(${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم)",
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.goldContainer.copy(alpha = 0.5f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder),
+                    modifier = Modifier.clickable { onAddItemClick() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = InvoicePlusVector,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = if (isSales) "افزودن قلم فروش" else "افزودن قلم تهاتر",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+            }
+
+            // Items List
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "هیچ قلمی ثبت نشده است. روی دکمه افزودن کلیک کنید.",
+                        fontSize = 11.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items.forEach { item ->
+                        ItemRowCard(
+                            item = item,
+                            onEdit = { onEditItemClick(item) },
+                            onDelete = { onDeleteItemClick(item.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ItemRowCard(
+    item: BarterItem,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surfaceContainer.copy(alpha = 0.5f),
+        border = BorderStroke(0.8.dp, colors.borderSubtle),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(colors.goldPrimary)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = item.title,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        val subtitle = when (item) {
+                            is CraftedGoldItem -> "عیار ${item.karat.labelFa} • ناخالص: ${PersianNumberFormatter.formatWeight(item.grossWeight)}g • خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)}g"
+                            is ScrapGoldItem -> "عیار مبنا: ${item.baseKarat} ← خالص: ${item.payableKarat} • وزن: ${PersianNumberFormatter.formatWeight(item.netWeight)}g"
+                            is MeltGoldItem -> "عیار خطی: ${item.labKarat} • انگ: ${item.angNumber.ifBlank { "-" }} • وزن: ${PersianNumberFormatter.formatWeight(item.weight)}g"
+                            is BankCoinItem -> "${PersianNumberFormatter.toPersianDigits(item.count.toString())} عدد • عیار ۹۰۰ • ${if (item.hasHologram) "هولوگرام‌دار" else "ساده"}"
+                        }
+                        Text(
+                            text = subtitle,
+                            fontSize = 9.5.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(26.dp)
+                    ) {
+                        Icon(
+                            imageVector = InvoiceEditVector,
+                            contentDescription = "ویرایش",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(26.dp)
+                    ) {
+                        Icon(
+                            imageVector = InvoiceTrashVector,
+                            contentDescription = "حذف",
+                            tint = colors.marketBearish,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.6.dp)
+                    .background(colors.borderSubtle.copy(alpha = 0.5f))
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "معادل ۱۸ عیار: ${PersianNumberFormatter.formatWeight(item.equivalent18kWeight)}g",
+                    fontSize = 10.sp,
+                    color = colors.textMuted,
+                    fontFamily = VazirmatnFamily
+                )
+                Text(
+                    text = "${PersianNumberFormatter.formatPrice(item.totalPayable)} تومان",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textMain,
+                    fontFamily = VazirmatnFamily
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 6. Payment & Settlement Methods
+// ---------------------------------------------------------------------------
+@Composable
+private fun SettlementCard(
+    selectedMethod: SettlementMethod,
+    onMethodSelect: (SettlementMethod) -> Unit,
+    cashPosAmount: Long,
+    onCashPosAmountChange: (Long) -> Unit,
+    netPayableAmount: Double,
+    note: String,
+    onNoteChange: (String) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    var posStr by remember(cashPosAmount) {
+        mutableStateOf(if (cashPosAmount > 0) cashPosAmount.toString() else "")
+    }
+
+    val ledgerRemain = (netPayableAmount - cashPosAmount).coerceAtLeast(0.0).toLong()
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.borderSubtle),
+        shadowElevation = 1.5.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp, 14.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(colors.goldPrimary)
+                    )
+                    Text(
+                        text = "روش‌های تسویه مانده صافی",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+                Text(
+                    text = "مانده: ${PersianNumberFormatter.formatPrice(netPayableAmount)} ت",
+                    fontSize = 10.5.sp,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+            }
+
+            // Settlement Channels Selector
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                SettlementMethod.entries.forEach { method ->
+                    val isSelected = selectedMethod == method
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceContainer,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.borderSubtle),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onMethodSelect(method) }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                        ) {
+                            Text(
+                                text = method.labelFa,
+                                fontSize = 10.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                fontFamily = VazirmatnFamily,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = method.subtitleFa,
+                                fontSize = 9.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Amounts Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "مبلغ نقدی / پوز (تومان)",
+                        fontSize = 10.sp,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceContainer,
+                        border = BorderStroke(0.8.dp, colors.borderSubtle),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                BasicTextField(
+                                    value = posStr,
+                                    onValueChange = {
+                                        posStr = it
+                                        onCashPosAmountChange(it.toLongOrNull() ?: 0L)
+                                    },
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        fontFamily = VazirmatnFamily,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain,
+                                        textAlign = TextAlign.Center,
+                                        textDirection = TextDirection.Ltr
+                                    ),
+                                    cursorBrush = SolidColor(colors.goldPrimary)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "مانده در دفتر معین",
+                        fontSize = 10.sp,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceContainer,
+                        border = BorderStroke(0.8.dp, colors.borderSubtle),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${PersianNumberFormatter.formatPrice(ledgerRemain)} تومان",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.marketBearish,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Notes field
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "توضیحات و شرایط تحویل",
+                    fontSize = 10.sp,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.surfaceContainer,
+                    border = BorderStroke(0.8.dp, colors.borderSubtle),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    BasicTextField(
+                        value = note,
+                        onValueChange = onNoteChange,
+                        textStyle = TextStyle(
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 11.5.sp,
+                            color = colors.textMain
+                        ),
+                        cursorBrush = SolidColor(colors.goldPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Rate Edit Dialog
+// ---------------------------------------------------------------------------
+@Composable
+private fun EditRateDialog(
+    currentRate: Long,
+    onDismiss: () -> Unit,
+    onConfirm: (Long) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    var rateStr by remember { mutableStateOf(currentRate.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "تغییر نرخ مبنای ۱۸ عیار",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = VazirmatnFamily
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "مظنه مورد نظر برای محاسبات فاکتور فعلی را وارد نمایید (تومان):",
+                    fontSize = 11.5.sp,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    BasicTextField(
+                        value = rateStr,
+                        onValueChange = { rateStr = it },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            textAlign = TextAlign.Center,
+                            textDirection = TextDirection.Ltr
+                        ),
+                        cursorBrush = SolidColor(colors.goldPrimary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.surfaceContainer)
+                            .padding(12.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Invariant: Cancel on Right (first), Confirm on Left (second)
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(0.4f)
+                )
+                GoldButton(
+                    text = "اعمال نرخ",
+                    onClick = {
+                        val newRate = rateStr.toLongOrNull() ?: currentRate
+                        onConfirm(newRate)
+                    },
+                    modifier = Modifier.weight(0.6f)
+                )
+            }
+        }
+    )
+}

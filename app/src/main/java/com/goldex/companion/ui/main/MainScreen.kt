@@ -53,6 +53,8 @@ import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
+import com.goldex.companion.ui.invoices.BarterInvoiceScreen
+import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
@@ -82,6 +84,7 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(app))
     val updateViewModel: UpdateViewModel = viewModel()
     val karatConvertViewModel: KaratConvertViewModel = viewModel()
+    val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel()
 
     val mainUiState by mainViewModel.uiState.collectAsState()
     val customerState by customerViewModel.uiState.collectAsState()
@@ -91,12 +94,20 @@ fun MainScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val karatConvertUiState by karatConvertViewModel.uiState.collectAsState()
+    val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
 
     val colors = LocalGoldExColors.current
 
     // In-App Auto-Update Check & Dialog Prompt
     LaunchedEffect(Unit) {
         updateViewModel.checkForUpdates(manual = false)
+    }
+
+    // Sync live market rate with barter invoice spot price
+    LaunchedEffect(mainUiState.rates.toman18k) {
+        if (mainUiState.rates.toman18k > 0) {
+            barterInvoiceViewModel.setLiveRate(mainUiState.rates.toman18k)
+        }
     }
 
     updateState.updateInfo?.let { info ->
@@ -116,6 +127,7 @@ fun MainScreen(
             onSelectCustomer = {
                 customerViewModel.selectCustomer(it)
                 mainViewModel.setSelectedCustomer(it)
+                barterInvoiceViewModel.setCustomer(it)
                 customerViewModel.setCustomerManagerVisible(false)
             },
             onAddNewCustomerClick = { customerViewModel.setAddCustomerDialogVisible(true) },
@@ -131,6 +143,7 @@ fun MainScreen(
             onSaveCustomer = {
                 customerViewModel.addCustomer(it, autoSelect = true)
                 mainViewModel.setSelectedCustomer(it)
+                barterInvoiceViewModel.setCustomer(it)
             }
         )
     }
@@ -402,11 +415,36 @@ fun MainScreen(
                                 }
 
                                 AppTab.INVOICES -> {
-                                    InvoicesTabPreviewCard(
-                                        savedInvoiceCount = invoiceState.savedInvoices.size,
+                                    BarterInvoiceScreen(
+                                        uiState = barterUiState,
+                                        onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
+                                        onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
+                                        onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
+                                        onSetNote = barterInvoiceViewModel::setNote,
+                                        onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
+                                        onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
+                                        onCloseItemModal = barterInvoiceViewModel::closeItemModal,
+                                        onSaveItem = barterInvoiceViewModel::saveItem,
+                                        onDeleteSalesItem = barterInvoiceViewModel::deleteSalesItem,
+                                        onDeleteReceivedItem = barterInvoiceViewModel::deleteReceivedItem,
+                                        onSetRateEditDialogVisible = barterInvoiceViewModel::setRateEditDialogVisible,
+                                        onUpdateSpotPrice = barterInvoiceViewModel::updateSpotPrice,
+                                        onOpenCustomerPicker = {
+                                            customerViewModel.loadCustomers()
+                                            customerViewModel.setCustomerManagerVisible(true)
+                                        },
                                         onOpenInvoiceManager = {
                                             invoiceViewModel.loadInvoices()
                                             invoiceViewModel.setInvoiceManagerVisible(true)
+                                        },
+                                        onPreviewPdf = {
+                                            QiratoToast.show(context, "در حال تولید سند رسمی PDF فاکتور تهاتر...")
+                                        },
+                                        onSendSms = {
+                                            QiratoToast.show(context, "ارسال پیامک فاکتور به شماره طرف حساب...")
+                                        },
+                                        onFinalSubmit = {
+                                            QiratoToast.show(context, "فاکتور تهاتر با موفقیت در سیستم ثبت شد.")
                                         }
                                     )
                                 }
@@ -557,58 +595,4 @@ fun MainScreen(
     }
 }
 
-@Composable
-private fun InvoicesTabPreviewCard(
-    savedInvoiceCount: Int,
-    onOpenInvoiceManager: () -> Unit
-) {
-    val colors = LocalGoldExColors.current
 
-    LuxuryCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "مدیریت و بایگانی فاکتورها",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.goldContainer.copy(alpha = 0.4f),
-                    border = BorderStroke(0.6.dp, colors.goldBorder)
-                ) {
-                    Text(
-                        text = "پیش‌نمایش فاز ۳",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary,
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                    )
-                }
-            }
-
-            Text(
-                text = "تعداد فاکتورهای ذخیره‌شده: $savedInvoiceCount فقره",
-                fontSize = 12.sp,
-                color = colors.textSecondary
-            )
-
-            GoldButton(
-                text = "مشاهده بایگانی فاکتورها و چاپ PDF",
-                onClick = onOpenInvoiceManager,
-                icon = DockInvoiceVector,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}

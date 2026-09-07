@@ -31,6 +31,7 @@ MainActivity
 Feature ViewModels & State Holders:
   -> CustomerManagerViewModel (CustomerStore)
   -> InvoiceManagerViewModel (InvoiceStore)
+  -> BarterInvoiceViewModel (BarterCalculationUseCases)
   -> PortfolioManagerViewModel (PortfolioStore)
   -> SettingsViewModel (SettingsStore)
   -> UpdateViewModel (AppUpdateChecker)
@@ -38,6 +39,7 @@ Feature ViewModels & State Holders:
   -> MainViewModel (MarketRatesStore, SettingsStore, Navigation & Calculator Core)
 
 model/ -> domain data types, calculations, formatting, invoice aggregation
+domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, PortfolioValuation)
 data/  -> HTTP integrations and SharedPreferences/JSON persistence via PersistenceJsonCodecs
 ```
 
@@ -46,6 +48,8 @@ data/  -> HTTP integrations and SharedPreferences/JSON persistence via Persisten
 - Entry point: `app/src/main/java/com/goldex/companion/MainActivity.kt`
 - App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
 - Feature ViewModels: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`
+- Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
+- Domain Calculation Policies: `domain/calculator/`, `domain/invoice/BarterCalculationUseCases.kt`, `domain/portfolio/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
 - Financial models and formatters: `model/`
 - Integrations: `data/`
