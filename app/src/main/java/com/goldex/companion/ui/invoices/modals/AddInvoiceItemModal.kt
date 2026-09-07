@@ -103,7 +103,7 @@ fun AddInvoiceItemModal(
                     .width(44.dp)
                     .height(4.dp)
                     .clip(CircleShape)
-                    .background(colors.borderSubtle.copy(alpha = 0.6f))
+                    .background(colors.border.copy(alpha = 0.6f))
             )
         }
     ) {
@@ -144,7 +144,7 @@ fun AddInvoiceItemModal(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(colors.surfaceContainer)
+                            .background(colors.surfaceVariant)
                     ) {
                         Icon(
                             imageVector = InvoiceCloseVector,
@@ -159,8 +159,8 @@ fun AddInvoiceItemModal(
                 if (existingItem == null) {
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = colors.surfaceContainer,
-                        border = BorderStroke(0.6.dp, colors.borderSubtle),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(0.6.dp, colors.border),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -310,8 +310,8 @@ private fun CraftedGoldForm(
                     val isSelected = selectedKarat == k
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceContainer,
-                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.borderSubtle),
+                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                         modifier = Modifier
                             .weight(1f)
                             .height(34.dp)
@@ -367,7 +367,7 @@ private fun CraftedGoldForm(
         // Live Breakdown Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = colors.surfaceContainer,
+            color = colors.surfaceVariant,
             border = BorderStroke(0.8.dp, colors.goldBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -494,8 +494,8 @@ private fun ScrapGoldForm(
                     val isSelected = baseKarat == k
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceContainer,
-                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.borderSubtle),
+                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                         modifier = Modifier
                             .weight(1f)
                             .height(34.dp)
@@ -548,7 +548,7 @@ private fun ScrapGoldForm(
         // Live Summary Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = colors.surfaceContainer,
+            color = colors.surfaceVariant,
             border = BorderStroke(0.8.dp, colors.goldBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -664,7 +664,7 @@ private fun MeltGoldForm(
         // Summary Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = colors.surfaceContainer,
+            color = colors.surfaceVariant,
             border = BorderStroke(0.8.dp, colors.goldBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -759,8 +759,8 @@ private fun BankCoinForm(
                     val isSelected = selectedCoin == c
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceContainer,
-                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.borderSubtle),
+                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(34.dp)
@@ -824,7 +824,7 @@ private fun BankCoinForm(
         // Summary Card
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = colors.surfaceContainer,
+            color = colors.surfaceVariant,
             border = BorderStroke(0.8.dp, colors.goldBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -904,8 +904,8 @@ private fun FormInputBox(
         )
         Surface(
             shape = RoundedCornerShape(12.dp),
-            color = if (isReadonly) colors.surfaceContainer else colors.surfaceElevated,
-            border = BorderStroke(1.dp, colors.borderSubtle),
+            color = if (isReadonly) colors.surfaceVariant else colors.surfaceElevated,
+            border = BorderStroke(1.dp, colors.border),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(44.dp)

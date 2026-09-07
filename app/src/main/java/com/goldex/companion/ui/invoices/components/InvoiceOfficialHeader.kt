@@ -109,7 +109,7 @@ fun InvoiceOfficialHeader(
                             Text(
                                 text = "•",
                                 fontSize = 10.sp,
-                                color = colors.borderSubtle
+                                color = colors.border
                             )
                             Text(
                                 text = PersianNumberFormatter.toPersianDigits(phone),
@@ -124,8 +124,8 @@ fun InvoiceOfficialHeader(
                 // Official Verification QR Code Box
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceContainer,
-                    border = BorderStroke(0.8.dp, colors.borderSubtle),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.8.dp, colors.border),
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -144,7 +144,7 @@ fun InvoiceOfficialHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(0.6.dp)
-                    .background(colors.borderSubtle.copy(alpha = 0.6f))
+                    .background(colors.border.copy(alpha = 0.6f))
             )
 
             // Address & Official Guild Stamp Row

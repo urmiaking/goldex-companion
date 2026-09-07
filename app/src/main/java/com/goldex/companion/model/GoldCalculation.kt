@@ -146,6 +146,7 @@ object PersianNumberFormatter {
         return toPersianDigits(df.format(amount.toLong()))
     }
 
+    fun formatPrice(amount: Long): String = formatPrice(amount.toDouble())
     fun format(amount: Long): String = formatPrice(amount.toDouble())
     fun format(amount: Double): String = formatPrice(amount)
     fun formatWithCommas(amount: Long): String = formatPrice(amount.toDouble())

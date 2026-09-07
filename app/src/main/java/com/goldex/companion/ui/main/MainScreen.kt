@@ -104,9 +104,9 @@ fun MainScreen(
     }
 
     // Sync live market rate with barter invoice spot price
-    LaunchedEffect(mainUiState.rates.toman18k) {
-        if (mainUiState.rates.toman18k > 0) {
-            barterInvoiceViewModel.setLiveRate(mainUiState.rates.toman18k)
+    LaunchedEffect(mainUiState.rates.gold18) {
+        if (mainUiState.rates.gold18 > 0) {
+            barterInvoiceViewModel.setLiveRate(mainUiState.rates.gold18)
         }
     }
 

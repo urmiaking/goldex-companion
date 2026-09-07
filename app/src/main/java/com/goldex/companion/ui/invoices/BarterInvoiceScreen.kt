@@ -243,7 +243,7 @@ private fun InvoiceMetaAndRateCard(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.borderSubtle),
+        border = BorderStroke(1.dp, colors.border),
         shadowElevation = 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -370,7 +370,7 @@ private fun CustomerAndAccountCard(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.borderSubtle),
+        border = BorderStroke(1.dp, colors.border),
         shadowElevation = 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -407,8 +407,8 @@ private fun CustomerAndAccountCard(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = colors.surfaceContainer,
-                    border = BorderStroke(0.6.dp, colors.borderSubtle),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.6.dp, colors.border),
                     modifier = Modifier.clickable { onChangeCustomerClick() }
                 ) {
                     Text(
@@ -427,7 +427,7 @@ private fun CustomerAndAccountCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(colors.surfaceContainer)
+                    .background(colors.surfaceVariant)
                     .padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -457,7 +457,7 @@ private fun CustomerAndAccountCard(
             // Customer Details Card
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceContainer.copy(alpha = 0.6f),
+                color = colors.surfaceVariant.copy(alpha = 0.6f),
                 border = BorderStroke(0.8.dp, colors.goldBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -572,14 +572,14 @@ private fun BarterBalanceCard(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = colors.marketBullish.copy(alpha = 0.12f),
-                    border = BorderStroke(0.6.dp, colors.marketBullish.copy(alpha = 0.4f))
+                    color = colors.profitGreen.copy(alpha = 0.12f),
+                    border = BorderStroke(0.6.dp, colors.profitGreen.copy(alpha = 0.4f))
                 ) {
                     Text(
                         text = "تسویه ترکیبی ریالی-وزنی",
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.marketBullish,
+                        color = colors.profitGreen,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         fontFamily = VazirmatnFamily
                     )
@@ -639,8 +639,8 @@ private fun BarterBalanceCard(
                 // Column 2: Received
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = colors.surfaceContainer,
-                    border = BorderStroke(0.8.dp, colors.borderSubtle),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.8.dp, colors.border),
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(
@@ -710,13 +710,13 @@ private fun BarterBalanceCard(
                             )
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = if (balance.isCustomerDebtor) colors.marketBearish.copy(alpha = 0.12f) else colors.marketBullish.copy(alpha = 0.12f)
+                                color = if (balance.isCustomerDebtor) colors.errorRed.copy(alpha = 0.12f) else colors.profitGreen.copy(alpha = 0.12f)
                             ) {
                                 Text(
                                     text = if (balance.isSettled) "تسویه کامل" else if (balance.isCustomerDebtor) "مشتری بدهکار" else "مشتری بستانکار",
                                     fontSize = 9.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (balance.isCustomerDebtor) colors.marketBearish else colors.marketBullish,
+                                    color = if (balance.isCustomerDebtor) colors.errorRed else colors.profitGreen,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp),
                                     fontFamily = VazirmatnFamily
                                 )
@@ -773,7 +773,7 @@ private fun ItemsSectionCard(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.borderSubtle),
+        border = BorderStroke(1.dp, colors.border),
         shadowElevation = 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -797,7 +797,7 @@ private fun ItemsSectionCard(
                         modifier = Modifier
                             .size(20.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(if (isSales) colors.goldContainer else colors.surfaceContainer),
+                            .background(if (isSales) colors.goldContainer else colors.surfaceVariant),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -890,8 +890,8 @@ private fun ItemRowCard(
 
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = colors.surfaceContainer.copy(alpha = 0.5f),
-        border = BorderStroke(0.8.dp, colors.borderSubtle),
+        color = colors.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(0.8.dp, colors.border),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -962,7 +962,7 @@ private fun ItemRowCard(
                         Icon(
                             imageVector = InvoiceTrashVector,
                             contentDescription = "حذف",
-                            tint = colors.marketBearish,
+                            tint = colors.errorRed,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -973,7 +973,7 @@ private fun ItemRowCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(0.6.dp)
-                    .background(colors.borderSubtle.copy(alpha = 0.5f))
+                    .background(colors.border.copy(alpha = 0.5f))
             )
 
             Row(
@@ -1023,7 +1023,7 @@ private fun SettlementCard(
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.borderSubtle),
+        border = BorderStroke(1.dp, colors.border),
         shadowElevation = 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -1073,8 +1073,8 @@ private fun SettlementCard(
                     val isSelected = selectedMethod == method
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceContainer,
-                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.borderSubtle),
+                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                         modifier = Modifier
                             .weight(1f)
                             .clickable { onMethodSelect(method) }
@@ -1121,8 +1121,8 @@ private fun SettlementCard(
                     )
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceContainer,
-                        border = BorderStroke(0.8.dp, colors.borderSubtle),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(0.8.dp, colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
@@ -1168,8 +1168,8 @@ private fun SettlementCard(
                     )
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceContainer,
-                        border = BorderStroke(0.8.dp, colors.borderSubtle),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(0.8.dp, colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
@@ -1184,7 +1184,7 @@ private fun SettlementCard(
                                 text = "${PersianNumberFormatter.formatPrice(ledgerRemain)} تومان",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.marketBearish,
+                                color = colors.errorRed,
                                 fontFamily = VazirmatnFamily
                             )
                         }
@@ -1202,8 +1202,8 @@ private fun SettlementCard(
                 )
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = colors.surfaceContainer,
-                    border = BorderStroke(0.8.dp, colors.borderSubtle),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.8.dp, colors.border),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     BasicTextField(
@@ -1272,7 +1272,7 @@ private fun EditRateDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(colors.surfaceContainer)
+                            .background(colors.surfaceVariant)
                             .padding(12.dp)
                     )
                 }
