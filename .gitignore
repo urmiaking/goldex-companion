@@ -9,3 +9,4 @@ app/build/
 *.apk
 *.aab
 stitch_specs/
+*.hprof

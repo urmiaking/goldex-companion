@@ -158,6 +158,7 @@ Different entities may use different conflict policies. Invoice sync must not au
 - Keep card, border, typography, spacing, and motion decisions consistent with the existing Stitch design.
 - Do not introduce raw one-off colors or typography in feature screens unless the design decision is documented.
 - A design migration must not alter domain calculations or persistence behavior.
+- In two-action dialogs/modals (RTL), the secondary/cancel action must always be on the right (first child in Row) and the primary/save action on the left (second child in Row) per `.agents/rules/dialog-button-layout.md`.
 
 ## 11. Testing rules
 

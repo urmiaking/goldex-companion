@@ -519,6 +519,15 @@ fun TaxProfitModal(
                                     .padding(horizontal = 20.dp, vertical = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                // Cancel Button (appears on Right in RTL)
+                                GoldButton(
+                                    text = "انصراف",
+                                    onClick = handleDismiss,
+                                    isSecondary = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                // Primary Save Button (appears on Left in RTL)
                                 GoldButton(
                                     text = "ذخیره تغییرات",
                                     onClick = {
@@ -532,13 +541,6 @@ fun TaxProfitModal(
                                     isSecondary = false,
                                     icon = Icons.Default.Check,
                                     modifier = Modifier.weight(1.6f)
-                                )
-
-                                GoldButton(
-                                    text = "انصراف",
-                                    onClick = handleDismiss,
-                                    isSecondary = true,
-                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }

@@ -150,14 +150,6 @@ fun KaratConvertScreen(
                                 )
                             }
                         }
-
-                        // Action معکوس
-                        GoldButton(
-                            text = "معکوس",
-                            icon = CalcSwapHoriz,
-                            onClick = onSwapConvertKarats,
-                            modifier = Modifier.height(36.dp)
-                        )
                     }
                 }
             }

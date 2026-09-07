@@ -26,7 +26,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -293,23 +295,27 @@ fun JewelryTab(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        BasicTextField(
-                            value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
-                            onValueChange = { viewModel.onGrossWeightChanged(it) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                fontFamily = VazirmatnFamily,
-                                fontFeatureSettings = VazirmatnFeatureSettings,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                textAlign = TextAlign.Right,
-                                textDirection = TextDirection.Ltr
-                            ),
-                            cursorBrush = SolidColor(colors.goldPrimary),
-                            modifier = Modifier.weight(1f).padding(end = 12.dp)
-                        )
+                        Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                BasicTextField(
+                                    value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
+                                    onValueChange = { viewModel.onGrossWeightChanged(it) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        fontFamily = VazirmatnFamily,
+                                        fontFeatureSettings = VazirmatnFeatureSettings,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain,
+                                        textAlign = TextAlign.Right,
+                                        textDirection = TextDirection.Ltr
+                                    ),
+                                    cursorBrush = SolidColor(colors.goldPrimary),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                         Text(
                             text = "گرم",
                             fontFamily = VazirmatnFamily,
@@ -476,39 +482,43 @@ fun JewelryTab(
                                 PersianNumberFormatter.formatPrice(cleanWage.toDoubleOrNull() ?: 0.0)
                             } else ""
 
-                            BasicTextField(
-                                value = displayWage,
-                                onValueChange = { input ->
-                                    val digitsOnly = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
-                                    viewModel.onWageChanged(digitsOnly)
-                                },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                textStyle = TextStyle(
-                                    fontFamily = VazirmatnFamily,
-                                    fontFeatureSettings = VazirmatnFeatureSettings,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain,
-                                    textAlign = TextAlign.Right,
-                                    textDirection = TextDirection.Ltr
-                                ),
-                                cursorBrush = SolidColor(colors.goldPrimary),
-                                modifier = Modifier.weight(1f).padding(end = 12.dp),
-                                decorationBox = { innerTextField ->
-                                    if (displayWage.isEmpty()) {
-                                        Text(
-                                            text = "مبلغ اجرت هر گرم طلا...",
+                            Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    BasicTextField(
+                                        value = displayWage,
+                                        onValueChange = { input ->
+                                            val digitsOnly = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
+                                            viewModel.onWageChanged(digitsOnly)
+                                        },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true,
+                                        textStyle = TextStyle(
                                             fontFamily = VazirmatnFamily,
-                                            fontSize = 12.5.sp,
-                                            color = colors.textMuted.copy(alpha = 0.55f),
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textMain,
                                             textAlign = TextAlign.Right,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                    innerTextField()
+                                            textDirection = TextDirection.Ltr
+                                        ),
+                                        cursorBrush = SolidColor(colors.goldPrimary),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { innerTextField ->
+                                            if (displayWage.isEmpty()) {
+                                                Text(
+                                                    text = "مبلغ اجرت هر گرم طلا...",
+                                                    fontFamily = VazirmatnFamily,
+                                                    fontSize = 12.5.sp,
+                                                    color = colors.textMuted.copy(alpha = 0.55f),
+                                                    textAlign = TextAlign.Right,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                            innerTextField()
+                                        }
+                                    )
                                 }
-                            )
+                            }
                             Text(
                                 text = "تومان / گرم",
                                 fontFamily = VazirmatnFamily,
@@ -1352,18 +1362,18 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         GoldButton(
+                            text = "انصراف",
+                            onClick = { isCustomProfitDialogVisible = false },
+                            isSecondary = true,
+                            modifier = Modifier.weight(0.7f)
+                        )
+                        GoldButton(
                             text = "ثبت و تایید",
                             onClick = {
                                 viewModel.onProfitPercentChanged(tempProfitInput)
                                 isCustomProfitDialogVisible = false
                             },
                             modifier = Modifier.weight(1f)
-                        )
-                        GoldButton(
-                            text = "انصراف",
-                            onClick = { isCustomProfitDialogVisible = false },
-                            isSecondary = true,
-                            modifier = Modifier.weight(0.7f)
                         )
                     }
                 }
@@ -1491,18 +1501,18 @@ fun JewelryTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         GoldButton(
+                            text = "انصراف",
+                            onClick = { isCustomTaxDialogVisible = false },
+                            isSecondary = true,
+                            modifier = Modifier.weight(0.7f)
+                        )
+                        GoldButton(
                             text = "ثبت و تایید",
                             onClick = {
                                 viewModel.onTaxPercentChanged(tempTaxInput)
                                 isCustomTaxDialogVisible = false
                             },
                             modifier = Modifier.weight(1f)
-                        )
-                        GoldButton(
-                            text = "انصراف",
-                            onClick = { isCustomTaxDialogVisible = false },
-                            isSecondary = true,
-                            modifier = Modifier.weight(0.7f)
                         )
                     }
                 }

@@ -142,16 +142,25 @@ fun MeltCalcScreen(
                             }
                         }
 
-                        // Bind Live Melt Rate
-                        GoldButton(
-                            text = "مظنه زنده",
-                            icon = CalcSync,
+                        // Bind Live Melt Rate Icon Button
+                        IconButton(
                             onClick = {
                                 onMesghalPriceChanged(uiState.rates.goldMelt.toString())
                                 Toast.makeText(context, "مظنه زنده آبشده درج شد ✓", Toast.LENGTH_SHORT).show()
                             },
-                            modifier = Modifier.height(36.dp)
-                        )
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = CalcSync,
+                                contentDescription = "درج مظنه زنده آبشده",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

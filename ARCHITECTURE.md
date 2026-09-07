@@ -250,6 +250,9 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Calculator and tool composables (`JewelryTab`, `CoinBubbleScreen`, `MeltCalcScreen`, `MoreHubScreen`) are decoupled from concrete ViewModels, depending only on focused UI state data classes and callback interfaces (`JewelryActions`).
 - Backward compatibility typealiases (`GoldCalculatorViewModel`, `GoldCalculatorScreen`, `CalculatorUiState`) ensure zero external breakage.
 - Release signing credentials are securely configured using protected GitHub Actions repository secrets.
+- Phase 2 formally completed: Dashboard, Live Rates, and dedicated Stitch calculator screens (`KaratConvertScreen`, `CoinBubbleScreen`, `MeltCalcScreen`, `StandardFormulasScreen`) are fully established.
+- Standardized two-action dialog button layout across all modals and dialogs (Cancel on right, Save/Confirm on left in RTL) governed by `.agents/rules/dialog-button-layout.md`.
+- Weight and price-based wage inputs unified to 18sp with strict LTR decimal entry semantics under RTL layouts.
 
 ## 14. Known current compromises
 
