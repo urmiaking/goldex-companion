@@ -25,7 +25,8 @@ object BarterCalculationUseCases {
         taxPercent: Double
     ): CraftedGoldItem {
         val netWeight = (grossWeight - stoneWeight).coerceAtLeast(0.0)
-        val rawGoldValue = netWeight * spotPrice18k * (karat.value / 750.0)
+        val karatRatio = karat.karatNumber.toDouble() / 18.0
+        val rawGoldValue = netWeight * spotPrice18k * karatRatio
         val wageAmount = when (wageType) {
             WageType.PERCENTAGE -> rawGoldValue * (wageInput / 100.0)
             WageType.TOMAN_PER_GRAM -> netWeight * wageInput
@@ -33,7 +34,7 @@ object BarterCalculationUseCases {
         val profitAmount = (rawGoldValue + wageAmount) * (profitPercent / 100.0)
         val taxAmount = (wageAmount + profitAmount) * (taxPercent / 100.0)
         val totalPayable = rawGoldValue + wageAmount + profitAmount + taxAmount
-        val eq18k = netWeight * (karat.value / 750.0)
+        val eq18k = netWeight * karatRatio
 
         return CraftedGoldItem(
             title = title.ifBlank { "دستبند و زیورآلات ساخته ${karat.labelFa}" },
