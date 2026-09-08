@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -50,6 +51,7 @@ import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
+import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
