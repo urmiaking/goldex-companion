@@ -57,6 +57,8 @@ import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
+import com.goldex.companion.ui.invoices.InvoicesManagementScreen
+import com.goldex.companion.ui.invoices.InvoicesSubScreen
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModelFactory
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModel
@@ -194,6 +196,12 @@ fun MainScreen(
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
             }
         )
+    }
+
+    if (selectedTab == AppTab.INVOICES && barterUiState.subScreen == InvoicesSubScreen.EDITOR) {
+        BackHandler {
+            barterInvoiceViewModel.navigateBackToList()
+        }
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -375,8 +383,8 @@ fun MainScreen(
                                             mainViewModel.selectTab(AppTab.CALCULATOR)
                                         },
                                         onNavigateInvoices = {
-                                            invoiceViewModel.loadInvoices()
-                                            invoiceViewModel.setInvoiceManagerVisible(true)
+                                            barterInvoiceViewModel.navigateBackToList()
+                                            mainViewModel.selectTab(AppTab.INVOICES)
                                         },
                                         onNavigateConvert = {
                                             mainViewModel.setKaratConvertVisible(true)
@@ -415,38 +423,57 @@ fun MainScreen(
                                 }
 
                                 AppTab.INVOICES -> {
-                                    BarterInvoiceScreen(
-                                        uiState = barterUiState,
-                                        onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
-                                        onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
-                                        onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
-                                        onSetNote = barterInvoiceViewModel::setNote,
-                                        onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
-                                        onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
-                                        onCloseItemModal = barterInvoiceViewModel::closeItemModal,
-                                        onSaveItem = barterInvoiceViewModel::saveItem,
-                                        onDeleteSalesItem = barterInvoiceViewModel::deleteSalesItem,
-                                        onDeleteReceivedItem = barterInvoiceViewModel::deleteReceivedItem,
-                                        onSetRateEditDialogVisible = barterInvoiceViewModel::setRateEditDialogVisible,
-                                        onUpdateSpotPrice = barterInvoiceViewModel::updateSpotPrice,
-                                        onOpenCustomerPicker = {
-                                            customerViewModel.loadCustomers()
-                                            customerViewModel.setCustomerManagerVisible(true)
-                                        },
-                                        onOpenInvoiceManager = {
-                                            invoiceViewModel.loadInvoices()
-                                            invoiceViewModel.setInvoiceManagerVisible(true)
-                                        },
-                                        onPreviewPdf = {
-                                            QiratoToast.show(context, "در حال تولید سند رسمی PDF فاکتور تهاتر...")
-                                        },
-                                        onSendSms = {
-                                            QiratoToast.show(context, "ارسال پیامک فاکتور به شماره طرف حساب...")
-                                        },
-                                        onFinalSubmit = {
-                                            QiratoToast.show(context, "فاکتور تهاتر با موفقیت در سیستم ثبت شد.")
-                                        }
-                                    )
+                                    if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
+                                        InvoicesManagementScreen(
+                                            uiState = barterUiState,
+                                            onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
+                                            onFilterSelect = barterInvoiceViewModel::setSelectedFilter,
+                                            onNewInvoiceClick = barterInvoiceViewModel::openNewInvoice,
+                                            onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
+                                            onExportPdfClick = { item ->
+                                                QiratoToast.show(context, "در حال صدور فایل PDF فاکتور ${item.invoiceNumber}...")
+                                            },
+                                            onScanQrClick = {
+                                                QiratoToast.show(context, "قابلیت اسکن بارکد و QR فاکتور فعال شد")
+                                            }
+                                        )
+                                    } else {
+                                        BarterInvoiceScreen(
+                                            uiState = barterUiState,
+                                            onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
+                                            onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
+                                            onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
+                                            onSetNote = barterInvoiceViewModel::setNote,
+                                            onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
+                                            onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
+                                            onCloseItemModal = barterInvoiceViewModel::closeItemModal,
+                                            onSaveItem = barterInvoiceViewModel::saveItem,
+                                            onDeleteSalesItem = barterInvoiceViewModel::deleteSalesItem,
+                                            onDeleteReceivedItem = barterInvoiceViewModel::deleteReceivedItem,
+                                            onSetRateEditDialogVisible = barterInvoiceViewModel::setRateEditDialogVisible,
+                                            onUpdateSpotPrice = barterInvoiceViewModel::updateSpotPrice,
+                                            onOpenCustomerPicker = {
+                                                customerViewModel.loadCustomers()
+                                                customerViewModel.setCustomerManagerVisible(true)
+                                            },
+                                            onOpenInvoiceManager = {
+                                                barterInvoiceViewModel.navigateBackToList()
+                                            },
+                                            onPreviewPdf = {
+                                                QiratoToast.show(context, "در حال تولید سند رسمی PDF فاکتور تهاتر...")
+                                            },
+                                            onSendSms = {
+                                                QiratoToast.show(context, "ارسال پیامک فاکتور به شماره طرف حساب...")
+                                            },
+                                            onFinalSubmit = {
+                                                barterInvoiceViewModel.submitAndSaveCurrentInvoice()
+                                                QiratoToast.show(context, "فاکتور تهاتر با موفقیت در سیستم ثبت شد.")
+                                            },
+                                            onNavigateBack = {
+                                                barterInvoiceViewModel.navigateBackToList()
+                                            }
+                                        )
+                                    }
                                 }
 
                                 AppTab.MORE -> {

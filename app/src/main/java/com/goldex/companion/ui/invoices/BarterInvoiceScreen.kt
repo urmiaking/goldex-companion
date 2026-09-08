@@ -90,6 +90,7 @@ fun BarterInvoiceScreen(
     onPreviewPdf: () -> Unit,
     onSendSms: () -> Unit,
     onFinalSubmit: () -> Unit,
+    onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -108,6 +109,77 @@ fun BarterInvoiceScreen(
                 .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // 0. Optional Back Navigation Header to Invoices List
+            if (onNavigateBack != null) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.border),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.surfaceElevated)
+                                    .border(1.dp, colors.border, RoundedCornerShape(10.dp))
+                                    .clickable(onClick = onNavigateBack),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "→",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "فاکتور جامع دوطرفه و تهاتر زرگری",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "بازگشت به فهرست معاملات و فاکتورها",
+                                    fontSize = 10.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(0x26DFB35A))
+                                .border(0.8.dp, Color(0x4DDFB35A), RoundedCornerShape(50))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "کد: ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
+            }
+
             // 1. Meta & Live Gold Rate Bar
             InvoiceMetaAndRateCard(
                 invoiceNumber = invoice.invoiceNumber,

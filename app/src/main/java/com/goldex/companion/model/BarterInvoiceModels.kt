@@ -126,3 +126,43 @@ data class BarterInvoice(
     val balance: BarterBalance
         get() = BarterCalculationUseCases.calculateBalance(salesItems, receivedItems)
 }
+
+enum class InvoiceStatus(val titleFa: String) {
+    SETTLED("تسویه نقدی کامل"),
+    PARTIALLY_PAID("۲۰٪ مانده حساب"),
+    WORKSHOP("در کارگاه ساخت")
+}
+
+enum class InvoiceFilterTab(val titleFa: String) {
+    ALL("همه"),
+    SETTLED("تسویه شده"),
+    PENDING("در انتظار پرداخت"),
+    WORKSHOP("سفارش کارگاه")
+}
+
+enum class InvoiceCardAction {
+    VIEW_DETAILS,
+    SETTLE_BALANCE,
+    EDIT_WORKSHOP
+}
+
+data class InvoiceListItem(
+    val id: String = UUID.randomUUID().toString(),
+    val invoiceNumber: String,
+    val customerName: String,
+    val customerInitials: String,
+    val isVerified: Boolean = true,
+    val createdAtText: String,
+    val status: InvoiceStatus = InvoiceStatus.SETTLED,
+    val statusDetail: String = "تسویه نقدی کامل",
+    val itemsSummary: String,
+    val itemsCountText: String,
+    val line1Detail: String,
+    val line2Detail: String,
+    val finalAmount: Long,
+    val amountLabel: String = "مبلغ نهایی پرداختی:",
+    val actionButtonText: String = "مشاهده جزییات",
+    val actionType: InvoiceCardAction = InvoiceCardAction.VIEW_DETAILS,
+    val barterInvoice: BarterInvoice? = null
+)
+

@@ -14,13 +14,22 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
-import com.goldex.companion.model.WageType
+import com.goldex.companion.model.InvoiceCardAction
+import com.goldex.companion.model.InvoiceFilterTab
+import com.goldex.companion.model.InvoiceListItem
+import com.goldex.companion.model.InvoiceStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+enum class InvoicesSubScreen {
+    LIST,
+    EDITOR
+}
+
 data class BarterInvoiceUiState(
+    val subScreen: InvoicesSubScreen = InvoicesSubScreen.LIST,
     val invoice: BarterInvoice = BarterInvoice(),
     val isItemModalVisible: Boolean = false,
     val targetCategory: InvoiceItemCategory = InvoiceItemCategory.CRAFTED,
@@ -28,9 +37,29 @@ data class BarterInvoiceUiState(
     val editingItem: BarterItem? = null,
     val isRateEditDialogVisible: Boolean = false,
     val isSuccessSnackbarVisible: Boolean = false,
-    val statusMessage: String = ""
+    val statusMessage: String = "",
+    val searchQuery: String = "",
+    val selectedFilter: InvoiceFilterTab = InvoiceFilterTab.ALL,
+    val invoicesList: List<InvoiceListItem> = emptyList()
 ) {
     val balance: BarterBalance get() = invoice.balance
+
+    val filteredInvoices: List<InvoiceListItem> get() {
+        val byTab = when (selectedFilter) {
+            InvoiceFilterTab.ALL -> invoicesList
+            InvoiceFilterTab.SETTLED -> invoicesList.filter { it.status == InvoiceStatus.SETTLED }
+            InvoiceFilterTab.PENDING -> invoicesList.filter { it.status == InvoiceStatus.PARTIALLY_PAID }
+            InvoiceFilterTab.WORKSHOP -> invoicesList.filter { it.status == InvoiceStatus.WORKSHOP }
+        }
+        if (searchQuery.isBlank()) return byTab
+        val q = searchQuery.trim().lowercase()
+        return byTab.filter { item ->
+            item.invoiceNumber.lowercase().contains(q) ||
+            item.customerName.lowercase().contains(q) ||
+            item.itemsSummary.lowercase().contains(q) ||
+            item.statusDetail.lowercase().contains(q)
+        }
+    }
 }
 
 class BarterInvoiceViewModel : ViewModel() {
@@ -94,21 +123,220 @@ class BarterInvoiceViewModel : ViewModel() {
             equivalent18kWeight = 5.24 * (735.0 / 750.0)
         )
 
+        val sampleInvoice1 = BarterInvoice(
+            invoiceNumber = "IR-1403-089",
+            customer = Customer(
+                name = "حاج محمد کاظمی",
+                phone = "09123456789",
+                note = "بنکداری تهران • مانده قبلی: ۵.۲۰۰ گرم بستانکار"
+            ),
+            customerRole = CustomerRole.WHOLESALER,
+            spotPrice18k = 3560000L,
+            salesItems = listOf(sampleSale1, sampleSale2),
+            receivedItems = listOf(sampleReceived1, sampleReceived2),
+            cashPosAmount = 30000000L,
+            note = "تهاتر شده با طلای کهنه و آبشده انگ ۱۲۴۸. مانده دفتری در صورتحساب ماهانه."
+        )
+
+        val card1 = InvoiceListItem(
+            id = "sample-1",
+            invoiceNumber = "IR-1403-089",
+            customerName = "حاج محمد کاظمی",
+            customerInitials = "مک",
+            isVerified = true,
+            createdAtText = "کد فاکتور: IR-1403-089 • امروز، ۱۱:۴۵",
+            status = InvoiceStatus.SETTLED,
+            statusDetail = "تسویه نقدی کامل",
+            itemsSummary = "دستبند کارتیه ۱۸ عیار + نیم‌ست برلیان",
+            itemsCountText = "اقلام فاکتور (۲ قلم):",
+            line1Detail = "وزن خالص طلا: ۱۲.۵۰ گرم",
+            line2Detail = "اجرت ساخت: ۷.۵٪",
+            finalAmount = 241500000L,
+            amountLabel = "مبلغ نهایی پرداختی:",
+            actionButtonText = "مشاهده جزییات",
+            actionType = InvoiceCardAction.VIEW_DETAILS,
+            barterInvoice = sampleInvoice1
+        )
+
+        val sampleSaleCoin = BankCoinItem(
+            title = "سکه تمام بهار طرح جدید امامی هولوگرام‌دار",
+            coinType = CoinType.EMAMI,
+            count = 1,
+            hasHologram = true,
+            unitPrice = 42300000L,
+            totalPayable = 42300000.0,
+            equivalent18kWeight = 8.13598 * 1.2
+        )
+        val sampleInvoice2 = BarterInvoice(
+            invoiceNumber = "IR-1403-088",
+            customer = Customer(
+                name = "خانم سارا رادمنش",
+                phone = "09129876543",
+                note = "تسویه بیعانه کارتخوان"
+            ),
+            customerRole = CustomerRole.RETAIL,
+            spotPrice18k = 3560000L,
+            salesItems = listOf(sampleSaleCoin),
+            receivedItems = emptyList(),
+            cashPosAmount = 33840000L,
+            note = "پرداخت بیعانه ۳۳،۸۴۰،۰۰۰ ت. مانده قابل تسویه هنگام تحویل: ۸،۴۶۰،۰۰۰ ت."
+        )
+
+        val card2 = InvoiceListItem(
+            id = "sample-2",
+            invoiceNumber = "IR-1403-088",
+            customerName = "خانم سارا رادمنش",
+            customerInitials = "سر",
+            isVerified = false,
+            createdAtText = "کد فاکتور: IR-1403-088 • دیروز، ۱۷:۲۰",
+            status = InvoiceStatus.PARTIALLY_PAID,
+            statusDetail = "۲۰٪ مانده حساب",
+            itemsSummary = "سکه تمام بهار طرح جدید امامی هولوگرام‌دار",
+            itemsCountText = "اقلام (۱ قطعه بانکی):",
+            line1Detail = "پرداخت بیعانه: ۳۳,۸۴۰,۰۰۰ ت",
+            line2Detail = "مانده قابل تسویه: ۸,۴۶۰,۰۰۰ ت",
+            finalAmount = 42300000L,
+            amountLabel = "ارزش فاکتور:",
+            actionButtonText = "تسویه حساب مانده",
+            actionType = InvoiceCardAction.SETTLE_BALANCE,
+            barterInvoice = sampleInvoice2
+        )
+
+        val sampleWorkshopCrafted = CraftedGoldItem(
+            title = "سرویس گردنبند برلیان مارکیز سفارشی",
+            karat = Karat.K18,
+            grossWeight = 38.5,
+            stoneWeight = 2.1,
+            netWeight = 36.4,
+            spotPrice = 3560000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 18.0,
+            wageAmount = 23323200.0,
+            profitPercent = 7.0,
+            profitAmount = 10701144.0,
+            taxPercent = 9.0,
+            taxAmount = 3062191.0,
+            rawGoldValue = 129584000.0,
+            totalPayable = 185000000.0,
+            equivalent18kWeight = 36.4
+        )
+        val sampleInvoice3 = BarterInvoice(
+            invoiceNumber = "IR-1403-087",
+            customer = Customer(
+                name = "جناب آقای دکتر افشار",
+                phone = "09121112233",
+                note = "سفارش ویژه کارگاه ساخت"
+            ),
+            customerRole = CustomerRole.RETAIL,
+            spotPrice18k = 3560000L,
+            salesItems = listOf(sampleWorkshopCrafted),
+            receivedItems = emptyList(),
+            cashPosAmount = 50000000L,
+            note = "مرحله مخراج‌کاری و آبکاری. زمان تحویل: ۳ روز آینده."
+        )
+
+        val card3 = InvoiceListItem(
+            id = "sample-3",
+            invoiceNumber = "IR-1403-087",
+            customerName = "جناب آقای دکتر افشار",
+            customerInitials = "دا",
+            isVerified = false,
+            createdAtText = "کد فاکتور: IR-1403-087 • تحویل: ۲۲ شهریور",
+            status = InvoiceStatus.WORKSHOP,
+            statusDetail = "در کارگاه ساخت",
+            itemsSummary = "سرویس گردنبند برلیان مارکیز سفارشی",
+            itemsCountText = "سفارش ساخت ویژه:",
+            line1Detail = "مرحله: مخراج‌کاری و آبکاری",
+            line2Detail = "زمان تحویل: ۳ روز آینده",
+            finalAmount = 185000000L,
+            amountLabel = "برآورد مظنه نهایی:",
+            actionButtonText = "ویرایش و تکمیل فاکتور",
+            actionType = InvoiceCardAction.EDIT_WORKSHOP,
+            barterInvoice = sampleInvoice3
+        )
+
         _uiState.update { current ->
             current.copy(
-                invoice = current.invoice.copy(
-                    customer = Customer(
-                        name = "حاج محمد کاظمی",
-                        phone = "09123456789",
-                        note = "بنکداری تهران • مانده قبلی: ۵.۲۰۰ گرم بستانکار"
-                    ),
-                    customerRole = CustomerRole.WHOLESALER,
-                    spotPrice18k = 3560000L,
-                    salesItems = listOf(sampleSale1, sampleSale2),
-                    receivedItems = listOf(sampleReceived1, sampleReceived2),
-                    cashPosAmount = 30000000L,
-                    note = "تهاتر شده با طلای کهنه و آبشده انگ ۱۲۴۸. مانده دفتری در صورتحساب ماهانه."
+                invoice = sampleInvoice1,
+                invoicesList = listOf(card1, card2, card3)
+            )
+        }
+    }
+
+    fun setSubScreen(subScreen: InvoicesSubScreen) {
+        _uiState.update { it.copy(subScreen = subScreen) }
+    }
+
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun setSelectedFilter(filter: InvoiceFilterTab) {
+        _uiState.update { it.copy(selectedFilter = filter) }
+    }
+
+    fun openNewInvoice() {
+        _uiState.update {
+            it.copy(
+                subScreen = InvoicesSubScreen.EDITOR,
+                invoice = BarterInvoice(
+                    spotPrice18k = it.invoice.spotPrice18k
                 )
+            )
+        }
+    }
+
+    fun openInvoiceDetails(item: InvoiceListItem) {
+        val invoiceToEdit = item.barterInvoice ?: BarterInvoice(
+            invoiceNumber = item.invoiceNumber,
+            customer = Customer(name = item.customerName),
+            spotPrice18k = _uiState.value.invoice.spotPrice18k
+        )
+        _uiState.update {
+            it.copy(
+                subScreen = InvoicesSubScreen.EDITOR,
+                invoice = invoiceToEdit
+            )
+        }
+    }
+
+    fun navigateBackToList() {
+        _uiState.update { it.copy(subScreen = InvoicesSubScreen.LIST) }
+    }
+
+    fun submitAndSaveCurrentInvoice() {
+        val currentInv = _uiState.value.invoice
+        val netAmount = currentInv.balance.totalSalesAmount.toLong().coerceAtLeast(0L)
+        val customerName = currentInv.customer?.name?.ifBlank { "مشتری جدید" } ?: "مشتری جدید"
+        val initials = customerName.split(" ").take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").ifBlank { "مش" }
+
+        val newCard = InvoiceListItem(
+            id = currentInv.id,
+            invoiceNumber = currentInv.invoiceNumber,
+            customerName = customerName,
+            customerInitials = initials,
+            isVerified = true,
+            createdAtText = "کد فاکتور: ${currentInv.invoiceNumber} • همین الان",
+            status = if (currentInv.balance.isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
+            statusDetail = if (currentInv.balance.isSettled) "تسویه نقدی کامل" else "در انتظار پرداخت",
+            itemsSummary = (currentInv.salesItems + currentInv.receivedItems).joinToString(" + ") { it.title }.ifBlank { "اقلام طلا و مسکوکات" },
+            itemsCountText = "اقلام فاکتور (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits((currentInv.salesItems.size + currentInv.receivedItems.size).toString())} قلم):",
+            line1Detail = "وزن کل: ${com.goldex.companion.model.PersianNumberFormatter.formatWeight(currentInv.salesItems.sumOf { it.equivalent18kWeight })} گرم",
+            line2Detail = "روش تسویه: ${currentInv.settlementMethod.labelFa}",
+            finalAmount = netAmount,
+            amountLabel = "مبلغ نهایی پرداختی:",
+            actionButtonText = "مشاهده جزییات",
+            actionType = InvoiceCardAction.VIEW_DETAILS,
+            barterInvoice = currentInv
+        )
+
+        _uiState.update { state ->
+            val updatedList = listOf(newCard) + state.invoicesList.filterNot { it.id == newCard.id }
+            state.copy(
+                invoicesList = updatedList,
+                subScreen = InvoicesSubScreen.LIST,
+                isSuccessSnackbarVisible = true,
+                statusMessage = "فاکتور ${currentInv.invoiceNumber} با موفقیت ثبت گردید"
             )
         }
     }
@@ -218,7 +446,7 @@ class BarterInvoiceViewModel : ViewModel() {
 
     fun resetNewInvoice() {
         _uiState.update {
-            BarterInvoiceUiState(
+            it.copy(
                 invoice = BarterInvoice(
                     spotPrice18k = it.invoice.spotPrice18k
                 )
