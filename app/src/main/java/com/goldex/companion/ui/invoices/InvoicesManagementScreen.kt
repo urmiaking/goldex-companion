@@ -304,7 +304,7 @@ private fun KpiStatBox(
                 fontFamily = VazirmatnFamily
             )
             Row(
-                verticalAlignment = Alignment.Baseline,
+                verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
@@ -661,7 +661,7 @@ private fun InvoiceTransactionCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(colors.surfaceElevated)
-                    .border(0.8.dp, colors.hairlineBorder.brush, RoundedCornerShape(12.dp))
+                    .border(0.8.dp, colors.border, RoundedCornerShape(12.dp))
                     .padding(10.dp)
             ) {
                 Column(
@@ -739,7 +739,7 @@ private fun InvoiceTransactionCard(
                         fontFamily = VazirmatnFamily
                     )
                     Row(
-                        verticalAlignment = Alignment.Baseline,
+                        verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         Text(

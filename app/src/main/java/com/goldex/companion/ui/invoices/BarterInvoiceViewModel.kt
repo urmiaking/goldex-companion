@@ -14,6 +14,7 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.model.WageType
 import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem

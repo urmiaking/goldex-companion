@@ -198,7 +198,7 @@ fun MainScreen(
         )
     }
 
-    if (selectedTab == AppTab.INVOICES && barterUiState.subScreen == InvoicesSubScreen.EDITOR) {
+    if (mainUiState.selectedTab == AppTab.INVOICES && barterUiState.subScreen == InvoicesSubScreen.EDITOR) {
         BackHandler {
             barterInvoiceViewModel.navigateBackToList()
         }
