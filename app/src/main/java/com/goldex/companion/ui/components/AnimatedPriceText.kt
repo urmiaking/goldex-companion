@@ -74,7 +74,7 @@ fun AnimatedPriceText(
 
 @Composable
 fun AnimatedPriceText(
-    price: Long,
+    amount: Double,
     modifier: Modifier = Modifier,
     unit: String = "",
     color: Color = Color.Unspecified,
@@ -83,7 +83,7 @@ fun AnimatedPriceText(
     style: TextStyle = LocalTextStyle.current
 ) {
     AnimatedPriceText(
-        amount = price,
+        amount = amount.toLong(),
         modifier = modifier,
         unit = unit,
         color = color,
