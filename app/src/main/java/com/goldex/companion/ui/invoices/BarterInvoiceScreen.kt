@@ -1,9 +1,17 @@
 package com.goldex.companion.ui.invoices
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.rememberCoroutineScope
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
+import com.goldex.companion.ui.theme.LuxuryMotion
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -395,13 +403,21 @@ private fun InvoiceMetaAndRateCard(
                             color = Color(0xCCFFFFFF),
                             fontFamily = VazirmatnFamily
                         )
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(spotPrice18k)} تومان",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE6CA65),
-                            fontFamily = VazirmatnFamily
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AnimatedPriceText(
+                                price = spotPrice18k,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE6CA65)
+                            )
+                            Text(
+                                text = " تومان",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE6CA65),
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
 
                     Surface(
@@ -689,19 +705,40 @@ private fun BarterBalanceCard(
                                 fontFamily = VazirmatnFamily
                             )
                         }
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(balance.totalSalesAmount)} ت",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily
-                        )
-                        Text(
-                            text = "معادل: ${PersianNumberFormatter.formatWeight(balance.totalSales18kWeight)}g",
-                            fontSize = 9.5.sp,
-                            color = colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AnimatedPriceText(
+                                price = balance.totalSalesAmount,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = " ت",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "معادل: ",
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                            AnimatedNumberText(
+                                text = PersianNumberFormatter.formatWeight(balance.totalSales18kWeight),
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary
+                            )
+                            Text(
+                                text = "g",
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
                 }
 
@@ -734,19 +771,40 @@ private fun BarterBalanceCard(
                                 fontFamily = VazirmatnFamily
                             )
                         }
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(balance.totalReceivedAmount)} ت",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily
-                        )
-                        Text(
-                            text = "معادل: ${PersianNumberFormatter.formatWeight(balance.totalReceived18kWeight)}g",
-                            fontSize = 9.5.sp,
-                            color = colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AnimatedPriceText(
+                                price = balance.totalReceivedAmount,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = " ت",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "معادل: ",
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                            AnimatedNumberText(
+                                text = PersianNumberFormatter.formatWeight(balance.totalReceived18kWeight),
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary
+                            )
+                            Text(
+                                text = "g",
+                                fontSize = 9.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
                 }
             }
@@ -803,20 +861,43 @@ private fun BarterBalanceCard(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(kotlin.math.abs(balance.netPayableAmount))} تومان",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.goldPrimary,
-                            fontFamily = VazirmatnFamily
-                        )
-                        Text(
-                            text = "معادل: ${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AnimatedPriceText(
+                                price = kotlin.math.abs(balance.netPayableAmount),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black,
+                                color = colors.goldPrimary
+                            )
+                            Text(
+                                text = " تومان",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "معادل: ",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                            AnimatedNumberText(
+                                text = PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta)),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary
+                            )
+                            Text(
+                                text = " گرم ۱۸ عیار",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
                 }
             }
@@ -838,6 +919,8 @@ private fun ItemsSectionCard(
     isSales: Boolean
 ) {
     val colors = LocalGoldExColors.current
+    val coroutineScope = rememberCoroutineScope()
+    var deletingItemIds by remember { mutableStateOf(setOf<String>()) }
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -883,12 +966,28 @@ private fun ItemsSectionCard(
                         color = colors.textMain,
                         fontFamily = VazirmatnFamily
                     )
-                    Text(
-                        text = "(${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم)",
-                        fontSize = 10.sp,
-                        color = colors.textMuted,
-                        fontFamily = VazirmatnFamily
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(1.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "(",
+                            fontSize = 10.sp,
+                            color = colors.textMuted,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.toPersianDigits(items.size.toString()),
+                            fontSize = 10.sp,
+                            color = colors.textMuted
+                        )
+                        Text(
+                            text = " قلم)",
+                            fontSize = 10.sp,
+                            color = colors.textMuted,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
                 }
 
                 Surface(
@@ -937,11 +1036,24 @@ private fun ItemsSectionCard(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items.forEach { item ->
-                        ItemRowCard(
-                            item = item,
-                            onEdit = { onEditItemClick(item) },
-                            onDelete = { onDeleteItemClick(item.id) }
-                        )
+                        AnimatedVisibility(
+                            visible = item.id !in deletingItemIds,
+                            enter = LuxuryMotion.ItemAddEnter,
+                            exit = LuxuryMotion.ItemRemoveExit
+                        ) {
+                            ItemRowCard(
+                                item = item,
+                                onEdit = { onEditItemClick(item) },
+                                onDelete = {
+                                    deletingItemIds = deletingItemIds + item.id
+                                    coroutineScope.launch {
+                                        delay(220)
+                                        onDeleteItemClick(item.id)
+                                        deletingItemIds = deletingItemIds - item.id
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1050,19 +1162,40 @@ private fun ItemRowCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "معادل ۱۸ عیار: ${PersianNumberFormatter.formatWeight(item.equivalent18kWeight)}g",
-                    fontSize = 10.sp,
-                    color = colors.textMuted,
-                    fontFamily = VazirmatnFamily
-                )
-                Text(
-                    text = "${PersianNumberFormatter.formatPrice(item.totalPayable)} تومان",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain,
-                    fontFamily = VazirmatnFamily
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "معادل ۱۸ عیار: ",
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                    AnimatedNumberText(
+                        text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
+                        fontSize = 10.sp,
+                        color = colors.textMuted
+                    )
+                    Text(
+                        text = "g",
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AnimatedPriceText(
+                        price = item.totalPayable,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain
+                    )
+                    Text(
+                        text = " تومان",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
         }
     }
@@ -1125,12 +1258,26 @@ private fun SettlementCard(
                         fontFamily = VazirmatnFamily
                     )
                 }
-                Text(
-                    text = "مانده: ${PersianNumberFormatter.formatPrice(netPayableAmount)} ت",
-                    fontSize = 10.5.sp,
-                    color = colors.textSecondary,
-                    fontFamily = VazirmatnFamily
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "مانده: ",
+                        fontSize = 10.5.sp,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    AnimatedPriceText(
+                        price = netPayableAmount.toLong(),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textSecondary
+                    )
+                    Text(
+                        text = " ت",
+                        fontSize = 10.5.sp,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
 
             // Settlement Channels Selector
@@ -1140,10 +1287,18 @@ private fun SettlementCard(
             ) {
                 SettlementMethod.entries.forEach { method ->
                     val isSelected = selectedMethod == method
+                    val bgColor by animateColorAsState(
+                        targetValue = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        label = "settlementBg"
+                    )
+                    val borderColor by animateColorAsState(
+                        targetValue = if (isSelected) colors.goldPrimary else colors.border,
+                        label = "settlementBorder"
+                    )
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
-                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                        color = bgColor,
+                        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, borderColor),
                         modifier = Modifier
                             .weight(1f)
                             .clickable { onMethodSelect(method) }
@@ -1249,13 +1404,21 @@ private fun SettlementCard(
                                 .padding(horizontal = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "${PersianNumberFormatter.formatPrice(ledgerRemain)} تومان",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.errorRed,
-                                fontFamily = VazirmatnFamily
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AnimatedPriceText(
+                                    price = ledgerRemain,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.errorRed
+                                )
+                                Text(
+                                    text = " تومان",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.errorRed,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
                         }
                     }
                 }

@@ -82,4 +82,33 @@ object LuxuryMotion {
     ) { fullWidth -> -fullWidth / 3 } + fadeOut(
         animationSpec = tween(durationMillis = 180)
     )
+
+    // Item Add / Remove Transitions (Smooth Accordion Expand/Shrink)
+    val ItemAddEnter: EnterTransition = expandVertically(
+        animationSpec = spring(
+            dampingRatio = 0.85f,
+            stiffness = Spring.StiffnessMediumLow
+        )
+    ) + fadeIn(animationSpec = tween(220, easing = StandardEasing))
+
+    val ItemRemoveExit: ExitTransition = shrinkVertically(
+        animationSpec = tween(200, easing = AccelerationEasing)
+    ) + fadeOut(animationSpec = tween(150, easing = LinearEasing))
+
+    // Filter Switch Transition
+    val FilterEnter: EnterTransition = fadeIn(tween(220, easing = StandardEasing)) + slideInVertically(
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+    ) { it / 8 }
+
+    val FilterExit: ExitTransition = fadeOut(tween(160, easing = AccelerationEasing))
+
+    // Number & Financial Ticker Slide Transition
+    fun numberSlideSpec(isIncreasing: Boolean = true): ContentTransform =
+        (slideInVertically(
+            animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessMediumLow)
+        ) { if (isIncreasing) it / 2 else -it / 2 } + fadeIn(tween(180))).togetherWith(
+            slideOutVertically(
+                animationSpec = tween(150, easing = AccelerationEasing)
+            ) { if (isIncreasing) -it / 2 else it / 2 } + fadeOut(tween(140))
+        )
 }

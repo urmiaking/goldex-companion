@@ -23,9 +23,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,11 +50,13 @@ import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
-import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoicePdfVector
 import com.goldex.companion.ui.invoices.components.InvoicePlusVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.goldGradient
 
@@ -104,25 +110,33 @@ fun InvoicesManagementScreen(
                 onSelectFilter = onFilterSelect
             )
 
-            // 4. Invoices List
-            if (invoices.isEmpty()) {
-                EmptyInvoicesCard(
-                    onResetSearch = {
-                        onSearchQueryChange("")
-                        onFilterSelect(InvoiceFilterTab.ALL)
-                    }
-                )
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    invoices.forEach { invoiceItem ->
-                        InvoiceTransactionCard(
-                            item = invoiceItem,
-                            onCardClick = { onInvoiceItemClick(invoiceItem) },
-                            onPdfClick = { onExportPdfClick(invoiceItem) }
-                        )
+            // 4. Invoices List with smooth animation on filter and query change
+            AnimatedContent(
+                targetState = uiState.selectedFilter to invoices.isEmpty(),
+                transitionSpec = {
+                    (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
+                },
+                label = "invoicesListFilterTransition"
+            ) { (_, isEmpty) ->
+                if (isEmpty) {
+                    EmptyInvoicesCard(
+                        onResetSearch = {
+                            onSearchQueryChange("")
+                            onFilterSelect(InvoiceFilterTab.ALL)
+                        }
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        invoices.forEach { invoiceItem ->
+                            InvoiceTransactionCard(
+                                item = invoiceItem,
+                                onCardClick = { onInvoiceItemClick(invoiceItem) },
+                                onPdfClick = { onExportPdfClick(invoiceItem) }
+                            )
+                        }
                     }
                 }
             }
@@ -303,25 +317,13 @@ private fun KpiStatBox(
                 color = Color(0xFFCBD5E1),
                 fontFamily = VazirmatnFamily
             )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = value,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    color = valueColor,
-                    fontFamily = VazirmatnFamily
-                )
-                Text(
-                    text = unit,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color(0xFF94A3B8),
-                    fontFamily = VazirmatnFamily
-                )
-            }
+            AnimatedNumberText(
+                text = value,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+                color = valueColor,
+                unit = unit
+            )
         }
     }
 }
@@ -491,15 +493,27 @@ private fun FilterCapsuleItem(
 ) {
     val colors = LocalGoldExColors.current
 
-    val bg = if (isSelected) Color(0xFF1E232E) else colors.surface
-    val border = if (isSelected) Color(0x66F59E0B) else colors.border
-    val textColor = if (isSelected) Color(0xFFFCD34D) else colors.textSecondary
+    val animatedBg by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFF1E232E) else colors.surface,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "capsuleBg"
+    )
+    val animatedBorder by animateColorAsState(
+        targetValue = if (isSelected) Color(0x66F59E0B) else colors.border,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "capsuleBorder"
+    )
+    val animatedTextColor by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFFFCD34D) else colors.textSecondary,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "capsuleTextColor"
+    )
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(50))
+            .background(animatedBg)
+            .border(1.dp, animatedBorder, RoundedCornerShape(50))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
@@ -511,7 +525,7 @@ private fun FilterCapsuleItem(
                 text = title,
                 fontSize = 11.5.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = textColor,
+                color = animatedTextColor,
                 fontFamily = VazirmatnFamily
             )
 
@@ -738,25 +752,13 @@ private fun InvoiceTransactionCard(
                         color = colors.textMuted,
                         fontFamily = VazirmatnFamily
                     )
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Text(
-                            text = PersianNumberFormatter.formatPrice(item.finalAmount),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily
-                        )
-                        Text(
-                            text = "تومان",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMuted,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
+                    AnimatedPriceText(
+                        amount = item.finalAmount,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.textMain,
+                        unit = "تومان"
+                    )
                 }
 
                 Row(
