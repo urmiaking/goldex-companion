@@ -405,7 +405,7 @@ private fun InvoiceMetaAndRateCard(
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedPriceText(
-                                price = spotPrice18k,
+                                amount = spotPrice18k,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFE6CA65)
@@ -707,7 +707,7 @@ private fun BarterBalanceCard(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedPriceText(
-                                price = balance.totalSalesAmount,
+                                amount = balance.totalSalesAmount,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = colors.textMain
@@ -773,7 +773,7 @@ private fun BarterBalanceCard(
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedPriceText(
-                                price = balance.totalReceivedAmount,
+                                amount = balance.totalReceivedAmount,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = colors.textMain
@@ -863,7 +863,7 @@ private fun BarterBalanceCard(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AnimatedPriceText(
-                                price = kotlin.math.abs(balance.netPayableAmount),
+                                amount = kotlin.math.abs(balance.netPayableAmount),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Black,
                                 color = colors.goldPrimary
@@ -1183,7 +1183,7 @@ private fun ItemRowCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AnimatedPriceText(
-                        price = item.totalPayable,
+                        amount = item.totalPayable,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
@@ -1266,7 +1266,7 @@ private fun SettlementCard(
                         fontFamily = VazirmatnFamily
                     )
                     AnimatedPriceText(
-                        price = netPayableAmount.toLong(),
+                        amount = netPayableAmount.toLong(),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textSecondary
@@ -1406,7 +1406,7 @@ private fun SettlementCard(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AnimatedPriceText(
-                                    price = ledgerRemain,
+                                    amount = ledgerRemain,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.errorRed

@@ -72,6 +72,27 @@ fun AnimatedPriceText(
     }
 }
 
+@Composable
+fun AnimatedPriceText(
+    price: Long,
+    modifier: Modifier = Modifier,
+    unit: String = "",
+    color: Color = Color.Unspecified,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+    fontWeight: FontWeight? = null,
+    style: TextStyle = LocalTextStyle.current
+) {
+    AnimatedPriceText(
+        amount = price,
+        modifier = modifier,
+        unit = unit,
+        color = color,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        style = style
+    )
+}
+
 /**
  * Animated generic number or string counter (weights, counts, percentages)
  */
