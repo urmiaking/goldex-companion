@@ -150,6 +150,7 @@ object PersianNumberFormatter {
     fun format(amount: Long): String = formatPrice(amount.toDouble())
     fun format(amount: Double): String = formatPrice(amount)
     fun formatWithCommas(amount: Long): String = formatPrice(amount.toDouble())
+    fun formatWithSeparators(amount: Long): String = formatPrice(amount.toDouble())
 
     fun formatWeight(weight: Double): String {
         val symbols = DecimalFormatSymbols(Locale.US).apply {

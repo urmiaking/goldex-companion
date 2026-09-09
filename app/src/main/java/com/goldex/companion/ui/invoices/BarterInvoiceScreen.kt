@@ -1520,7 +1520,7 @@ private fun EditRateDialog(
                                 fontFamily = VazirmatnFamily
                             )
                             Text(
-                                text = "${PersianNumberFormatter.formatWithSeparators(liveRate)} تومان",
+                                text = "${PersianNumberFormatter.formatPrice(liveRate)} تومان",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.goldPrimary,
