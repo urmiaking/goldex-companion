@@ -61,6 +61,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.model.BankCoinItem
+import com.goldex.companion.model.BarterBalance
+import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
 import com.goldex.companion.model.CraftedGoldItem
 import com.goldex.companion.model.Customer
@@ -1214,8 +1216,8 @@ private fun SettlementCard(
     onNoteChange: (String) -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val netPayableAmount = balance.netPayableAmount
-    val selectedMethod = invoice.settlementMethod
+    val netPayableAmount: Double = balance.netPayableAmount
+    val selectedMethod: SettlementMethod = invoice.settlementMethod
 
     var posStr by remember(invoice.cashPosAmount) {
         mutableStateOf(if (invoice.cashPosAmount > 0) invoice.cashPosAmount.toString() else "")
@@ -1224,10 +1226,12 @@ private fun SettlementCard(
         mutableStateOf(invoice.posTrackingCode)
     }
 
+    val absNetPayableLong: Long = kotlin.math.abs(netPayableAmount).toLong()
+
     var ledgerStr by remember(invoice.ledgerAmount, netPayableAmount) {
         mutableStateOf(
             if (invoice.ledgerAmount > 0) invoice.ledgerAmount.toString()
-            else if (selectedMethod == SettlementMethod.LEDGER) kotlin.math.abs(netPayableAmount).toLong().toString()
+            else if (selectedMethod == SettlementMethod.LEDGER) absNetPayableLong.toString()
             else ""
         )
     }
@@ -1245,13 +1249,13 @@ private fun SettlementCard(
         mutableStateOf(invoice.bullionAngNumber)
     }
 
-    val bullionWeight = bullionWeightStr.toDoubleOrNull() ?: 0.0
-    val bullionKarat = bullionKaratStr.toIntOrNull() ?: 750
-    val bullion18kEq = bullionWeight * (bullionKarat.toDouble() / 750.0)
-    val bullionValuation = (bullion18kEq * invoice.spotPrice18k).toLong()
-    val bullionRemainingDiff = (kotlin.math.abs(netPayableAmount) - bullionValuation).toLong()
+    val bullionWeight: Double = bullionWeightStr.toDoubleOrNull() ?: 0.0
+    val bullionKarat: Int = bullionKaratStr.toIntOrNull() ?: 750
+    val bullion18kEq: Double = bullionWeight * (bullionKarat.toDouble() / 750.0)
+    val bullionValuation: Long = (bullion18kEq * invoice.spotPrice18k).toLong()
+    val bullionRemainingDiff: Long = absNetPayableLong - bullionValuation
 
-    val ledgerRemain = (kotlin.math.abs(netPayableAmount) - invoice.cashPosAmount).coerceAtLeast(0.0).toLong()
+    val ledgerRemain: Long = (absNetPayableLong - invoice.cashPosAmount).coerceAtLeast(0L)
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -1298,7 +1302,7 @@ private fun SettlementCard(
                         fontFamily = VazirmatnFamily
                     )
                     AnimatedPriceText(
-                        amount = kotlin.math.abs(netPayableAmount).toLong(),
+                        amount = absNetPayableLong,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                         color = colors.goldPrimary
@@ -1365,7 +1369,7 @@ private fun SettlementCard(
                 targetState = selectedMethod,
                 transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(140)) },
                 label = "settlementFormAnim"
-            ) { method ->
+            ) { method: SettlementMethod ->
                 when (method) {
                     SettlementMethod.POS -> {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1703,8 +1707,9 @@ private fun SettlementCard(
                                             fontFamily = VazirmatnFamily
                                         )
                                         Row(verticalAlignment = Alignment.CenterVertically) {
+                                            val absBullionDiff = if (bullionRemainingDiff < 0L) -bullionRemainingDiff else bullionRemainingDiff
                                             AnimatedPriceText(
-                                                amount = kotlin.math.abs(bullionRemainingDiff),
+                                                amount = absBullionDiff,
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (bullionRemainingDiff == 0L) colors.profitGreen else colors.errorRed

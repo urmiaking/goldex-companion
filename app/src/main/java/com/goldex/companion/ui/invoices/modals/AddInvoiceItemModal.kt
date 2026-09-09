@@ -291,7 +291,6 @@ private fun CraftedGoldForm(
 
     val karatEnum = when (effectiveKaratValue) {
         750 -> Karat.K18
-        705 -> Karat.K17
         999 -> Karat.K24
         else -> Karat.K18
     }
