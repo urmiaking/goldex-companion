@@ -15,7 +15,8 @@ object BarterCalculationUseCases {
 
     fun calculateCraftedItem(
         title: String,
-        karat: Karat,
+        karat: Karat = Karat.K18,
+        customKaratValue: Int = 750,
         grossWeight: Double,
         stoneWeight: Double,
         spotPrice18k: Long,
@@ -25,7 +26,8 @@ object BarterCalculationUseCases {
         taxPercent: Double
     ): CraftedGoldItem {
         val netWeight = (grossWeight - stoneWeight).coerceAtLeast(0.0)
-        val karatRatio = karat.karatNumber.toDouble() / 18.0
+        val actualKarat = if (customKaratValue > 0) customKaratValue else (karat.karatNumber * 1000 / 24)
+        val karatRatio = actualKarat.toDouble() / 750.0
         val rawGoldValue = netWeight * spotPrice18k * karatRatio
         val wageAmount = when (wageType) {
             WageType.PERCENTAGE -> rawGoldValue * (wageInput / 100.0)
@@ -37,8 +39,9 @@ object BarterCalculationUseCases {
         val eq18k = netWeight * karatRatio
 
         return CraftedGoldItem(
-            title = title.ifBlank { "دستبند و زیورآلات ساخته ${karat.labelFa}" },
+            title = title.ifBlank { "دستبند و زیورآلات ساخته ${actualKarat} عیار" },
             karat = karat,
+            customKaratValue = actualKarat,
             grossWeight = grossWeight,
             stoneWeight = stoneWeight,
             netWeight = netWeight,

@@ -1,7 +1,13 @@
 package com.goldex.companion.ui.invoices
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -88,6 +94,10 @@ fun BarterInvoiceScreen(
     onSetCustomerRole: (CustomerRole) -> Unit,
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
+    onSetLedgerAmount: (Long) -> Unit = {},
+    onSetPosTrackingCode: (String) -> Unit = {},
+    onSetLedgerDueDate: (String) -> Unit = {},
+    onSetBullionSettlement: (Double, Int, String) -> Unit = { _, _, _ -> },
     onSetNote: (String) -> Unit,
     onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
     onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
@@ -238,11 +248,14 @@ fun BarterInvoiceScreen(
 
             // 6. Payment & Settlement Methods
             SettlementCard(
-                selectedMethod = invoice.settlementMethod,
+                invoice = invoice,
+                balance = balance,
                 onMethodSelect = onSetSettlementMethod,
-                cashPosAmount = invoice.cashPosAmount,
                 onCashPosAmountChange = onSetCashPosAmount,
-                netPayableAmount = balance.netPayableAmount,
+                onLedgerAmountChange = onSetLedgerAmount,
+                onPosTrackingCodeChange = onSetPosTrackingCode,
+                onLedgerDueDateChange = onSetLedgerDueDate,
+                onBullionSettlementChange = onSetBullionSettlement,
                 note = invoice.note,
                 onNoteChange = onSetNote
             )
@@ -1189,21 +1202,56 @@ private fun ItemRowCard(
 // ---------------------------------------------------------------------------
 @Composable
 private fun SettlementCard(
-    selectedMethod: SettlementMethod,
+    invoice: BarterInvoice,
+    balance: BarterBalance,
     onMethodSelect: (SettlementMethod) -> Unit,
-    cashPosAmount: Long,
     onCashPosAmountChange: (Long) -> Unit,
-    netPayableAmount: Double,
+    onLedgerAmountChange: (Long) -> Unit,
+    onPosTrackingCodeChange: (String) -> Unit,
+    onLedgerDueDateChange: (String) -> Unit,
+    onBullionSettlementChange: (Double, Int, String) -> Unit,
     note: String,
     onNoteChange: (String) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val netPayableAmount = balance.netPayableAmount
+    val selectedMethod = invoice.settlementMethod
 
-    var posStr by remember(cashPosAmount) {
-        mutableStateOf(if (cashPosAmount > 0) cashPosAmount.toString() else "")
+    var posStr by remember(invoice.cashPosAmount) {
+        mutableStateOf(if (invoice.cashPosAmount > 0) invoice.cashPosAmount.toString() else "")
+    }
+    var trackingCode by remember(invoice.posTrackingCode) {
+        mutableStateOf(invoice.posTrackingCode)
     }
 
-    val ledgerRemain = (netPayableAmount - cashPosAmount).coerceAtLeast(0.0).toLong()
+    var ledgerStr by remember(invoice.ledgerAmount, netPayableAmount) {
+        mutableStateOf(
+            if (invoice.ledgerAmount > 0) invoice.ledgerAmount.toString()
+            else if (selectedMethod == SettlementMethod.LEDGER) kotlin.math.abs(netPayableAmount).toLong().toString()
+            else ""
+        )
+    }
+    var ledgerDueDate by remember(invoice.ledgerDueDate) {
+        mutableStateOf(invoice.ledgerDueDate)
+    }
+
+    var bullionWeightStr by remember(invoice.bullionWeight) {
+        mutableStateOf(if (invoice.bullionWeight > 0.0) invoice.bullionWeight.toString() else "")
+    }
+    var bullionKaratStr by remember(invoice.bullionKarat) {
+        mutableStateOf(invoice.bullionKarat.toString())
+    }
+    var bullionAngNumber by remember(invoice.bullionAngNumber) {
+        mutableStateOf(invoice.bullionAngNumber)
+    }
+
+    val bullionWeight = bullionWeightStr.toDoubleOrNull() ?: 0.0
+    val bullionKarat = bullionKaratStr.toIntOrNull() ?: 750
+    val bullion18kEq = bullionWeight * (bullionKarat.toDouble() / 750.0)
+    val bullionValuation = (bullion18kEq * invoice.spotPrice18k).toLong()
+    val bullionRemainingDiff = (kotlin.math.abs(netPayableAmount) - bullionValuation).toLong()
+
+    val ledgerRemain = (kotlin.math.abs(netPayableAmount) - invoice.cashPosAmount).coerceAtLeast(0.0).toLong()
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -1215,9 +1263,10 @@ private fun SettlementCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Header with Net Balance preview
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1229,13 +1278,13 @@ private fun SettlementCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(5.dp, 14.dp)
+                            .size(5.dp, 16.dp)
                             .clip(RoundedCornerShape(3.dp))
                             .background(colors.goldPrimary)
                     )
                     Text(
                         text = "روش‌های تسویه مانده صافی",
-                        fontSize = 12.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain,
                         fontFamily = VazirmatnFamily
@@ -1243,21 +1292,21 @@ private fun SettlementCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "مانده: ",
-                        fontSize = 10.5.sp,
+                        text = "صافی کل: ",
+                        fontSize = 11.sp,
                         color = colors.textSecondary,
                         fontFamily = VazirmatnFamily
                     )
                     AnimatedPriceText(
-                        amount = netPayableAmount.toLong(),
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary
+                        amount = kotlin.math.abs(netPayableAmount).toLong(),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.goldPrimary
                     )
                     Text(
-                        text = " ت",
-                        fontSize = 10.5.sp,
-                        color = colors.textSecondary,
+                        text = " تومان",
+                        fontSize = 11.sp,
+                        color = colors.goldPrimary,
                         fontFamily = VazirmatnFamily
                     )
                 }
@@ -1271,7 +1320,7 @@ private fun SettlementCard(
                 SettlementMethod.entries.forEach { method ->
                     val isSelected = selectedMethod == method
                     val bgColor by animateColorAsState(
-                        targetValue = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                        targetValue = if (isSelected) colors.goldContainer.copy(alpha = 0.55f) else colors.surfaceVariant,
                         label = "settlementBg"
                     )
                     val borderColor by animateColorAsState(
@@ -1289,11 +1338,11 @@ private fun SettlementCard(
                         Column(
                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
                                 text = method.labelFa,
-                                fontSize = 10.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isSelected) colors.goldPrimary else colors.textMain,
                                 fontFamily = VazirmatnFamily,
@@ -1311,131 +1360,379 @@ private fun SettlementCard(
                 }
             }
 
-            // Amounts Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "مبلغ نقدی / پوز (تومان)",
-                        fontSize = 10.sp,
-                        color = colors.textSecondary,
-                        fontFamily = VazirmatnFamily
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceVariant,
-                        border = BorderStroke(0.8.dp, colors.border),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                BasicTextField(
+            // Dynamic Content based on selected settlement method with smooth animation
+            AnimatedContent(
+                targetState = selectedMethod,
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(140)) },
+                label = "settlementFormAnim"
+            ) { method ->
+                when (method) {
+                    SettlementMethod.POS -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // POS Payment Amount & Tracking Code
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                GoldInputField(
                                     value = posStr,
-                                    onValueChange = {
-                                        posStr = it
-                                        onCashPosAmountChange(it.toLongOrNull() ?: 0L)
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }
+                                        posStr = digits
+                                        onCashPosAmountChange(digits.toLongOrNull() ?: 0L)
                                     },
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        fontFamily = VazirmatnFamily,
-                                        fontSize = 12.sp,
+                                    label = "مبلغ پرداختی نقدی / پوز",
+                                    trailingText = "تومان",
+                                    useThousandsSeparator = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                GoldInputField(
+                                    value = trackingCode,
+                                    onValueChange = {
+                                        trackingCode = it
+                                        onPosTrackingCodeChange(it)
+                                    },
+                                    label = "شماره پیگیری / ارجاع",
+                                    trailingText = "کد ارجاع",
+                                    keyboardType = KeyboardType.Number,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            // Remaining Ledger Balance Status Card
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceVariant,
+                                border = BorderStroke(0.6.dp, colors.border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (ledgerRemain <= 0L) "تسویه نقدی کامل صورت پذیرفت" else "مانده دفتری پرداخت‌نشده:",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (ledgerRemain <= 0L) colors.profitGreen else colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    if (ledgerRemain > 0L) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            AnimatedPriceText(
+                                                amount = ledgerRemain,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.errorRed
+                                            )
+                                            Text(
+                                                text = " تومان",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.errorRed,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    SettlementMethod.LEDGER -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Ledger Amount & Due Date
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                GoldInputField(
+                                    value = ledgerStr,
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }
+                                        ledgerStr = digits
+                                        onLedgerAmountChange(digits.toLongOrNull() ?: 0L)
+                                    },
+                                    label = "مبلغ انتقالی به دفتر معین",
+                                    trailingText = "تومان",
+                                    useThousandsSeparator = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                GoldInputField(
+                                    value = ledgerDueDate,
+                                    onValueChange = {
+                                        ledgerDueDate = it
+                                        onLedgerDueDateChange(it)
+                                    },
+                                    label = "موعد و شرایط تسویه",
+                                    trailingText = "سررسید",
+                                    keyboardType = KeyboardType.Text,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            // Quick Terms Chips
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf("تسویه ماهانه", "۱۰ روزه", "پایان هفته", "تسویه امانی").forEach { term ->
+                                    val isSelected = ledgerDueDate == term
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                                        border = BorderStroke(0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                ledgerDueDate = term
+                                                onLedgerDueDateChange(term)
+                                            }
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = term,
+                                                fontSize = 10.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Counterparty Ledger Card
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceVariant,
+                                border = BorderStroke(0.6.dp, colors.border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "وضعیت ثبت در حساب طرف معامله:",
+                                        fontSize = 11.sp,
+                                        color = colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = if (balance.isCustomerDebtor) "بدهکار قطعی همکار" else "بستانکار قطعی همکار",
+                                        fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.textMain,
-                                        textAlign = TextAlign.Center,
-                                        textDirection = TextDirection.Ltr
-                                    ),
-                                    cursorBrush = SolidColor(colors.goldPrimary)
-                                )
+                                        color = if (balance.isCustomerDebtor) colors.errorRed else colors.profitGreen,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "مانده در دفتر معین",
-                        fontSize = 10.sp,
-                        color = colors.textSecondary,
-                        fontFamily = VazirmatnFamily
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceVariant,
-                        border = BorderStroke(0.8.dp, colors.border),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(40.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                AnimatedPriceText(
-                                    amount = ledgerRemain,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.errorRed
+                    SettlementMethod.BULLION -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Bullion Weight & Karat
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                GoldInputField(
+                                    value = bullionWeightStr,
+                                    onValueChange = {
+                                        bullionWeightStr = it
+                                        onBullionSettlementChange(
+                                            it.toDoubleOrNull() ?: 0.0,
+                                            bullionKarat,
+                                            bullionAngNumber
+                                        )
+                                    },
+                                    label = "وزن شمش / آبشده تحویلی",
+                                    trailingText = "گرم",
+                                    isDecimal = true,
+                                    modifier = Modifier.weight(1f)
                                 )
-                                Text(
-                                    text = " تومان",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.errorRed,
-                                    fontFamily = VazirmatnFamily
+
+                                GoldInputField(
+                                    value = bullionKaratStr,
+                                    onValueChange = {
+                                        val digits = it.filter { ch -> ch.isDigit() }
+                                        bullionKaratStr = digits
+                                        onBullionSettlementChange(
+                                            bullionWeight,
+                                            digits.toIntOrNull() ?: 750,
+                                            bullionAngNumber
+                                        )
+                                    },
+                                    label = "عیار ری‌گیری (خط)",
+                                    trailingText = "خط",
+                                    modifier = Modifier.weight(1f)
                                 )
+                            }
+
+                            // Quick Karat Chips for Bullion
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(750 to "۷۵۰ (استاندارد)", 735 to "۷۳۵ (رایج)", 705 to "۷۰۵ (سنتی)").forEach { (k, label) ->
+                                    val isSelected = bullionKarat == k
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                                        border = BorderStroke(0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                bullionKaratStr = k.toString()
+                                                onBullionSettlementChange(bullionWeight, k, bullionAngNumber)
+                                            }
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.padding(vertical = 5.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontSize = 10.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Ang Number Input
+                            GoldInputField(
+                                value = bullionAngNumber,
+                                onValueChange = {
+                                    bullionAngNumber = it
+                                    onBullionSettlementChange(bullionWeight, bullionKarat, it)
+                                },
+                                label = "شماره انگ و نام آزمایشگاه ری‌گیری",
+                                trailingText = "کد انگ",
+                                keyboardType = KeyboardType.Text,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Bullion Valuation Breakdown Card
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceVariant,
+                                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "ارزش ریالی طلای تحویلی:",
+                                            fontSize = 11.sp,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            AnimatedPriceText(
+                                                amount = bullionValuation,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary
+                                            )
+                                            Text(
+                                                text = " تومان",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "معادل وزنی ۱۸ عیار:",
+                                            fontSize = 10.5.sp,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            AnimatedNumberText(
+                                                text = PersianNumberFormatter.formatWeight(bullion18kEq),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textMain
+                                            )
+                                            Text(
+                                                text = " گرم",
+                                                fontSize = 10.5.sp,
+                                                color = colors.textSecondary,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "باقیمانده تراز پس از کسر شمش:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            AnimatedPriceText(
+                                                amount = kotlin.math.abs(bullionRemainingDiff),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (bullionRemainingDiff == 0L) colors.profitGreen else colors.errorRed
+                                            )
+                                            Text(
+                                                text = if (bullionRemainingDiff == 0L) " (تسویه کامل)" else " تومان",
+                                                fontSize = 10.5.sp,
+                                                color = if (bullionRemainingDiff == 0L) colors.profitGreen else colors.errorRed,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Notes field
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "توضیحات و شرایط تحویل",
-                    fontSize = 10.sp,
-                    color = colors.textSecondary,
-                    fontFamily = VazirmatnFamily
-                )
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = colors.surfaceVariant,
-                    border = BorderStroke(0.8.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    BasicTextField(
-                        value = note,
-                        onValueChange = onNoteChange,
-                        textStyle = TextStyle(
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 11.5.sp,
-                            color = colors.textMain
-                        ),
-                        cursorBrush = SolidColor(colors.goldPrimary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    )
-                }
-            }
+            // Notes field using GoldInputField
+            GoldInputField(
+                value = note,
+                onValueChange = onNoteChange,
+                label = "توضیحات و شرایط تحویل",
+                trailingText = "اختیاری",
+                keyboardType = KeyboardType.Text,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

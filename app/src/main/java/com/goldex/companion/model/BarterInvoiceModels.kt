@@ -27,6 +27,7 @@ data class CraftedGoldItem(
     override val id: String = UUID.randomUUID().toString(),
     override val title: String = "دستبند و زیورآلات ساخته ۱۸ عیار",
     val karat: Karat = Karat.K18,
+    val customKaratValue: Int = 750,
     val grossWeight: Double,
     val stoneWeight: Double = 0.0,
     val netWeight: Double,
@@ -121,6 +122,11 @@ data class BarterInvoice(
     val settlementMethod: SettlementMethod = SettlementMethod.POS,
     val cashPosAmount: Long = 0L,
     val ledgerAmount: Long = 0L,
+    val posTrackingCode: String = "",
+    val ledgerDueDate: String = "تسویه ماهانه",
+    val bullionWeight: Double = 0.0,
+    val bullionKarat: Int = 750,
+    val bullionAngNumber: String = "",
     val note: String = ""
 ) {
     val balance: BarterBalance

@@ -370,6 +370,30 @@ class BarterInvoiceViewModel : ViewModel() {
         _uiState.update { it.copy(invoice = it.invoice.copy(cashPosAmount = amount)) }
     }
 
+    fun setLedgerAmount(amount: Long) {
+        _uiState.update { it.copy(invoice = it.invoice.copy(ledgerAmount = amount)) }
+    }
+
+    fun setPosTrackingCode(code: String) {
+        _uiState.update { it.copy(invoice = it.invoice.copy(posTrackingCode = code)) }
+    }
+
+    fun setLedgerDueDate(dueDate: String) {
+        _uiState.update { it.copy(invoice = it.invoice.copy(ledgerDueDate = dueDate)) }
+    }
+
+    fun setBullionSettlement(weight: Double, karat: Int, angNumber: String) {
+        _uiState.update {
+            it.copy(
+                invoice = it.invoice.copy(
+                    bullionWeight = weight,
+                    bullionKarat = karat,
+                    bullionAngNumber = angNumber
+                )
+            )
+        }
+    }
+
     fun setNote(note: String) {
         _uiState.update { it.copy(invoice = it.invoice.copy(note = note)) }
     }
