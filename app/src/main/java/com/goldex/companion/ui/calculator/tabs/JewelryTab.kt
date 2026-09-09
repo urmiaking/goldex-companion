@@ -43,6 +43,7 @@ import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
@@ -159,15 +160,23 @@ fun JewelryTab(
                             PriceBasisTab.K24 -> "نرخ گرم ۲۴:"
                             PriceBasisTab.K18 -> "نرخ گرم ۱۸:"
                         }
-                        Text(
-                            text = basisLabel,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textSecondary
-                        )
+                        AnimatedContent(
+                            targetState = basisLabel,
+                            transitionSpec = { fadeIn() togetherWith fadeOut() },
+                            label = "basisLabelAnim"
+                        ) { label ->
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                         val spotVal = PersianNumberFormatter.parseToCleanLong(uiState.spotPriceInput) ?: 0L
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(spotVal.toDouble())} تومان",
+                        AnimatedPriceText(
+                            amount = spotVal,
+                            unit = "تومان",
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
@@ -193,7 +202,8 @@ fun JewelryTab(
                             text = "تغییر نرخ",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary
+                            color = colors.goldPrimary,
+                            fontFamily = VazirmatnFamily
                         )
                     }
                 }
@@ -209,7 +219,11 @@ fun JewelryTab(
                     fontSize = 11.sp
                 )
 
-                if (uiState.priceBasisTab != PriceBasisTab.K18) {
+                AnimatedVisibility(
+                    visible = uiState.priceBasisTab != PriceBasisTab.K18,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
                     val rawSpot = PersianNumberFormatter.parseToCleanLong(uiState.spotPriceInput) ?: 0L
                     val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, uiState.priceBasisTab)
                     Row(
@@ -222,10 +236,12 @@ fun JewelryTab(
                         Text(
                             text = "معادل هر گرم ۱۸ عیار (مبنای محاسبه):",
                             fontSize = 11.sp,
-                            color = colors.textMuted
+                            color = colors.textMuted,
+                            fontFamily = VazirmatnFamily
                         )
-                        Text(
-                            text = "${PersianNumberFormatter.formatPrice(spot18k.toDouble())} تومان",
+                        AnimatedPriceText(
+                            amount = spot18k,
+                            unit = "تومان",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary

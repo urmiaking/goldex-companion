@@ -82,72 +82,78 @@ fun InvoicesManagementScreen(
     val workshopCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.WORKSHOP } }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // 1. KPI Overview Banner (Screen 6 Hero Section)
-            InvoicesKpiOverviewBanner(
-                totalInvoicesCount = allInvoices.size.coerceAtLeast(48),
-                totalGoldWeightGrams = 342.5,
-                totalTurnoverMillionTomans = 2450L
-            )
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // 1. KPI Overview Banner (Screen 6 Hero Section)
+                InvoicesKpiOverviewBanner(
+                    totalInvoicesCount = allInvoices.size.coerceAtLeast(48),
+                    totalGoldWeightGrams = 342.5,
+                    totalTurnoverMillionTomans = 2450L
+                )
 
-            // 2. Search & Filter Bar
-            SearchAndQuickFilterBar(
-                query = uiState.searchQuery,
-                onQueryChange = onSearchQueryChange,
-                onScanQrClick = onScanQrClick
-            )
+                // 2. Search & Filter Bar
+                SearchAndQuickFilterBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    onScanQrClick = onScanQrClick
+                )
 
-            // 3. Filter Capsules
-            FilterCapsulesRow(
-                selectedFilter = uiState.selectedFilter,
-                allCount = allInvoices.size.coerceAtLeast(48),
-                settledCount = settledCount.coerceAtLeast(42),
-                pendingCount = pendingCount.coerceAtLeast(4),
-                workshopCount = workshopCount.coerceAtLeast(2),
-                onSelectFilter = onFilterSelect
-            )
+                // 3. Filter Capsules
+                FilterCapsulesRow(
+                    selectedFilter = uiState.selectedFilter,
+                    allCount = allInvoices.size.coerceAtLeast(48),
+                    settledCount = settledCount.coerceAtLeast(42),
+                    pendingCount = pendingCount.coerceAtLeast(4),
+                    workshopCount = workshopCount.coerceAtLeast(2),
+                    onSelectFilter = onFilterSelect
+                )
 
-            // 4. Invoices List with smooth animation on filter and query change
-            AnimatedContent(
-                targetState = uiState.selectedFilter to invoices.isEmpty(),
-                transitionSpec = {
-                    (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                },
-                label = "invoicesListFilterTransition"
-            ) { (_, isEmpty) ->
-                if (isEmpty) {
-                    EmptyInvoicesCard(
-                        onResetSearch = {
-                            onSearchQueryChange("")
-                            onFilterSelect(InvoiceFilterTab.ALL)
-                        }
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        invoices.forEach { invoiceItem ->
-                            InvoiceTransactionCard(
-                                item = invoiceItem,
-                                onCardClick = { onInvoiceItemClick(invoiceItem) },
-                                onPdfClick = { onExportPdfClick(invoiceItem) }
-                            )
+                // 4. Invoices List with smooth animation on filter and query change
+                AnimatedContent(
+                    targetState = uiState.selectedFilter to invoices.isEmpty(),
+                    transitionSpec = {
+                        (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
+                    },
+                    label = "invoicesListFilterTransition"
+                ) { (_, isEmpty) ->
+                    if (isEmpty) {
+                        EmptyInvoicesCard(
+                            onResetSearch = {
+                                onSearchQueryChange("")
+                                onFilterSelect(InvoiceFilterTab.ALL)
+                            }
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            invoices.forEach { invoiceItem ->
+                                InvoiceTransactionCard(
+                                    item = invoiceItem,
+                                    onCardClick = { onInvoiceItemClick(invoiceItem) },
+                                    onPdfClick = { onExportPdfClick(invoiceItem) }
+                                )
+                            }
                         }
                     }
                 }
+
+                // Bottom spacer to ensure content is not covered by floating button or bottom dock
+                Spacer(modifier = Modifier.height(90.dp))
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 5. New Invoice Action Banner / Floating Trigger
-            NewInvoiceActionCard(
-                onNewInvoiceClick = onNewInvoiceClick
+            // 5. Floating Action Button (صدور فاکتور جدید) positioned on the bottom left (End in RTL)
+            FloatingNewInvoiceButton(
+                onNewInvoiceClick = onNewInvoiceClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 84.dp)
             )
         }
     }
@@ -186,14 +192,6 @@ private fun InvoicesKpiOverviewBanner(
                 )
                 .padding(16.dp)
         ) {
-            // Ambient soft glowing background blobs
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x1AF59E0B))
-            )
-
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -834,25 +832,24 @@ private fun InvoiceTransactionCard(
 }
 
 /**
- * 5. Action Card / Floating Trigger for Creating a New Invoice
+ * 5. Floating Action Button for Creating a New Invoice (Stitch Design)
  */
 @Composable
-private fun NewInvoiceActionCard(
+private fun FloatingNewInvoiceButton(
     onNewInvoiceClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(50),
         color = Color(0xFF141B2B),
-        border = BorderStroke(1.dp, Color(0x4DF59E0B)),
-        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, Color(0x66F59E0B)),
+        shadowElevation = 8.dp,
         modifier = modifier
-            .fillMaxWidth()
+            .clip(RoundedCornerShape(50))
             .clickable(onClick = onNewInvoiceClick)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
                 .background(
                     Brush.horizontalGradient(
                         listOf(
@@ -862,31 +859,23 @@ private fun NewInvoiceActionCard(
                         )
                     )
                 )
-                .padding(vertical = 14.dp, horizontal = 16.dp),
+                .padding(horizontal = 14.dp, vertical = 9.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x33000000)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = InvoicePlusVector,
-                        contentDescription = "صدور فاکتور جدید",
-                        tint = Color.White,
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
+                Icon(
+                    imageVector = InvoicePlusVector,
+                    contentDescription = "صدور فاکتور جدید",
+                    tint = Color.White,
+                    modifier = Modifier.size(15.dp)
+                )
 
                 Text(
-                    text = "صدور فاکتور جامع جدید و تهاتر طلا",
-                    fontSize = 13.sp,
+                    text = "صدور فاکتور جدید",
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     fontFamily = VazirmatnFamily

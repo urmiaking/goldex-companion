@@ -63,6 +63,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceEditVector
 import com.goldex.companion.ui.invoices.components.InvoiceOfficialHeader
@@ -507,37 +508,16 @@ private fun CustomerAndAccountCard(
                 }
             }
 
-            // Role Toggle Grid
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.surfaceVariant)
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                CustomerRole.entries.forEach { role ->
-                    val isSelected = customerRole == role
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isSelected) colors.surfaceElevated else Color.Transparent)
-                            .clickable { onRoleChange(role) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = role.titleFa,
-                            fontSize = 10.5.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                            fontFamily = VazirmatnFamily,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
+            // Role Animated Segmented Control
+            LuxurySegmentedControl(
+                items = CustomerRole.entries,
+                selectedItem = customerRole,
+                onItemSelected = onRoleChange,
+                label = { it.titleFa },
+                modifier = Modifier.fillMaxWidth(),
+                height = 36.dp,
+                fontSize = 11.sp
+            )
 
             // Customer Details Card
             Surface(
