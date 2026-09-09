@@ -53,10 +53,12 @@ import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
+import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
+import com.goldex.companion.ui.invoices.FloatingNewInvoiceButton
 import com.goldex.companion.ui.invoices.InvoicesManagementScreen
 import com.goldex.companion.ui.invoices.InvoicesSubScreen
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
@@ -105,11 +107,13 @@ fun MainScreen(
         updateViewModel.checkForUpdates(manual = false)
     }
 
-    // Sync live market rate with barter invoice spot price
-    LaunchedEffect(mainUiState.rates.gold18) {
-        if (mainUiState.rates.gold18 > 0) {
-            barterInvoiceViewModel.setLiveRate(mainUiState.rates.gold18)
-        }
+    // Sync live market rate or input spot price with barter invoice spot price
+    LaunchedEffect(mainUiState.rates.gold18, mainUiState.spotPriceInput, mainUiState.priceBasisTab) {
+        val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+            PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+            mainUiState.priceBasisTab
+        ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+        barterInvoiceViewModel.setLiveRate(currentSpot)
     }
 
     updateState.updateInfo?.let { info ->
@@ -451,7 +455,13 @@ fun MainScreen(
                                                 uiState = barterUiState,
                                                 onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
                                                 onFilterSelect = barterInvoiceViewModel::setSelectedFilter,
-                                                onNewInvoiceClick = barterInvoiceViewModel::openNewInvoice,
+                                                onNewInvoiceClick = {
+                                                    val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                                        PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                                        mainUiState.priceBasisTab
+                                                    ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+                                                    barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                                },
                                                 onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
                                                 onExportPdfClick = { item ->
                                                     QiratoToast.show(context, "در حال صدور فایل PDF فاکتور ${item.invoiceNumber}...")
@@ -548,6 +558,26 @@ fun MainScreen(
 
                         // Clearance spacer so content scrolls cleanly above the floating dock
                         Spacer(modifier = Modifier.height(78.dp))
+                    }
+
+                    // Floating New Invoice Action Button (Sticky above GlassmorphicDock)
+                    AnimatedVisibility(
+                        visible = mainUiState.selectedTab == AppTab.INVOICES && barterUiState.subScreen == InvoicesSubScreen.LIST,
+                        enter = fadeIn(tween(220)) + slideInVertically(spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { it },
+                        exit = fadeOut(tween(160)) + slideOutVertically { it },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 86.dp)
+                    ) {
+                        FloatingNewInvoiceButton(
+                            onNewInvoiceClick = {
+                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                    mainUiState.priceBasisTab
+                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+                                barterInvoiceViewModel.openNewInvoice(currentSpot)
+                            }
+                        )
                     }
 
                     // Floating Glassmorphic Dock pinned to bottom center

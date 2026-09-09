@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterItem
 import com.goldex.companion.model.CraftedGoldItem
@@ -63,6 +65,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceEditVector
@@ -1448,69 +1451,108 @@ private fun EditRateDialog(
 ) {
     val colors = LocalGoldExColors.current
     var rateStr by remember { mutableStateOf(currentRate.toString()) }
+    val liveRate = GoldMarketRepository.rates.value.gold18
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "تغییر نرخ مبنای ۱۸ عیار",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = VazirmatnFamily
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.goldBorder),
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Title
                 Text(
-                    text = "مظنه مورد نظر برای محاسبات فاکتور فعلی را وارد نمایید (تومان):",
-                    fontSize = 11.5.sp,
+                    text = "تغییر نرخ مبنای ۱۸ عیار",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = VazirmatnFamily,
+                    color = colors.textMain
+                )
+
+                Text(
+                    text = "مظنه مورد نظر برای محاسبات و تبدیل‌های طلای این فاکتور را وارد فرمایید:",
+                    fontSize = 12.sp,
                     color = colors.textSecondary,
                     fontFamily = VazirmatnFamily
                 )
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    BasicTextField(
-                        value = rateStr,
-                        onValueChange = { rateStr = it },
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
-                            textAlign = TextAlign.Center,
-                            textDirection = TextDirection.Ltr
-                        ),
-                        cursorBrush = SolidColor(colors.goldPrimary),
+
+                // Input using GoldInputField with thousands separator and "تومان"
+                GoldInputField(
+                    value = rateStr,
+                    onValueChange = { input ->
+                        val digits = input.filter { it.isDigit() }
+                        rateStr = digits
+                    },
+                    label = "نرخ هر گرم طلای ۱۸ عیار",
+                    trailingText = "تومان",
+                    useThousandsSeparator = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Quick live rate chip if available and differs from current input
+                if (liveRate > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.surfaceVariant,
+                        border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.4f)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.surfaceVariant)
-                            .padding(12.dp)
+                            .clickable { rateStr = liveRate.toString() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "نرخ زنده تابلو اتحادیه:",
+                                fontSize = 11.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Text(
+                                text = "${PersianNumberFormatter.formatWithSeparators(liveRate)} تومان",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
+
+                // Invariant: Cancel on Right (first child), Confirm on Left (second child) in RTL
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GoldButton(
+                        text = "انصراف",
+                        onClick = onDismiss,
+                        isSecondary = true,
+                        modifier = Modifier.weight(0.38f)
+                    )
+                    GoldButton(
+                        text = "اعمال نرخ",
+                        onClick = {
+                            val newRate = rateStr.toLongOrNull() ?: currentRate
+                            if (newRate > 0L) {
+                                onConfirm(newRate)
+                            }
+                        },
+                        modifier = Modifier.weight(0.62f)
                     )
                 }
             }
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Invariant: Cancel on Right (first), Confirm on Left (second)
-                GoldButton(
-                    text = "انصراف",
-                    onClick = onDismiss,
-                    isSecondary = true,
-                    modifier = Modifier.weight(0.4f)
-                )
-                GoldButton(
-                    text = "اعمال نرخ",
-                    onClick = {
-                        val newRate = rateStr.toLongOrNull() ?: currentRate
-                        onConfirm(newRate)
-                    },
-                    modifier = Modifier.weight(0.6f)
-                )
-            }
         }
-    )
+    }
 }

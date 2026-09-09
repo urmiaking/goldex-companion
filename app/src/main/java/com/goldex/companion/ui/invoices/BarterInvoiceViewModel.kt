@@ -19,6 +19,7 @@ import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
+import com.goldex.companion.data.GoldMarketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,6 +70,8 @@ class BarterInvoiceViewModel : ViewModel() {
     val uiState: StateFlow<BarterInvoiceUiState> = _uiState.asStateFlow()
 
     init {
+        val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
+
         // Seed realistic default sample items matching Stitch design b4183cc19232433ab7200ba9a9074680
         val sampleSale1 = CraftedGoldItem(
             title = "دستبند کارتیه ۱۸ عیار لوکس",
@@ -76,16 +79,16 @@ class BarterInvoiceViewModel : ViewModel() {
             grossWeight = 12.80,
             stoneWeight = 0.30,
             netWeight = 12.50,
-            spotPrice = 3560000L,
+            spotPrice = defaultSpot,
             wageType = WageType.PERCENTAGE,
             wageInput = 7.5,
-            wageAmount = 3337500.0,
+            wageAmount = 12.50 * defaultSpot * (7.5 / 100.0),
             profitPercent = 7.0,
-            profitAmount = 3348625.0,
+            profitAmount = (12.50 * defaultSpot * 1.075) * (7.0 / 100.0),
             taxPercent = 9.0,
-            taxAmount = 601751.0,
-            rawGoldValue = 44500000.0,
-            totalPayable = 51787876.0,
+            taxAmount = ((12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0))) * 0.09,
+            rawGoldValue = 12.50 * defaultSpot,
+            totalPayable = (12.50 * defaultSpot) + (12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0)) + (((12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0))) * 0.09),
             equivalent18kWeight = 12.50
         )
         val sampleSale2 = BankCoinItem(
@@ -106,11 +109,11 @@ class BarterInvoiceViewModel : ViewModel() {
             grossWeight = 8.35,
             stoneWeight = 0.15,
             netWeight = 8.20,
-            spotPrice = 3560000L,
+            spotPrice = defaultSpot,
             deductionPerGram = 15000L,
             exchangeCommissionPercent = 0.0,
-            effectiveGramPrice = 3473800L,
-            totalPayable = 28485160.0,
+            effectiveGramPrice = defaultSpot - 15000L,
+            totalPayable = 8.20 * (defaultSpot - 15000L) * (735.0 / 750.0),
             equivalent18kWeight = 8.20 * (735.0 / 750.0)
         )
         val sampleReceived2 = MeltGoldItem(
@@ -119,8 +122,8 @@ class BarterInvoiceViewModel : ViewModel() {
             labKarat = 735,
             angNumber = "1248",
             labName = "ری‌گیری مشهد",
-            spotPrice = 3560000L,
-            totalPayable = 18280600.0,
+            spotPrice = defaultSpot,
+            totalPayable = 5.24 * defaultSpot * (735.0 / 750.0),
             equivalent18kWeight = 5.24 * (735.0 / 750.0)
         )
 
@@ -132,7 +135,7 @@ class BarterInvoiceViewModel : ViewModel() {
                 note = "بنکداری تهران • مانده قبلی: ۵.۲۰۰ گرم بستانکار"
             ),
             customerRole = CustomerRole.WHOLESALER,
-            spotPrice18k = 3560000L,
+            spotPrice18k = defaultSpot,
             salesItems = listOf(sampleSale1, sampleSale2),
             receivedItems = listOf(sampleReceived1, sampleReceived2),
             cashPosAmount = 30000000L,
@@ -176,7 +179,7 @@ class BarterInvoiceViewModel : ViewModel() {
                 note = "تسویه بیعانه کارتخوان"
             ),
             customerRole = CustomerRole.RETAIL,
-            spotPrice18k = 3560000L,
+            spotPrice18k = defaultSpot,
             salesItems = listOf(sampleSaleCoin),
             receivedItems = emptyList(),
             cashPosAmount = 33840000L,
@@ -209,16 +212,16 @@ class BarterInvoiceViewModel : ViewModel() {
             grossWeight = 38.5,
             stoneWeight = 2.1,
             netWeight = 36.4,
-            spotPrice = 3560000L,
+            spotPrice = defaultSpot,
             wageType = WageType.PERCENTAGE,
             wageInput = 18.0,
-            wageAmount = 23323200.0,
+            wageAmount = 36.4 * defaultSpot * 0.18,
             profitPercent = 7.0,
-            profitAmount = 10701144.0,
+            profitAmount = (36.4 * defaultSpot * 1.18) * 0.07,
             taxPercent = 9.0,
-            taxAmount = 3062191.0,
-            rawGoldValue = 129584000.0,
-            totalPayable = 185000000.0,
+            taxAmount = ((36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07)) * 0.09,
+            rawGoldValue = 36.4 * defaultSpot,
+            totalPayable = (36.4 * defaultSpot) + (36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07) + (((36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07)) * 0.09),
             equivalent18kWeight = 36.4
         )
         val sampleInvoice3 = BarterInvoice(
@@ -229,7 +232,7 @@ class BarterInvoiceViewModel : ViewModel() {
                 note = "سفارش ویژه کارگاه ساخت"
             ),
             customerRole = CustomerRole.RETAIL,
-            spotPrice18k = 3560000L,
+            spotPrice18k = defaultSpot,
             salesItems = listOf(sampleWorkshopCrafted),
             receivedItems = emptyList(),
             cashPosAmount = 50000000L,
@@ -276,22 +279,25 @@ class BarterInvoiceViewModel : ViewModel() {
         _uiState.update { it.copy(selectedFilter = filter) }
     }
 
-    fun openNewInvoice() {
+    fun openNewInvoice(customSpotPrice: Long? = null) {
+        val liveRate = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
+        val rateToUse = customSpotPrice ?: (if (_uiState.value.invoice.spotPrice18k > 0L) _uiState.value.invoice.spotPrice18k else liveRate)
         _uiState.update {
             it.copy(
                 subScreen = InvoicesSubScreen.EDITOR,
                 invoice = BarterInvoice(
-                    spotPrice18k = it.invoice.spotPrice18k
+                    spotPrice18k = rateToUse
                 )
             )
         }
     }
 
     fun openInvoiceDetails(item: InvoiceListItem) {
+        val liveRate = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
         val invoiceToEdit = item.barterInvoice ?: BarterInvoice(
             invoiceNumber = item.invoiceNumber,
             customer = Customer(name = item.customerName),
-            spotPrice18k = _uiState.value.invoice.spotPrice18k
+            spotPrice18k = liveRate
         )
         _uiState.update {
             it.copy(
@@ -343,7 +349,7 @@ class BarterInvoiceViewModel : ViewModel() {
     }
 
     fun setLiveRate(rate: Long) {
-        if (rate > 0 && rate != _uiState.value.invoice.spotPrice18k) {
+        if (rate > 0) {
             _uiState.update { it.copy(invoice = it.invoice.copy(spotPrice18k = rate)) }
         }
     }

@@ -115,7 +115,7 @@ data class BarterInvoice(
     val createdAt: Long = System.currentTimeMillis(),
     val customer: Customer? = null,
     val customerRole: CustomerRole = CustomerRole.WHOLESALER,
-    val spotPrice18k: Long = 3560000L,
+    val spotPrice18k: Long = 23_360_000L,
     val salesItems: List<BarterItem> = emptyList(),
     val receivedItems: List<BarterItem> = emptyList(),
     val settlementMethod: SettlementMethod = SettlementMethod.POS,

@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -82,79 +83,69 @@ fun InvoicesManagementScreen(
     val workshopCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.WORKSHOP } }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Box(modifier = modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // 1. KPI Overview Banner (Screen 6 Hero Section)
-                InvoicesKpiOverviewBanner(
-                    totalInvoicesCount = allInvoices.size.coerceAtLeast(48),
-                    totalGoldWeightGrams = 342.5,
-                    totalTurnoverMillionTomans = 2450L
-                )
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // 1. KPI Overview Banner (Screen 6 Hero Section)
+            InvoicesKpiOverviewBanner(
+                totalInvoicesCount = allInvoices.size.coerceAtLeast(48),
+                totalGoldWeightGrams = 342.5,
+                totalTurnoverMillionTomans = 2450L
+            )
 
-                // 2. Search & Filter Bar
-                SearchAndQuickFilterBar(
-                    query = uiState.searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    onScanQrClick = onScanQrClick
-                )
+            // 2. Search & Filter Bar
+            SearchAndQuickFilterBar(
+                query = uiState.searchQuery,
+                onQueryChange = onSearchQueryChange,
+                onScanQrClick = onScanQrClick
+            )
 
-                // 3. Filter Capsules
-                FilterCapsulesRow(
-                    selectedFilter = uiState.selectedFilter,
-                    allCount = allInvoices.size.coerceAtLeast(48),
-                    settledCount = settledCount.coerceAtLeast(42),
-                    pendingCount = pendingCount.coerceAtLeast(4),
-                    workshopCount = workshopCount.coerceAtLeast(2),
-                    onSelectFilter = onFilterSelect
-                )
+            // 3. Filter Capsules
+            FilterCapsulesRow(
+                selectedFilter = uiState.selectedFilter,
+                allCount = allInvoices.size.coerceAtLeast(48),
+                settledCount = settledCount.coerceAtLeast(42),
+                pendingCount = pendingCount.coerceAtLeast(4),
+                workshopCount = workshopCount.coerceAtLeast(2),
+                onSelectFilter = onFilterSelect
+            )
 
-                // 4. Invoices List with smooth animation on filter and query change
-                AnimatedContent(
-                    targetState = uiState.selectedFilter to invoices.isEmpty(),
-                    transitionSpec = {
-                        (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                    },
-                    label = "invoicesListFilterTransition"
-                ) { (_, isEmpty) ->
-                    if (isEmpty) {
-                        EmptyInvoicesCard(
-                            onResetSearch = {
-                                onSearchQueryChange("")
-                                onFilterSelect(InvoiceFilterTab.ALL)
-                            }
-                        )
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            invoices.forEach { invoiceItem ->
-                                InvoiceTransactionCard(
-                                    item = invoiceItem,
-                                    onCardClick = { onInvoiceItemClick(invoiceItem) },
-                                    onPdfClick = { onExportPdfClick(invoiceItem) }
-                                )
-                            }
+            // 4. Invoices List with smooth animation on filter and query change
+            AnimatedContent(
+                targetState = uiState.selectedFilter to invoices.isEmpty(),
+                transitionSpec = {
+                    (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
+                },
+                label = "invoicesListFilterTransition"
+            ) { (_, isEmpty) ->
+                if (isEmpty) {
+                    EmptyInvoicesCard(
+                        onResetSearch = {
+                            onSearchQueryChange("")
+                            onFilterSelect(InvoiceFilterTab.ALL)
+                        }
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        invoices.forEach { invoiceItem ->
+                            InvoiceTransactionCard(
+                                item = invoiceItem,
+                                onCardClick = { onInvoiceItemClick(invoiceItem) },
+                                onPdfClick = { onExportPdfClick(invoiceItem) }
+                            )
                         }
                     }
                 }
-
-                // Bottom spacer to ensure content is not covered by floating button or bottom dock
-                Spacer(modifier = Modifier.height(90.dp))
             }
 
-            // 5. Floating Action Button (صدور فاکتور جدید) positioned on the bottom left (End in RTL)
-            FloatingNewInvoiceButton(
-                onNewInvoiceClick = onNewInvoiceClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 84.dp)
-            )
+            // Bottom spacer to ensure content is not covered by floating button or bottom dock
+            Spacer(modifier = Modifier.height(90.dp))
         }
     }
 }
@@ -835,7 +826,7 @@ private fun InvoiceTransactionCard(
  * 5. Floating Action Button for Creating a New Invoice (Stitch Design)
  */
 @Composable
-private fun FloatingNewInvoiceButton(
+fun FloatingNewInvoiceButton(
     onNewInvoiceClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -843,8 +834,14 @@ private fun FloatingNewInvoiceButton(
         shape = RoundedCornerShape(50),
         color = Color(0xFF141B2B),
         border = BorderStroke(1.dp, Color(0x66F59E0B)),
-        shadowElevation = 8.dp,
+        shadowElevation = 10.dp,
         modifier = modifier
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(50),
+                ambientColor = Color(0x66C7983B),
+                spotColor = Color(0xAA000000)
+            )
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onNewInvoiceClick)
     ) {
