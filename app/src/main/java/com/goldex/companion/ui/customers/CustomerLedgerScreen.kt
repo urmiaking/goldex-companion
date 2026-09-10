@@ -59,6 +59,8 @@ import com.goldex.companion.ui.invoices.CustomerManagerUiState
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldButtonGradient
+import com.goldex.companion.ui.theme.goldButtonText
 
 @Composable
 fun CustomerLedgerScreen(
