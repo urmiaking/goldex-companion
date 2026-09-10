@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1688,7 +1689,7 @@ private fun SettlementCard(
                                                 modifier = Modifier.size(26.dp)
                                             ) {
                                                 Icon(
-                                                    imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                                    imageVector = InvoiceCloseVector,
                                                     contentDescription = "حذف انتخاب",
                                                     tint = colors.textMuted,
                                                     modifier = Modifier.size(16.dp)
@@ -2313,7 +2314,7 @@ private fun ThirdPartyBarterPickerDialog(
 
                         IconButton(onClick = onDismiss) {
                             Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                imageVector = InvoiceCloseVector,
                                 contentDescription = "بستن",
                                 tint = colors.textSecondary
                             )
