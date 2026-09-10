@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.MarketRates
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -1141,6 +1144,16 @@ private fun MeltGoldForm(
 // ---------------------------------------------------------------------------
 // 4. Bank Coin Form (سکه بانکی)
 // ---------------------------------------------------------------------------
+private fun getCoinMarketPrice(rates: MarketRates, coinType: CoinType): Long {
+    return when (coinType) {
+        CoinType.EMAMI -> rates.coinEmami
+        CoinType.BAHAR -> rates.coinBahar
+        CoinType.HALF -> rates.coinHalf
+        CoinType.QUARTER -> rates.coinQuarter
+        CoinType.GERAMI -> rates.coinGerami
+    }
+}
+
 @Composable
 private fun BankCoinForm(
     existingItem: BankCoinItem?,
@@ -1148,11 +1161,17 @@ private fun BankCoinForm(
     onConfirm: (BankCoinItem) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val rates by GoldMarketRepository.rates.collectAsState()
 
     var selectedCoin by remember { mutableStateOf(existingItem?.coinType ?: CoinType.EMAMI) }
     var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "1") }
     var hasHologram by remember { mutableStateOf(existingItem?.hasHologram ?: true) }
-    var unitPriceStr by remember { mutableStateOf(existingItem?.unitPrice?.toString() ?: "42500000") }
+
+    val initialCoinPrice = existingItem?.unitPrice
+        ?: getCoinMarketPrice(rates, selectedCoin).takeIf { it > 0L }
+        ?: 42_500_000L
+
+    var unitPriceStr by remember { mutableStateOf(initialCoinPrice.toString()) }
 
     val count = countStr.toIntOrNull() ?: 1
     val unitPrice = unitPriceStr.toLongOrNull() ?: 0L
@@ -1179,14 +1198,21 @@ private fun BankCoinForm(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 CoinType.entries.forEach { c ->
                     val isSelected = selectedCoin == c
+                    val liveCoinPrice = getCoinMarketPrice(rates, c)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
                         border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(34.dp)
-                            .clickable { selectedCoin = c }
+                            .height(36.dp)
+                            .clickable {
+                                selectedCoin = c
+                                val livePrice = getCoinMarketPrice(rates, c)
+                                if (livePrice > 0L) {
+                                    unitPriceStr = livePrice.toString()
+                                }
+                            }
                     ) {
                         Row(
                             modifier = Modifier
@@ -1202,12 +1228,31 @@ private fun BankCoinForm(
                                 color = if (isSelected) colors.goldPrimary else colors.textMain,
                                 fontFamily = VazirmatnFamily
                             )
-                            Text(
-                                text = "${PersianNumberFormatter.formatWeight(c.totalWeightGrams)} گرم",
-                                fontSize = 10.sp,
-                                color = colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (liveCoinPrice > 0L) {
+                                    Text(
+                                        text = "${PersianNumberFormatter.formatPrice(liveCoinPrice.toDouble())} ت",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "•",
+                                        fontSize = 10.sp,
+                                        color = colors.textMuted
+                                    )
+                                }
+                                Text(
+                                    text = "${PersianNumberFormatter.formatWeight(c.totalWeightGrams)} گرم",
+                                    fontSize = 10.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
                         }
                     }
                 }

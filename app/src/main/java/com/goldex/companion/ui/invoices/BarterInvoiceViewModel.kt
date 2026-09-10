@@ -317,6 +317,23 @@ class BarterInvoiceViewModel : ViewModel() {
         val customerName = currentInv.customer?.name?.ifBlank { "مشتری جدید" } ?: "مشتری جدید"
         val initials = customerName.split(" ").take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").ifBlank { "مش" }
 
+        val isSettled = when (currentInv.settlementMethod) {
+            SettlementMethod.TRANSFER -> currentInv.thirdPartyTransferAmount > 0 || currentInv.thirdPartyTransferWeight18k > 0.0
+            SettlementMethod.POS -> currentInv.balance.isSettled || (currentInv.cashPosAmount >= netAmount && netAmount > 0)
+            SettlementMethod.BULLION -> currentInv.bullionWeight > 0.0
+            SettlementMethod.LEDGER -> true
+        }
+
+        val line2 = when (currentInv.settlementMethod) {
+            SettlementMethod.TRANSFER -> {
+                val partyName = currentInv.thirdPartyCustomer?.name?.ifBlank { "همکار" } ?: "همکار"
+                "تهاتر سه‌طرفه: حواله به $partyName (${currentInv.thirdPartyInvoiceNumber.ifBlank { "دفتر حساب" }})"
+            }
+            SettlementMethod.POS -> "روش تسویه: کارتخوان / پوز"
+            SettlementMethod.LEDGER -> "روش تسویه: دفتر معین طلایی (${currentInv.ledgerDueDate})"
+            SettlementMethod.BULLION -> "روش تسویه: تحویل شمش و آبشده"
+        }
+
         val newCard = InvoiceListItem(
             id = currentInv.id,
             invoiceNumber = currentInv.invoiceNumber,
@@ -324,26 +341,55 @@ class BarterInvoiceViewModel : ViewModel() {
             customerInitials = initials,
             isVerified = true,
             createdAtText = "کد فاکتور: ${currentInv.invoiceNumber} • همین الان",
-            status = if (currentInv.balance.isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
-            statusDetail = if (currentInv.balance.isSettled) "تسویه نقدی کامل" else "در انتظار پرداخت",
+            status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
+            statusDetail = if (isSettled) {
+                if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه" else "تسویه نقدی کامل"
+            } else "در انتظار پرداخت",
             itemsSummary = (currentInv.salesItems + currentInv.receivedItems).joinToString(" + ") { it.title }.ifBlank { "اقلام طلا و مسکوکات" },
             itemsCountText = "اقلام فاکتور (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits((currentInv.salesItems.size + currentInv.receivedItems.size).toString())} قلم):",
             line1Detail = "وزن کل: ${com.goldex.companion.model.PersianNumberFormatter.formatWeight(currentInv.salesItems.sumOf { it.equivalent18kWeight })} گرم",
-            line2Detail = "روش تسویه: ${currentInv.settlementMethod.labelFa}",
+            line2Detail = line2,
             finalAmount = netAmount,
-            amountLabel = "مبلغ نهایی پرداختی:",
+            amountLabel = "مبلغ نهایی فاکتور:",
             actionButtonText = "مشاهده جزییات",
             actionType = InvoiceCardAction.VIEW_DETAILS,
             barterInvoice = currentInv
         )
 
         _uiState.update { state ->
-            val updatedList = listOf(newCard) + state.invoicesList.filterNot { it.id == newCard.id }
+            val updatedInvoices = state.invoicesList.map { invoiceItem ->
+                if (currentInv.settlementMethod == SettlementMethod.TRANSFER &&
+                    currentInv.thirdPartyInvoiceId.isNotBlank() &&
+                    invoiceItem.id == currentInv.thirdPartyInvoiceId
+                ) {
+                    val deductedAmount = (invoiceItem.finalAmount - currentInv.thirdPartyTransferAmount).coerceAtLeast(0L)
+                    val targetStatus = if (deductedAmount <= 0L) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID
+                    val targetStatusDetail = if (deductedAmount <= 0L) {
+                        "تسویه کامل با تهاتر فاکتور ${currentInv.invoiceNumber}"
+                    } else {
+                        "مانده پس از تهاتر: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(deductedAmount.toDouble())} ت"
+                    }
+                    invoiceItem.copy(
+                        finalAmount = deductedAmount,
+                        status = targetStatus,
+                        statusDetail = targetStatusDetail,
+                        line2Detail = "کسر ${com.goldex.companion.model.PersianNumberFormatter.formatWeight(currentInv.thirdPartyTransferWeight18k)} گرم طلا بابت تهاتر حواله ${currentInv.invoiceNumber}"
+                    )
+                } else {
+                    invoiceItem
+                }
+            }
+
+            val finalList = listOf(newCard) + updatedInvoices.filterNot { it.id == newCard.id }
             state.copy(
-                invoicesList = updatedList,
+                invoicesList = finalList,
                 subScreen = InvoicesSubScreen.LIST,
                 isSuccessSnackbarVisible = true,
-                statusMessage = "فاکتور ${currentInv.invoiceNumber} با موفقیت ثبت گردید"
+                statusMessage = if (currentInv.settlementMethod == SettlementMethod.TRANSFER && currentInv.thirdPartyCustomer != null) {
+                    "فاکتور ${currentInv.invoiceNumber} ثبت و تهاتر با ${currentInv.thirdPartyCustomer.name} با موفقیت اعمال شد"
+                } else {
+                    "فاکتور ${currentInv.invoiceNumber} با موفقیت ثبت گردید"
+                }
             )
         }
     }
@@ -389,6 +435,28 @@ class BarterInvoiceViewModel : ViewModel() {
                     bullionWeight = weight,
                     bullionKarat = karat,
                     bullionAngNumber = angNumber
+                )
+            )
+        }
+    }
+
+    fun setThirdPartyTransfer(
+        customer: Customer?,
+        invoiceId: String,
+        invoiceNumber: String,
+        weight18k: Double,
+        amount: Long,
+        trackingCode: String
+    ) {
+        _uiState.update {
+            it.copy(
+                invoice = it.invoice.copy(
+                    thirdPartyCustomer = customer,
+                    thirdPartyInvoiceId = invoiceId,
+                    thirdPartyInvoiceNumber = invoiceNumber,
+                    thirdPartyTransferWeight18k = weight18k,
+                    thirdPartyTransferAmount = amount,
+                    thirdPartyTrackingCode = trackingCode
                 )
             )
         }

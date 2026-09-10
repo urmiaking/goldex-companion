@@ -68,10 +68,13 @@ import com.goldex.companion.model.CraftedGoldItem
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceItemCategory
+import com.goldex.companion.model.InvoiceListItem
+import com.goldex.companion.model.InvoiceStatus
 import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.ui.components.CustomerIconVector
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
@@ -93,6 +96,7 @@ import java.util.Locale
 @Composable
 fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
+    customerList: List<Customer> = emptyList(),
     onSetCustomerRole: (CustomerRole) -> Unit,
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
@@ -100,6 +104,7 @@ fun BarterInvoiceScreen(
     onSetPosTrackingCode: (String) -> Unit = {},
     onSetLedgerDueDate: (String) -> Unit = {},
     onSetBullionSettlement: (Double, Int, String) -> Unit = { _, _, _ -> },
+    onSetThirdPartyTransfer: (Customer?, String, String, Double, Long, String) -> Unit = { _, _, _, _, _, _ -> },
     onSetNote: (String) -> Unit,
     onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
     onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
@@ -252,12 +257,15 @@ fun BarterInvoiceScreen(
             SettlementCard(
                 invoice = invoice,
                 balance = balance,
+                customerList = customerList,
+                invoicesList = uiState.invoicesList,
                 onMethodSelect = onSetSettlementMethod,
                 onCashPosAmountChange = onSetCashPosAmount,
                 onLedgerAmountChange = onSetLedgerAmount,
                 onPosTrackingCodeChange = onSetPosTrackingCode,
                 onLedgerDueDateChange = onSetLedgerDueDate,
                 onBullionSettlementChange = onSetBullionSettlement,
+                onThirdPartyTransferChange = onSetThirdPartyTransfer,
                 note = invoice.note,
                 onNoteChange = onSetNote
             )
@@ -1206,12 +1214,15 @@ private fun ItemRowCard(
 private fun SettlementCard(
     invoice: BarterInvoice,
     balance: BarterBalance,
+    customerList: List<Customer>,
+    invoicesList: List<InvoiceListItem>,
     onMethodSelect: (SettlementMethod) -> Unit,
     onCashPosAmountChange: (Long) -> Unit,
     onLedgerAmountChange: (Long) -> Unit,
     onPosTrackingCodeChange: (String) -> Unit,
     onLedgerDueDateChange: (String) -> Unit,
     onBullionSettlementChange: (Double, Int, String) -> Unit,
+    onThirdPartyTransferChange: (Customer?, String, String, Double, Long, String) -> Unit,
     note: String,
     onNoteChange: (String) -> Unit
 ) {
@@ -1256,6 +1267,71 @@ private fun SettlementCard(
     val bullionRemainingDiff: Long = absNetPayableLong - bullionValuation
 
     val ledgerRemain: Long = (absNetPayableLong - invoice.cashPosAmount).coerceAtLeast(0L)
+
+    // Third-party transfer state
+    var thirdPartyCustomer by remember(invoice.thirdPartyCustomer) {
+        mutableStateOf(invoice.thirdPartyCustomer)
+    }
+    var thirdPartyInvoiceId by remember(invoice.thirdPartyInvoiceId) {
+        mutableStateOf(invoice.thirdPartyInvoiceId)
+    }
+    var thirdPartyInvoiceNumber by remember(invoice.thirdPartyInvoiceNumber) {
+        mutableStateOf(invoice.thirdPartyInvoiceNumber)
+    }
+    var transferWeightStr by remember(invoice.thirdPartyTransferWeight18k, balance.net18kWeightDelta) {
+        mutableStateOf(
+            if (invoice.thirdPartyTransferWeight18k > 0.0) invoice.thirdPartyTransferWeight18k.toString()
+            else if (selectedMethod == SettlementMethod.TRANSFER && kotlin.math.abs(balance.net18kWeightDelta) > 0.0)
+                String.format(java.util.Locale.US, "%.3f", kotlin.math.abs(balance.net18kWeightDelta))
+            else ""
+        )
+    }
+    var transferAmountStr by remember(invoice.thirdPartyTransferAmount, netPayableAmount) {
+        mutableStateOf(
+            if (invoice.thirdPartyTransferAmount > 0L) invoice.thirdPartyTransferAmount.toString()
+            else if (selectedMethod == SettlementMethod.TRANSFER && absNetPayableLong > 0L) absNetPayableLong.toString()
+            else ""
+        )
+    }
+    var transferTrackingCode by remember(invoice.thirdPartyTrackingCode) {
+        mutableStateOf(invoice.thirdPartyTrackingCode)
+    }
+    var isThirdPartyPickerVisible by remember { mutableStateOf(false) }
+
+    if (isThirdPartyPickerVisible) {
+        ThirdPartyBarterPickerDialog(
+            customers = customerList,
+            invoices = invoicesList,
+            currentInvoiceId = invoice.id,
+            onSelectInvoice = { cust, inv ->
+                thirdPartyCustomer = cust
+                thirdPartyInvoiceId = inv.id
+                thirdPartyInvoiceNumber = inv.invoiceNumber
+                val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
+                val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
+                if (transferWeightStr.isBlank()) {
+                    transferWeightStr = String.format(java.util.Locale.US, "%.3f", w)
+                    transferAmountStr = amt.toString()
+                }
+                onThirdPartyTransferChange(cust, inv.id, inv.invoiceNumber, w, amt, transferTrackingCode)
+                isThirdPartyPickerVisible = false
+            },
+            onSelectCustomerLedger = { cust ->
+                thirdPartyCustomer = cust
+                thirdPartyInvoiceId = ""
+                thirdPartyInvoiceNumber = "حساب دفتری باز"
+                val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
+                val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
+                if (transferWeightStr.isBlank()) {
+                    transferWeightStr = String.format(java.util.Locale.US, "%.3f", w)
+                    transferAmountStr = amt.toString()
+                }
+                onThirdPartyTransferChange(cust, "", "حساب دفتری باز", w, amt, transferTrackingCode)
+                isThirdPartyPickerVisible = false
+            },
+            onDismiss = { isThirdPartyPickerVisible = false }
+        )
+    }
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -1397,8 +1473,8 @@ private fun SettlementCard(
                                         trackingCode = it
                                         onPosTrackingCodeChange(it)
                                     },
-                                    label = "شماره پیگیری / ارجاع",
-                                    trailingText = "کد ارجاع",
+                                    label = "شماره پیگیری",
+                                    trailingText = "کد پیگیری",
                                     keyboardType = KeyboardType.Number,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -1447,8 +1523,404 @@ private fun SettlementCard(
                         }
                     }
 
+                    SettlementMethod.TRANSFER -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Explanatory badge
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = colors.goldContainer.copy(alpha = 0.35f),
+                                border = BorderStroke(0.8.dp, colors.goldBorder)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "💡 حواله سه‌طرفه زرگری:",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.goldPrimary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "انتقال تعهد وزنی مانده به حساب همکار یا فاکتور باز",
+                                        fontSize = 10.sp,
+                                        color = colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                            }
+
+                            // 1. Third Party Customer & Invoice Selection Card
+                            if (thirdPartyCustomer == null) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(1.dp, colors.goldBorder),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { isThirdPartyPickerVisible = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(colors.goldContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = CustomerIconVector,
+                                                    contentDescription = null,
+                                                    tint = colors.goldPrimary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = "انتخاب طرف حساب ثالث (طلبکار / همکار)",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                Text(
+                                                    text = "جهت تهاتر و کسر از فاکتور باز او",
+                                                    fontSize = 10.sp,
+                                                    color = colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = "انتخاب از دفتر ❯",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.goldPrimary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(1.dp, colors.goldPrimary),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.goldPrimary),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = thirdPartyCustomer?.name?.firstOrNull()?.toString() ?: "هـ",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = thirdPartyCustomer?.name ?: "طرف حساب ثالث",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                Text(
+                                                    text = if (thirdPartyInvoiceNumber.isNotBlank()) "فاکتور پیوست تهاتر: $thirdPartyInvoiceNumber" else "حساب دفتری همکار",
+                                                    fontSize = 10.sp,
+                                                    color = colors.goldPrimary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                        }
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "تغییر",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary,
+                                                modifier = Modifier
+                                                    .clickable { isThirdPartyPickerVisible = true }
+                                                    .padding(4.dp),
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    thirdPartyCustomer = null
+                                                    thirdPartyInvoiceId = ""
+                                                    thirdPartyInvoiceNumber = ""
+                                                    onThirdPartyTransferChange(null, "", "", 0.0, 0L, transferTrackingCode)
+                                                },
+                                                modifier = Modifier.size(26.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                                    contentDescription = "حذف انتخاب",
+                                                    tint = colors.textMuted,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Barter Transfer Quantities: Weight (Primary) & Toman Amount
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                GoldInputField(
+                                    value = transferWeightStr,
+                                    onValueChange = { input ->
+                                        transferWeightStr = input
+                                        val w = input.toDoubleOrNull() ?: 0.0
+                                        val autoAmount = (w * invoice.spotPrice18k).toLong()
+                                        if (w > 0.0) {
+                                            transferAmountStr = autoAmount.toString()
+                                        }
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            w,
+                                            autoAmount,
+                                            transferTrackingCode
+                                        )
+                                    },
+                                    label = "وزن طلای ۱۸ عیار حواله",
+                                    trailingText = "گرم",
+                                    isDecimal = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                GoldInputField(
+                                    value = transferAmountStr,
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }
+                                        transferAmountStr = digits
+                                        val amt = digits.toLongOrNull() ?: 0L
+                                        val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            w,
+                                            amt,
+                                            transferTrackingCode
+                                        )
+                                    },
+                                    label = "ارزش تومانی معادل",
+                                    trailingText = "تومان",
+                                    useThousandsSeparator = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            // Quick button to set full net barter
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = colors.goldContainer.copy(alpha = 0.5f),
+                                border = BorderStroke(0.6.dp, colors.goldBorder),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val totalW = kotlin.math.abs(balance.net18kWeightDelta)
+                                        val totalA = absNetPayableLong
+                                        transferWeightStr = String.format(java.util.Locale.US, "%.3f", totalW)
+                                        transferAmountStr = totalA.toString()
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            totalW,
+                                            totalA,
+                                            transferTrackingCode
+                                        )
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "⚡ تهاتر کامل مانده فاکتور (${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم طلای ۱۸ عیار)",
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.goldPrimary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                            }
+
+                            // Tracking / Receipt Code
+                            GoldInputField(
+                                value = transferTrackingCode,
+                                onValueChange = {
+                                    transferTrackingCode = it
+                                    val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                                    val amt = transferAmountStr.toLongOrNull() ?: 0L
+                                    onThirdPartyTransferChange(
+                                        thirdPartyCustomer,
+                                        thirdPartyInvoiceId,
+                                        thirdPartyInvoiceNumber,
+                                        w,
+                                        amt,
+                                        it
+                                    )
+                                },
+                                label = "شماره پیگیری حواله",
+                                trailingText = "کد پیگیری",
+                                keyboardType = KeyboardType.Text,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // 3. Dual Balance Impact Preview Card
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceVariant,
+                                border = BorderStroke(0.6.dp, colors.border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "پیش‌نمایش تراز حساب‌ها پس از ثبت فاکتور:",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "فاکتور جاری (${invoice.customer?.name ?: "خریدار"}):",
+                                            fontSize = 10.5.sp,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Text(
+                                            text = "تسویه کامل (مانده: ۰ گرم)",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.profitGreen,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val targetName = thirdPartyCustomer?.name ?: "شخص ثالث"
+                                        Text(
+                                            text = "طرف حساب ($targetName):",
+                                            fontSize = 10.5.sp,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                                        Text(
+                                            text = "کسر ${PersianNumberFormatter.formatWeight(w)} گرم طلای ۱۸ عیار",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.goldPrimary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     SettlementMethod.LEDGER -> {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Highlight gold weight remainder as primary unit
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.goldContainer.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, colors.goldBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "مانده وزنی طلای ۱۸ عیار (مبنای دفتری):",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Text(
+                                            text = "حساب‌های طلافروشی به وزن طلا ثبت و نگهداری می‌شوند",
+                                            fontSize = 9.5.sp,
+                                            color = colors.textMuted,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        AnimatedNumberText(
+                                            text = PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta)),
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = colors.goldPrimary
+                                        )
+                                        Text(
+                                            text = " گرم",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.goldPrimary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                }
+                            }
+
                             // Ledger Amount & Due Date
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1563,7 +2035,7 @@ private fun SettlementCard(
                                             bullionAngNumber
                                         )
                                     },
-                                    label = "وزن شمش / آبشده تحویلی",
+                                    label = "وزن",
                                     trailingText = "گرم",
                                     isDecimal = true,
                                     modifier = Modifier.weight(1f)
@@ -1738,6 +2210,319 @@ private fun SettlementCard(
                 keyboardType = KeyboardType.Text,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Third-Party Barter Ledger Picker Dialog
+// ---------------------------------------------------------------------------
+@Composable
+private fun ThirdPartyBarterPickerDialog(
+    customers: List<Customer>,
+    invoices: List<InvoiceListItem>,
+    currentInvoiceId: String,
+    onSelectInvoice: (Customer, InvoiceListItem) -> Unit,
+    onSelectCustomerLedger: (Customer) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    var searchQuery by remember { mutableStateOf("") }
+
+    val openInvoices = remember(invoices, currentInvoiceId, searchQuery) {
+        val list = invoices.filterNot { it.id == currentInvoiceId }
+        val q = searchQuery.trim().lowercase()
+        if (q.isBlank()) list
+        else list.filter {
+            it.customerName.lowercase().contains(q) ||
+            it.invoiceNumber.lowercase().contains(q) ||
+            it.itemsSummary.lowercase().contains(q)
+        }
+    }
+
+    val filteredCustomers = remember(customers, searchQuery) {
+        val q = searchQuery.trim().lowercase()
+        if (q.isBlank()) customers
+        else customers.filter {
+            it.name.lowercase().contains(q) ||
+            it.phone.contains(q) ||
+            it.note.lowercase().contains(q)
+        }
+    }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = colors.surface,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .fillMaxHeight(0.82f)
+                    .padding(vertical = 16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.goldContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = CustomerIconVector,
+                                    contentDescription = null,
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "انتخاب طرف حساب و فاکتور تهاتر",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "انتقال تعهد وزنی مانده به همکار یا شخص ثالث",
+                                    fontSize = 10.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                contentDescription = "بستن",
+                                tint = colors.textSecondary
+                            )
+                        }
+                    }
+
+                    // Search field
+                    GoldInputField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = "جستجو بر اساس نام همکار، شماره فاکتور یا اقلام...",
+                        trailingText = "جستجو",
+                        keyboardType = KeyboardType.Text,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Scrollable content
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (openInvoices.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "فاکتورهای باز همکاران جهت تهاتر:",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                            items(openInvoices.size) { idx ->
+                                val inv = openInvoices[idx]
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val cust = customers.firstOrNull { it.name == inv.customerName }
+                                                ?: Customer(name = inv.customerName)
+                                            onSelectInvoice(cust, inv)
+                                            onDismiss()
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.goldContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = inv.customerInitials.ifBlank { "هم" },
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.goldPrimary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = "${inv.customerName} • ${inv.invoiceNumber}",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                Text(
+                                                    text = inv.itemsSummary,
+                                                    fontSize = 10.sp,
+                                                    color = colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily,
+                                                    maxLines = 1
+                                                )
+                                                Text(
+                                                    text = "${inv.line1Detail} • ${PersianNumberFormatter.formatPrice(inv.finalAmount.toDouble())} ت",
+                                                    fontSize = 10.sp,
+                                                    color = colors.goldPrimary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = colors.goldContainer.copy(alpha = 0.4f)
+                                        ) {
+                                            Text(
+                                                text = "انتخاب فاکتور",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary,
+                                                fontFamily = VazirmatnFamily,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (filteredCustomers.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "دفتر مشتریان و همکاران (تهاتر حساب دفتری):",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily,
+                                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+                                )
+                            }
+                            items(filteredCustomers.size) { idx ->
+                                val cust = filteredCustomers[idx]
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = colors.surfaceVariant.copy(alpha = 0.6f),
+                                    border = BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onSelectCustomerLedger(cust)
+                                            onDismiss()
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(34.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.surfaceElevated),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = cust.name.firstOrNull()?.toString() ?: "م",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Text(
+                                                    text = cust.name,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                Text(
+                                                    text = cust.note.ifBlank { cust.phone }.ifBlank { "حساب همکار" },
+                                                    fontSize = 10.sp,
+                                                    color = colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = colors.surfaceElevated
+                                        ) {
+                                            Text(
+                                                text = "حساب دفتری",
+                                                fontSize = 10.sp,
+                                                color = colors.textSecondary,
+                                                fontFamily = VazirmatnFamily,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Bottom Cancel Button
+                    GoldButton(
+                        text = "انصراف",
+                        onClick = onDismiss,
+                        isSecondary = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }

@@ -94,6 +94,7 @@ data class BankCoinItem(
 
 enum class SettlementMethod(val labelFa: String, val subtitleFa: String) {
     POS("کارتخوان / پوز", "واریز آنی"),
+    TRANSFER("حواله سه‌طرفه", "تهاتر دفتری"),
     LEDGER("دفتر معین", "حساب همکار"),
     BULLION("تحویل شمش", "آبشده و انگ")
 }
@@ -127,6 +128,12 @@ data class BarterInvoice(
     val bullionWeight: Double = 0.0,
     val bullionKarat: Int = 750,
     val bullionAngNumber: String = "",
+    val thirdPartyCustomer: Customer? = null,
+    val thirdPartyInvoiceId: String = "",
+    val thirdPartyInvoiceNumber: String = "",
+    val thirdPartyTransferWeight18k: Double = 0.0,
+    val thirdPartyTransferAmount: Long = 0L,
+    val thirdPartyTrackingCode: String = "",
     val note: String = ""
 ) {
     val balance: BarterBalance

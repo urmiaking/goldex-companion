@@ -125,4 +125,22 @@ class BarterCalculationTest {
         assertTrue(balance.isCustomerDebtor)
         assertFalse(balance.isSettled)
     }
+
+    @Test
+    fun thirdPartyTransferDualBalanceCalculationAccuratelyClearsRemainder() {
+        val net18kWeight = 10.0
+        val spotPrice = 4_000_000L
+        val buyerAmount = (net18kWeight * spotPrice).toLong()
+
+        val wholesalerInitialAmount = 80_000_000L
+        val transferredWeight = 10.0
+        val transferredAmount = (transferredWeight * spotPrice).toLong()
+
+        val wholesalerRemainingAmount = wholesalerInitialAmount - transferredAmount
+        val buyerRemainingWeight = net18kWeight - transferredWeight
+
+        assertEquals(0.0, buyerRemainingWeight, 0.001)
+        assertEquals(40_000_000L, wholesalerRemainingAmount)
+        assertEquals(40_000_000L, buyerAmount)
+    }
 }

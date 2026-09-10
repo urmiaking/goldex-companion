@@ -473,6 +473,7 @@ fun MainScreen(
                                         } else {
                                             BarterInvoiceScreen(
                                                 uiState = barterUiState,
+                                                customerList = customerState.customerList,
                                                 onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
                                                 onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
                                                 onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
@@ -480,6 +481,7 @@ fun MainScreen(
                                                 onSetPosTrackingCode = barterInvoiceViewModel::setPosTrackingCode,
                                                 onSetLedgerDueDate = barterInvoiceViewModel::setLedgerDueDate,
                                                 onSetBullionSettlement = barterInvoiceViewModel::setBullionSettlement,
+                                                onSetThirdPartyTransfer = barterInvoiceViewModel::setThirdPartyTransfer,
                                                 onSetNote = barterInvoiceViewModel::setNote,
                                                 onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
                                                 onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
