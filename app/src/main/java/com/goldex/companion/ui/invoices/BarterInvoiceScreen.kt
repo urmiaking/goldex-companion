@@ -78,7 +78,6 @@ import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceItemCategory
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
-import com.goldex.companion.model.InvoicesSubScreen
 import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
@@ -198,7 +197,7 @@ fun BarterInvoiceScreen(
                                             .background(Color(0xFFDFB35A))
                                     )
                                     Text(
-                                        text = if (uiState.isEditingExisting) "ویرایش فاکتور" else "ثبت فاکتور جدید",
+                                        text = "ثبت فاکتور جدید",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = colors.textMain,
@@ -517,7 +516,7 @@ private fun InvoiceMetaAndRateCard(
 private fun CustomerAndAccountCard(
     customer: Customer?,
     onChangeCustomerClick: () -> Unit,
-    customerRole: CustomerRole = CustomerRole.CUSTOMER,
+    customerRole: CustomerRole = CustomerRole.RETAIL,
     onRoleChange: (CustomerRole) -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
@@ -1333,7 +1332,6 @@ private fun SettlementSummaryCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val iconText = when (method) {
-                            SettlementMethod.CASH -> "💵"
                             SettlementMethod.POS -> "💳"
                             SettlementMethod.LEDGER -> "📒"
                             SettlementMethod.BULLION -> "🧱"
@@ -1352,15 +1350,14 @@ private fun SettlementSummaryCard(
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = method.titleFa,
+                                text = method.labelFa,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
                                 fontFamily = VazirmatnFamily
                             )
                             val subtitle = when (method) {
-                                SettlementMethod.CASH -> "پرداخت وجه نقد به مبلغ فاکتور"
-                                SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز"
+                                SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز / کارتخوان"
                                 SettlementMethod.LEDGER -> if (invoice.ledgerDueDate.isNotBlank()) "دفتر حساب - موعد: ${invoice.ledgerDueDate}" else "ثبت مانده در دفتر حساب"
                                 SettlementMethod.BULLION -> if (invoice.bullionWeight > 0) "شمش و آبشده: ${PersianNumberFormatter.formatWeight(invoice.bullionWeight)} گرم" else "تحویل شمش یا طلای آبشده"
                                 SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer?.name}" else "حواله سه طرفه بین همکاران"
