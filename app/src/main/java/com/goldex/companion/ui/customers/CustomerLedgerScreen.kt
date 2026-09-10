@@ -145,13 +145,36 @@ fun CustomerLedgerScreen(
                         }
                     }
 
-                    // "+ افزودن مشتری" Button
-                    GoldButton(
-                        text = "افزودن مشتری",
-                        icon = Icons.Default.Add,
+                    // "+ افزودن مشتری" Button (Compact Pill Width - Issue #84)
+                    Surface(
                         onClick = onAddNewCustomer,
-                        height = 38.dp
-                    )
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.Transparent,
+                        shadowElevation = 1.dp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(colors.goldButtonGradient)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = colors.goldButtonText,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "افزودن مشتری",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldButtonText,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
                 }
             }
 

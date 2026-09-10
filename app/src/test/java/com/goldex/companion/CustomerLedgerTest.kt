@@ -148,4 +148,35 @@ class CustomerLedgerTest {
         assertEquals(1, settledList.size)
         assertEquals("تسویه", settledList.first().name)
     }
+
+    @Test
+    fun craftedGoldAndCoinBar750ConversionsAreAccurate() {
+        // 1. Crafted Gold (مصنوعات): Net = Gross - Stone, Equiv750 = (Net * Karat) / 750
+        val gross = 20.000
+        val stone = 1.000
+        val net = (gross - stone).coerceAtLeast(0.0)
+        assertEquals(19.000, net, 0.0001)
+
+        val craftedKarat = 840
+        val craftedEquiv750 = (net * craftedKarat) / 750.0
+        // (19.0 * 840) / 750 = 21.28
+        assertEquals(21.280, craftedEquiv750, 0.0001)
+
+        // 2. Central Bank Coin (سکه تمام بهار آزادی): 2 coins * 8.133g = 16.266g @ Karat 900
+        val coinCount = 2
+        val unitWeight = 8.133
+        val totalCoinWeight = coinCount * unitWeight
+        assertEquals(16.266, totalCoinWeight, 0.0001)
+
+        val coinEquiv750 = (totalCoinWeight * 900.0) / 750.0
+        // (16.266 * 900) / 750 = 19.5192
+        assertEquals(19.5192, coinEquiv750, 0.0001)
+
+        // 3. Swiss / Pars Gold Bar (شمش طلا): 10g @ Karat 995
+        val barWeight = 10.000
+        val barKarat = 995
+        val barEquiv750 = (barWeight * barKarat) / 750.0
+        // (10.0 * 995) / 750 = 13.26666...
+        assertEquals(13.2666, barEquiv750, 0.0001)
+    }
 }

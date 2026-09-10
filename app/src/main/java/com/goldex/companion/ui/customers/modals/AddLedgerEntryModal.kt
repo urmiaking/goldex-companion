@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -102,20 +103,66 @@ fun AddLedgerEntryModal(
     }
     var noteInput by remember { mutableStateOf("") }
 
+    // =========================================================================
     // Gold State
+    // =========================================================================
     var goldCategory by remember { mutableStateOf("آبشده") } // آبشده, مصنوعات, سکه و شمش
+
+    // 1. آبشده
     var scaleWeightInput by remember { mutableStateOf("50.410") }
     var karatInput by remember { mutableStateOf("750") }
     var angNumberInput by remember { mutableStateOf("") }
     var labNameInput by remember { mutableStateOf("ری‌گیری تهران") }
 
+    // 2. مصنوعات
+    var craftedTitleInput by remember { mutableStateOf("النگو") }
+    var craftedGrossWeightInput by remember { mutableStateOf("15.250") }
+    var craftedStoneWeightInput by remember { mutableStateOf("0.000") }
+    var craftedKaratInput by remember { mutableStateOf("750") }
+    var craftedWorkshopInput by remember { mutableStateOf("") }
+
+    // 3. سکه و شمش
+    var selectedCoinOrBar by remember { mutableStateOf("سکه تمام") } // سکه تمام, نیم سکه, ربع سکه, سکه گرمی, شمش طلا
+    var coinCountInput by remember { mutableStateOf("1") }
+    var coinSerialInput by remember { mutableStateOf("") }
+    // شمش
+    var barWeightInput by remember { mutableStateOf("10.000") }
+    var barKaratInput by remember { mutableStateOf("995") }
+    var barBrandInput by remember { mutableStateOf("پارس شمش") }
+    var barSerialInput by remember { mutableStateOf("") }
+
+    // =========================================================================
     // Cash State
+    // =========================================================================
     var cashAmountInput by remember { mutableStateOf("25000000") }
     var paymentMethod by remember { mutableStateOf("حواله بانکی / پایا") } // حواله بانکی / پایا, چک صیادی, کارتخوان (POS), اسکناس نقد
+
+    // 1. حواله بانکی / پایا
     var destinationBank by remember { mutableStateOf("بانک ملت - جاری طلافروشی") }
     var trackingCodeInput by remember { mutableStateOf("") }
+    var shebaInput by remember { mutableStateOf("") }
 
+    // 2. چک صیادی
+    var sayadIdInput by remember { mutableStateOf("") }
+    var chequeSerialInput by remember { mutableStateOf("") }
+    var chequeDueDateInput by remember { mutableStateOf("۱۴۰۳/۰۸/۱۵") }
+    var chequeBankInput by remember { mutableStateOf("بانک ملی") }
+    var chequeIssuerInput by remember { mutableStateOf(customer.name) }
+
+    // 3. کارتخوان (POS)
+    var posTerminalInput by remember { mutableStateOf("کارتخوان ملت فروشگاه") }
+    var cardLast4Input by remember { mutableStateOf("") }
+    var posRrnInput by remember { mutableStateOf("") }
+
+    // 4. اسکناس نقد
+    var cashPersonInput by remember { mutableStateOf(customer.name) }
+    var cashierReceiptInput by remember { mutableStateOf("صندوق اصلی فروشگاه") }
+    var cashNoteDetailsInput by remember { mutableStateOf("") }
+
+    // =========================================================================
     // Derived Calculations for Gold
+    // =========================================================================
+    // --- آبشده ---
     val scaleWeightDouble by remember(scaleWeightInput) {
         derivedStateOf {
             scaleWeightInput.trim().replace("٫", ".").toDoubleOrNull() ?: 0.0
@@ -126,20 +173,130 @@ fun AddLedgerEntryModal(
             karatInput.trim().toIntOrNull() ?: 750
         }
     }
-    val equivalent750Grams by remember(scaleWeightDouble, karatInt) {
+    val meltedEquiv750 by remember(scaleWeightDouble, karatInt) {
         derivedStateOf {
             if (scaleWeightDouble > 0.0 && karatInt > 0) {
                 (scaleWeightDouble * karatInt) / 750.0
             } else 0.0
         }
     }
-    val karatDeltaGrams by remember(scaleWeightDouble, equivalent750Grams) {
+    val meltedDeltaGrams by remember(scaleWeightDouble, meltedEquiv750) {
         derivedStateOf {
-            scaleWeightDouble - equivalent750Grams
+            scaleWeightDouble - meltedEquiv750
         }
     }
 
+    // --- مصنوعات ---
+    val craftedGrossDouble by remember(craftedGrossWeightInput) {
+        derivedStateOf {
+            craftedGrossWeightInput.trim().replace("٫", ".").toDoubleOrNull() ?: 0.0
+        }
+    }
+    val craftedStoneDouble by remember(craftedStoneWeightInput) {
+        derivedStateOf {
+            craftedStoneWeightInput.trim().replace("٫", ".").toDoubleOrNull() ?: 0.0
+        }
+    }
+    val craftedNetDouble by remember(craftedGrossDouble, craftedStoneDouble) {
+        derivedStateOf {
+            (craftedGrossDouble - craftedStoneDouble).coerceAtLeast(0.0)
+        }
+    }
+    val craftedKaratInt by remember(craftedKaratInput) {
+        derivedStateOf {
+            craftedKaratInput.trim().toIntOrNull() ?: 750
+        }
+    }
+    val craftedEquiv750 by remember(craftedNetDouble, craftedKaratInt) {
+        derivedStateOf {
+            if (craftedNetDouble > 0.0 && craftedKaratInt > 0) {
+                (craftedNetDouble * craftedKaratInt) / 750.0
+            } else 0.0
+        }
+    }
+
+    // --- سکه و شمش ---
+    val coinCountInt by remember(coinCountInput) {
+        derivedStateOf {
+            (coinCountInput.trim().toIntOrNull() ?: 1).coerceAtLeast(1)
+        }
+    }
+    val coinUnitWeight = when (selectedCoinOrBar) {
+        "سکه تمام" -> 8.133
+        "نیم سکه" -> 4.066
+        "ربع سکه" -> 2.033
+        "سکه گرمی" -> 1.100
+        else -> 8.133
+    }
+    val coinTotalWeight by remember(selectedCoinOrBar, coinCountInt) {
+        derivedStateOf {
+            coinCountInt * coinUnitWeight
+        }
+    }
+    val coinEquiv750 by remember(coinTotalWeight) {
+        derivedStateOf {
+            (coinTotalWeight * 900.0) / 750.0
+        }
+    }
+
+    val barWeightDouble by remember(barWeightInput) {
+        derivedStateOf {
+            barWeightInput.trim().replace("٫", ".").toDoubleOrNull() ?: 0.0
+        }
+    }
+    val barKaratInt by remember(barKaratInput) {
+        derivedStateOf {
+            barKaratInput.trim().toIntOrNull() ?: 995
+        }
+    }
+    val barEquiv750 by remember(barWeightDouble, barKaratInt) {
+        derivedStateOf {
+            if (barWeightDouble > 0.0 && barKaratInt > 0) {
+                (barWeightDouble * barKaratInt) / 750.0
+            } else 0.0
+        }
+    }
+
+    // --- مقادیر تجمیعی طلای معین ---
+    val equivalent750Grams by remember(
+        goldCategory,
+        meltedEquiv750,
+        craftedEquiv750,
+        selectedCoinOrBar,
+        coinEquiv750,
+        barEquiv750
+    ) {
+        derivedStateOf {
+            when (goldCategory) {
+                "آبشده" -> meltedEquiv750
+                "مصنوعات" -> craftedEquiv750
+                "سکه و شمش" -> if (selectedCoinOrBar == "شمش طلا") barEquiv750 else coinEquiv750
+                else -> meltedEquiv750
+            }
+        }
+    }
+
+    val effectivePhysicalWeight by remember(
+        goldCategory,
+        scaleWeightDouble,
+        craftedGrossDouble,
+        selectedCoinOrBar,
+        coinTotalWeight,
+        barWeightDouble
+    ) {
+        derivedStateOf {
+            when (goldCategory) {
+                "آبشده" -> scaleWeightDouble
+                "مصنوعات" -> craftedGrossDouble
+                "سکه و شمش" -> if (selectedCoinOrBar == "شمش طلا") barWeightDouble else coinTotalWeight
+                else -> scaleWeightDouble
+            }
+        }
+    }
+
+    // =========================================================================
     // Derived Calculations for Cash
+    // =========================================================================
     val cashAmountLong by remember(cashAmountInput) {
         derivedStateOf {
             PersianNumberFormatter.parseToCleanLong(cashAmountInput) ?: 0L
@@ -177,9 +334,9 @@ fun AddLedgerEntryModal(
         }
     }
 
-    val isFormValid by remember(isGoldMode, scaleWeightDouble, cashAmountLong) {
+    val isFormValid by remember(isGoldMode, effectivePhysicalWeight, cashAmountLong) {
         derivedStateOf {
-            if (isGoldMode) scaleWeightDouble > 0.0 else cashAmountLong > 0L
+            if (isGoldMode) effectivePhysicalWeight > 0.0 else cashAmountLong > 0L
         }
     }
 
@@ -508,7 +665,7 @@ fun AddLedgerEntryModal(
                             fontSize = 11.5.sp
                         )
 
-                        // Inputs Box: Scale Weight & Karat (Fix 7: GoldInputField)
+                        // Inputs Box: Conditional based on goldCategory
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = colors.surfaceElevated,
@@ -519,101 +676,445 @@ fun AddLedgerEntryModal(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    GoldInputField(
-                                        value = scaleWeightInput,
-                                        onValueChange = { scaleWeightInput = it },
-                                        label = "وزن ترازو",
-                                        trailingText = "گرم",
-                                        isDecimal = true,
-                                        useThousandsSeparator = false,
-                                        keyboardType = KeyboardType.Decimal,
-                                        modifier = Modifier.weight(1f)
-                                    )
-
-                                    GoldInputField(
-                                        value = karatInput,
-                                        onValueChange = { karatInput = it },
-                                        label = "عیار ری‌گیری",
-                                        trailingText = "عیار",
-                                        isDecimal = false,
-                                        useThousandsSeparator = false,
-                                        keyboardType = KeyboardType.Number,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-
-                                // Ang Number & Lab Name
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    GoldInputField(
-                                        value = angNumberInput,
-                                        onValueChange = { angNumberInput = it },
-                                        label = "شماره قبض / اَنگ",
-                                        useThousandsSeparator = false,
-                                        keyboardType = KeyboardType.Text,
-                                        modifier = Modifier.weight(1f)
-                                    )
-
-                                    GoldInputField(
-                                        value = labNameInput,
-                                        onValueChange = { labNameInput = it },
-                                        label = "آزمایشگاه ری‌گیری",
-                                        useThousandsSeparator = false,
-                                        keyboardType = KeyboardType.Text,
-                                        modifier = Modifier.weight(1.3f)
-                                    )
-                                }
-
-                                // Obsidian Calculation Monitor Card with Animated Numbers (Fix 7)
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color(0xFF141B2B),
-                                    border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = "فرمول: (وزن × عیار) ÷ ۷۵۰",
-                                                fontSize = 10.sp,
-                                                color = Color(0xFF94A3B8),
-                                                fontFamily = VazirmatnFamily
+                                when (goldCategory) {
+                                    "آبشده" -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = scaleWeightInput,
+                                                onValueChange = { scaleWeightInput = it },
+                                                label = "وزن ترازو",
+                                                trailingText = "گرم",
+                                                isDecimal = true,
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Decimal,
+                                                modifier = Modifier.weight(1f)
                                             )
-                                            Text(
-                                                text = "وزن معادل ۷۵۰ (محاسباتی):",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFFFE088),
-                                                fontFamily = VazirmatnFamily
+
+                                            GoldInputField(
+                                                value = karatInput,
+                                                onValueChange = { karatInput = it },
+                                                label = "عیار ری‌گیری",
+                                                trailingText = "عیار",
+                                                isDecimal = false,
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Number,
+                                                modifier = Modifier.weight(1f)
                                             )
                                         }
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            AnimatedNumberText(
-                                                text = PersianNumberFormatter.formatWeight(equivalent750Grams),
-                                                unit = "گرم",
-                                                color = Color.White,
-                                                fontSize = 17.sp,
-                                                fontWeight = FontWeight.Black
+
+                                        // Ang Number & Lab Name
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = angNumberInput,
+                                                onValueChange = { angNumberInput = it },
+                                                label = "شماره قبض / اَنگ",
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1f)
                                             )
-                                            AnimatedNumberText(
-                                                text = "کسر عیار: ${PersianNumberFormatter.formatWeight(karatDeltaGrams)}",
-                                                unit = "گرم",
-                                                color = Color(0xFFCBD5E1),
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.Normal
+
+                                            GoldInputField(
+                                                value = labNameInput,
+                                                onValueChange = { labNameInput = it },
+                                                label = "آزمایشگاه ری‌گیری",
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.3f)
                                             )
+                                        }
+
+                                        // Obsidian Calculation Monitor Card with Animated Numbers
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = Color(0xFF141B2B),
+                                            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text(
+                                                        text = "فرمول: (وزن × عیار) ÷ ۷۵۰",
+                                                        fontSize = 10.sp,
+                                                        color = Color(0xFF94A3B8),
+                                                        fontFamily = VazirmatnFamily
+                                                    )
+                                                    Text(
+                                                        text = "وزن معادل ۷۵۰ (محاسباتی):",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFFFFE088),
+                                                        fontFamily = VazirmatnFamily
+                                                    )
+                                                }
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    AnimatedNumberText(
+                                                        text = PersianNumberFormatter.formatWeight(equivalent750Grams),
+                                                        unit = "گرم",
+                                                        color = Color.White,
+                                                        fontSize = 17.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                    AnimatedNumberText(
+                                                        text = "کسر عیار: ${PersianNumberFormatter.formatWeight(meltedDeltaGrams)}",
+                                                        unit = "گرم",
+                                                        color = Color(0xFFCBD5E1),
+                                                        fontSize = 10.5.sp,
+                                                        fontWeight = FontWeight.Normal
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    "مصنوعات" -> {
+                                        GoldInputField(
+                                            value = craftedTitleInput,
+                                            onValueChange = { craftedTitleInput = it },
+                                            label = "عنوان یا نوع مصنوع (النگو، سرویس، دستبند...)",
+                                            keyboardType = KeyboardType.Text,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = craftedGrossWeightInput,
+                                                onValueChange = { craftedGrossWeightInput = it },
+                                                label = "وزن ناخالص",
+                                                trailingText = "گرم",
+                                                isDecimal = true,
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Decimal,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            GoldInputField(
+                                                value = craftedStoneWeightInput,
+                                                onValueChange = { craftedStoneWeightInput = it },
+                                                label = "کسر نگین و متعلقات",
+                                                trailingText = "گرم",
+                                                isDecimal = true,
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Decimal,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = craftedKaratInput,
+                                                onValueChange = { craftedKaratInput = it },
+                                                label = "عیار مصنوع طلا",
+                                                trailingText = "عیار",
+                                                isDecimal = false,
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Number,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            GoldInputField(
+                                                value = craftedWorkshopInput,
+                                                onValueChange = { craftedWorkshopInput = it },
+                                                label = "کد کارگاه / مدل",
+                                                useThousandsSeparator = false,
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.3f)
+                                            )
+                                        }
+
+                                        // Obsidian Calculation Monitor Card for Crafted Gold
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = Color(0xFF141B2B),
+                                            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(12.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text(
+                                                        text = "وزن خالص: ${PersianNumberFormatter.formatWeight(craftedNetDouble)} گرم (عیار ${PersianNumberFormatter.toPersianDigits(craftedKaratInt.toString())})",
+                                                        fontSize = 10.5.sp,
+                                                        color = Color(0xFF94A3B8),
+                                                        fontFamily = VazirmatnFamily
+                                                    )
+                                                    Text(
+                                                        text = "وزن معادل ۷۵۰ در دفتر:",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFFFFE088),
+                                                        fontFamily = VazirmatnFamily
+                                                    )
+                                                }
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    AnimatedNumberText(
+                                                        text = PersianNumberFormatter.formatWeight(craftedEquiv750),
+                                                        unit = "گرم",
+                                                        color = Color.White,
+                                                        fontSize = 17.sp,
+                                                        fontWeight = FontWeight.Black
+                                                    )
+                                                    if (craftedStoneDouble > 0.0) {
+                                                        Text(
+                                                            text = "کسر نگین: ${PersianNumberFormatter.formatWeight(craftedStoneDouble)} گرم",
+                                                            fontSize = 10.sp,
+                                                            color = Color(0xFFCBD5E1),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    "سکه و شمش" -> {
+                                        // Sub-selection of Coin or Bar
+                                        val coinBarOptions = listOf("سکه تمام", "نیم سکه", "ربع سکه", "سکه گرمی", "شمش طلا")
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .horizontalScroll(rememberScrollState()),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            coinBarOptions.forEach { option ->
+                                                val isSelected = selectedCoinOrBar == option
+                                                Surface(
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    color = if (isSelected) colors.goldContainer else colors.surface,
+                                                    border = BorderStroke(
+                                                        if (isSelected) 1.dp else 0.5.dp,
+                                                        if (isSelected) colors.goldPrimary else colors.border
+                                                    ),
+                                                    modifier = Modifier.clickable { selectedCoinOrBar = option }
+                                                ) {
+                                                    Text(
+                                                        text = option,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                        fontFamily = VazirmatnFamily,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        if (selectedCoinOrBar != "شمش طلا") {
+                                            // Coin specific fields
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                GoldInputField(
+                                                    value = coinCountInput,
+                                                    onValueChange = { coinCountInput = it },
+                                                    label = "تعداد سکه",
+                                                    trailingText = "عدد",
+                                                    isDecimal = false,
+                                                    useThousandsSeparator = false,
+                                                    keyboardType = KeyboardType.Number,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+
+                                                Surface(
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = colors.surface,
+                                                    border = BorderStroke(0.6.dp, colors.border),
+                                                    modifier = Modifier.weight(1.3f)
+                                                ) {
+                                                    Column(modifier = Modifier.padding(10.dp)) {
+                                                        Text(
+                                                            text = "وزن کل فیزیکی سکه‌ها:",
+                                                            fontSize = 10.sp,
+                                                            color = colors.textMuted,
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                        Text(
+                                                            text = "${PersianNumberFormatter.formatWeight(coinTotalWeight)} گرم (عیار ۹۰۰)",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = colors.textMain,
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            GoldInputField(
+                                                value = coinSerialInput,
+                                                onValueChange = { coinSerialInput = it },
+                                                label = "شماره پلمپ وکیوم / صرافی (اختیاری)",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+
+                                            // Obsidian Calculation Monitor Card for Coins
+                                            Surface(
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = Color(0xFF141B2B),
+                                                border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column {
+                                                        Text(
+                                                            text = "${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد ${selectedCoinOrBar} (هر واحد ${PersianNumberFormatter.formatWeight(coinUnitWeight)}g)",
+                                                            fontSize = 10.5.sp,
+                                                            color = Color(0xFF94A3B8),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                        Text(
+                                                            text = "معادل ۷۵۰ در حساب مشتری:",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFFFFE088),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        AnimatedNumberText(
+                                                            text = PersianNumberFormatter.formatWeight(coinEquiv750),
+                                                            unit = "گرم ۷۵۰",
+                                                            color = Color.White,
+                                                            fontSize = 17.sp,
+                                                            fontWeight = FontWeight.Black
+                                                        )
+                                                        Text(
+                                                            text = "فرمول: (وزن × ۹۰۰) ÷ ۷۵۰",
+                                                            fontSize = 9.5.sp,
+                                                            color = Color(0xFFCBD5E1),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // Gold Bar specific fields
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                GoldInputField(
+                                                    value = barWeightInput,
+                                                    onValueChange = { barWeightInput = it },
+                                                    label = "وزن شمش",
+                                                    trailingText = "گرم",
+                                                    isDecimal = true,
+                                                    useThousandsSeparator = false,
+                                                    keyboardType = KeyboardType.Decimal,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+
+                                                GoldInputField(
+                                                    value = barKaratInput,
+                                                    onValueChange = { barKaratInput = it },
+                                                    label = "عیار شمش",
+                                                    trailingText = "عیار",
+                                                    isDecimal = false,
+                                                    useThousandsSeparator = false,
+                                                    keyboardType = KeyboardType.Number,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                GoldInputField(
+                                                    value = barBrandInput,
+                                                    onValueChange = { barBrandInput = it },
+                                                    label = "برند / سازنده شمش",
+                                                    useThousandsSeparator = false,
+                                                    keyboardType = KeyboardType.Text,
+                                                    modifier = Modifier.weight(1.2f)
+                                                )
+
+                                                GoldInputField(
+                                                    value = barSerialInput,
+                                                    onValueChange = { barSerialInput = it },
+                                                    label = "شماره سرتیفیکیت / پلمپ",
+                                                    useThousandsSeparator = false,
+                                                    keyboardType = KeyboardType.Text,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+
+                                            // Obsidian Calculation Monitor Card for Gold Bar
+                                            Surface(
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = Color(0xFF141B2B),
+                                                border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(12.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column {
+                                                        Text(
+                                                            text = "شمش ${barBrandInput.ifBlank { "استاندارد" }} • فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)}g",
+                                                            fontSize = 10.5.sp,
+                                                            color = Color(0xFF94A3B8),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                        Text(
+                                                            text = "معادل ۷۵۰ در حساب مشتری:",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFFFFE088),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                    Column(horizontalAlignment = Alignment.End) {
+                                                        AnimatedNumberText(
+                                                            text = PersianNumberFormatter.formatWeight(barEquiv750),
+                                                            unit = "گرم ۷۵۰",
+                                                            color = Color.White,
+                                                            fontSize = 17.sp,
+                                                            fontWeight = FontWeight.Black
+                                                        )
+                                                        Text(
+                                                            text = "فرمول: (وزن × $barKaratInt) ÷ ۷۵۰",
+                                                            fontSize = 9.5.sp,
+                                                            color = Color(0xFFCBD5E1),
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -649,7 +1150,7 @@ fun AddLedgerEntryModal(
                                 modifier = Modifier.padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                // Cash Amount
+                                // Cash Amount (Common for all cash methods)
                                 Column {
                                     if (cashInWords.isNotBlank()) {
                                         Row(
@@ -678,7 +1179,7 @@ fun AddLedgerEntryModal(
                                     GoldInputField(
                                         value = cashAmountInput,
                                         onValueChange = { cashAmountInput = it },
-                                        label = "مبلغ واریزی / دریافتی",
+                                        label = if (paymentMethod == "چک صیادی") "مبلغ چک" else "مبلغ پرداختی / دریافتی",
                                         trailingText = "تومان",
                                         useThousandsSeparator = true,
                                         keyboardType = KeyboardType.Number,
@@ -741,27 +1242,159 @@ fun AddLedgerEntryModal(
                                     }
                                 }
 
-                                // Destination Bank & Tracking Code
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    GoldInputField(
-                                        value = destinationBank,
-                                        onValueChange = { destinationBank = it },
-                                        label = "حساب بانکی مقصد",
-                                        keyboardType = KeyboardType.Text,
-                                        modifier = Modifier.weight(1.3f)
-                                    )
+                                // Specialized fields per payment method
+                                when (paymentMethod) {
+                                    "حواله بانکی / پایا" -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = destinationBank,
+                                                onValueChange = { destinationBank = it },
+                                                label = "حساب بانکی مقصد",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.3f)
+                                            )
 
-                                    GoldInputField(
-                                        value = trackingCodeInput,
-                                        onValueChange = { trackingCodeInput = it },
-                                        label = "کد رهگیری / ارجاع",
-                                        keyboardType = KeyboardType.Text,
-                                        useThousandsSeparator = false,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                            GoldInputField(
+                                                value = trackingCodeInput,
+                                                onValueChange = { trackingCodeInput = it },
+                                                label = "کد رهگیری / ارجاع",
+                                                keyboardType = KeyboardType.Text,
+                                                useThousandsSeparator = false,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        GoldInputField(
+                                            value = shebaInput,
+                                            onValueChange = { shebaInput = it },
+                                            label = "شماره شبا یا شماره حساب (اختیاری)",
+                                            keyboardType = KeyboardType.Text,
+                                            useThousandsSeparator = false,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+
+                                    "چک صیادی" -> {
+                                        GoldInputField(
+                                            value = sayadIdInput,
+                                            onValueChange = { sayadIdInput = it },
+                                            label = "شناسه صیادی (۱۶ رقم)",
+                                            keyboardType = KeyboardType.Number,
+                                            useThousandsSeparator = false,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = chequeSerialInput,
+                                                onValueChange = { chequeSerialInput = it },
+                                                label = "سریال و سری چک",
+                                                keyboardType = KeyboardType.Text,
+                                                useThousandsSeparator = false,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            GoldInputField(
+                                                value = chequeDueDateInput,
+                                                onValueChange = { chequeDueDateInput = it },
+                                                label = "تاریخ سررسید چک",
+                                                keyboardType = KeyboardType.Text,
+                                                useThousandsSeparator = false,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = chequeBankInput,
+                                                onValueChange = { chequeBankInput = it },
+                                                label = "بانک صادرکننده",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            GoldInputField(
+                                                value = chequeIssuerInput,
+                                                onValueChange = { chequeIssuerInput = it },
+                                                label = "صاحب حساب / صادرکننده",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.2f)
+                                            )
+                                        }
+                                    }
+
+                                    "کارتخوان (POS)" -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = posTerminalInput,
+                                                onValueChange = { posTerminalInput = it },
+                                                label = "دستگاه / پایانه کارتخوان",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.3f)
+                                            )
+
+                                            GoldInputField(
+                                                value = cardLast4Input,
+                                                onValueChange = { cardLast4Input = it },
+                                                label = "۴ رقم آخر کارت",
+                                                keyboardType = KeyboardType.Number,
+                                                useThousandsSeparator = false,
+                                                modifier = Modifier.weight(0.9f)
+                                            )
+                                        }
+
+                                        GoldInputField(
+                                            value = posRrnInput,
+                                            onValueChange = { posRrnInput = it },
+                                            label = "شماره پیگیری / شماره ارجاع رسید (RRN)",
+                                            keyboardType = KeyboardType.Text,
+                                            useThousandsSeparator = false,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+
+                                    "اسکناس نقد" -> {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            GoldInputField(
+                                                value = cashPersonInput,
+                                                onValueChange = { cashPersonInput = it },
+                                                label = "نام تحویل‌دهنده / گیرنده",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1.2f)
+                                            )
+
+                                            GoldInputField(
+                                                value = cashierReceiptInput,
+                                                onValueChange = { cashierReceiptInput = it },
+                                                label = "صندوق / کد قبض نقد",
+                                                keyboardType = KeyboardType.Text,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+
+                                        GoldInputField(
+                                            value = cashNoteDetailsInput,
+                                            onValueChange = { cashNoteDetailsInput = it },
+                                            label = "شرح و جزئیات بسته نقدی (اختیاری)",
+                                            keyboardType = KeyboardType.Text,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -813,7 +1446,7 @@ fun AddLedgerEntryModal(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (isReceive) "دریافت طلای آبشده:" else "تحویل طلا به مشتری:",
+                                    text = if (isReceive) "دریافت طلا ($goldCategory):" else "تحویل طلا به طرف‌حساب ($goldCategory):",
                                     fontSize = 11.sp,
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontFamily = VazirmatnFamily
@@ -877,7 +1510,7 @@ fun AddLedgerEntryModal(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (isReceive) "دریافت وجه نقد:" else "پرداخت وجه به طرف‌حساب:",
+                                    text = if (isReceive) "دریافت ($paymentMethod):" else "پرداخت ($paymentMethod):",
                                     fontSize = 11.sp,
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontFamily = VazirmatnFamily
@@ -961,43 +1594,235 @@ fun AddLedgerEntryModal(
                         text = "ذخیره سند",
                         onClick = {
                             val tx = if (isGoldMode) {
-                                LedgerTransaction(
-                                    id = UUID.randomUUID().toString(),
-                                    customerId = customer.id,
-                                    documentNumber = documentNumber,
-                                    title = if (isReceive) "دریافت طلای $goldCategory" else "تحویل طلای $goldCategory",
-                                    dateTime = currentDateStr,
-                                    type = LedgerEntryType.GOLD_WEIGHT,
-                                    direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
-                                    goldCategory = goldCategory,
-                                    scaleWeightGrams = scaleWeightDouble,
-                                    karat = karatInt,
-                                    equivalent750WeightGrams = equivalent750Grams,
-                                    angNumber = angNumberInput,
-                                    labName = labNameInput,
-                                    note = noteInput.ifBlank { "ثبت سند وزنی طلا در دفتر معین" },
-                                    tagBadge = goldCategory,
-                                    resultingGoldBalance = newProjectedGoldBalance,
-                                    resultingCashBalance = customer.cashDebtTomans
-                                )
+                                when (goldCategory) {
+                                    "آبشده" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت طلای آبشده" else "تحویل طلای آبشده",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.GOLD_WEIGHT,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        goldCategory = "آبشده",
+                                        scaleWeightGrams = scaleWeightDouble,
+                                        karat = karatInt,
+                                        equivalent750WeightGrams = equivalent750Grams,
+                                        angNumber = angNumberInput,
+                                        labName = labNameInput,
+                                        note = buildString {
+                                            if (noteInput.isNotBlank()) append(noteInput)
+                                            else append("ثبت طلای آبشده در دفتر معین")
+                                            if (angNumberInput.isNotBlank()) append(" - شماره اَنگ: $angNumberInput")
+                                            if (labNameInput.isNotBlank()) append(" ($labNameInput)")
+                                        },
+                                        tagBadge = "آبشده",
+                                        resultingGoldBalance = newProjectedGoldBalance,
+                                        resultingCashBalance = customer.cashDebtTomans
+                                    )
+                                    "مصنوعات" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت مصنوعات (${craftedTitleInput.ifBlank { "طلا" }})" else "تحویل مصنوعات (${craftedTitleInput.ifBlank { "طلا" }})",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.GOLD_WEIGHT,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        goldCategory = "مصنوعات",
+                                        scaleWeightGrams = craftedNetDouble,
+                                        karat = craftedKaratInt,
+                                        equivalent750WeightGrams = equivalent750Grams,
+                                        angNumber = craftedWorkshopInput,
+                                        labName = craftedTitleInput,
+                                        note = buildString {
+                                            append("مصنوعات: ${craftedTitleInput.ifBlank { "طلا" }} - ناخالص: ${PersianNumberFormatter.formatWeight(craftedGrossDouble)}g")
+                                            if (craftedStoneDouble > 0) append(" (کسر نگین: ${PersianNumberFormatter.formatWeight(craftedStoneDouble)}g)")
+                                            if (craftedWorkshopInput.isNotBlank()) append(" - کد کارگاه: $craftedWorkshopInput")
+                                            if (noteInput.isNotBlank()) append(" - $noteInput")
+                                        },
+                                        tagBadge = "مصنوعات",
+                                        resultingGoldBalance = newProjectedGoldBalance,
+                                        resultingCashBalance = customer.cashDebtTomans
+                                    )
+                                    "سکه و شمش" -> {
+                                        if (selectedCoinOrBar != "شمش طلا") {
+                                            LedgerTransaction(
+                                                id = UUID.randomUUID().toString(),
+                                                customerId = customer.id,
+                                                documentNumber = documentNumber,
+                                                title = if (isReceive) "دریافت $selectedCoinOrBar (${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد)" else "تحویل $selectedCoinOrBar (${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد)",
+                                                dateTime = currentDateStr,
+                                                type = LedgerEntryType.GOLD_WEIGHT,
+                                                direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                                goldCategory = "سکه و شمش",
+                                                scaleWeightGrams = coinTotalWeight,
+                                                karat = 900,
+                                                equivalent750WeightGrams = equivalent750Grams,
+                                                angNumber = coinSerialInput,
+                                                labName = selectedCoinOrBar,
+                                                note = buildString {
+                                                    append("$selectedCoinOrBar به تعداد ${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(coinTotalWeight)}g)")
+                                                    if (coinSerialInput.isNotBlank()) append(" - سریال: $coinSerialInput")
+                                                    if (noteInput.isNotBlank()) append(" - $noteInput")
+                                                },
+                                                tagBadge = selectedCoinOrBar,
+                                                resultingGoldBalance = newProjectedGoldBalance,
+                                                resultingCashBalance = customer.cashDebtTomans
+                                            )
+                                        } else {
+                                            LedgerTransaction(
+                                                id = UUID.randomUUID().toString(),
+                                                customerId = customer.id,
+                                                documentNumber = documentNumber,
+                                                title = if (isReceive) "دریافت شمش طلا (${barBrandInput.ifBlank { "استاندارد" }})" else "تحویل شمش طلا (${barBrandInput.ifBlank { "استاندارد" }})",
+                                                dateTime = currentDateStr,
+                                                type = LedgerEntryType.GOLD_WEIGHT,
+                                                direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                                goldCategory = "سکه و شمش",
+                                                scaleWeightGrams = barWeightDouble,
+                                                karat = barKaratInt,
+                                                equivalent750WeightGrams = equivalent750Grams,
+                                                angNumber = barSerialInput,
+                                                labName = barBrandInput,
+                                                note = buildString {
+                                                    append("شمش طلا ${barBrandInput.ifBlank { "استاندارد" }} عیار $barKaratInt (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)}g)")
+                                                    if (barSerialInput.isNotBlank()) append(" - سرتیفیکیت: $barSerialInput")
+                                                    if (noteInput.isNotBlank()) append(" - $noteInput")
+                                                },
+                                                tagBadge = "شمش طلا",
+                                                resultingGoldBalance = newProjectedGoldBalance,
+                                                resultingCashBalance = customer.cashDebtTomans
+                                            )
+                                        }
+                                    }
+                                    else -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت طلای $goldCategory" else "تحویل طلای $goldCategory",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.GOLD_WEIGHT,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        goldCategory = goldCategory,
+                                        scaleWeightGrams = effectivePhysicalWeight,
+                                        karat = karatInt,
+                                        equivalent750WeightGrams = equivalent750Grams,
+                                        angNumber = angNumberInput,
+                                        labName = labNameInput,
+                                        note = noteInput.ifBlank { "ثبت سند وزنی طلا در دفتر معین" },
+                                        tagBadge = goldCategory,
+                                        resultingGoldBalance = newProjectedGoldBalance,
+                                        resultingCashBalance = customer.cashDebtTomans
+                                    )
+                                }
                             } else {
-                                LedgerTransaction(
-                                    id = UUID.randomUUID().toString(),
-                                    customerId = customer.id,
-                                    documentNumber = documentNumber,
-                                    title = if (isReceive) "دریافت وجه $paymentMethod" else "پرداخت وجه $paymentMethod",
-                                    dateTime = currentDateStr,
-                                    type = LedgerEntryType.CASH_RIAL,
-                                    direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
-                                    amountTomans = cashAmountLong,
-                                    paymentMethod = paymentMethod,
-                                    destinationBank = destinationBank,
-                                    trackingCode = trackingCodeInput,
-                                    note = noteInput.ifBlank { "ثبت تسویه نقدی در دفتر معین" },
-                                    tagBadge = paymentMethod.substringBefore(" "),
-                                    resultingGoldBalance = customer.goldDebtGrams,
-                                    resultingCashBalance = newProjectedCashBalance
-                                )
+                                when (paymentMethod) {
+                                    "حواله بانکی / پایا" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت حواله بانکی" else "پرداخت حواله بانکی",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.CASH_RIAL,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        amountTomans = cashAmountLong,
+                                        paymentMethod = paymentMethod,
+                                        destinationBank = destinationBank,
+                                        trackingCode = trackingCodeInput,
+                                        note = buildString {
+                                            append("حواله بانکی: $destinationBank")
+                                            if (shebaInput.isNotBlank()) append(" - شبا/حساب: $shebaInput")
+                                            if (trackingCodeInput.isNotBlank()) append(" - پیگیری: $trackingCodeInput")
+                                            if (noteInput.isNotBlank()) append(" - $noteInput")
+                                        },
+                                        tagBadge = "حواله",
+                                        resultingGoldBalance = customer.goldDebtGrams,
+                                        resultingCashBalance = newProjectedCashBalance
+                                    )
+                                    "چک صیادی" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت چک صیادی (${chequeBankInput.ifBlank { "بانکی" }})" else "پرداخت چک صیادی (${chequeBankInput.ifBlank { "بانکی" }})",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.CASH_RIAL,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        amountTomans = cashAmountLong,
+                                        paymentMethod = paymentMethod,
+                                        destinationBank = "${chequeBankInput.ifBlank { "بانک" }} - صادرکننده: ${chequeIssuerInput.ifBlank { customer.name }}",
+                                        trackingCode = sayadIdInput,
+                                        note = buildString {
+                                            append("چک صیادی: ${sayadIdInput.ifBlank { "—" }}")
+                                            if (chequeSerialInput.isNotBlank()) append(" (سریال: $chequeSerialInput)")
+                                            if (chequeDueDateInput.isNotBlank()) append(" - سررسید: $chequeDueDateInput")
+                                            if (chequeBankInput.isNotBlank() || chequeIssuerInput.isNotBlank()) append(" - بانک ${chequeBankInput} / ${chequeIssuerInput}")
+                                            if (noteInput.isNotBlank()) append(" - $noteInput")
+                                        },
+                                        tagBadge = "چک صیادی",
+                                        resultingGoldBalance = customer.goldDebtGrams,
+                                        resultingCashBalance = newProjectedCashBalance
+                                    )
+                                    "کارتخوان (POS)" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت از کارتخوان" else "پرداخت از کارتخوان",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.CASH_RIAL,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        amountTomans = cashAmountLong,
+                                        paymentMethod = paymentMethod,
+                                        destinationBank = posTerminalInput.ifBlank { "کارتخوان فروشگاه" },
+                                        trackingCode = posRrnInput,
+                                        note = buildString {
+                                            append("کارتخوان: ${posTerminalInput.ifBlank { "فروشگاه" }}")
+                                            if (cardLast4Input.isNotBlank()) append(" - ۴ رقم کارت: $cardLast4Input")
+                                            if (posRrnInput.isNotBlank()) append(" - پیگیری: $posRrnInput")
+                                            if (noteInput.isNotBlank()) append(" - $noteInput")
+                                        },
+                                        tagBadge = "کارتخوان",
+                                        resultingGoldBalance = customer.goldDebtGrams,
+                                        resultingCashBalance = newProjectedCashBalance
+                                    )
+                                    "اسکناس نقد" -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت اسکناس نقد" else "پرداخت اسکناس نقد",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.CASH_RIAL,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        amountTomans = cashAmountLong,
+                                        paymentMethod = paymentMethod,
+                                        destinationBank = cashierReceiptInput.ifBlank { "صندوق طلافروشی" },
+                                        trackingCode = "",
+                                        note = buildString {
+                                            append("اسکناس نقد: تحویل ${cashPersonInput.ifBlank { customer.name }}")
+                                            if (cashierReceiptInput.isNotBlank()) append(" (${cashierReceiptInput})")
+                                            if (cashNoteDetailsInput.isNotBlank()) append(" - $cashNoteDetailsInput")
+                                            if (noteInput.isNotBlank()) append(" - $noteInput")
+                                        },
+                                        tagBadge = "نقد",
+                                        resultingGoldBalance = customer.goldDebtGrams,
+                                        resultingCashBalance = newProjectedCashBalance
+                                    )
+                                    else -> LedgerTransaction(
+                                        id = UUID.randomUUID().toString(),
+                                        customerId = customer.id,
+                                        documentNumber = documentNumber,
+                                        title = if (isReceive) "دریافت وجه $paymentMethod" else "پرداخت وجه $paymentMethod",
+                                        dateTime = currentDateStr,
+                                        type = LedgerEntryType.CASH_RIAL,
+                                        direction = if (isReceive) LedgerDirection.RECEIVE else LedgerDirection.PAY,
+                                        amountTomans = cashAmountLong,
+                                        paymentMethod = paymentMethod,
+                                        destinationBank = destinationBank,
+                                        trackingCode = trackingCodeInput,
+                                        note = noteInput.ifBlank { "ثبت تسویه نقدی در دفتر معین" },
+                                        tagBadge = paymentMethod.substringBefore(" "),
+                                        resultingGoldBalance = customer.goldDebtGrams,
+                                        resultingCashBalance = newProjectedCashBalance
+                                    )
+                                }
                             }
                             onSaveEntry(tx)
                         },
