@@ -80,6 +80,7 @@ import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
+import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.invoices.components.InvoiceEditVector
 import com.goldex.companion.ui.invoices.components.InvoiceOfficialHeader
 import com.goldex.companion.ui.invoices.components.InvoicePdfVector
