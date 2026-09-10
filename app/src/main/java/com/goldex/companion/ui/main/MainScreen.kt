@@ -161,10 +161,17 @@ fun MainScreen(
     if (customerState.isAddLedgerEntryModalVisible && customerState.ledgerEntryTargetCustomer != null) {
         AddLedgerEntryModal(
             customer = customerState.ledgerEntryTargetCustomer!!,
+            editingTransaction = customerState.editingLedgerTransaction,
             onDismiss = { customerViewModel.closeAddLedgerEntry() },
             onSaveEntry = { tx ->
+                val isEditing = customerState.editingLedgerTransaction != null
                 customerViewModel.saveLedgerEntry(tx)
-                QiratoToast.show(context, "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد")
+                val msg = if (isEditing) {
+                    "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
+                } else {
+                    "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                }
+                QiratoToast.show(context, msg)
             }
         )
     }
@@ -645,6 +652,7 @@ fun MainScreen(
                     onSetLedgerDueDate = barterInvoiceViewModel::setLedgerDueDate,
                     onSetBullionSettlement = barterInvoiceViewModel::setBullionSettlement,
                     onSetThirdPartyTransfer = barterInvoiceViewModel::setThirdPartyTransfer,
+                    onSetSettlementPayments = barterInvoiceViewModel::setSettlementPayments,
                     onSetNote = barterInvoiceViewModel::setNote,
                     onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
                     onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
@@ -710,6 +718,8 @@ fun MainScreen(
                         selectedFilter = customerState.selectedStatementFilter,
                         onFilterSelect = { customerViewModel.setStatementFilter(it) },
                         onOpenAddEntry = { customerViewModel.openAddLedgerEntry(statementCustomer) },
+                        onEditTransaction = { customerViewModel.openEditLedgerEntry(it) },
+                        onDeleteTransaction = { customerViewModel.deleteLedgerEntry(it) },
                         onBack = { customerViewModel.closeCustomerStatement() }
                     )
                 }

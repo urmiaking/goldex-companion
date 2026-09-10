@@ -30,7 +30,8 @@ data class CustomerManagerUiState(
     val selectedLedgerFilter: CustomerLedgerFilterTab = CustomerLedgerFilterTab.ALL,
     val selectedStatementFilter: StatementFilterTab = StatementFilterTab.ALL,
     val searchQuery: String = "",
-    val activeCustomerTransactions: List<LedgerTransaction> = emptyList()
+    val activeCustomerTransactions: List<LedgerTransaction> = emptyList(),
+    val editingLedgerTransaction: LedgerTransaction? = null
 ) {
     val filteredCustomers: List<Customer>
         get() {
@@ -149,7 +150,20 @@ class CustomerManagerViewModel(
         _uiState.update {
             it.copy(
                 isAddLedgerEntryModalVisible = true,
-                ledgerEntryTargetCustomer = customer
+                ledgerEntryTargetCustomer = customer,
+                editingLedgerTransaction = null
+            )
+        }
+    }
+
+    fun openEditLedgerEntry(transaction: LedgerTransaction) {
+        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
+            ?: _uiState.value.selectedCustomerForStatement
+        _uiState.update {
+            it.copy(
+                isAddLedgerEntryModalVisible = true,
+                ledgerEntryTargetCustomer = target,
+                editingLedgerTransaction = transaction
             )
         }
     }
@@ -158,16 +172,17 @@ class CustomerManagerViewModel(
         _uiState.update {
             it.copy(
                 isAddLedgerEntryModalVisible = false,
-                ledgerEntryTargetCustomer = null
+                ledgerEntryTargetCustomer = null,
+                editingLedgerTransaction = null
             )
         }
     }
 
-    fun saveLedgerEntry(transaction: LedgerTransaction) {
-        repository.addTransaction(transaction)
+    fun deleteLedgerEntry(transaction: LedgerTransaction) {
+        repository.deleteTransaction(transaction.id)
 
         val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
-            ?: _uiState.value.ledgerEntryTargetCustomer
+            ?: _uiState.value.selectedCustomerForStatement
 
         if (target != null) {
             val updatedCustomer = when (transaction.type) {
@@ -178,7 +193,7 @@ class CustomerManagerViewModel(
                         -transaction.equivalent750WeightGrams
                     }
                     target.copy(
-                        goldDebtGrams = target.goldDebtGrams + delta,
+                        goldDebtGrams = target.goldDebtGrams - delta,
                         lastActivityTime = "لحظاتی پیش"
                     )
                 }
@@ -189,7 +204,7 @@ class CustomerManagerViewModel(
                         -transaction.amountTomans
                     }
                     target.copy(
-                        cashDebtTomans = target.cashDebtTomans + delta,
+                        cashDebtTomans = target.cashDebtTomans - delta,
                         lastActivityTime = "لحظاتی پیش"
                     )
                 }
@@ -197,6 +212,101 @@ class CustomerManagerViewModel(
             repository.updateCustomer(updatedCustomer)
         }
 
+        refreshStatementData()
+    }
+
+    fun saveLedgerEntry(transaction: LedgerTransaction) {
+        val editing = _uiState.value.editingLedgerTransaction
+        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
+            ?: _uiState.value.ledgerEntryTargetCustomer
+
+        if (editing != null) {
+            repository.updateTransaction(transaction)
+
+            if (target != null) {
+                // First reverse the old transaction effect
+                val intermediateCustomer = when (editing.type) {
+                    LedgerEntryType.GOLD_WEIGHT -> {
+                        val oldDelta = if (editing.direction == LedgerDirection.PAY) {
+                            editing.equivalent750WeightGrams
+                        } else {
+                            -editing.equivalent750WeightGrams
+                        }
+                        target.copy(goldDebtGrams = target.goldDebtGrams - oldDelta)
+                    }
+                    LedgerEntryType.CASH_RIAL -> {
+                        val oldDelta = if (editing.direction == LedgerDirection.PAY) {
+                            editing.amountTomans
+                        } else {
+                            -editing.amountTomans
+                        }
+                        target.copy(cashDebtTomans = target.cashDebtTomans - oldDelta)
+                    }
+                }
+
+                // Then apply the new transaction effect
+                val updatedCustomer = when (transaction.type) {
+                    LedgerEntryType.GOLD_WEIGHT -> {
+                        val newDelta = if (transaction.direction == LedgerDirection.PAY) {
+                            transaction.equivalent750WeightGrams
+                        } else {
+                            -transaction.equivalent750WeightGrams
+                        }
+                        intermediateCustomer.copy(
+                            goldDebtGrams = intermediateCustomer.goldDebtGrams + newDelta,
+                            lastActivityTime = "لحظاتی پیش"
+                        )
+                    }
+                    LedgerEntryType.CASH_RIAL -> {
+                        val newDelta = if (transaction.direction == LedgerDirection.PAY) {
+                            transaction.amountTomans
+                        } else {
+                            -transaction.amountTomans
+                        }
+                        intermediateCustomer.copy(
+                            cashDebtTomans = intermediateCustomer.cashDebtTomans + newDelta,
+                            lastActivityTime = "لحظاتی پیش"
+                        )
+                    }
+                }
+                repository.updateCustomer(updatedCustomer)
+            }
+        } else {
+            repository.addTransaction(transaction)
+
+            if (target != null) {
+                val updatedCustomer = when (transaction.type) {
+                    LedgerEntryType.GOLD_WEIGHT -> {
+                        val delta = if (transaction.direction == LedgerDirection.PAY) {
+                            transaction.equivalent750WeightGrams
+                        } else {
+                            -transaction.equivalent750WeightGrams
+                        }
+                        target.copy(
+                            goldDebtGrams = target.goldDebtGrams + delta,
+                            lastActivityTime = "لحظاتی پیش"
+                        )
+                    }
+                    LedgerEntryType.CASH_RIAL -> {
+                        val delta = if (transaction.direction == LedgerDirection.PAY) {
+                            transaction.amountTomans
+                        } else {
+                            -transaction.amountTomans
+                        }
+                        target.copy(
+                            cashDebtTomans = target.cashDebtTomans + delta,
+                            lastActivityTime = "لحظاتی پیش"
+                        )
+                    }
+                }
+                repository.updateCustomer(updatedCustomer)
+            }
+        }
+
+        refreshStatementData()
+    }
+
+    private fun refreshStatementData() {
         val updatedCustomers = repository.getCustomers()
         val currentStatementCust = _uiState.value.selectedCustomerForStatement
         val refreshedStatementCust = if (currentStatementCust != null) {
@@ -213,7 +323,8 @@ class CustomerManagerViewModel(
                 selectedCustomerForStatement = refreshedStatementCust,
                 activeCustomerTransactions = updatedTxs,
                 isAddLedgerEntryModalVisible = false,
-                ledgerEntryTargetCustomer = null
+                ledgerEntryTargetCustomer = null,
+                editingLedgerTransaction = null
             )
         }
     }

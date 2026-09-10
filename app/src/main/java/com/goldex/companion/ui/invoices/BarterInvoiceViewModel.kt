@@ -42,7 +42,8 @@ data class BarterInvoiceUiState(
     val statusMessage: String = "",
     val searchQuery: String = "",
     val selectedFilter: InvoiceFilterTab = InvoiceFilterTab.ALL,
-    val invoicesList: List<InvoiceListItem> = emptyList()
+    val invoicesList: List<InvoiceListItem> = emptyList(),
+    val isEditingExistingInvoice: Boolean = false
 ) {
     val balance: BarterBalance get() = invoice.balance
 
@@ -285,6 +286,7 @@ class BarterInvoiceViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 subScreen = InvoicesSubScreen.EDITOR,
+                isEditingExistingInvoice = false,
                 invoice = BarterInvoice(
                     spotPrice18k = rateToUse
                 )
@@ -302,6 +304,7 @@ class BarterInvoiceViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 subScreen = InvoicesSubScreen.EDITOR,
+                isEditingExistingInvoice = true,
                 invoice = invoiceToEdit
             )
         }
@@ -317,21 +320,31 @@ class BarterInvoiceViewModel : ViewModel() {
         val customerName = currentInv.customer?.name?.ifBlank { "مشتری جدید" } ?: "مشتری جدید"
         val initials = customerName.split(" ").take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").ifBlank { "مش" }
 
-        val isSettled = when (currentInv.settlementMethod) {
-            SettlementMethod.TRANSFER -> currentInv.thirdPartyTransferAmount > 0 || currentInv.thirdPartyTransferWeight18k > 0.0
-            SettlementMethod.POS -> currentInv.balance.isSettled || (currentInv.cashPosAmount >= netAmount && netAmount > 0)
-            SettlementMethod.BULLION -> currentInv.bullionWeight > 0.0
-            SettlementMethod.LEDGER -> true
+        val isSettled = if (currentInv.payments.isNotEmpty()) {
+            currentInv.isFullySettled
+        } else {
+            when (currentInv.settlementMethod) {
+                SettlementMethod.TRANSFER -> currentInv.thirdPartyTransferAmount > 0 || currentInv.thirdPartyTransferWeight18k > 0.0
+                SettlementMethod.POS -> currentInv.balance.isSettled || (currentInv.cashPosAmount >= netAmount && netAmount > 0)
+                SettlementMethod.BULLION -> currentInv.bullionWeight > 0.0
+                SettlementMethod.LEDGER -> true
+            }
         }
 
-        val line2 = when (currentInv.settlementMethod) {
-            SettlementMethod.TRANSFER -> {
-                val partyName = currentInv.thirdPartyCustomer?.name?.ifBlank { "همکار" } ?: "همکار"
-                "تهاتر سه‌طرفه: حواله به $partyName (${currentInv.thirdPartyInvoiceNumber.ifBlank { "دفتر حساب" }})"
+        val line2 = if (currentInv.payments.size > 1) {
+            "تسویه چندمرحله‌ای (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits(currentInv.payments.size.toString())} روش پرداخت)"
+        } else if (currentInv.payments.size == 1) {
+            "روش تسویه: ${currentInv.payments.first().method.labelFa}"
+        } else {
+            when (currentInv.settlementMethod) {
+                SettlementMethod.TRANSFER -> {
+                    val partyName = currentInv.thirdPartyCustomer?.name?.ifBlank { "همکار" } ?: "همکار"
+                    "تهاتر سه‌طرفه: حواله به $partyName (${currentInv.thirdPartyInvoiceNumber.ifBlank { "دفتر حساب" }})"
+                }
+                SettlementMethod.POS -> "روش تسویه: کارتخوان / پوز"
+                SettlementMethod.LEDGER -> "روش تسویه: دفتر معین طلایی (${currentInv.ledgerDueDate})"
+                SettlementMethod.BULLION -> "روش تسویه: تحویل شمش و آبشده"
             }
-            SettlementMethod.POS -> "روش تسویه: کارتخوان / پوز"
-            SettlementMethod.LEDGER -> "روش تسویه: دفتر معین طلایی (${currentInv.ledgerDueDate})"
-            SettlementMethod.BULLION -> "روش تسویه: تحویل شمش و آبشده"
         }
 
         val newCard = InvoiceListItem(
@@ -343,7 +356,11 @@ class BarterInvoiceViewModel : ViewModel() {
             createdAtText = "کد فاکتور: ${currentInv.invoiceNumber} • همین الان",
             status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
             statusDetail = if (isSettled) {
-                if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه" else "تسویه نقدی کامل"
+                if (currentInv.payments.size > 1) "تسویه چندمرحله‌ای کامل"
+                else if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه"
+                else "تسویه نقدی کامل"
+            } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
+                "مانده: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} ت"
             } else "در انتظار پرداخت",
             itemsSummary = (currentInv.salesItems + currentInv.receivedItems).joinToString(" + ") { it.title }.ifBlank { "اقلام طلا و مسکوکات" },
             itemsCountText = "اقلام فاکتور (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits((currentInv.salesItems.size + currentInv.receivedItems.size).toString())} قلم):",
@@ -385,11 +402,23 @@ class BarterInvoiceViewModel : ViewModel() {
                 invoicesList = finalList,
                 subScreen = InvoicesSubScreen.LIST,
                 isSuccessSnackbarVisible = true,
-                statusMessage = if (currentInv.settlementMethod == SettlementMethod.TRANSFER && currentInv.thirdPartyCustomer != null) {
+                statusMessage = if (state.isEditingExistingInvoice) {
+                    "فاکتور ${currentInv.invoiceNumber} با موفقیت ویرایش شد"
+                } else if (currentInv.settlementMethod == SettlementMethod.TRANSFER && currentInv.thirdPartyCustomer != null) {
                     "فاکتور ${currentInv.invoiceNumber} ثبت و تهاتر با ${currentInv.thirdPartyCustomer.name} با موفقیت اعمال شد"
                 } else {
                     "فاکتور ${currentInv.invoiceNumber} با موفقیت ثبت گردید"
                 }
+            )
+        }
+    }
+
+    fun setSettlementPayments(payments: List<SettlementPaymentItem>) {
+        _uiState.update {
+            it.copy(
+                invoice = it.invoice.copy(
+                    payments = payments
+                )
             )
         }
     }

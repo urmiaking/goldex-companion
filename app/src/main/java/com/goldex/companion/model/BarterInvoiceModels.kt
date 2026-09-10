@@ -111,6 +111,19 @@ data class BarterBalance(
     val isSettled: Boolean
 )
 
+data class SettlementPaymentItem(
+    val id: String = UUID.randomUUID().toString(),
+    val method: SettlementMethod,
+    val amountTomans: Long = 0L,
+    val goldWeight18k: Double = 0.0,
+    val trackingCode: String = "",
+    val description: String = "",
+    val date: String = "",
+    val thirdPartyCustomerName: String = "",
+    val bullionKarat: Int = 750,
+    val bullionAngNumber: String = ""
+)
+
 data class BarterInvoice(
     val id: String = UUID.randomUUID().toString(),
     val invoiceNumber: String = "IR-${(1403..1405).random()}-${(100..999).random()}",
@@ -134,10 +147,43 @@ data class BarterInvoice(
     val thirdPartyTransferWeight18k: Double = 0.0,
     val thirdPartyTransferAmount: Long = 0L,
     val thirdPartyTrackingCode: String = "",
-    val note: String = ""
+    val note: String = "",
+    val payments: List<SettlementPaymentItem> = emptyList()
 ) {
     val balance: BarterBalance
         get() = BarterCalculationUseCases.calculateBalance(salesItems, receivedItems)
+
+    val totalPaymentsAmount: Long
+        get() {
+            if (payments.isNotEmpty()) {
+                return payments.sumOf { p ->
+                    if (p.method == SettlementMethod.BULLION) {
+                        ((p.goldWeight18k * spotPrice18k).toLong())
+                    } else {
+                        p.amountTomans
+                    }
+                }
+            }
+            return when (settlementMethod) {
+                SettlementMethod.POS -> cashPosAmount
+                SettlementMethod.LEDGER -> ledgerAmount
+                SettlementMethod.TRANSFER -> thirdPartyTransferAmount
+                SettlementMethod.BULLION -> ((bullionWeight * (bullionKarat.toDouble() / 750.0) * spotPrice18k).toLong())
+            }
+        }
+
+    val remainingBalanceTomans: Long
+        get() {
+            val netPayable = balance.netPayableAmount.toLong()
+            return (netPayable - totalPaymentsAmount).coerceAtLeast(0L)
+        }
+
+    val isFullySettled: Boolean
+        get() {
+            val netPayable = balance.netPayableAmount.toLong()
+            if (netPayable <= 0L) return true
+            return totalPaymentsAmount >= netPayable
+        }
 }
 
 enum class InvoiceStatus(val titleFa: String) {

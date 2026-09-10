@@ -84,6 +84,7 @@ import java.util.UUID
 @Composable
 fun AddLedgerEntryModal(
     customer: Customer,
+    editingTransaction: LedgerTransaction? = null,
     onDismiss: () -> Unit,
     onSaveEntry: (LedgerTransaction) -> Unit
 ) {
@@ -91,28 +92,59 @@ fun AddLedgerEntryModal(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Mode: Gold / Weight (0) vs Cash / Rial (1)
-    var selectedModeIndex by remember { mutableIntStateOf(0) }
+    var selectedModeIndex by remember(editingTransaction) {
+        mutableIntStateOf(
+            if (editingTransaction?.type == LedgerEntryType.CASH_RIAL) 1 else 0
+        )
+    }
     // Direction: Receive from Customer (0) vs Pay to Customer (1)
-    var selectedDirectionIndex by remember { mutableIntStateOf(0) }
+    var selectedDirectionIndex by remember(editingTransaction) {
+        mutableIntStateOf(
+            if (editingTransaction?.direction == LedgerDirection.PAY) 1 else 0
+        )
+    }
 
     // Common Document Info
-    val documentNumber = remember { "۸" + (100..999).random().toString() }
-    val currentDateStr = remember {
-        val sdf = SimpleDateFormat("yyyy/MM/dd - HH:mm", Locale.getDefault())
-        PersianNumberFormatter.toPersianDigits(sdf.format(Date()))
+    val documentNumber = remember(editingTransaction) {
+        editingTransaction?.documentNumber ?: ("۸" + (100..999).random().toString())
     }
-    var noteInput by remember { mutableStateOf("") }
+    val currentDateStr = remember(editingTransaction) {
+        editingTransaction?.dateTime ?: run {
+            val sdf = SimpleDateFormat("yyyy/MM/dd - HH:mm", Locale.getDefault())
+            PersianNumberFormatter.toPersianDigits(sdf.format(Date()))
+        }
+    }
+    var noteInput by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.note ?: "")
+    }
 
     // =========================================================================
     // Gold State
     // =========================================================================
-    var goldCategory by remember { mutableStateOf("آبشده") } // آبشده, مصنوعات, سکه و شمش
+    var goldCategory by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.goldCategory?.ifBlank { "آبشده" } ?: "آبشده")
+    }
 
     // 1. آبشده
-    var scaleWeightInput by remember { mutableStateOf("50.410") }
-    var karatInput by remember { mutableStateOf("750") }
-    var angNumberInput by remember { mutableStateOf("") }
-    var labNameInput by remember { mutableStateOf("ری‌گیری تهران") }
+    var scaleWeightInput by remember(editingTransaction) {
+        mutableStateOf(
+            if (editingTransaction != null && editingTransaction.type == LedgerEntryType.GOLD_WEIGHT) {
+                if (editingTransaction.scaleWeightGrams > 0.0) editingTransaction.scaleWeightGrams.toString()
+                else editingTransaction.equivalent750WeightGrams.toString()
+            } else "50.410"
+        )
+    }
+    var karatInput by remember(editingTransaction) {
+        mutableStateOf(
+            if (editingTransaction != null && editingTransaction.karat > 0) editingTransaction.karat.toString() else "750"
+        )
+    }
+    var angNumberInput by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.angNumber ?: "")
+    }
+    var labNameInput by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.labName?.ifBlank { "ری‌گیری تهران" } ?: "ری‌گیری تهران")
+    }
 
     // 2. مصنوعات
     var craftedTitleInput by remember { mutableStateOf("النگو") }
@@ -134,12 +166,24 @@ fun AddLedgerEntryModal(
     // =========================================================================
     // Cash State
     // =========================================================================
-    var cashAmountInput by remember { mutableStateOf("25000000") }
-    var paymentMethod by remember { mutableStateOf("حواله بانکی / پایا") } // حواله بانکی / پایا, چک صیادی, کارتخوان (POS), اسکناس نقد
+    var cashAmountInput by remember(editingTransaction) {
+        mutableStateOf(
+            if (editingTransaction != null && editingTransaction.type == LedgerEntryType.CASH_RIAL) {
+                editingTransaction.amountTomans.toString()
+            } else "25000000"
+        )
+    }
+    var paymentMethod by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.paymentMethod?.ifBlank { "حواله بانکی / پایا" } ?: "حواله بانکی / پایا")
+    }
 
     // 1. حواله بانکی / پایا
-    var destinationBank by remember { mutableStateOf("بانک ملت - جاری طلافروشی") }
-    var trackingCodeInput by remember { mutableStateOf("") }
+    var destinationBank by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.destinationBank?.ifBlank { "بانک ملت - جاری طلافروشی" } ?: "بانک ملت - جاری طلافروشی")
+    }
+    var trackingCodeInput by remember(editingTransaction) {
+        mutableStateOf(editingTransaction?.trackingCode ?: "")
+    }
     var shebaInput by remember { mutableStateOf("") }
 
     // 2. چک صیادی
@@ -388,7 +432,7 @@ fun AddLedgerEntryModal(
                         }
                         Column {
                             Text(
-                                text = "ثبت سند در دفتر معین",
+                                text = if (editingTransaction != null) "ویرایش سند در دفتر معین" else "ثبت سند در دفتر معین",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
@@ -1571,12 +1615,13 @@ fun AddLedgerEntryModal(
                     )
 
                     GoldButton(
-                        text = "ذخیره سند",
+                        text = if (editingTransaction != null) "ویرایش و ذخیره سند" else "ثبت نهایی سند در معین",
                         onClick = {
+                            val entryId = editingTransaction?.id ?: UUID.randomUUID().toString()
                             val tx = if (isGoldMode) {
                                 when (goldCategory) {
                                     "آبشده" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت طلای آبشده" else "تحویل طلای آبشده",
@@ -1600,7 +1645,7 @@ fun AddLedgerEntryModal(
                                         resultingCashBalance = customer.cashDebtTomans
                                     )
                                     "مصنوعات" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت مصنوعات (${craftedTitleInput.ifBlank { "طلا" }})" else "تحویل مصنوعات (${craftedTitleInput.ifBlank { "طلا" }})",
@@ -1626,7 +1671,7 @@ fun AddLedgerEntryModal(
                                     "سکه و شمش" -> {
                                         if (selectedCoinOrBar != "شمش طلا") {
                                             LedgerTransaction(
-                                                id = UUID.randomUUID().toString(),
+                                                id = entryId,
                                                 customerId = customer.id,
                                                 documentNumber = documentNumber,
                                                 title = if (isReceive) "دریافت $selectedCoinOrBar (${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد)" else "تحویل $selectedCoinOrBar (${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد)",
@@ -1650,7 +1695,7 @@ fun AddLedgerEntryModal(
                                             )
                                         } else {
                                             LedgerTransaction(
-                                                id = UUID.randomUUID().toString(),
+                                                id = entryId,
                                                 customerId = customer.id,
                                                 documentNumber = documentNumber,
                                                 title = if (isReceive) "دریافت شمش طلا (${barBrandInput.ifBlank { "استاندارد" }})" else "تحویل شمش طلا (${barBrandInput.ifBlank { "استاندارد" }})",
@@ -1675,7 +1720,7 @@ fun AddLedgerEntryModal(
                                         }
                                     }
                                     else -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت طلای $goldCategory" else "تحویل طلای $goldCategory",
@@ -1697,7 +1742,7 @@ fun AddLedgerEntryModal(
                             } else {
                                 when (paymentMethod) {
                                     "حواله بانکی / پایا" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت حواله بانکی" else "پرداخت حواله بانکی",
@@ -1719,7 +1764,7 @@ fun AddLedgerEntryModal(
                                         resultingCashBalance = newProjectedCashBalance
                                     )
                                     "چک صیادی" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت چک صیادی (${chequeBankInput.ifBlank { "بانکی" }})" else "پرداخت چک صیادی (${chequeBankInput.ifBlank { "بانکی" }})",
@@ -1742,7 +1787,7 @@ fun AddLedgerEntryModal(
                                         resultingCashBalance = newProjectedCashBalance
                                     )
                                     "کارتخوان (POS)" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت از کارتخوان" else "پرداخت از کارتخوان",
@@ -1764,7 +1809,7 @@ fun AddLedgerEntryModal(
                                         resultingCashBalance = newProjectedCashBalance
                                     )
                                     "اسکناس نقد" -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت اسکناس نقد" else "پرداخت اسکناس نقد",
@@ -1786,7 +1831,7 @@ fun AddLedgerEntryModal(
                                         resultingCashBalance = newProjectedCashBalance
                                     )
                                     else -> LedgerTransaction(
-                                        id = UUID.randomUUID().toString(),
+                                        id = entryId,
                                         customerId = customer.id,
                                         documentNumber = documentNumber,
                                         title = if (isReceive) "دریافت وجه $paymentMethod" else "پرداخت وجه $paymentMethod",

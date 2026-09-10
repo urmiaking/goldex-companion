@@ -82,6 +82,7 @@ import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.model.SettlementPaymentItem
 import com.goldex.companion.ui.components.CustomerIconVector
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.components.GoldButton
@@ -102,6 +103,7 @@ import com.goldex.companion.ui.theme.goldGradient
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +118,7 @@ fun BarterInvoiceScreen(
     onSetLedgerDueDate: (String) -> Unit = {},
     onSetBullionSettlement: (Double, Int, String) -> Unit = { _, _, _ -> },
     onSetThirdPartyTransfer: (Customer?, String, String, Double, Long, String) -> Unit = { _, _, _, _, _, _ -> },
+    onSetSettlementPayments: (List<SettlementPaymentItem>) -> Unit = {},
     onSetNote: (String) -> Unit,
     onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
     onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
@@ -197,7 +200,7 @@ fun BarterInvoiceScreen(
                                             .background(Color(0xFFDFB35A))
                                     )
                                     Text(
-                                        text = "ثبت فاکتور جدید",
+                                        text = if (uiState.isEditingExistingInvoice) "ویرایش فاکتور" else "ثبت فاکتور جدید",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = colors.textMain,
@@ -205,7 +208,7 @@ fun BarterInvoiceScreen(
                                     )
                                 }
                                 Text(
-                                    text = "فاکتور زرگری و تهاتر طلا",
+                                    text = if (uiState.isEditingExistingInvoice) "ویرایش اقلام و تسویه فاکتور" else "فاکتور زرگری و تهاتر طلا",
                                     fontSize = 10.5.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
@@ -345,6 +348,7 @@ fun BarterInvoiceScreen(
                     onLedgerDueDateChange = onSetLedgerDueDate,
                     onBullionSettlementChange = onSetBullionSettlement,
                     onThirdPartyTransferChange = onSetThirdPartyTransfer,
+                    onSettlementPaymentsChange = onSetSettlementPayments,
                     note = invoice.note,
                     onNoteChange = onSetNote,
                     onDismiss = { isSettlementModalVisible = false }
@@ -1329,13 +1333,24 @@ private fun SettlementSummaryCard(
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        val iconText = when (method) {
-                            SettlementMethod.POS -> "💳"
-                            SettlementMethod.LEDGER -> "📒"
-                            SettlementMethod.BULLION -> "🧱"
-                            SettlementMethod.TRANSFER -> "🔄"
+                        val hasMulti = invoice.payments.isNotEmpty()
+                        val iconText = if (hasMulti) {
+                            if (invoice.payments.size > 1) "⚡" else when (invoice.payments.first().method) {
+                                SettlementMethod.POS -> "💳"
+                                SettlementMethod.LEDGER -> "📒"
+                                SettlementMethod.BULLION -> "🧱"
+                                SettlementMethod.TRANSFER -> "🔄"
+                            }
+                        } else {
+                            when (method) {
+                                SettlementMethod.POS -> "💳"
+                                SettlementMethod.LEDGER -> "📒"
+                                SettlementMethod.BULLION -> "🧱"
+                                SettlementMethod.TRANSFER -> "🔄"
+                            }
                         }
                         Box(
                             modifier = Modifier
@@ -1349,18 +1364,33 @@ private fun SettlementSummaryCard(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            val titleText = if (hasMulti) {
+                                if (invoice.payments.size > 1) "تسویه چندمرحله‌ای (${PersianNumberFormatter.toPersianDigits(invoice.payments.size.toString())} روش پرداخت)"
+                                else invoice.payments.first().method.labelFa
+                            } else {
+                                method.labelFa
+                            }
                             Text(
-                                text = method.labelFa,
+                                text = titleText,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
                                 fontFamily = VazirmatnFamily
                             )
-                            val subtitle = when (method) {
-                                SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز / کارتخوان"
-                                SettlementMethod.LEDGER -> if (invoice.ledgerDueDate.isNotBlank()) "دفتر حساب - موعد: ${invoice.ledgerDueDate}" else "ثبت مانده در دفتر حساب"
-                                SettlementMethod.BULLION -> if (invoice.bullionWeight > 0) "شمش و آبشده: ${PersianNumberFormatter.formatWeight(invoice.bullionWeight)} گرم" else "تحویل شمش یا طلای آبشده"
-                                SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer?.name}" else "حواله سه طرفه بین همکاران"
+                            val subtitle = if (hasMulti) {
+                                val paidStr = "مجموع پرداختی: ${PersianNumberFormatter.formatTomans(invoice.totalPaymentsAmount)} ت"
+                                if (invoice.remainingBalanceTomans > 0L) {
+                                    "$paidStr • مانده: ${PersianNumberFormatter.formatTomans(invoice.remainingBalanceTomans)} ت"
+                                } else {
+                                    "$paidStr • تسویه کامل ✅"
+                                }
+                            } else {
+                                when (method) {
+                                    SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز / کارتخوان"
+                                    SettlementMethod.LEDGER -> if (invoice.ledgerDueDate.isNotBlank()) "دفتر حساب - موعد: ${invoice.ledgerDueDate}" else "ثبت مانده در دفتر حساب"
+                                    SettlementMethod.BULLION -> if (invoice.bullionWeight > 0) "شمش و آبشده: ${PersianNumberFormatter.formatWeight(invoice.bullionWeight)} گرم" else "تحویل شمش یا طلای آبشده"
+                                    SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer?.name}" else "حواله سه طرفه بین همکاران"
+                                }
                             }
                             Text(
                                 text = subtitle,
@@ -1401,6 +1431,7 @@ private fun SettlementModal(
     onLedgerDueDateChange: (String) -> Unit,
     onBullionSettlementChange: (Double, Int, String) -> Unit,
     onThirdPartyTransferChange: (Customer?, String, String, Double, Long, String) -> Unit,
+    onSettlementPaymentsChange: (List<SettlementPaymentItem>) -> Unit = {},
     note: String,
     onNoteChange: (String) -> Unit,
     onDismiss: () -> Unit
@@ -1410,6 +1441,10 @@ private fun SettlementModal(
     val netPayableAmount: Double = balance.netPayableAmount
     val selectedMethod: SettlementMethod = invoice.settlementMethod
 
+    var paymentsList by remember(invoice.payments) {
+        mutableStateOf(invoice.payments)
+    }
+
     var posStr by remember(invoice.cashPosAmount) {
         mutableStateOf(if (invoice.cashPosAmount > 0) invoice.cashPosAmount.toString() else "")
     }
@@ -1418,6 +1453,8 @@ private fun SettlementModal(
     }
 
     val absNetPayableLong: Long = kotlin.math.abs(netPayableAmount).toLong()
+    val totalPaid: Long = paymentsList.sumOf { it.amountTomans }
+    val remainingBalance: Long = (absNetPayableLong - totalPaid).coerceAtLeast(0L)
 
     var ledgerStr by remember(invoice.ledgerAmount, netPayableAmount) {
         mutableStateOf(
@@ -1582,6 +1619,183 @@ private fun SettlementModal(
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // Multi-payment Overview & Balance Status Card
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(0.8.dp, if (remainingBalance == 0L && (paymentsList.isNotEmpty() || invoice.cashPosAmount >= absNetPayableLong)) Color(0xFF34D399).copy(alpha = 0.6f) else colors.goldBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "مبلغ کل صافی فاکتور:",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "مجموع مراحل ثبت‌شده:",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "${PersianNumberFormatter.formatTomans(totalPaid)} تومان",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (totalPaid > 0) Color(0xFF34D399) else colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "مانده تسویه نشده:",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                if (remainingBalance == 0L && (paymentsList.isNotEmpty() || invoice.cashPosAmount >= absNetPayableLong)) {
+                                    Text(
+                                        text = "تسویه کامل شد ✓",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF34D399),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                } else {
+                                    Text(
+                                        text = "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان",
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = colors.goldPrimary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // If there are recorded payments, show the list
+                    if (paymentsList.isNotEmpty()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "مراحل پرداخت ثبت‌شده (${PersianNumberFormatter.toPersianDigits(paymentsList.size.toString())}):",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain,
+                                fontFamily = VazirmatnFamily
+                            )
+                            paymentsList.forEach { pItem ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = colors.surfaceElevated,
+                                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            val icon = when (pItem.method) {
+                                                SettlementMethod.POS -> "💳"
+                                                SettlementMethod.LEDGER -> "📒"
+                                                SettlementMethod.BULLION -> "🧱"
+                                                SettlementMethod.TRANSFER -> "🔄"
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(colors.goldContainer.copy(alpha = 0.5f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(text = icon, fontSize = 13.sp)
+                                            }
+                                            Column {
+                                                Text(
+                                                    text = pItem.method.labelFa,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                val pDetail = buildString {
+                                                    if (pItem.amountTomans > 0) append("${PersianNumberFormatter.formatTomans(pItem.amountTomans)} ت")
+                                                    if (pItem.goldWeight18k > 0) {
+                                                        if (isNotEmpty()) append(" • ")
+                                                        append("${PersianNumberFormatter.formatWeight(pItem.goldWeight18k)} گرم")
+                                                    }
+                                                    if (pItem.trackingCode.isNotBlank()) {
+                                                        if (isNotEmpty()) append(" • پیگیری: ${PersianNumberFormatter.toPersianDigits(pItem.trackingCode)}")
+                                                    }
+                                                    if (pItem.thirdPartyCustomerName.isNotBlank()) {
+                                                        if (isNotEmpty()) append(" • به: ${pItem.thirdPartyCustomerName}")
+                                                    }
+                                                }
+                                                Text(
+                                                    text = pDetail,
+                                                    fontSize = 9.5.sp,
+                                                    color = colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                paymentsList = paymentsList.filterNot { it.id == pItem.id }
+                                            },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = InvoiceTrashVector,
+                                                contentDescription = "حذف پرداخت",
+                                                tint = Color(0xFFEF5350),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
             // Header with Net Balance preview
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1697,7 +1911,7 @@ private fun SettlementModal(
                                         posStr = digits
                                         onCashPosAmountChange(digits.toLongOrNull() ?: 0L)
                                     },
-                                    label = "مبلغ پرداختی نقدی / پوز",
+                                    label = "مبلغ پرداختی",
                                     trailingText = "تومان",
                                     useThousandsSeparator = true,
                                     modifier = Modifier.weight(1f)
@@ -1958,7 +2172,7 @@ private fun SettlementModal(
                                             transferTrackingCode
                                         )
                                     },
-                                    label = "وزن طلای ۱۸ عیار حواله",
+                                    label = "وزن طلا",
                                     trailingText = "گرم",
                                     isDecimal = true,
                                     modifier = Modifier.weight(1f)
@@ -2169,7 +2383,7 @@ private fun SettlementModal(
                                         ledgerStr = digits
                                         onLedgerAmountChange(digits.toLongOrNull() ?: 0L)
                                     },
-                                    label = "مبلغ انتقالی به دفتر معین",
+                                    label = "مبلغ انتقالی",
                                     trailingText = "تومان",
                                     useThousandsSeparator = true,
                                     modifier = Modifier.weight(1f)
@@ -2437,6 +2651,135 @@ private fun SettlementModal(
                 }
             }
 
+            // Quick Fill Remaining Balance Button
+            if (remainingBalance > 0L) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.goldContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(0.8.dp, colors.goldBorder),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            when (selectedMethod) {
+                                SettlementMethod.POS -> {
+                                    posStr = remainingBalance.toString()
+                                    onCashPosAmountChange(remainingBalance)
+                                }
+                                SettlementMethod.LEDGER -> {
+                                    ledgerStr = remainingBalance.toString()
+                                    onLedgerAmountChange(remainingBalance)
+                                }
+                                SettlementMethod.TRANSFER -> {
+                                    transferAmountStr = remainingBalance.toString()
+                                    val w = if (invoice.spotPrice18k > 0) remainingBalance.toDouble() / invoice.spotPrice18k else 0.0
+                                    transferWeightStr = String.format(Locale.US, "%.3f", w)
+                                    onThirdPartyTransferChange(thirdPartyCustomer, thirdPartyInvoiceId, thirdPartyInvoiceNumber, w, remainingBalance, transferTrackingCode)
+                                }
+                                SettlementMethod.BULLION -> {
+                                    if (invoice.spotPrice18k > 0) {
+                                        val w = remainingBalance.toDouble() / invoice.spotPrice18k
+                                        bullionWeightStr = String.format(Locale.US, "%.3f", w)
+                                        onBullionSettlementChange(w, bullionKarat, bullionAngNumber)
+                                    }
+                                }
+                            }
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⚡ تنظیم این روش با باقیمانده مانده صافی:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
+            }
+
+            // Button: Add to Payments List
+            GoldButton(
+                text = "افزودن این مرحله پرداخت به لیست",
+                onClick = {
+                    val newPayment = when (selectedMethod) {
+                        SettlementMethod.POS -> {
+                            val amt = posStr.toLongOrNull() ?: 0L
+                            if (amt > 0) {
+                                SettlementPaymentItem(
+                                    id = UUID.randomUUID().toString(),
+                                    method = SettlementMethod.POS,
+                                    amountTomans = amt,
+                                    trackingCode = trackingCode
+                                )
+                            } else null
+                        }
+                        SettlementMethod.LEDGER -> {
+                            val amt = ledgerStr.toLongOrNull() ?: 0L
+                            if (amt > 0) {
+                                SettlementPaymentItem(
+                                    id = UUID.randomUUID().toString(),
+                                    method = SettlementMethod.LEDGER,
+                                    amountTomans = amt,
+                                    description = "موعد: $ledgerDueDate"
+                                )
+                            } else null
+                        }
+                        SettlementMethod.BULLION -> {
+                            val w = bullionWeightStr.toDoubleOrNull() ?: 0.0
+                            if (w > 0.0 || bullionValuation > 0L) {
+                                SettlementPaymentItem(
+                                    id = UUID.randomUUID().toString(),
+                                    method = SettlementMethod.BULLION,
+                                    amountTomans = bullionValuation,
+                                    goldWeight18k = bullion18kEq,
+                                    bullionKarat = bullionKarat,
+                                    bullionAngNumber = bullionAngNumber
+                                )
+                            } else null
+                        }
+                        SettlementMethod.TRANSFER -> {
+                            val amt = transferAmountStr.toLongOrNull() ?: 0L
+                            val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                            if (amt > 0L || w > 0.0) {
+                                SettlementPaymentItem(
+                                    id = UUID.randomUUID().toString(),
+                                    method = SettlementMethod.TRANSFER,
+                                    amountTomans = amt,
+                                    goldWeight18k = w,
+                                    trackingCode = transferTrackingCode,
+                                    thirdPartyCustomerName = thirdPartyCustomer?.name ?: ""
+                                )
+                            } else null
+                        }
+                    }
+                    if (newPayment != null) {
+                        paymentsList = paymentsList + newPayment
+                        posStr = ""
+                        trackingCode = ""
+                        ledgerStr = ""
+                        bullionWeightStr = ""
+                        transferAmountStr = ""
+                        transferWeightStr = ""
+                    }
+                },
+                icon = InvoicePlusVector,
+                isSecondary = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             // Notes field using GoldInputField
             GoldInputField(
                 value = note,
@@ -2472,7 +2815,38 @@ private fun SettlementModal(
                 // RTL: Primary button on LEFT (second child in Row)
                 GoldButton(
                     text = "تایید و ثبت روش تسویه",
-                    onClick = onDismiss,
+                    onClick = {
+                        val finalPayments = if (paymentsList.isEmpty()) {
+                            val single = when (selectedMethod) {
+                                SettlementMethod.POS -> {
+                                    val amt = posStr.toLongOrNull() ?: 0L
+                                    if (amt > 0) listOf(SettlementPaymentItem(method = SettlementMethod.POS, amountTomans = amt, trackingCode = trackingCode))
+                                    else emptyList()
+                                }
+                                SettlementMethod.LEDGER -> {
+                                    val amt = ledgerStr.toLongOrNull() ?: 0L
+                                    if (amt > 0) listOf(SettlementPaymentItem(method = SettlementMethod.LEDGER, amountTomans = amt, description = "موعد: $ledgerDueDate"))
+                                    else emptyList()
+                                }
+                                SettlementMethod.BULLION -> {
+                                    val w = bullionWeightStr.toDoubleOrNull() ?: 0.0
+                                    if (w > 0.0 || bullionValuation > 0L) listOf(SettlementPaymentItem(method = SettlementMethod.BULLION, amountTomans = bullionValuation, goldWeight18k = bullion18kEq, bullionKarat = bullionKarat, bullionAngNumber = bullionAngNumber))
+                                    else emptyList()
+                                }
+                                SettlementMethod.TRANSFER -> {
+                                    val amt = transferAmountStr.toLongOrNull() ?: 0L
+                                    val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                                    if (amt > 0L || w > 0.0) listOf(SettlementPaymentItem(method = SettlementMethod.TRANSFER, amountTomans = amt, goldWeight18k = w, trackingCode = transferTrackingCode, thirdPartyCustomerName = thirdPartyCustomer?.name ?: ""))
+                                    else emptyList()
+                                }
+                            }
+                            single
+                        } else {
+                            paymentsList
+                        }
+                        onSettlementPaymentsChange(finalPayments)
+                        onDismiss()
+                    },
                     icon = InvoiceCheckVector,
                     modifier = Modifier.weight(1.5f)
                 )

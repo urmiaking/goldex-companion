@@ -149,13 +149,13 @@ fun CustomerLedgerScreen(
                         }
                     }
 
-                    // "+ افزودن مشتری" Button (Compact Solid Gold Pill Button - Issue #86)
+                    // "+ افزودن مشتری" Button (Compact Solid Gold Pill Button - White Text)
                     Button(
                         onClick = onAddNewCustomer,
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = colors.goldPrimary,
-                            contentColor = colors.goldButtonText
+                            contentColor = Color.White
                         ),
                         elevation = ButtonDefaults.buttonElevation(
                             defaultElevation = 0.dp,
@@ -173,12 +173,14 @@ fun CustomerLedgerScreen(
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
+                                tint = Color.White,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "افزودن مشتری",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = Color.White,
                                 fontFamily = VazirmatnFamily
                             )
                         }

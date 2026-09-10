@@ -141,6 +141,20 @@ class CustomerRepository(context: Context) : CustomerStore {
         txPrefs.edit().putString("transactions_json", PersistenceJsonCodecs.encodeLedgerTransactions(all)).apply()
     }
 
+    override fun updateTransaction(transaction: LedgerTransaction) {
+        val json = txPrefs.getString("transactions_json", null)
+        val all = PersistenceJsonCodecs.decodeLedgerTransactions(json).map {
+            if (it.id == transaction.id) transaction else it
+        }
+        txPrefs.edit().putString("transactions_json", PersistenceJsonCodecs.encodeLedgerTransactions(all)).apply()
+    }
+
+    override fun deleteTransaction(id: String) {
+        val json = txPrefs.getString("transactions_json", null)
+        val all = PersistenceJsonCodecs.decodeLedgerTransactions(json).filter { it.id != id }
+        txPrefs.edit().putString("transactions_json", PersistenceJsonCodecs.encodeLedgerTransactions(all)).apply()
+    }
+
     private fun seedInitialTransactions() {
         val existing = txPrefs.getString("transactions_json", null)
         if (!existing.isNullOrBlank()) return

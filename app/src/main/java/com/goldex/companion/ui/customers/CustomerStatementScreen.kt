@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +35,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +53,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.LedgerDirection
 import com.goldex.companion.model.LedgerEntryType
@@ -65,11 +73,14 @@ fun CustomerStatementScreen(
     selectedFilter: StatementFilterTab,
     onFilterSelect: (StatementFilterTab) -> Unit,
     onOpenAddEntry: () -> Unit,
+    onEditTransaction: (LedgerTransaction) -> Unit = {},
+    onDeleteTransaction: (LedgerTransaction) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
+    var transactionToDelete by remember { mutableStateOf<LedgerTransaction?>(null) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(
@@ -425,13 +436,85 @@ fun CustomerStatementScreen(
                         }
                     } else {
                         items(transactions, key = { it.id }) { tx ->
-                            StatementTransactionCard(transaction = tx)
+                            StatementTransactionCard(
+                                transaction = tx,
+                                onEditClick = { onEditTransaction(tx) },
+                                onDeleteClick = { transactionToDelete = tx }
+                            )
                         }
                     }
 
                     // Spacer for bottom clearance
                     item {
                         Spacer(modifier = Modifier.height(90.dp))
+                    }
+                }
+            }
+
+            // Delete Transaction Confirmation Dialog
+            if (transactionToDelete != null) {
+                Dialog(
+                    onDismissRequest = { transactionToDelete = null },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = colors.surface,
+                            border = BorderStroke(0.8.dp, colors.goldBorder),
+                            shadowElevation = 8.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = "حذف سند در دفتر معین",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "آیا از حذف سند #${PersianNumberFormatter.toPersianDigits(transactionToDelete?.documentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary,
+                                    lineHeight = 20.sp,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // RTL: Secondary/Cancel action MUST be on the right (first child in Row)
+                                    GoldButton(
+                                        text = "انصراف",
+                                        onClick = { transactionToDelete = null },
+                                        isSecondary = true,
+                                        modifier = Modifier.weight(1f),
+                                        height = 44.dp
+                                    )
+                                    // RTL: Primary/Delete action MUST be on the left (second child in Row)
+                                    GoldButton(
+                                        text = "حذف قطعی",
+                                        onClick = {
+                                            val toDel = transactionToDelete
+                                            transactionToDelete = null
+                                            toDel?.let {
+                                                onDeleteTransaction(it)
+                                                QiratoToast.show(context, "سند با موفقیت حذف شد و مانده حساب بروزرسانی گردید")
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        height = 44.dp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -464,7 +547,11 @@ fun CustomerStatementScreen(
 }
 
 @Composable
-private fun StatementTransactionCard(transaction: LedgerTransaction) {
+private fun StatementTransactionCard(
+    transaction: LedgerTransaction,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
+) {
     val colors = LocalGoldExColors.current
     val isGold = transaction.type == LedgerEntryType.GOLD_WEIGHT
     val isReceive = transaction.direction == LedgerDirection.RECEIVE
@@ -482,7 +569,7 @@ private fun StatementTransactionCard(transaction: LedgerTransaction) {
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Top Row: Category Icon, Title, Doc #, Badge
+            // Top Row: Category Icon, Title, Doc #, Badge & Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -529,18 +616,53 @@ private fun StatementTransactionCard(transaction: LedgerTransaction) {
                     }
                 }
 
-                if (transaction.tagBadge.isNotBlank()) {
-                    Text(
-                        text = transaction.tagBadge,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.textSecondary,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (transaction.tagBadge.isNotBlank()) {
+                        Text(
+                            text = transaction.tagBadge,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textSecondary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceElevated)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onEditClick,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .size(28.dp)
+                            .clip(CircleShape)
                             .background(colors.surfaceElevated)
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        fontFamily = VazirmatnFamily
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "ویرایش سند",
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(colors.surfaceElevated)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "حذف سند",
+                            tint = Color(0xFFEF5350),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
 

@@ -179,4 +179,79 @@ class CustomerLedgerTest {
         // (10.0 * 995) / 750 = 13.26666...
         assertEquals(13.2666, barEquiv750, 0.0001)
     }
+
+    @Test
+    fun ledgerTransactionDeletionReversesBalanceCorrectly() {
+        var customer = Customer(
+            id = "c1",
+            name = "علی زرگر",
+            goldDebtGrams = 20.000,
+            cashDebtTomans = 100_000_000L
+        )
+
+        // Transaction A: Gold PAY of 5.000g -> was added to debt
+        val txGoldPay = LedgerTransaction(
+            id = "t1",
+            customerId = "c1",
+            type = LedgerEntryType.GOLD_WEIGHT,
+            direction = LedgerDirection.PAY,
+            equivalent750WeightGrams = 5.000
+        )
+        // Reverse deletion: goldDebt - (+5.0) = 15.000
+        val goldDelta = if (txGoldPay.direction == LedgerDirection.PAY) txGoldPay.equivalent750WeightGrams else -txGoldPay.equivalent750WeightGrams
+        customer = customer.copy(goldDebtGrams = customer.goldDebtGrams - goldDelta)
+        assertEquals(15.000, customer.goldDebtGrams, 0.0001)
+
+        // Transaction B: Cash RECEIVE of 30,000,000 Tomans -> was subtracted from debt
+        val txCashReceive = LedgerTransaction(
+            id = "t2",
+            customerId = "c1",
+            type = LedgerEntryType.CASH_RIAL,
+            direction = LedgerDirection.RECEIVE,
+            amountTomans = 30_000_000L
+        )
+        // Reverse deletion: cashDebt - (-30M) = +30M added back to debt
+        val cashDelta = if (txCashReceive.direction == LedgerDirection.PAY) txCashReceive.amountTomans else -txCashReceive.amountTomans
+        customer = customer.copy(cashDebtTomans = customer.cashDebtTomans - cashDelta)
+        assertEquals(130_000_000L, customer.cashDebtTomans)
+    }
+
+    @Test
+    fun multiPaymentSettlementCalculationIsAccurate() {
+        val invoice = BarterInvoice(
+            spotPrice18k = 25_000_000L,
+            salesItems = listOf(
+                CraftedGoldItem(
+                    title = "سرویس طلا",
+                    grossWeight = 10.0,
+                    wagePercent = 10.0,
+                    profitPercent = 7.0,
+                    taxPercent = 9.0
+                )
+            ),
+            payments = listOf(
+                SettlementPaymentItem(
+                    method = SettlementMethod.POS,
+                    amountTomans = 100_000_000L,
+                    trackingCode = "123456"
+                ),
+                SettlementPaymentItem(
+                    method = SettlementMethod.BULLION,
+                    amountTomans = 150_000_000L,
+                    goldWeight18k = 6.0
+                ),
+                SettlementPaymentItem(
+                    method = SettlementMethod.LEDGER,
+                    amountTomans = 50_000_000L,
+                    description = "موعد: هفته بعد"
+                )
+            )
+        )
+
+        assertEquals(300_000_000L, invoice.totalPaymentsAmount)
+        val net = invoice.balance.totalSalesAmount.toLong()
+        val expectedRemaining = (net - 300_000_000L).coerceAtLeast(0L)
+        assertEquals(expectedRemaining, invoice.remainingBalanceTomans)
+        assertEquals(expectedRemaining == 0L, invoice.isFullySettled)
+    }
 }

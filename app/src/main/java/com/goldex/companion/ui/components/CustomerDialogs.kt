@@ -441,54 +441,58 @@ fun CustomerPickerDialog(
                 onDismissRequest = { customerToDelete = null },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = colors.surface,
-                    border = BorderStroke(0.8.dp, colors.goldBorder),
-                    shadowElevation = 8.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = colors.surface,
+                        border = BorderStroke(0.8.dp, colors.goldBorder),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
                     ) {
-                        Text(
-                            text = "حذف مشتری",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = colors.textMain
-                        )
-                        Text(
-                            text = "آیا از حذف مشتری «${customerToDelete?.name}» از لیست مشتریان اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
-                            fontSize = 13.sp,
-                            color = colors.textSecondary,
-                            lineHeight = 20.sp
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // Per dialog-button-layout.md invariant in RTL:
-                            // Secondary/Cancel action MUST be on the right (first child in Row)
-                            GoldButton(
-                                text = "انصراف",
-                                onClick = { customerToDelete = null },
-                                isSecondary = true,
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = "حذف مشتری",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = colors.textMain
                             )
-                            // Primary/Delete action MUST be on the left (second child in Row)
-                            GoldButton(
-                                text = "حذف نهایی",
-                                onClick = {
-                                    val toDelete = customerToDelete
-                                    customerToDelete = null
-                                    toDelete?.let { onDeleteCustomer(it.id) }
-                                },
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = "آیا از حذف مشتری «${customerToDelete?.name}» از لیست مشتریان اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                                fontSize = 13.sp,
+                                color = colors.textSecondary,
+                                lineHeight = 20.sp
                             )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Per dialog-button-layout.md invariant in RTL:
+                                // Secondary/Cancel action MUST be on the right (first child in Row)
+                                GoldButton(
+                                    text = "انصراف",
+                                    onClick = { customerToDelete = null },
+                                    isSecondary = true,
+                                    modifier = Modifier.weight(1f),
+                                    height = 44.dp
+                                )
+                                // Primary/Delete action MUST be on the left (second child in Row)
+                                GoldButton(
+                                    text = "حذف نهایی",
+                                    onClick = {
+                                        val toDelete = customerToDelete
+                                        customerToDelete = null
+                                        toDelete?.let { onDeleteCustomer(it.id) }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    height = 44.dp
+                                )
+                            }
                         }
                     }
                 }
