@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.*
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.hub.HubArrowRight
@@ -193,7 +195,10 @@ fun KaratConvertScreen(
                                         .background(colors.profitGreen)
                                 )
                                 Text(
-                                    text = "خروجی تبدیل وزن معادل استاندارد",
+                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
+                                        "خروجی تبدیل وزن معادل استاندارد"
+                                    else
+                                        "نتیجه تسویه و تصفیه ری‌گیری",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White.copy(alpha = 0.9f)
@@ -205,7 +210,10 @@ fun KaratConvertScreen(
                                 border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.4f))
                             ) {
                                 Text(
-                                    text = "پایه عیار ۷۵۰",
+                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
+                                        "پایه عیار (${uiState.convertToKarat.karatNumber})"
+                                    else
+                                        "عیار شرط: ${PersianNumberFormatter.toPersianDigits(uiState.agreedKaratInput)}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.goldPrimary,
@@ -219,87 +227,173 @@ fun KaratConvertScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Column 1: عیار مقصد
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.White.copy(alpha = 0.05f),
-                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                            if (uiState.convertMode == KaratConvertMode.DIRECT) {
+                                // Column 1: عیار مقصد
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.White.copy(alpha = 0.05f),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
-                                        text = "وزن در عیار مقصد (${uiState.convertToKarat.karatNumber})",
-                                        fontSize = 10.sp,
-                                        color = Color.White.copy(alpha = 0.6f)
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.Bottom,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
                                         Text(
-                                            text = PersianNumberFormatter.formatWeight(targetWeight),
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = colors.goldPrimary
+                                            text = "وزن در عیار مقصد (${uiState.convertToKarat.karatNumber})",
+                                            fontSize = 10.sp,
+                                            color = Color.White.copy(alpha = 0.6f)
                                         )
+                                        Row(
+                                            verticalAlignment = Alignment.Bottom,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            AnimatedNumberText(
+                                                text = PersianNumberFormatter.formatWeight(targetWeight),
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = colors.goldPrimary
+                                            )
+                                            Text(
+                                                text = "گرم",
+                                                fontSize = 11.sp,
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                modifier = Modifier.padding(bottom = 1.dp)
+                                            )
+                                        }
                                         Text(
-                                            text = "گرم",
-                                            fontSize = 11.sp,
-                                            color = Color.White.copy(alpha = 0.8f),
-                                            modifier = Modifier.padding(bottom = 1.dp)
+                                            text = "تراز استاندارد صنف",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.profitGreen
                                         )
                                     }
-                                    Text(
-                                        text = "تراز استاندارد صنف",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.profitGreen
-                                    )
                                 }
-                            }
 
-                            // Column 2: شمش خالص ۲۴
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = Color.White.copy(alpha = 0.05f),
-                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                // Column 2: شمش خالص ۲۴
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.White.copy(alpha = 0.05f),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
-                                        text = "معادل در شمش خالص (۹۹۹)",
-                                        fontSize = 10.sp,
-                                        color = Color.White.copy(alpha = 0.6f)
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.Bottom,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
                                     ) {
                                         Text(
-                                            text = PersianNumberFormatter.formatWeight(pureGold24k),
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color.White
+                                            text = "معادل در شمش خالص (۹۹۹)",
+                                            fontSize = 10.sp,
+                                            color = Color.White.copy(alpha = 0.6f)
                                         )
+                                        Row(
+                                            verticalAlignment = Alignment.Bottom,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            AnimatedNumberText(
+                                                text = PersianNumberFormatter.formatWeight(pureGold24k),
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = Color.White
+                                            )
+                                            Text(
+                                                text = "گرم",
+                                                fontSize = 11.sp,
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                modifier = Modifier.padding(bottom = 1.dp)
+                                            )
+                                        }
                                         Text(
-                                            text = "گرم",
-                                            fontSize = 11.sp,
-                                            color = Color.White.copy(alpha = 0.8f),
-                                            modifier = Modifier.padding(bottom = 1.dp)
+                                            text = "طلای ناب ۲۴ عیار",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.goldSecondary
                                         )
                                     }
-                                    Text(
-                                        text = "طلای ناب ۲۴ عیار",
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.goldSecondary
-                                    )
+                                }
+                            } else {
+                                // Settlement Mode Column 1: وزن نهایی پس از ری‌گیری
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.White.copy(alpha = 0.05f),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(
+                                            text = "وزن نهایی پس از ری‌گیری",
+                                            fontSize = 10.sp,
+                                            color = Color.White.copy(alpha = 0.6f)
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.Bottom,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            AnimatedNumberText(
+                                                text = PersianNumberFormatter.formatWeight(settlementWeight),
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = colors.goldPrimary
+                                            )
+                                            Text(
+                                                text = "گرم",
+                                                fontSize = 11.sp,
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                modifier = Modifier.padding(bottom = 1.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = "اختلاف: ${if (weightDiff >= 0) "+" else ""}${PersianNumberFormatter.formatWeight(weightDiff)} گرم",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
+                                        )
+                                    }
+                                }
+
+                                // Settlement Mode Column 2: ارزش ریالی تسویه اختلاف
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.White.copy(alpha = 0.05f),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(
+                                            text = "ارزش ریالی تسویه اختلاف",
+                                            fontSize = 10.sp,
+                                            color = Color.White.copy(alpha = 0.6f)
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.Bottom,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            AnimatedPriceText(
+                                                amount = kotlin.math.abs(settlementRial).toLong(),
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)
+                                            )
+                                            Text(
+                                                text = "تومان",
+                                                fontSize = 11.sp,
+                                                color = Color.White.copy(alpha = 0.8f),
+                                                modifier = Modifier.padding(bottom = 1.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = if (settlementRial >= 0) "مازاد عیار (طلب شما)" else "کسری عیار (بدهی شما)",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -317,12 +411,18 @@ fun KaratConvertScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "فرمول صنف زرگری:",
+                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
+                                        "فرمول صنف زرگری:"
+                                    else
+                                        "وضعیت تسویه ری‌گیری:",
                                     fontSize = 10.sp,
                                     color = Color.White.copy(alpha = 0.65f)
                                 )
                                 Text(
-                                    text = "وزن × (عیار مبدا ÷ عیار مقصد)",
+                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
+                                        "وزن × (عیار مبدا ÷ عیار مقصد)"
+                                    else
+                                        "${PersianNumberFormatter.toPersianDigits(karatDiff.toInt().toString())} خط ${if (karatDiff >= 0) "مازاد" else "کسری"} • ${if (settlementRial >= 0) "بستانکار" else "بدهکار"}",
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.goldPrimary
@@ -633,10 +733,11 @@ fun KaratConvertScreen(
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text("اختلاف عیار ری‌گیری:", fontSize = 11.sp, color = colors.textSecondary)
-                                        Text(
+                                        AnimatedNumberText(
                                             text = "${PersianNumberFormatter.toPersianDigits(karatDiff.toInt().toString())} خط (${if (karatDiff >= 0) "مازاد" else "کسری"})",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
@@ -645,11 +746,13 @@ fun KaratConvertScreen(
                                     }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text("اختلاف وزن طلا:", fontSize = 11.sp, color = colors.textSecondary)
-                                        Text(
-                                            text = "${PersianNumberFormatter.formatWeight(kotlin.math.abs(weightDiff))} گرم طلا",
+                                        AnimatedNumberText(
+                                            text = PersianNumberFormatter.formatWeight(kotlin.math.abs(weightDiff)),
+                                            unit = "گرم طلا",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
@@ -662,8 +765,9 @@ fun KaratConvertScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text("ارزش ریالی تسویه اختلاف:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                        Text(
-                                            text = "${PersianNumberFormatter.formatPrice(kotlin.math.abs(settlementRial))} تومان",
+                                        AnimatedPriceText(
+                                            amount = kotlin.math.abs(settlementRial).toLong(),
+                                            unit = "تومان",
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)

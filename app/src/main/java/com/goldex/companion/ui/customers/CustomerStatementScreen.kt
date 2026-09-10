@@ -437,14 +437,28 @@ fun CustomerStatementScreen(
             }
 
             // Floating Sticky Action Button ("ثبت دریافت / پرداخت جدید" - Fix 1 GoldButton)
-            GoldButton(
-                text = "ثبت دریافت / پرداخت جدید",
-                icon = Icons.Default.Add,
-                onClick = onOpenAddEntry,
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp)
-            )
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                colors.background.copy(alpha = 0.85f),
+                                colors.background
+                            )
+                        )
+                    )
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            ) {
+                GoldButton(
+                    text = "ثبت دریافت / پرداخت جدید",
+                    icon = Icons.Default.Add,
+                    onClick = onOpenAddEntry,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }

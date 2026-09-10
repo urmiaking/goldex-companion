@@ -27,8 +27,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -117,7 +119,7 @@ fun CustomerLedgerScreen(
 
                         Column {
                             Text(
-                                text = "دفتر حساب و معین زرگری",
+                                text = "دفتر حساب مشتریان",
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
@@ -134,7 +136,7 @@ fun CustomerLedgerScreen(
                                         .background(colors.goldPrimary)
                                 )
                                 Text(
-                                    text = "مدیریت تراز طلایی و ریالی همکاران",
+                                    text = "مدیریت تراز طلایی و ریالی",
                                     fontSize = 11.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
@@ -143,9 +145,9 @@ fun CustomerLedgerScreen(
                         }
                     }
 
-                    // "+ طرف‌حساب جدید" Button
+                    // "+ افزودن مشتری" Button
                     GoldButton(
-                        text = "طرف‌حساب جدید",
+                        text = "افزودن مشتری",
                         icon = Icons.Default.Add,
                         onClick = onAddNewCustomer,
                         height = 38.dp
@@ -357,41 +359,54 @@ fun CustomerLedgerScreen(
                     }
                 }
 
-                // Items E: Customers Cards
-                if (customers.isEmpty()) {
-                    item {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = colors.surfaceElevated,
-                            border = BorderStroke(0.6.dp, colors.border),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp)
-                        ) {
-                            Column(
+                // Items E: Customers Cards with Filter Transition Animation
+                item {
+                    AnimatedContent(
+                        targetState = Pair(uiState.selectedLedgerFilter, customers),
+                        transitionSpec = {
+                            (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
+                        },
+                        label = "customerListFilterTransition"
+                    ) { (_, list) ->
+                        if (list.isEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(0.6.dp, colors.border),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(vertical = 24.dp)
                             ) {
-                                Text(
-                                    text = "طرف‌حسابی با این مشخصات یافت نشد",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.textMuted,
-                                    fontFamily = VazirmatnFamily
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "طرف‌حسابی با این مشخصات یافت نشد",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textMuted,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                list.forEach { customer ->
+                                    CustomerLedgerCard(
+                                        customer = customer,
+                                        onOpenStatement = { onOpenStatement(customer) },
+                                        onOpenAddEntry = { onOpenAddEntry(customer) }
+                                    )
+                                }
                             }
                         }
-                    }
-                } else {
-                    items(customers, key = { it.id }) { customer ->
-                        CustomerLedgerCard(
-                            customer = customer,
-                            onOpenStatement = { onOpenStatement(customer) },
-                            onOpenAddEntry = { onOpenAddEntry(customer) }
-                        )
                     }
                 }
 
@@ -817,9 +832,9 @@ private fun CustomerLedgerCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Button 1: ریز گردش معین (Primary GoldButton)
+                // Button 1: ریز تراکنش‌ها (Primary GoldButton)
                 GoldButton(
-                    text = "ریز گردش معین",
+                    text = "ریز تراکنش‌ها",
                     icon = LedgerReceiptVector,
                     onClick = onOpenStatement,
                     height = 40.dp,

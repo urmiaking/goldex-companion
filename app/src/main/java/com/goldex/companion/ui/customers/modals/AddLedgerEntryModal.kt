@@ -65,6 +65,7 @@ import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.customers.LedgerAccountBalanceVector
 import com.goldex.companion.ui.customers.LedgerArrowPayVector
 import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
@@ -480,112 +481,32 @@ fun AddLedgerEntryModal(
                     }
                 }
 
-                // 4. Settlement Mode Tabs (تسویه وزنی و طلا vs تسویه نقدی و ریالی)
-                Row(
+                // 4. Settlement Mode Segmented Control (تسویه وزنی و طلا vs تسویه نقدی و ریالی)
+                LuxurySegmentedControl(
+                    items = listOf(0, 1),
+                    selectedItem = selectedModeIndex,
+                    onItemSelected = { selectedModeIndex = it },
+                    label = { mode -> if (mode == 0) "تسویه وزنی و طلا" else "تسویه نقدی و ریالی" },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val isGoldSelected = selectedModeIndex == 0
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isGoldSelected) colors.surfaceElevated else colors.surface,
-                        border = BorderStroke(
-                            if (isGoldSelected) 1.dp else 0.5.dp,
-                            if (isGoldSelected) colors.goldPrimary else colors.border
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { selectedModeIndex = 0 }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = LedgerScaleVector,
-                                contentDescription = null,
-                                tint = if (isGoldSelected) colors.goldPrimary else colors.textMuted,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.size(6.dp))
-                            Text(
-                                text = "تسویه وزنی و طلا",
-                                fontSize = 12.sp,
-                                fontWeight = if (isGoldSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isGoldSelected) colors.textMain else colors.textMuted,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-
-                    val isCashSelected = selectedModeIndex == 1
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isCashSelected) colors.surfaceElevated else colors.surface,
-                        border = BorderStroke(
-                            if (isCashSelected) 1.dp else 0.5.dp,
-                            if (isCashSelected) colors.goldPrimary else colors.border
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { selectedModeIndex = 1 }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = LedgerAccountBalanceVector,
-                                contentDescription = null,
-                                tint = if (isCashSelected) colors.goldPrimary else colors.textMuted,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.size(6.dp))
-                            Text(
-                                text = "تسویه نقدی و ریالی",
-                                fontSize = 12.sp,
-                                fontWeight = if (isCashSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isCashSelected) colors.textMain else colors.textMuted,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-                }
+                    height = 42.dp,
+                    fontSize = 12.sp
+                )
 
                 // =========================================================================
                 // 5A. GOLD MODE FORM (Screen 1)
                 // =========================================================================
                 if (isGoldMode) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Category Pills
-                        Row(
+                        // Category Switching Box (Segmented Control)
+                        LuxurySegmentedControl(
+                            items = listOf("آبشده", "مصنوعات", "سکه و شمش"),
+                            selectedItem = goldCategory,
+                            onItemSelected = { goldCategory = it },
+                            label = { it },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf("آبشده", "مصنوعات", "سکه و شمش").forEach { cat ->
-                                val active = goldCategory == cat
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (active) colors.goldPrimary else colors.surfaceElevated,
-                                    border = BorderStroke(0.6.dp, if (active) colors.goldPrimary else colors.border),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { goldCategory = cat }
-                                ) {
-                                    Text(
-                                        text = cat,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (active) Color(0xFF554300) else colors.textSecondary,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = VazirmatnFamily,
-                                        modifier = Modifier.padding(vertical = 7.dp)
-                                    )
-                                }
-                            }
-                        }
+                            height = 36.dp,
+                            fontSize = 11.5.sp
+                        )
 
                         // Inputs Box: Scale Weight & Karat (Fix 7: GoldInputField)
                         Surface(
@@ -613,36 +534,16 @@ fun AddLedgerEntryModal(
                                         modifier = Modifier.weight(1f)
                                     )
 
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        GoldInputField(
-                                            value = karatInput,
-                                            onValueChange = { karatInput = it },
-                                            label = "عیار ری‌گیری",
-                                            trailingText = "عیار",
-                                            isDecimal = false,
-                                            useThousandsSeparator = false,
-                                            keyboardType = KeyboardType.Number,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.End
-                                        ) {
-                                            Text(
-                                                text = "تنظیم ۷۵۰ استاندارد",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = colors.goldPrimary,
-                                                fontFamily = VazirmatnFamily,
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(colors.goldContainer.copy(alpha = 0.5f))
-                                                    .clickable { karatInput = "750" }
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
+                                    GoldInputField(
+                                        value = karatInput,
+                                        onValueChange = { karatInput = it },
+                                        label = "عیار ری‌گیری",
+                                        trailingText = "عیار",
+                                        isDecimal = false,
+                                        useThousandsSeparator = false,
+                                        keyboardType = KeyboardType.Number,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
 
                                 // Ang Number & Lab Name
@@ -726,33 +627,16 @@ fun AddLedgerEntryModal(
                 // =========================================================================
                 if (!isGoldMode) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Payment Method Pills
-                        Row(
+                        // Payment Method Switching Box (Segmented Control)
+                        LuxurySegmentedControl(
+                            items = listOf("حواله بانکی / پایا", "چک صیادی", "کارتخوان (POS)", "اسکناس نقد"),
+                            selectedItem = paymentMethod,
+                            onItemSelected = { paymentMethod = it },
+                            label = { it },
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            listOf("حواله بانکی / پایا", "چک صیادی", "کارتخوان (POS)", "اسکناس نقد").forEach { method ->
-                                val active = paymentMethod == method
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (active) colors.goldPrimary else colors.surfaceElevated,
-                                    border = BorderStroke(0.6.dp, if (active) colors.goldPrimary else colors.border),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { paymentMethod = method }
-                                ) {
-                                    Text(
-                                        text = method,
-                                        fontSize = 10.sp,
-                                        fontWeight = if (active) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (active) Color(0xFF554300) else colors.textSecondary,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = VazirmatnFamily,
-                                        modifier = Modifier.padding(vertical = 7.dp)
-                                    )
-                                }
-                            }
-                        }
+                            height = 36.dp,
+                            fontSize = 10.5.sp
+                        )
 
                         // Cash Inputs Container
                         Surface(
