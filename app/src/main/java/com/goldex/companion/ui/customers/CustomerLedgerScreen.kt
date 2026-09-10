@@ -27,10 +27,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -59,7 +62,6 @@ import com.goldex.companion.ui.invoices.CustomerManagerUiState
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.goldButtonGradient
 import com.goldex.companion.ui.theme.goldButtonText
 
 @Composable
@@ -147,32 +149,36 @@ fun CustomerLedgerScreen(
                         }
                     }
 
-                    // "+ افزودن مشتری" Button (Compact Pill Width - Issue #84)
-                    Surface(
+                    // "+ افزودن مشتری" Button (Compact Solid Gold Pill Button - Issue #86)
+                    Button(
                         onClick = onAddNewCustomer,
                         shape = RoundedCornerShape(20.dp),
-                        color = Color.Transparent,
-                        shadowElevation = 1.dp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(colors.goldButtonGradient)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.goldPrimary,
+                            contentColor = colors.goldButtonText
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp,
+                            focusedElevation = 0.dp,
+                            hoveredElevation = 0.dp
+                        ),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                        modifier = Modifier.height(36.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = null,
-                                tint = colors.goldButtonText,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "افزودن مشتری",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.goldButtonText,
                                 fontFamily = VazirmatnFamily
                             )
                         }

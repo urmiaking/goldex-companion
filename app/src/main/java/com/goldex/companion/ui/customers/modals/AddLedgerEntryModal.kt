@@ -890,36 +890,16 @@ fun AddLedgerEntryModal(
                                     }
 
                                     "سکه و شمش" -> {
-                                        // Sub-selection of Coin or Bar
-                                        val coinBarOptions = listOf("سکه تمام", "نیم سکه", "ربع سکه", "سکه گرمی", "شمش طلا")
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .horizontalScroll(rememberScrollState()),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            coinBarOptions.forEach { option ->
-                                                val isSelected = selectedCoinOrBar == option
-                                                Surface(
-                                                    shape = RoundedCornerShape(10.dp),
-                                                    color = if (isSelected) colors.goldContainer else colors.surface,
-                                                    border = BorderStroke(
-                                                        if (isSelected) 1.dp else 0.5.dp,
-                                                        if (isSelected) colors.goldPrimary else colors.border
-                                                    ),
-                                                    modifier = Modifier.clickable { selectedCoinOrBar = option }
-                                                ) {
-                                                    Text(
-                                                        text = option,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                                                        fontFamily = VazirmatnFamily,
-                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
+                                        // Sub-selection of Coin or Bar (Full Width Switching Control - Issue #86)
+                                        LuxurySegmentedControl(
+                                            items = listOf("سکه تمام", "نیم سکه", "ربع سکه", "سکه گرمی", "شمش طلا"),
+                                            selectedItem = selectedCoinOrBar,
+                                            onItemSelected = { selectedCoinOrBar = it },
+                                            label = { it },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            height = 36.dp,
+                                            fontSize = 10.5.sp
+                                        )
 
                                         if (selectedCoinOrBar != "شمش طلا") {
                                             // Coin specific fields
@@ -966,7 +946,7 @@ fun AddLedgerEntryModal(
                                             GoldInputField(
                                                 value = coinSerialInput,
                                                 onValueChange = { coinSerialInput = it },
-                                                label = "شماره پلمپ وکیوم / صرافی (اختیاری)",
+                                                label = "شماره پلمپ",
                                                 keyboardType = KeyboardType.Text,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
@@ -1062,7 +1042,7 @@ fun AddLedgerEntryModal(
                                                 GoldInputField(
                                                     value = barSerialInput,
                                                     onValueChange = { barSerialInput = it },
-                                                    label = "شماره سرتیفیکیت / پلمپ",
+                                                    label = "شماره پلمپ",
                                                     useThousandsSeparator = false,
                                                     keyboardType = KeyboardType.Text,
                                                     modifier = Modifier.weight(1f)
@@ -1661,7 +1641,7 @@ fun AddLedgerEntryModal(
                                                 labName = selectedCoinOrBar,
                                                 note = buildString {
                                                     append("$selectedCoinOrBar به تعداد ${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(coinTotalWeight)}g)")
-                                                    if (coinSerialInput.isNotBlank()) append(" - سریال: $coinSerialInput")
+                                                    if (coinSerialInput.isNotBlank()) append(" - پلمپ: $coinSerialInput")
                                                     if (noteInput.isNotBlank()) append(" - $noteInput")
                                                 },
                                                 tagBadge = selectedCoinOrBar,
@@ -1685,7 +1665,7 @@ fun AddLedgerEntryModal(
                                                 labName = barBrandInput,
                                                 note = buildString {
                                                     append("شمش طلا ${barBrandInput.ifBlank { "استاندارد" }} عیار $barKaratInt (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)}g)")
-                                                    if (barSerialInput.isNotBlank()) append(" - سرتیفیکیت: $barSerialInput")
+                                                    if (barSerialInput.isNotBlank()) append(" - پلمپ: $barSerialInput")
                                                     if (noteInput.isNotBlank()) append(" - $noteInput")
                                                 },
                                                 tagBadge = "شمش طلا",
