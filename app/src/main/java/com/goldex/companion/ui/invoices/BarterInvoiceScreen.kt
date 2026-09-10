@@ -29,16 +29,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -71,11 +78,13 @@ import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceItemCategory
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
+import com.goldex.companion.model.InvoicesSubScreen
 import com.goldex.companion.model.MeltGoldItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.ui.components.CustomerIconVector
+import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
@@ -95,6 +104,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
@@ -129,79 +139,92 @@ fun BarterInvoiceScreen(
     val balance = uiState.balance
 
     val dateSolar = remember(invoice.createdAt) {
-        // Formatted timestamp
         SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(invoice.createdAt))
     }
 
+    var isSettlementModalVisible by remember { mutableStateOf(false) }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
+        Scaffold(
             modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // 0. Optional Back Navigation Header to Invoices List
-            if (onNavigateBack != null) {
+                .fillMaxSize()
+                .background(colors.background),
+            containerColor = colors.background,
+            topBar = {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
                     color = colors.surface,
-                    border = BorderStroke(1.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                    shadowElevation = 3.dp
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .statusBarsPadding()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.surfaceElevated)
-                                    .border(1.dp, colors.border, RoundedCornerShape(10.dp))
-                                    .clickable(onClick = onNavigateBack),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "→",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain
-                                )
+                            if (onNavigateBack != null) {
+                                IconButton(
+                                    onClick = onNavigateBack,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.surfaceElevated)
+                                        .border(0.6.dp, colors.goldBorder, CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = HubArrowRight,
+                                        contentDescription = "بازگشت",
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
+
                             Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFDFB35A))
+                                    )
+                                    Text(
+                                        text = if (uiState.isEditingExisting) "ویرایش فاکتور" else "ثبت فاکتور جدید",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
                                 Text(
-                                    text = "فاکتور جامع دوطرفه و تهاتر زرگری",
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "بازگشت به فهرست معاملات و فاکتورها",
-                                    fontSize = 10.sp,
+                                    text = "فاکتور زرگری و تهاتر طلا",
+                                    fontSize = 10.5.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
                         }
 
+                        // Left side: Invoice code badge
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
                                 .background(Color(0x26DFB35A))
                                 .border(0.8.dp, Color(0x4DDFB35A), RoundedCornerShape(50))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "کد: ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}",
-                                fontSize = 10.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.goldPrimary,
                                 fontFamily = VazirmatnFamily
@@ -210,126 +233,144 @@ fun BarterInvoiceScreen(
                     }
                 }
             }
-
-            // 1. Meta & Live Gold Rate Bar
-            InvoiceMetaAndRateCard(
-                invoiceNumber = invoice.invoiceNumber,
-                dateSolar = dateSolar,
-                spotPrice18k = invoice.spotPrice18k,
-                onEditRateClick = { onSetRateEditDialogVisible(true) }
-            )
-
-            // 2. Customer & Account Card
-            CustomerAndAccountCard(
-                customer = invoice.customer,
-                customerRole = invoice.customerRole,
-                onRoleChange = onSetCustomerRole,
-                onChangeCustomerClick = onOpenCustomerPicker
-            )
-
-            // 3. Barter Balance & Net Settlement Overview
-            BarterBalanceCard(
-                balance = balance,
-                spotPrice18k = invoice.spotPrice18k
-            )
-
-            // 4. Sales Items Section (اقلام فروش ما)
-            ItemsSectionCard(
-                sectionNumber = 1,
-                title = "اقلام فروش ما (تحویلی)",
-                items = invoice.salesItems,
-                onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.CRAFTED, true) },
-                onEditItemClick = { onOpenEditItemModal(it, true) },
-                onDeleteItemClick = onDeleteSalesItem,
-                isSales = true
-            )
-
-            // 5. Received Items Section (اقلام دریافتی تهاتر)
-            ItemsSectionCard(
-                sectionNumber = 2,
-                title = "اقلام دریافتی / تهاتر (از مشتری)",
-                items = invoice.receivedItems,
-                onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.SCRAP, false) },
-                onEditItemClick = { onOpenEditItemModal(it, false) },
-                onDeleteItemClick = onDeleteReceivedItem,
-                isSales = false
-            )
-
-            // 6. Payment & Settlement Methods
-            SettlementCard(
-                invoice = invoice,
-                balance = balance,
-                customerList = customerList,
-                invoicesList = uiState.invoicesList,
-                onMethodSelect = onSetSettlementMethod,
-                onCashPosAmountChange = onSetCashPosAmount,
-                onLedgerAmountChange = onSetLedgerAmount,
-                onPosTrackingCodeChange = onSetPosTrackingCode,
-                onLedgerDueDateChange = onSetLedgerDueDate,
-                onBullionSettlementChange = onSetBullionSettlement,
-                onThirdPartyTransferChange = onSetThirdPartyTransfer,
-                note = invoice.note,
-                onNoteChange = onSetNote
-            )
-
-            // 7. Final Action Buttons
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                GoldButton(
-                    text = "ثبت نهایی و صدور فاکتور رسمی تهاتر",
-                    onClick = onFinalSubmit,
-                    icon = InvoiceCheckVector,
-                    modifier = Modifier.fillMaxWidth()
+        ) { innerPadding ->
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // 1. Meta & Live Gold Rate Bar
+                InvoiceMetaAndRateCard(
+                    invoiceNumber = invoice.invoiceNumber,
+                    dateSolar = dateSolar,
+                    spotPrice18k = invoice.spotPrice18k,
+                    onEditRateClick = { onSetRateEditDialogVisible(true) }
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                // 2. Customer & Counterparty Card (Simplified)
+                CustomerAndAccountCard(
+                    customer = invoice.customer,
+                    onChangeCustomerClick = onOpenCustomerPicker
+                )
+
+                // 3. Sales Items Section (اقلام فروش ما)
+                ItemsSectionCard(
+                    sectionNumber = 1,
+                    title = "اقلام فروش ما (تحویلی)",
+                    items = invoice.salesItems,
+                    onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.CRAFTED, true) },
+                    onEditItemClick = { onOpenEditItemModal(it, true) },
+                    onDeleteItemClick = onDeleteSalesItem,
+                    isSales = true
+                )
+
+                // 4. Received Items Section (اقلام دریافتی تهاتر)
+                ItemsSectionCard(
+                    sectionNumber = 2,
+                    title = "اقلام دریافتی / تهاتر (از مشتری)",
+                    items = invoice.receivedItems,
+                    onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.SCRAP, false) },
+                    onEditItemClick = { onOpenEditItemModal(it, false) },
+                    onDeleteItemClick = onDeleteReceivedItem,
+                    isSales = false
+                )
+
+                // 5. Barter Balance & Net Settlement Overview (BELOW items per requirement 4)
+                BarterBalanceCard(
+                    balance = balance,
+                    spotPrice18k = invoice.spotPrice18k
+                )
+
+                // 6. Settlement Summary Card
+                SettlementSummaryCard(
+                    invoice = invoice,
+                    balance = balance,
+                    onOpenSettlementModal = { isSettlementModalVisible = true }
+                )
+
+                // 7. Final Action Buttons
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GoldButton(
-                        text = "پیش‌نمایش PDF",
-                        onClick = onPreviewPdf,
-                        icon = InvoicePdfVector,
-                        isSecondary = true,
-                        modifier = Modifier.weight(1f)
+                        text = "ثبت نهایی و صدور فاکتور رسمی تهاتر",
+                        onClick = onFinalSubmit,
+                        icon = InvoiceCheckVector,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        GoldButton(
+                            text = "پیش‌نمایش PDF",
+                            onClick = onPreviewPdf,
+                            icon = InvoicePdfVector,
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        GoldButton(
+                            text = "ارسال پیامک فاکتور",
+                            onClick = onSendSms,
+                            icon = InvoiceSmsVector,
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
                     GoldButton(
-                        text = "ارسال پیامک فاکتور",
-                        onClick = onSendSms,
-                        icon = InvoiceSmsVector,
+                        text = "مشاهده بایگانی فاکتورها",
+                        onClick = onOpenInvoiceManager,
                         isSecondary = true,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
-                GoldButton(
-                    text = "مشاهده بایگانی فاکتورها",
-                    onClick = onOpenInvoiceManager,
-                    isSecondary = true,
-                    modifier = Modifier.fillMaxWidth()
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Settlement Modal
+            if (isSettlementModalVisible) {
+                SettlementModal(
+                    invoice = invoice,
+                    balance = balance,
+                    customerList = customerList,
+                    invoicesList = uiState.invoicesList,
+                    onMethodSelect = onSetSettlementMethod,
+                    onCashPosAmountChange = onSetCashPosAmount,
+                    onLedgerAmountChange = onSetLedgerAmount,
+                    onPosTrackingCodeChange = onSetPosTrackingCode,
+                    onLedgerDueDateChange = onSetLedgerDueDate,
+                    onBullionSettlementChange = onSetBullionSettlement,
+                    onThirdPartyTransferChange = onSetThirdPartyTransfer,
+                    note = invoice.note,
+                    onNoteChange = onSetNote,
+                    onDismiss = { isSettlementModalVisible = false }
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
-        }
+            // Add / Edit Item Modal
+            if (uiState.isItemModalVisible) {
+                AddInvoiceItemModal(
+                    spotPrice18k = invoice.spotPrice18k,
+                    defaultCategory = uiState.targetCategory,
+                    existingItem = uiState.editingItem,
+                    onDismiss = onCloseItemModal,
+                    onSaveItem = onSaveItem
+                )
+            }
 
-        // Add / Edit Item Modal
-        if (uiState.isItemModalVisible) {
-            AddInvoiceItemModal(
-                spotPrice18k = invoice.spotPrice18k,
-                defaultCategory = uiState.targetCategory,
-                existingItem = uiState.editingItem,
-                onDismiss = onCloseItemModal,
-                onSaveItem = onSaveItem
-            )
-        }
-
-        // Manual Rate Edit Dialog
-        if (uiState.isRateEditDialogVisible) {
-            EditRateDialog(
-                currentRate = invoice.spotPrice18k,
-                onDismiss = { onSetRateEditDialogVisible(false) },
-                onConfirm = onUpdateSpotPrice
-            )
+            // Manual Rate Edit Dialog
+            if (uiState.isRateEditDialogVisible) {
+                EditRateDialog(
+                    currentRate = invoice.spotPrice18k,
+                    onDismiss = { onSetRateEditDialogVisible(false) },
+                    onConfirm = onUpdateSpotPrice
+                )
+            }
         }
     }
 }
@@ -475,9 +516,9 @@ private fun InvoiceMetaAndRateCard(
 @Composable
 private fun CustomerAndAccountCard(
     customer: Customer?,
-    customerRole: CustomerRole,
-    onRoleChange: (CustomerRole) -> Unit,
-    onChangeCustomerClick: () -> Unit
+    onChangeCustomerClick: () -> Unit,
+    customerRole: CustomerRole = CustomerRole.CUSTOMER,
+    onRoleChange: (CustomerRole) -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
 
@@ -511,53 +552,39 @@ private fun CustomerAndAccountCard(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "مشخصات طرف معامله و حساب",
-                        fontSize = 12.sp,
+                        text = "مشخصات طرف حساب",
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain,
                         fontFamily = VazirmatnFamily
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.surfaceVariant,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.clickable { onChangeCustomerClick() }
-                ) {
-                    Text(
-                        text = "دفتر معین",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
-                        fontFamily = VazirmatnFamily
-                    )
-                }
+                Text(
+                    text = if (customer != null) "تغییر طرف حساب" else "انتخاب از دفتر",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.goldPrimary,
+                    modifier = Modifier
+                        .clickable(onClick = onChangeCustomerClick)
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    fontFamily = VazirmatnFamily
+                )
             }
 
-            // Role Animated Segmented Control
-            LuxurySegmentedControl(
-                items = CustomerRole.entries,
-                selectedItem = customerRole,
-                onItemSelected = onRoleChange,
-                label = { it.titleFa },
-                modifier = Modifier.fillMaxWidth(),
-                height = 36.dp,
-                fontSize = 11.sp
-            )
-
-            // Customer Details Card
+            // Customer Details Interactive Card
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = colors.surfaceVariant.copy(alpha = 0.6f),
-                border = BorderStroke(0.8.dp, colors.goldBorder),
-                modifier = Modifier.fillMaxWidth()
+                border = BorderStroke(0.8.dp, if (customer != null) colors.goldBorder else colors.border),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onChangeCustomerClick)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(10.dp),
+                        .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -567,48 +594,57 @@ private fun CustomerAndAccountCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(40.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(colors.goldContainer.copy(alpha = 0.5f))
-                                .border(1.dp, colors.goldBorder, RoundedCornerShape(12.dp)),
+                                .background(if (customer != null) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated)
+                                .border(1.dp, if (customer != null) colors.goldBorder else colors.border, RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = customer?.name?.take(2) ?: "طرف",
-                                fontSize = 11.5.sp,
+                                text = customer?.name?.take(2) ?: "👤",
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Black,
-                                color = colors.goldPrimary,
+                                color = if (customer != null) colors.goldPrimary else colors.textMuted,
                                 fontFamily = VazirmatnFamily
                             )
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = customer?.name ?: "انتخاب مشتری یا همکار...",
-                                fontSize = 12.sp,
+                                text = customer?.name ?: "انتخاب طرف حساب (مشتری یا همکار)",
+                                fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
+                                color = if (customer != null) colors.textMain else colors.textMuted,
                                 fontFamily = VazirmatnFamily
                             )
                             Text(
-                                text = customer?.note?.ifBlank { customer.phone } ?: "بدون مانده حسابی قبلی",
-                                fontSize = 10.sp,
+                                text = if (customer != null) {
+                                    customer.phone.ifBlank { customer.note.ifBlank { "بدون یادداشت حساب" } }
+                                } else {
+                                    "برای انتخاب یا افزودن طرف معامله لمس کنید"
+                                },
+                                fontSize = 10.5.sp,
                                 color = colors.textSecondary,
                                 fontFamily = VazirmatnFamily
                             )
                         }
                     }
 
-                    Text(
-                        text = "تغییر",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary,
+                    Box(
                         modifier = Modifier
-                            .clickable { onChangeCustomerClick() }
-                            .padding(4.dp),
-                        fontFamily = VazirmatnFamily
-                    )
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (customer != null) colors.goldContainer.copy(alpha = 0.4f) else colors.surfaceElevated)
+                            .border(0.6.dp, if (customer != null) colors.goldBorder else colors.border, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (customer != null) "تغییر" else "+ انتخاب",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
                 }
             }
         }
@@ -1210,10 +1246,153 @@ private fun ItemRowCard(
 }
 
 // ---------------------------------------------------------------------------
-// 6. Payment & Settlement Methods
+// 6. Settlement Summary Card
 // ---------------------------------------------------------------------------
 @Composable
-private fun SettlementCard(
+private fun SettlementSummaryCard(
+    invoice: BarterInvoice,
+    balance: BarterBalance,
+    onOpenSettlementModal: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    val method = invoice.settlementMethod
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.border),
+        shadowElevation = 1.5.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp, 14.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(colors.goldPrimary)
+                    )
+                    Text(
+                        text = "روش تسویه مانده صافی",
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.goldContainer.copy(alpha = 0.5f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder),
+                    modifier = Modifier.clickable(onClick = onOpenSettlementModal)
+                ) {
+                    Text(
+                        text = "تنظیم و تغییر",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+
+            // Summary Row
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceVariant.copy(alpha = 0.6f),
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpenSettlementModal)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val iconText = when (method) {
+                            SettlementMethod.CASH -> "💵"
+                            SettlementMethod.POS -> "💳"
+                            SettlementMethod.LEDGER -> "📒"
+                            SettlementMethod.BULLION -> "🧱"
+                            SettlementMethod.TRANSFER -> "🔄"
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(colors.goldContainer.copy(alpha = 0.5f))
+                                .border(1.dp, colors.goldBorder, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = iconText, fontSize = 16.sp)
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = method.titleFa,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain,
+                                fontFamily = VazirmatnFamily
+                            )
+                            val subtitle = when (method) {
+                                SettlementMethod.CASH -> "پرداخت وجه نقد به مبلغ فاکتور"
+                                SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز"
+                                SettlementMethod.LEDGER -> if (invoice.ledgerDueDate.isNotBlank()) "دفتر حساب - موعد: ${invoice.ledgerDueDate}" else "ثبت مانده در دفتر حساب"
+                                SettlementMethod.BULLION -> if (invoice.bullionWeight > 0) "شمش و آبشده: ${PersianNumberFormatter.formatWeight(invoice.bullionWeight)} گرم" else "تحویل شمش یا طلای آبشده"
+                                SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer?.name}" else "حواله سه طرفه بین همکاران"
+                            }
+                            Text(
+                                text = subtitle,
+                                fontSize = 10.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "ویرایش ›",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Settlement Modal (Modal Bottom Sheet)
+// ---------------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettlementModal(
     invoice: BarterInvoice,
     balance: BarterBalance,
     customerList: List<Customer>,
@@ -1226,9 +1405,11 @@ private fun SettlementCard(
     onBullionSettlementChange: (Double, Int, String) -> Unit,
     onThirdPartyTransferChange: (Customer?, String, String, Double, Long, String) -> Unit,
     note: String,
-    onNoteChange: (String) -> Unit
+    onNoteChange: (String) -> Unit,
+    onDismiss: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val netPayableAmount: Double = balance.netPayableAmount
     val selectedMethod: SettlementMethod = invoice.settlementMethod
 
@@ -1335,19 +1516,75 @@ private fun SettlementCard(
         )
     }
 
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.border),
-        shadowElevation = 1.5.dp,
-        modifier = Modifier.fillMaxWidth()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = colors.surface,
+        dragHandle = null,
+        modifier = Modifier.fillMaxHeight(0.92f)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Fixed Header
+                Surface(
+                    color = colors.surfaceElevated,
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp, 16.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(colors.goldPrimary)
+                            )
+                            Text(
+                                text = "تنظیم روش تسویه مانده صافی",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(colors.surfaceVariant)
+                        ) {
+                            Icon(
+                                imageVector = InvoiceCloseVector,
+                                contentDescription = "بستن",
+                                tint = colors.textMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Scrollable Body
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
             // Header with Net Balance preview
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2212,6 +2449,39 @@ private fun SettlementCard(
                 keyboardType = KeyboardType.Text,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+
+        // Sticky Footer per dialog button layout invariant
+        Surface(
+            color = colors.surfaceElevated,
+            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = 4.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // RTL: Secondary button on RIGHT (first child in Row)
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(1f)
+                )
+                // RTL: Primary button on LEFT (second child in Row)
+                GoldButton(
+                    text = "تایید و ثبت روش تسویه",
+                    onClick = onDismiss,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.weight(1.5f)
+                )
+                    }
+                }
+            }
         }
     }
 }
