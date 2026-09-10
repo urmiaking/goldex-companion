@@ -1,6 +1,7 @@
 package com.goldex.companion
 
 import com.goldex.companion.data.PersistenceJsonCodecs
+import com.goldex.companion.domain.invoice.BarterCalculationUseCases
 import com.goldex.companion.model.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -221,10 +222,14 @@ class CustomerLedgerTest {
         val invoice = BarterInvoice(
             spotPrice18k = 25_000_000L,
             salesItems = listOf(
-                CraftedGoldItem(
+                BarterCalculationUseCases.calculateCraftedItem(
                     title = "سرویس طلا",
+                    karat = Karat.K18,
                     grossWeight = 10.0,
-                    wagePercent = 10.0,
+                    stoneWeight = 0.0,
+                    spotPrice18k = 25_000_000L,
+                    wageType = WageType.PERCENTAGE,
+                    wageInput = 10.0,
                     profitPercent = 7.0,
                     taxPercent = 9.0
                 )

@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.model
+package com.goldex.companion.model
 
 import java.util.UUID
 
@@ -15,9 +15,9 @@ enum class LedgerDirection(val titleFa: String) {
 data class LedgerTransaction(
     val id: String = UUID.randomUUID().toString(),
     val customerId: String,
-    val documentNumber: String,
-    val title: String,
-    val dateTime: String,
+    val documentNumber: String = "",
+    val title: String = "",
+    val dateTime: String = "",
     val type: LedgerEntryType = LedgerEntryType.GOLD_WEIGHT,
     val direction: LedgerDirection = LedgerDirection.RECEIVE,
     // Gold specific

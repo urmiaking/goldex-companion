@@ -12,8 +12,8 @@ interface CustomerStore {
     fun deleteCustomer(id: String)
     fun getTransactions(customerId: String): List<LedgerTransaction>
     fun addTransaction(transaction: LedgerTransaction)
-    fun updateTransaction(transaction: LedgerTransaction)
-    fun deleteTransaction(id: String)
+    fun updateTransaction(transaction: LedgerTransaction) {}
+    fun deleteTransaction(id: String) {}
 }
 
 interface PortfolioStore {

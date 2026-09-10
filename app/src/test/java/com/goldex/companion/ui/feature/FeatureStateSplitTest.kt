@@ -44,6 +44,11 @@ class FeatureStateSplitTest {
             override fun deleteCustomer(id: String) { list.removeIf { it.id == id } }
             override fun getTransactions(customerId: String): List<LedgerTransaction> = txList.filter { it.customerId == customerId }
             override fun addTransaction(transaction: LedgerTransaction) { txList.add(0, transaction) }
+            override fun updateTransaction(transaction: LedgerTransaction) {
+                val index = txList.indexOfFirst { it.id == transaction.id }
+                if (index >= 0) txList[index] = transaction
+            }
+            override fun deleteTransaction(id: String) { txList.removeIf { it.id == id } }
         }
 
         val viewModel = CustomerManagerViewModel(fakeStore)
