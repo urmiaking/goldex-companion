@@ -147,6 +147,8 @@ object PersianNumberFormatter {
     }
 
     fun formatPrice(amount: Long): String = formatPrice(amount.toDouble())
+    fun formatTomans(amount: Long): String = formatPrice(amount.toDouble())
+    fun formatTomans(amount: Double): String = formatPrice(amount)
     fun format(amount: Long): String = formatPrice(amount.toDouble())
     fun format(amount: Double): String = formatPrice(amount)
     fun formatWithCommas(amount: Long): String = formatPrice(amount.toDouble())
