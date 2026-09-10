@@ -12,6 +12,7 @@ import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
@@ -33,6 +34,7 @@ class FeatureStateSplitTest {
     fun customerManagerKeepsSelectionInSyncWhenDeletingSelectedCustomer() {
         val fakeStore = object : CustomerStore {
             private val list = mutableListOf<Customer>()
+            private val txList = mutableListOf<LedgerTransaction>()
             override fun getCustomers(): List<Customer> = list.toList()
             override fun addCustomer(customer: Customer) { list.add(0, customer) }
             override fun updateCustomer(customer: Customer) {
@@ -40,6 +42,8 @@ class FeatureStateSplitTest {
                 if (index >= 0) list[index] = customer
             }
             override fun deleteCustomer(id: String) { list.removeIf { it.id == id } }
+            override fun getTransactions(customerId: String): List<LedgerTransaction> = txList.filter { it.customerId == customerId }
+            override fun addTransaction(transaction: LedgerTransaction) { txList.add(0, transaction) }
         }
 
         val viewModel = CustomerManagerViewModel(fakeStore)
