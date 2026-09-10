@@ -52,6 +52,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.invoices.CustomerManagerUiState
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldGradient
 
 @Composable
 fun CustomerLedgerScreen(

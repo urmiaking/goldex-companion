@@ -72,6 +72,7 @@ import com.goldex.companion.ui.customers.LedgerVerifiedVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
+import com.goldex.companion.ui.theme.goldGradient
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -146,7 +147,7 @@ fun AddLedgerEntryModal(
     val cashInWords by remember(cashAmountLong) {
         derivedStateOf {
             if (cashAmountLong > 0L) {
-                PersianWordsFormatter.toPersianWords(cashAmountLong) + " تومان"
+                PersianWordsFormatter.toWords(cashAmountLong)
             } else ""
         }
     }
@@ -359,10 +360,12 @@ fun AddLedgerEntryModal(
                 }
 
                 // 3. Direction Selector (دریافت از طرف‌حساب vs پرداخت به طرف‌حساب)
+                val directionOptions = listOf("دریافت از طرف‌حساب", "پرداخت به طرف‌حساب")
                 LuxurySegmentedControl(
-                    items = listOf("دریافت از طرف‌حساب", "پرداخت به طرف‌حساب"),
-                    selectedIndex = selectedDirectionIndex,
-                    onItemSelected = { selectedDirectionIndex = it },
+                    items = directionOptions,
+                    selectedItem = directionOptions[selectedDirectionIndex],
+                    onItemSelected = { selectedDirectionIndex = directionOptions.indexOf(it) },
+                    label = { it },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -698,7 +701,7 @@ fun AddLedgerEntryModal(
                                             )
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
-                                            Row(verticalAlignment = Alignment.Baseline) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     text = PersianNumberFormatter.formatWeight(equivalent750Grams),
                                                     fontSize = 17.sp,

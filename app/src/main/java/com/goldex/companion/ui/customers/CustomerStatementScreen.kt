@@ -56,6 +56,7 @@ import com.goldex.companion.model.StatementFilterTab
 import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldGradient
 
 @Composable
 fun CustomerStatementScreen(
