@@ -53,10 +53,10 @@ import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.StatementFilterTab
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.goldGradient
 
 @Composable
 fun CustomerStatementScreen(
@@ -436,43 +436,15 @@ fun CustomerStatementScreen(
                 }
             }
 
-            // Floating Sticky Action Button ("ثبت دریافت / پرداخت جدید")
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = colors.goldPrimary,
-                shadowElevation = 6.dp,
+            // Floating Sticky Action Button ("ثبت دریافت / پرداخت جدید" - Fix 1 GoldButton)
+            GoldButton(
+                text = "ثبت دریافت / پرداخت جدید",
+                icon = Icons.Default.Add,
+                onClick = onOpenAddEntry,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .clickable { onOpenAddEntry() }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(colors.goldGradient)
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = Color(0xFF554300),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "ثبت دریافت / پرداخت جدید",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF554300),
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-                }
-            }
+            )
         }
     }
 }

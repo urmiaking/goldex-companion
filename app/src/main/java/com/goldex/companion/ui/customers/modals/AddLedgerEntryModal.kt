@@ -1,6 +1,8 @@
 package com.goldex.companion.ui.customers.modals
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
@@ -12,21 +14,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -44,15 +47,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,17 +61,18 @@ import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.customers.LedgerAccountBalanceVector
 import com.goldex.companion.ui.customers.LedgerArrowPayVector
 import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
 import com.goldex.companion.ui.customers.LedgerScaleVector
 import com.goldex.companion.ui.customers.LedgerVerifiedVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
-import com.goldex.companion.ui.theme.goldGradient
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -176,6 +176,12 @@ fun AddLedgerEntryModal(
         }
     }
 
+    val isFormValid by remember(isGoldMode, scaleWeightDouble, cashAmountLong) {
+        derivedStateOf {
+            if (isGoldMode) scaleWeightDouble > 0.0 else cashAmountLong > 0L
+        }
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         ModalBottomSheet(
             onDismissRequest = onDismiss,
@@ -194,14 +200,13 @@ fun AddLedgerEntryModal(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 18.dp)
-                    .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .fillMaxHeight(0.92f)
             ) {
-                // 1. Header Bar: Document #, Date, Close
+                // 1. Fixed Header Bar (Fix 5: Stays docked at top)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -267,6 +272,18 @@ fun AddLedgerEntryModal(
                     }
                 }
 
+                HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.6.dp)
+
+                // 2. Scrollable Middle Body (Fix 5: Scrolls independently between header & footer)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+
                 // 2. Counterparty Snapshot Strip
                 Surface(
                     shape = RoundedCornerShape(16.dp),
@@ -288,15 +305,16 @@ fun AddLedgerEntryModal(
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(colors.goldGradient),
+                                    .clip(CircleShape)
+                                    .background(colors.surfaceElevated)
+                                    .border(0.8.dp, colors.goldBorder.copy(alpha = 0.6f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = customer.name.firstOrNull()?.toString() ?: "ط",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = Color(0xFF554300),
+                                    color = colors.goldPrimary,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
@@ -318,6 +336,7 @@ fun AddLedgerEntryModal(
                                             fontSize = 9.5.sp,
                                             fontWeight = FontWeight.SemiBold,
                                             color = colors.goldPrimary,
+                                            fontFamily = VazirmatnFamily,
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(4.dp))
                                                 .background(colors.goldContainer)
@@ -359,15 +378,107 @@ fun AddLedgerEntryModal(
                     }
                 }
 
-                // 3. Direction Selector (دریافت از طرف‌حساب vs پرداخت به طرف‌حساب)
-                val directionOptions = listOf("دریافت از طرف‌حساب", "پرداخت به طرف‌حساب")
-                LuxurySegmentedControl(
-                    items = directionOptions,
-                    selectedItem = directionOptions[selectedDirectionIndex],
-                    onItemSelected = { selectedDirectionIndex = directionOptions.indexOf(it) },
-                    label = { it },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // 3. Direction Selector with Green Receive & Red Pay (Fix 6: Stitch Screens 1 & 2)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    val isReceiveSelected = selectedDirectionIndex == 0
+                    val receiveBorderColor by animateColorAsState(
+                        targetValue = if (isReceiveSelected) Color(0xFF10B981) else colors.border,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "receiveBorder"
+                    )
+                    val receiveBgColor by animateColorAsState(
+                        targetValue = if (isReceiveSelected) Color(0xFF10B981).copy(alpha = 0.15f) else colors.surfaceElevated,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "receiveBg"
+                    )
+                    val receiveTextColor by animateColorAsState(
+                        targetValue = if (isReceiveSelected) Color(0xFF10B981) else colors.textMuted,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "receiveText"
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = receiveBgColor,
+                        border = BorderStroke(if (isReceiveSelected) 1.2.dp else 0.6.dp, receiveBorderColor),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { selectedDirectionIndex = 0 }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 11.dp, horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = LedgerArrowReceiveVector,
+                                contentDescription = null,
+                                tint = if (isReceiveSelected) Color(0xFF10B981) else colors.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "دریافت از طرف‌حساب",
+                                fontSize = 12.sp,
+                                fontWeight = if (isReceiveSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = receiveTextColor,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+
+                    val isPaySelected = selectedDirectionIndex == 1
+                    val payBorderColor by animateColorAsState(
+                        targetValue = if (isPaySelected) Color(0xFFEF4444) else colors.border,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "payBorder"
+                    )
+                    val payBgColor by animateColorAsState(
+                        targetValue = if (isPaySelected) Color(0xFFEF4444).copy(alpha = 0.15f) else colors.surfaceElevated,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "payBg"
+                    )
+                    val payTextColor by animateColorAsState(
+                        targetValue = if (isPaySelected) Color(0xFFEF4444) else colors.textMuted,
+                        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+                        label = "payText"
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = payBgColor,
+                        border = BorderStroke(if (isPaySelected) 1.2.dp else 0.6.dp, payBorderColor),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { selectedDirectionIndex = 1 }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 11.dp, horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = LedgerArrowPayVector,
+                                contentDescription = null,
+                                tint = if (isPaySelected) Color(0xFFEF4444) else colors.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "پرداخت به طرف‌حساب",
+                                fontSize = 12.sp,
+                                fontWeight = if (isPaySelected) FontWeight.Bold else FontWeight.Medium,
+                                color = payTextColor,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
 
                 // 4. Settlement Mode Tabs (تسویه وزنی و طلا vs تسویه نقدی و ریالی)
                 Row(
@@ -476,7 +587,7 @@ fun AddLedgerEntryModal(
                             }
                         }
 
-                        // Inputs Box: Scale Weight & Karat
+                        // Inputs Box: Scale Weight & Karat (Fix 7: GoldInputField)
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = colors.surfaceElevated,
@@ -491,113 +602,45 @@ fun AddLedgerEntryModal(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    // Scale Weight Input (Gram) - Numeric typed LTR per rule
+                                    GoldInputField(
+                                        value = scaleWeightInput,
+                                        onValueChange = { scaleWeightInput = it },
+                                        label = "وزن ترازو",
+                                        trailingText = "گرم",
+                                        isDecimal = true,
+                                        useThousandsSeparator = false,
+                                        keyboardType = KeyboardType.Decimal,
+                                        modifier = Modifier.weight(1f)
+                                    )
+
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "وزن ترازو (گرم):",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
+                                        GoldInputField(
+                                            value = karatInput,
+                                            onValueChange = { karatInput = it },
+                                            label = "عیار ری‌گیری",
+                                            trailingText = "عیار",
+                                            isDecimal = false,
+                                            useThousandsSeparator = false,
+                                            keyboardType = KeyboardType.Number,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(44.dp)
-                                                    .padding(horizontal = 10.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                BasicTextField(
-                                                    value = scaleWeightInput,
-                                                    onValueChange = { scaleWeightInput = it },
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = TextStyle(
-                                                        fontFamily = VazirmatnFamily,
-                                                        fontFeatureSettings = VazirmatnFeatureSettings,
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = colors.textMain,
-                                                        textDirection = TextDirection.Ltr
-                                                    ),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                    cursorBrush = SolidColor(colors.goldPrimary),
-                                                    singleLine = true
-                                                )
-                                                Text(
-                                                    text = "گرم",
-                                                    fontSize = 11.sp,
-                                                    color = colors.textMuted,
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Karat Input
-                                    Column(modifier = Modifier.weight(1f)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            horizontalArrangement = Arrangement.End
                                         ) {
                                             Text(
-                                                text = "عیار ری‌گیری:",
-                                                fontSize = 11.sp,
-                                                color = colors.textMuted,
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                            Text(
-                                                text = "۷۵۰ استاندارد",
-                                                fontSize = 9.sp,
+                                                text = "تنظیم ۷۵۰ استاندارد",
+                                                fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary,
                                                 fontFamily = VazirmatnFamily,
                                                 modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(colors.goldContainer.copy(alpha = 0.5f))
                                                     .clickable { karatInput = "750" }
-                                                    .padding(horizontal = 4.dp)
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(44.dp)
-                                                    .padding(horizontal = 10.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                BasicTextField(
-                                                    value = karatInput,
-                                                    onValueChange = { karatInput = it },
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = TextStyle(
-                                                        fontFamily = VazirmatnFamily,
-                                                        fontFeatureSettings = VazirmatnFeatureSettings,
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = colors.textMain,
-                                                        textDirection = TextDirection.Ltr
-                                                    ),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                    cursorBrush = SolidColor(colors.goldPrimary),
-                                                    singleLine = true
-                                                )
-                                                Text(
-                                                    text = "عیار",
-                                                    fontSize = 11.sp,
-                                                    color = colors.textMuted,
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                            }
                                         }
                                     }
                                 }
@@ -607,71 +650,26 @@ fun AddLedgerEntryModal(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "شماره قبض / اَنگ:",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            BasicTextField(
-                                                value = angNumberInput,
-                                                onValueChange = { angNumberInput = it },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(40.dp)
-                                                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 12.sp,
-                                                    color = colors.textMain,
-                                                    textDirection = TextDirection.Ltr
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                singleLine = true
-                                            )
-                                        }
-                                    }
+                                    GoldInputField(
+                                        value = angNumberInput,
+                                        onValueChange = { angNumberInput = it },
+                                        label = "شماره قبض / اَنگ",
+                                        useThousandsSeparator = false,
+                                        keyboardType = KeyboardType.Text,
+                                        modifier = Modifier.weight(1f)
+                                    )
 
-                                    Column(modifier = Modifier.weight(1.3f)) {
-                                        Text(
-                                            text = "آزمایشگاه ری‌گیری:",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            BasicTextField(
-                                                value = labNameInput,
-                                                onValueChange = { labNameInput = it },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(40.dp)
-                                                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 12.sp,
-                                                    color = colors.textMain
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                singleLine = true
-                                            )
-                                        }
-                                    }
+                                    GoldInputField(
+                                        value = labNameInput,
+                                        onValueChange = { labNameInput = it },
+                                        label = "آزمایشگاه ری‌گیری",
+                                        useThousandsSeparator = false,
+                                        keyboardType = KeyboardType.Text,
+                                        modifier = Modifier.weight(1.3f)
+                                    )
                                 }
 
-                                // Obsidian Calculation Monitor Card
+                                // Obsidian Calculation Monitor Card with Animated Numbers (Fix 7)
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
                                     color = Color(0xFF141B2B),
@@ -701,27 +699,19 @@ fun AddLedgerEntryModal(
                                             )
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    text = PersianNumberFormatter.formatWeight(equivalent750Grams),
-                                                    fontSize = 17.sp,
-                                                    fontWeight = FontWeight.Black,
-                                                    color = Color.White,
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                                Spacer(modifier = Modifier.size(3.dp))
-                                                Text(
-                                                    text = "گرم",
-                                                    fontSize = 11.sp,
-                                                    color = Color(0xFF94A3B8),
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                            }
-                                            Text(
-                                                text = "کسر عیار: ${PersianNumberFormatter.formatWeight(karatDeltaGrams)} گرم",
-                                                fontSize = 10.sp,
+                                            AnimatedNumberText(
+                                                text = PersianNumberFormatter.formatWeight(equivalent750Grams),
+                                                unit = "گرم",
+                                                color = Color.White,
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                            AnimatedNumberText(
+                                                text = "کسر عیار: ${PersianNumberFormatter.formatWeight(karatDeltaGrams)}",
+                                                unit = "گرم",
                                                 color = Color(0xFFCBD5E1),
-                                                fontFamily = VazirmatnFamily
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.Normal
                                             )
                                         }
                                     }
@@ -777,64 +767,39 @@ fun AddLedgerEntryModal(
                             ) {
                                 // Cash Amount
                                 Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "مبلغ واریزی / دریافتی:",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                        if (cashInWords.isNotBlank()) {
+                                    if (cashInWords.isNotBlank()) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Text(
-                                                text = cashInWords,
-                                                fontSize = 10.5.sp,
+                                                text = "مبلغ به حروف:",
+                                                fontSize = 11.sp,
+                                                color = colors.textMuted,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                            Text(
+                                                text = "$cashInWords تومان",
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary,
                                                 fontFamily = VazirmatnFamily
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = colors.surface,
-                                        border = BorderStroke(0.6.dp, colors.border)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(46.dp)
-                                                .padding(horizontal = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            BasicTextField(
-                                                value = cashAmountInput,
-                                                onValueChange = { cashAmountInput = it },
-                                                modifier = Modifier.weight(1f),
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontFeatureSettings = VazirmatnFeatureSettings,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colors.textMain,
-                                                    textDirection = TextDirection.Ltr
-                                                ),
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                singleLine = true
-                                            )
-                                            Text(
-                                                text = "تومان",
-                                                fontSize = 11.sp,
-                                                color = colors.textMuted,
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                        }
-                                    }
+
+                                    GoldInputField(
+                                        value = cashAmountInput,
+                                        onValueChange = { cashAmountInput = it },
+                                        label = "مبلغ واریزی / دریافتی",
+                                        trailingText = "تومان",
+                                        useThousandsSeparator = true,
+                                        keyboardType = KeyboardType.Number,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
 
                                     // Quick Amount Increment Buttons
                                     Row(
@@ -897,68 +862,22 @@ fun AddLedgerEntryModal(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1.3f)) {
-                                        Text(
-                                            text = "حساب بانکی مقصد:",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            BasicTextField(
-                                                value = destinationBank,
-                                                onValueChange = { destinationBank = it },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(40.dp)
-                                                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 12.sp,
-                                                    color = colors.textMain
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                singleLine = true
-                                            )
-                                        }
-                                    }
+                                    GoldInputField(
+                                        value = destinationBank,
+                                        onValueChange = { destinationBank = it },
+                                        label = "حساب بانکی مقصد",
+                                        keyboardType = KeyboardType.Text,
+                                        modifier = Modifier.weight(1.3f)
+                                    )
 
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "کد رهگیری / ارجاع:",
-                                            fontSize = 11.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.6.dp, colors.border)
-                                        ) {
-                                            BasicTextField(
-                                                value = trackingCodeInput,
-                                                onValueChange = { trackingCodeInput = it },
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(40.dp)
-                                                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 12.sp,
-                                                    color = colors.textMain,
-                                                    textDirection = TextDirection.Ltr
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                singleLine = true
-                                            )
-                                        }
-                                    }
+                                    GoldInputField(
+                                        value = trackingCodeInput,
+                                        onValueChange = { trackingCodeInput = it },
+                                        label = "کد رهگیری / ارجاع",
+                                        keyboardType = KeyboardType.Text,
+                                        useThousandsSeparator = false,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }
@@ -966,36 +885,13 @@ fun AddLedgerEntryModal(
                 }
 
                 // 6. Note / Description Input
-                Column {
-                    Text(
-                        text = "توضیحات و بابت سند:",
-                        fontSize = 11.sp,
-                        color = colors.textMuted,
-                        fontFamily = VazirmatnFamily
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.6.dp, colors.border)
-                    ) {
-                        BasicTextField(
-                            value = noteInput,
-                            onValueChange = { noteInput = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(42.dp)
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
-                            textStyle = TextStyle(
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.sp,
-                                color = colors.textMain
-                            ),
-                            cursorBrush = SolidColor(colors.goldPrimary),
-                            singleLine = true
-                        )
-                    }
-                }
+                GoldInputField(
+                    value = noteInput,
+                    onValueChange = { noteInput = it },
+                    label = "توضیحات و بابت سند",
+                    keyboardType = KeyboardType.Text,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // 7. Projected Balance Preview Card
                 Surface(
@@ -1011,7 +907,8 @@ fun AddLedgerEntryModal(
                         if (isGoldMode) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "مانده طلای قبلی:",
@@ -1028,7 +925,8 @@ fun AddLedgerEntryModal(
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = if (isReceive) "دریافت طلای آبشده:" else "تحویل طلا به مشتری:",
@@ -1036,12 +934,12 @@ fun AddLedgerEntryModal(
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontFamily = VazirmatnFamily
                                 )
-                                Text(
-                                    text = "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatWeight(equivalent750Grams)} گرم ۷۵۰",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
+                                AnimatedNumberText(
+                                    text = "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatWeight(equivalent750Grams)}",
+                                    unit = "گرم ۷۵۰",
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
-                                    fontFamily = VazirmatnFamily
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                             Box(
@@ -1052,7 +950,8 @@ fun AddLedgerEntryModal(
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "مانده جدید پس از ثبت سند:",
@@ -1061,18 +960,19 @@ fun AddLedgerEntryModal(
                                     color = colors.textMain,
                                     fontFamily = VazirmatnFamily
                                 )
-                                Text(
-                                    text = "${PersianNumberFormatter.formatWeight(newProjectedGoldBalance)} گرم ۷۵۰",
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Black,
+                                AnimatedNumberText(
+                                    text = PersianNumberFormatter.formatWeight(newProjectedGoldBalance),
+                                    unit = "گرم ۷۵۰",
                                     color = colors.goldPrimary,
-                                    fontFamily = VazirmatnFamily
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Black
                                 )
                             }
                         } else {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "مانده ریالی قبلی:",
@@ -1089,7 +989,8 @@ fun AddLedgerEntryModal(
                             }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = if (isReceive) "دریافت وجه نقد:" else "پرداخت وجه به طرف‌حساب:",
@@ -1097,13 +998,22 @@ fun AddLedgerEntryModal(
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontFamily = VazirmatnFamily
                                 )
-                                Text(
-                                    text = "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatPrice(cashAmountLong)} تومان",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isReceive) colors.profitGreen else colors.errorRed,
-                                    fontFamily = VazirmatnFamily
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (isReceive) "- " else "+ ",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isReceive) colors.profitGreen else colors.errorRed,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    AnimatedPriceText(
+                                        amount = cashAmountLong,
+                                        unit = "تومان",
+                                        color = if (isReceive) colors.profitGreen else colors.errorRed,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                             Box(
                                 modifier = Modifier
@@ -1113,7 +1023,8 @@ fun AddLedgerEntryModal(
                             )
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "مانده جدید ریالی پس از ثبت:",
@@ -1122,26 +1033,36 @@ fun AddLedgerEntryModal(
                                     color = colors.textMain,
                                     fontFamily = VazirmatnFamily
                                 )
-                                Text(
-                                    text = "${PersianNumberFormatter.formatPrice(newProjectedCashBalance)} تومان",
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Black,
+                                AnimatedPriceText(
+                                    amount = newProjectedCashBalance,
+                                    unit = "تومان",
                                     color = colors.goldPrimary,
-                                    fontFamily = VazirmatnFamily
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Black
                                 )
                             }
                         }
                     }
                 }
+            }
 
-                // 8. Action Buttons (Strictly adhering to dialog-button-layout.md invariant):
-                // RTL Row:
+            HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.6.dp)
+
+            // 3. Fixed Bottom Footer Bar (Fix 5: Docked at bottom with navigationBarsPadding)
+            Surface(
+                color = colors.surfaceElevated,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                // Action Buttons (Strictly adhering to dialog-button-layout.md invariant):
+                // In RTL Row:
                 // 1. First child = Secondary Action (انصراف) on visual RIGHT
                 // 2. Second child = Primary Action (ذخیره سند) on visual LEFT
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 6.dp, bottom = 16.dp),
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1196,6 +1117,7 @@ fun AddLedgerEntryModal(
                             }
                             onSaveEntry(tx)
                         },
+                        enabled = isFormValid,
                         isSecondary = false,
                         icon = Icons.Default.Check,
                         modifier = Modifier.weight(1.5f)

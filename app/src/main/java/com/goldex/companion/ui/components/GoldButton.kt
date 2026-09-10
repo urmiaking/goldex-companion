@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -52,7 +53,8 @@ fun GoldButton(
     icon: ImageVector? = null,
     isSecondary: Boolean = false,
     enabled: Boolean = true,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    height: Dp = 48.dp
 ) {
     val colors = LocalGoldExColors.current
 
@@ -60,7 +62,7 @@ fun GoldButton(
         Button(
             onClick = onClick,
             enabled = enabled && !isLoading,
-            modifier = modifier.height(48.dp),
+            modifier = modifier.height(height),
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.surfaceElevated,
@@ -121,7 +123,7 @@ fun GoldButton(
         Button(
             onClick = onClick,
             enabled = enabled && !isLoading,
-            modifier = modifier.height(48.dp),
+            modifier = modifier.height(height),
             shape = RoundedCornerShape(24.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,

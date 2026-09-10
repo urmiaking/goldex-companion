@@ -27,12 +27,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,10 +52,11 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.CustomerLedgerFilterTab
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.invoices.CustomerManagerUiState
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.goldGradient
 
 @Composable
 fun CustomerLedgerScreen(
@@ -140,36 +144,12 @@ fun CustomerLedgerScreen(
                     }
 
                     // "+ طرف‌حساب جدید" Button
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colors.goldPrimary,
-                        shadowElevation = 2.dp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onAddNewCustomer() }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .background(colors.goldGradient)
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = Color(0xFF554300),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "طرف‌حساب جدید",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF554300),
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
+                    GoldButton(
+                        text = "طرف‌حساب جدید",
+                        icon = Icons.Default.Add,
+                        onClick = onAddNewCustomer,
+                        height = 38.dp
+                    )
                 }
             }
 
@@ -240,69 +220,99 @@ fun CustomerLedgerScreen(
                     }
                 }
 
-                // Item C: Search & Quick Find Input Bar
+                // Item C: Search & Quick Find Input Bar with Tune Filter Button
                 item {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.surface,
-                        border = BorderStroke(0.6.dp, colors.border),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp)
-                                .padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.surface,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            BasicTextField(
-                                value = uiState.searchQuery,
-                                onValueChange = onSearchQueryChange,
-                                modifier = Modifier.weight(1f),
-                                textStyle = TextStyle(
-                                    fontFamily = VazirmatnFamily,
-                                    fontSize = 12.sp,
-                                    color = colors.textMain
-                                ),
-                                cursorBrush = SolidColor(colors.goldPrimary),
-                                singleLine = true,
-                                decorationBox = { innerTextField ->
-                                    if (uiState.searchQuery.isBlank()) {
-                                        Text(
-                                            text = "جستجوی نام بنکدار، کیفی، کارگاه یا شماره تماس...",
-                                            fontSize = 11.5.sp,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(44.dp)
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BasicTextField(
+                                    value = uiState.searchQuery,
+                                    onValueChange = onSearchQueryChange,
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = TextStyle(
+                                        fontFamily = VazirmatnFamily,
+                                        fontSize = 12.sp,
+                                        color = colors.textMain
+                                    ),
+                                    cursorBrush = SolidColor(colors.goldPrimary),
+                                    singleLine = true,
+                                    decorationBox = { innerTextField ->
+                                        if (uiState.searchQuery.isBlank()) {
+                                            Text(
+                                                text = "جستجوی نام بنکدار، کیفی، کارگاه یا شماره تماس...",
+                                                fontSize = 11.5.sp,
+                                                color = colors.textMuted,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                )
+                                if (uiState.searchQuery.isNotBlank()) {
+                                    IconButton(
+                                        onClick = { onSearchQueryChange("") },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "پاک کردن",
+                                            tint = colors.textMuted,
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
-                                    innerTextField()
                                 }
-                            )
-                            if (uiState.searchQuery.isNotBlank()) {
-                                IconButton(
-                                    onClick = { onSearchQueryChange("") },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "پاک کردن",
-                                        tint = colors.textMuted,
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                            }
+                        }
+
+                        // Filter Button beside Search Bar (Fix 2 - Stitch Design)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    val tabs = CustomerLedgerFilterTab.values()
+                                    val nextIndex = (uiState.selectedLedgerFilter.ordinal + 1) % tabs.size
+                                    onFilterSelect(tabs[nextIndex])
                                 }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = LedgerFilterTuneVector,
+                                    contentDescription = "فیلتر پیشرفته",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }
                 }
 
-                // Item D: Filter Chips (Horizontal Scroll)
+                // Item D: Filter Capsule Pills (Horizontal Scroll - Fix 3)
                 item {
                     Row(
                         modifier = Modifier
@@ -312,50 +322,37 @@ fun CustomerLedgerScreen(
                     ) {
                         CustomerLedgerFilterTab.values().forEach { tab ->
                             val selected = uiState.selectedLedgerFilter == tab
-                            val count = when (tab) {
-                                CustomerLedgerFilterTab.ALL -> uiState.totalActiveCount
-                                CustomerLedgerFilterTab.DEBTORS -> uiState.debtorsCount
-                                CustomerLedgerFilterTab.CREDITORS -> uiState.creditorsCount
-                                CustomerLedgerFilterTab.SETTLED -> uiState.settledCount
+                            val (count, badgeBg, badgeTextColor) = when (tab) {
+                                CustomerLedgerFilterTab.ALL -> Triple(
+                                    uiState.totalActiveCount,
+                                    Color(0x33F59E0B),
+                                    Color(0xFFFDE68A)
+                                )
+                                CustomerLedgerFilterTab.DEBTORS -> Triple(
+                                    uiState.debtorsCount,
+                                    Color(0x2610B981),
+                                    Color(0xFF10B981)
+                                )
+                                CustomerLedgerFilterTab.CREDITORS -> Triple(
+                                    uiState.creditorsCount,
+                                    Color(0x26EF4444),
+                                    Color(0xFFEF4444)
+                                )
+                                CustomerLedgerFilterTab.SETTLED -> Triple(
+                                    uiState.settledCount,
+                                    Color(0x263B82F6),
+                                    Color(0xFF3B82F6)
+                                )
                             }
 
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (selected) colors.surfaceElevated else colors.surface,
-                                border = BorderStroke(
-                                    if (selected) 1.dp else 0.5.dp,
-                                    if (selected) colors.goldPrimary else colors.border
-                                ),
-                                modifier = Modifier.clickable { onFilterSelect(tab) }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = tab.titleFa,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (selected) colors.goldPrimary else colors.textSecondary,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(if (selected) colors.goldContainer else colors.surfaceElevated)
-                                            .padding(horizontal = 6.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = PersianNumberFormatter.toPersianDigits(count.toString()),
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (selected) colors.goldPrimary else colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                    }
-                                }
-                            }
+                            LedgerFilterCapsuleItem(
+                                title = tab.titleFa,
+                                count = count,
+                                isSelected = selected,
+                                badgeBg = badgeBg,
+                                badgeTextColor = badgeTextColor,
+                                onClick = { onFilterSelect(tab) }
+                            )
                         }
                     }
                 }
@@ -686,15 +683,16 @@ private fun CustomerLedgerCard(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(colors.goldGradient),
+                            .clip(CircleShape)
+                            .background(colors.surfaceElevated)
+                            .border(0.8.dp, colors.goldBorder.copy(alpha = 0.6f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = customer.name.firstOrNull()?.toString() ?: "ط",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Black,
-                            color = Color(0xFF554300),
+                            color = colors.goldPrimary,
                             fontFamily = VazirmatnFamily
                         )
                     }
@@ -814,77 +812,97 @@ private fun CustomerLedgerCard(
                 }
             }
 
-            // Actions Toolbar: "ریز گردش معین" & "ثبت دریافت / پرداخت"
+            // Actions Toolbar: "ریز گردش معین" & "ثبت دریافت / پرداخت" (Fix 1 - GoldButton)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Button 1: ریز گردش معین (Primary Gold)
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.goldPrimary,
-                    shadowElevation = 1.dp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onOpenStatement() }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .background(colors.goldGradient)
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = LedgerReceiptVector,
-                            contentDescription = null,
-                            tint = Color(0xFF554300),
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.size(5.dp))
-                        Text(
-                            text = "ریز گردش معین",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF554300),
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-                }
+                // Button 1: ریز گردش معین (Primary GoldButton)
+                GoldButton(
+                    text = "ریز گردش معین",
+                    icon = LedgerReceiptVector,
+                    onClick = onOpenStatement,
+                    height = 40.dp,
+                    modifier = Modifier.weight(1f)
+                )
 
-                // Button 2: ثبت دریافت / پرداخت (Secondary Elevated)
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onOpenAddEntry() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.size(5.dp))
-                        Text(
-                            text = "ثبت دریافت / پرداخت",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-                }
+                // Button 2: ثبت دریافت / پرداخت (Secondary GoldButton)
+                GoldButton(
+                    text = "ثبت دریافت / پرداخت",
+                    icon = Icons.Default.Add,
+                    onClick = onOpenAddEntry,
+                    isSecondary = true,
+                    height = 40.dp,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
+
+@Composable
+private fun LedgerFilterCapsuleItem(
+    title: String,
+    count: Int,
+    isSelected: Boolean,
+    badgeBg: Color,
+    badgeTextColor: Color,
+    onClick: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    val animatedBg by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFF1E232E) else colors.surface,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "ledgerCapsuleBg"
+    )
+    val animatedBorder by animateColorAsState(
+        targetValue = if (isSelected) Color(0x66F59E0B) else colors.border,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "ledgerCapsuleBorder"
+    )
+    val animatedTextColor by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFFFCD34D) else colors.textSecondary,
+        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
+        label = "ledgerCapsuleTextColor"
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(animatedBg)
+            .border(1.dp, animatedBorder, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 11.5.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = animatedTextColor,
+                fontFamily = VazirmatnFamily
+            )
+
+            // Count badge
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(badgeBg)
+                    .padding(horizontal = 6.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = PersianNumberFormatter.toPersianDigits(count.toString()),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = badgeTextColor,
+                    fontFamily = VazirmatnFamily
+                )
+            }
+        }
+    }
+}
+

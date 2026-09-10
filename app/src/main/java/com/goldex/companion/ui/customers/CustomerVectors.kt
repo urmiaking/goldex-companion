@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.customers
+package com.goldex.companion.ui.customers
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -351,3 +351,63 @@ internal val LedgerShareVector: ImageVector = ImageVector.Builder(
         close()
     }
 }.build()
+
+internal val LedgerFilterTuneVector: ImageVector = ImageVector.Builder(
+    name = "LedgerFilterTune",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.White)) {
+        moveTo(3f, 17f)
+        verticalLineTo(19f)
+        horizontalLineTo(9f)
+        verticalLineTo(17f)
+        horizontalLineTo(3f)
+        close()
+        moveTo(3f, 5f)
+        verticalLineTo(7f)
+        horizontalLineTo(13f)
+        verticalLineTo(5f)
+        horizontalLineTo(3f)
+        close()
+        moveTo(13f, 21f)
+        verticalLineTo(19f)
+        horizontalLineTo(21f)
+        verticalLineTo(17f)
+        horizontalLineTo(13f)
+        verticalLineTo(15f)
+        horizontalLineTo(11f)
+        verticalLineTo(21f)
+        horizontalLineTo(13f)
+        close()
+        moveTo(7f, 9f)
+        verticalLineTo(11f)
+        horizontalLineTo(3f)
+        verticalLineTo(13f)
+        horizontalLineTo(7f)
+        verticalLineTo(15f)
+        horizontalLineTo(9f)
+        verticalLineTo(9f)
+        horizontalLineTo(7f)
+        close()
+        moveTo(21f, 13f)
+        verticalLineTo(11f)
+        horizontalLineTo(11f)
+        verticalLineTo(13f)
+        horizontalLineTo(21f)
+        close()
+        moveTo(17f, 9f)
+        horizontalLineTo(19f)
+        verticalLineTo(7f)
+        horizontalLineTo(21f)
+        verticalLineTo(5f)
+        horizontalLineTo(19f)
+        verticalLineTo(3f)
+        horizontalLineTo(17f)
+        verticalLineTo(9f)
+        close()
+    }
+}.build()
+
