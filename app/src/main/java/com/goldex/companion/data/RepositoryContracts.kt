@@ -2,6 +2,7 @@ package com.goldex.companion.data
 
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.Invoice
+import com.goldex.companion.model.LedgerTransaction
 import kotlinx.coroutines.flow.StateFlow
 
 interface CustomerStore {
@@ -9,6 +10,8 @@ interface CustomerStore {
     fun addCustomer(customer: Customer)
     fun updateCustomer(customer: Customer)
     fun deleteCustomer(id: String)
+    fun getTransactions(customerId: String): List<LedgerTransaction>
+    fun addTransaction(transaction: LedgerTransaction)
 }
 
 interface PortfolioStore {

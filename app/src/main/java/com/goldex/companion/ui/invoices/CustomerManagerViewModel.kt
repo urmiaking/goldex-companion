@@ -6,6 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.model.Customer
+import com.goldex.companion.model.CustomerLedgerFilterTab
+import com.goldex.companion.model.LedgerDirection
+import com.goldex.companion.model.LedgerEntryType
+import com.goldex.companion.model.LedgerTransaction
+import com.goldex.companion.model.StatementFilterTab
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,8 +21,71 @@ data class CustomerManagerUiState(
     val selectedCustomer: Customer? = null,
     val isCustomerManagerVisible: Boolean = false,
     val isAddCustomerDialogVisible: Boolean = false,
-    val isCustomerPickerVisible: Boolean = false
-)
+    val isCustomerPickerVisible: Boolean = false,
+    // Full Screen Ledger & Statement Navigation
+    val isCustomerLedgerVisible: Boolean = false,
+    val selectedCustomerForStatement: Customer? = null,
+    val isAddLedgerEntryModalVisible: Boolean = false,
+    val ledgerEntryTargetCustomer: Customer? = null,
+    val selectedLedgerFilter: CustomerLedgerFilterTab = CustomerLedgerFilterTab.ALL,
+    val selectedStatementFilter: StatementFilterTab = StatementFilterTab.ALL,
+    val searchQuery: String = "",
+    val activeCustomerTransactions: List<LedgerTransaction> = emptyList()
+) {
+    val filteredCustomers: List<Customer>
+        get() {
+            val query = searchQuery.trim()
+            val baseList = when (selectedLedgerFilter) {
+                CustomerLedgerFilterTab.ALL -> customerList
+                CustomerLedgerFilterTab.DEBTORS -> customerList.filter { it.goldDebtGrams > 0.001 || it.cashDebtTomans > 0L }
+                CustomerLedgerFilterTab.CREDITORS -> customerList.filter { it.goldDebtGrams < -0.001 || it.cashDebtTomans < 0L }
+                CustomerLedgerFilterTab.SETTLED -> customerList.filter { Math.abs(it.goldDebtGrams) <= 0.001 && it.cashDebtTomans == 0L }
+            }
+            if (query.isBlank()) return baseList
+            return baseList.filter { c ->
+                c.name.contains(query, ignoreCase = true) ||
+                c.role.contains(query, ignoreCase = true) ||
+                c.cityOrMarket.contains(query, ignoreCase = true) ||
+                c.phone.contains(query) ||
+                c.accountCode.contains(query)
+            }
+        }
+
+    val filteredStatementTransactions: List<LedgerTransaction>
+        get() {
+            return when (selectedStatementFilter) {
+                StatementFilterTab.ALL -> activeCustomerTransactions
+                StatementFilterTab.GOLD_SALE -> activeCustomerTransactions.filter { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.PAY }
+                StatementFilterTab.GOLD_RECEIPT -> activeCustomerTransactions.filter { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.RECEIVE }
+                StatementFilterTab.CASH_DEPOSIT -> activeCustomerTransactions.filter { it.type == LedgerEntryType.CASH_RIAL }
+                StatementFilterTab.SETTLEMENT -> activeCustomerTransactions.filter { it.title.contains("تسویه") || it.note.contains("تسویه") || it.tagBadge.contains("تهاتر") }
+            }
+        }
+
+    val totalActiveCount: Int
+        get() = customerList.size
+
+    val debtorsCount: Int
+        get() = customerList.count { it.goldDebtGrams > 0.001 || it.cashDebtTomans > 0L }
+
+    val creditorsCount: Int
+        get() = customerList.count { it.goldDebtGrams < -0.001 || it.cashDebtTomans < 0L }
+
+    val settledCount: Int
+        get() = customerList.count { Math.abs(it.goldDebtGrams) <= 0.001 && it.cashDebtTomans == 0L }
+
+    val totalGoldReceivableGrams: Double
+        get() = customerList.filter { it.goldDebtGrams > 0.0 }.sumOf { it.goldDebtGrams }
+
+    val totalCashReceivableTomans: Long
+        get() = customerList.filter { it.cashDebtTomans > 0L }.sumOf { it.cashDebtTomans }
+
+    val totalGoldPayableGrams: Double
+        get() = customerList.filter { it.goldDebtGrams < 0.0 }.sumOf { Math.abs(it.goldDebtGrams) }
+
+    val totalCashPayableTomans: Long
+        get() = customerList.filter { it.cashDebtTomans < 0L }.sumOf { Math.abs(it.cashDebtTomans) }
+}
 
 class CustomerManagerViewModel(
     private val repository: CustomerStore
@@ -38,6 +106,128 @@ class CustomerManagerViewModel(
 
     fun loadCustomers() {
         _uiState.update { it.copy(customerList = repository.getCustomers()) }
+    }
+
+    fun openCustomerLedger() {
+        val list = repository.getCustomers()
+        _uiState.update {
+            it.copy(
+                isCustomerLedgerVisible = true,
+                customerList = list,
+                selectedCustomerForStatement = null,
+                isAddLedgerEntryModalVisible = false
+            )
+        }
+    }
+
+    fun closeCustomerLedger() {
+        _uiState.update {
+            it.copy(
+                isCustomerLedgerVisible = false,
+                selectedCustomerForStatement = null,
+                isAddLedgerEntryModalVisible = false
+            )
+        }
+    }
+
+    fun openCustomerStatement(customer: Customer) {
+        val txs = repository.getTransactions(customer.id)
+        _uiState.update {
+            it.copy(
+                selectedCustomerForStatement = customer,
+                activeCustomerTransactions = txs,
+                selectedStatementFilter = StatementFilterTab.ALL
+            )
+        }
+    }
+
+    fun closeCustomerStatement() {
+        _uiState.update { it.copy(selectedCustomerForStatement = null) }
+    }
+
+    fun openAddLedgerEntry(customer: Customer) {
+        _uiState.update {
+            it.copy(
+                isAddLedgerEntryModalVisible = true,
+                ledgerEntryTargetCustomer = customer
+            )
+        }
+    }
+
+    fun closeAddLedgerEntry() {
+        _uiState.update {
+            it.copy(
+                isAddLedgerEntryModalVisible = false,
+                ledgerEntryTargetCustomer = null
+            )
+        }
+    }
+
+    fun saveLedgerEntry(transaction: LedgerTransaction) {
+        repository.addTransaction(transaction)
+
+        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
+            ?: _uiState.value.ledgerEntryTargetCustomer
+
+        if (target != null) {
+            val updatedCustomer = when (transaction.type) {
+                LedgerEntryType.GOLD_WEIGHT -> {
+                    val delta = if (transaction.direction == LedgerDirection.PAY) {
+                        transaction.equivalent750WeightGrams
+                    } else {
+                        -transaction.equivalent750WeightGrams
+                    }
+                    target.copy(
+                        goldDebtGrams = target.goldDebtGrams + delta,
+                        lastActivityTime = "لحظاتی پیش"
+                    )
+                }
+                LedgerEntryType.CASH_RIAL -> {
+                    val delta = if (transaction.direction == LedgerDirection.PAY) {
+                        transaction.amountTomans
+                    } else {
+                        -transaction.amountTomans
+                    }
+                    target.copy(
+                        cashDebtTomans = target.cashDebtTomans + delta,
+                        lastActivityTime = "لحظاتی پیش"
+                    )
+                }
+            }
+            repository.updateCustomer(updatedCustomer)
+        }
+
+        val updatedCustomers = repository.getCustomers()
+        val currentStatementCust = _uiState.value.selectedCustomerForStatement
+        val refreshedStatementCust = if (currentStatementCust != null) {
+            updatedCustomers.firstOrNull { it.id == currentStatementCust.id } ?: currentStatementCust
+        } else null
+
+        val updatedTxs = if (refreshedStatementCust != null) {
+            repository.getTransactions(refreshedStatementCust.id)
+        } else emptyList()
+
+        _uiState.update {
+            it.copy(
+                customerList = updatedCustomers,
+                selectedCustomerForStatement = refreshedStatementCust,
+                activeCustomerTransactions = updatedTxs,
+                isAddLedgerEntryModalVisible = false,
+                ledgerEntryTargetCustomer = null
+            )
+        }
+    }
+
+    fun setSearchQuery(query: String) {
+        _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun setLedgerFilter(filter: CustomerLedgerFilterTab) {
+        _uiState.update { it.copy(selectedLedgerFilter = filter) }
+    }
+
+    fun setStatementFilter(filter: StatementFilterTab) {
+        _uiState.update { it.copy(selectedStatementFilter = filter) }
     }
 
     fun setCustomerManagerVisible(visible: Boolean) {

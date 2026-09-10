@@ -54,6 +54,9 @@ import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
+import com.goldex.companion.ui.customers.CustomerLedgerScreen
+import com.goldex.companion.ui.customers.CustomerStatementScreen
+import com.goldex.companion.ui.customers.modals.AddLedgerEntryModal
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
@@ -154,6 +157,18 @@ fun MainScreen(
         )
     }
 
+    // Ledger Entry Registration Modal (Screens 1 & 2)
+    if (customerState.isAddLedgerEntryModalVisible && customerState.ledgerEntryTargetCustomer != null) {
+        AddLedgerEntryModal(
+            customer = customerState.ledgerEntryTargetCustomer!!,
+            onDismiss = { customerViewModel.closeAddLedgerEntry() },
+            onSaveEntry = { tx ->
+                customerViewModel.saveLedgerEntry(tx)
+                QiratoToast.show(context, "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد")
+            }
+        )
+    }
+
     // Tax & Profit Configuration Bottom Sheet Modal
     if (settingsState.isTaxProfitModalVisible) {
         TaxProfitModal(
@@ -200,12 +215,6 @@ fun MainScreen(
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
             }
         )
-    }
-
-    if (mainUiState.selectedTab == AppTab.INVOICES && barterUiState.subScreen == InvoicesSubScreen.EDITOR) {
-        BackHandler {
-            barterInvoiceViewModel.navigateBackToList()
-        }
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -400,8 +409,7 @@ fun MainScreen(
                                             mainViewModel.setMeltVisible(true)
                                         },
                                         onNavigateLedger = {
-                                            customerViewModel.loadCustomers()
-                                            customerViewModel.setCustomerManagerVisible(true)
+                                            customerViewModel.openCustomerLedger()
                                         }
                                     )
                                 }
@@ -455,8 +463,7 @@ fun MainScreen(
                                         onToggleBiometricLock = { settingsViewModel.toggleBiometricLock(it) },
                                         onCheckForUpdates = { updateViewModel.checkForUpdates(manual = true) },
                                         onNavigateLedger = {
-                                            customerViewModel.loadCustomers()
-                                            customerViewModel.setCustomerManagerVisible(true)
+                                            customerViewModel.openCustomerLedger()
                                         },
                                         onNavigateMelt = {
                                             mainViewModel.setMeltVisible(true)
@@ -529,13 +536,19 @@ fun MainScreen(
 
             // BackHandler for all sub-screens
             BackHandler(
-                enabled = barterUiState.subScreen != InvoicesSubScreen.LIST ||
+                enabled = customerState.selectedCustomerForStatement != null ||
+                          customerState.isCustomerLedgerVisible ||
+                          barterUiState.subScreen != InvoicesSubScreen.LIST ||
                           mainUiState.isStandardFormulasVisible ||
                           mainUiState.isKaratConvertVisible ||
                           mainUiState.isCoinBubbleVisible ||
                           mainUiState.isMeltVisible
             ) {
-                if (barterUiState.subScreen != InvoicesSubScreen.LIST) {
+                if (customerState.selectedCustomerForStatement != null) {
+                    customerViewModel.closeCustomerStatement()
+                } else if (customerState.isCustomerLedgerVisible) {
+                    customerViewModel.closeCustomerLedger()
+                } else if (barterUiState.subScreen != InvoicesSubScreen.LIST) {
                     barterInvoiceViewModel.navigateBackToList()
                 } else if (mainUiState.isStandardFormulasVisible) mainViewModel.setStandardFormulasVisible(false)
                 else if (mainUiState.isKaratConvertVisible) mainViewModel.setKaratConvertVisible(false)
@@ -662,6 +675,44 @@ fun MainScreen(
                         barterInvoiceViewModel.navigateBackToList()
                     }
                 )
+            }
+
+            // Customer Ledger Management Screen (Screen 4)
+            AnimatedVisibility(
+                visible = customerState.isCustomerLedgerVisible,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                CustomerLedgerScreen(
+                    uiState = customerState,
+                    onSearchQueryChange = { customerViewModel.setSearchQuery(it) },
+                    onFilterSelect = { customerViewModel.setLedgerFilter(it) },
+                    onOpenStatement = { customerViewModel.openCustomerStatement(it) },
+                    onOpenAddEntry = { customerViewModel.openAddLedgerEntry(it) },
+                    onAddNewCustomer = { customerViewModel.setAddCustomerDialogVisible(true) },
+                    onBack = { customerViewModel.closeCustomerLedger() }
+                )
+            }
+
+            // Customer Statement Screen (Screen 3)
+            AnimatedVisibility(
+                visible = customerState.selectedCustomerForStatement != null,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val statementCustomer = customerState.selectedCustomerForStatement
+                if (statementCustomer != null) {
+                    CustomerStatementScreen(
+                        customer = statementCustomer,
+                        transactions = customerState.filteredStatementTransactions,
+                        selectedFilter = customerState.selectedStatementFilter,
+                        onFilterSelect = { customerViewModel.setStatementFilter(it) },
+                        onOpenAddEntry = { customerViewModel.openAddLedgerEntry(statementCustomer) },
+                        onBack = { customerViewModel.closeCustomerStatement() }
+                    )
+                }
             }
         }
     }
