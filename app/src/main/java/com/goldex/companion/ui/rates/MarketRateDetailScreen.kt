@@ -1,8 +1,7 @@
 package com.goldex.companion.ui.rates
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
@@ -17,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,9 +34,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.*
-import com.goldex.companion.ui.calculator.CalcPostAdd
 import com.goldex.companion.ui.calculator.CalcReceiptLong
 import com.goldex.companion.ui.calculator.CalcShare
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.customers.LedgerArrowPayVector
 import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
@@ -55,13 +58,14 @@ import java.util.Locale
 fun MarketRateDetailScreen(
     state: MarketRateDetailState,
     onBack: () -> Unit,
-    onAddToInvoice: (Long, Karat) -> Unit,
+    onAddToInvoice: ((Long, Karat) -> Unit)? = null,
     onSetPriceAlert: (MarketRateItemType, Long) -> Unit,
-    onViewAllTransactions: () -> Unit,
+    onViewAllTransactions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
     var selectedHorizon by remember { mutableStateOf(TimeHorizon.TODAY) }
     var isAlertActive by remember { mutableStateOf(false) }
 
@@ -79,149 +83,154 @@ fun MarketRateDetailScreen(
 
     val currentChart = state.chartDataByHorizon[selectedHorizon] ?: state.chartDataByHorizon.values.first()
 
-    Column(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // ==========================================
-        // 1. Sub-header Breadcrumb & Actions Bar
-        // ==========================================
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            .background(colors.background),
+        containerColor = colors.background,
+        topBar = {
+            Surface(
+                color = colors.surface,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                shadowElevation = 2.dp
             ) {
-                // Back Button
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surface,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    shadowElevation = 1.dp,
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clickable { onBack() }
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = HubArrowRight,
-                            contentDescription = "بازگشت",
-                            tint = colors.textMain,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                // Title and Status
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    // Right: Back Button + Title & Subtitle with Gold Dot
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = state.title,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                        Box(
+                        IconButton(
+                            onClick = onBack,
                             modifier = Modifier
-                                .size(8.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF10B981).copy(alpha = pulseAlpha))
-                        )
-                    }
-                    Text(
-                        text = state.subtitle,
-                        fontSize = 10.5.sp,
-                        color = colors.textSecondary
-                    )
-                }
-            }
-
-            // Quick Actions: Alert & Share
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Alert Action Button
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isAlertActive) colors.goldPrimary.copy(alpha = 0.18f) else colors.surface,
-                    border = BorderStroke(
-                        0.6.dp,
-                        if (isAlertActive) colors.goldPrimary else colors.border
-                    ),
-                    shadowElevation = 1.dp,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable {
-                            isAlertActive = !isAlertActive
-                            val msg = if (isAlertActive) {
-                                "هشدار قیمت برای ${state.title} فعال شد"
-                            } else {
-                                "هشدار نوسان غیرفعال شد"
-                            }
-                            QiratoToast.show(context, msg)
-                            onSetPriceAlert(state.type, state.currentPrice)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = HubArrowRight,
+                                contentDescription = "بازگشت",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isAlertActive) IconBellActive else IconBellNone,
-                            contentDescription = "تنظیم هشدار",
-                            tint = if (isAlertActive) colors.goldPrimary else colors.textSecondary,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
-                }
 
-                // Share Action Button
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surface,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    shadowElevation = 1.dp,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable {
-                            val shareText = buildString {
-                                appendLine("قیمت لحظه‌ای ${state.title}:")
-                                appendLine("نرخ: ${PersianNumberFormatter.format(state.currentPrice)} ${state.currencyUnit}")
-                                appendLine("تغییر روز: ${if (state.isPositive) "+" else ""}${PersianNumberFormatter.format(state.changeAmount)} (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f", state.changePercent))}٪)")
-                                appendLine("کف: ${PersianNumberFormatter.format(state.dayLow)} | سقف: ${PersianNumberFormatter.format(state.dayHigh)}")
-                                appendLine("برگرفته از اپلیکیشن تخصصی قیراط")
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.goldPrimary)
+                                )
+                                Text(
+                                    text = state.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain
+                                )
                             }
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("مظنه طلا", shareText)
-                            clipboard.setPrimaryClip(clip)
-                            QiratoToast.show(context, "مظنه ${state.title} در حافظه کپی شد")
+                            Text(
+                                text = state.subtitle,
+                                fontSize = 10.sp,
+                                color = colors.textMuted
+                            )
                         }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = CalcShare,
-                            contentDescription = "اشتراک‌گذاری",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(19.dp)
-                        )
+                    }
+
+                    // Left: Notification and Native Share Action Buttons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Notification Button
+                        IconButton(
+                            onClick = {
+                                isAlertActive = !isAlertActive
+                                val msg = if (isAlertActive) {
+                                    "هشدار نوسان نرخ برای ${state.title} فعال شد"
+                                } else {
+                                    "هشدار نوسان نرخ غیرفعال شد"
+                                }
+                                QiratoToast.show(context, msg)
+                                onSetPriceAlert(state.type, state.currentPrice)
+                            },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(if (isAlertActive) colors.goldPrimary.copy(alpha = 0.16f) else colors.surfaceElevated)
+                                .border(
+                                    0.6.dp,
+                                    if (isAlertActive) colors.goldPrimary else colors.goldBorder.copy(alpha = 0.5f),
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "تنظیم هشدار",
+                                tint = if (isAlertActive) colors.goldPrimary else colors.textSecondary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+
+                        // Share Button
+                        IconButton(
+                            onClick = {
+                                val sign = if (state.isPositive) "+" else "-"
+                                val shareText = buildString {
+                                    appendLine("نرخ لحظه‌ای ${state.title}:")
+                                    appendLine("قیمت: ${PersianNumberFormatter.format(state.currentPrice)} ${state.currencyUnit}")
+                                    appendLine("نوسان روز: ${PersianNumberFormatter.format(state.changeAmount)}$sign (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f", state.changePercent))}$sign٪)")
+                                    appendLine("پایین‌ترین / بالاترین: ${PersianNumberFormatter.format(state.dayLow)} / ${PersianNumberFormatter.format(state.dayHigh)}")
+                                    appendLine("قیراط • دستیار تخصصی زرگران")
+                                }
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری ${state.title}")
+                                context.startActivity(shareIntent)
+                            },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = CalcShare,
+                                contentDescription = "اشتراک‌گذاری",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
         }
-
-        // ==========================================
-        // 2. Main Luxury Bullion Card (Persian Sovereign Aurum)
-        // ==========================================
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // ==========================================
+            // 2. Main Luxury Bullion Card (Persian Sovereign Aurum)
+            // ==========================================
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -376,13 +385,13 @@ fun MarketRateDetailScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "${if (state.isPositive) "+" else ""}${PersianNumberFormatter.format(state.changeAmount)}",
+                                    text = "${PersianNumberFormatter.format(state.changeAmount)}${if (state.isPositive) "+" else "-"}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (state.isPositive) Color(0xFF6EE7B7) else Color(0xFFFCA5A5)
                                 )
                                 Text(
-                                    text = "(${if (state.isPositive) "+" else ""}${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f", state.changePercent))}٪)",
+                                    text = "(${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f", state.changePercent))}٪${if (state.isPositive) "+" else "-"})",
                                     fontSize = 10.sp,
                                     color = if (state.isPositive) Color(0xFF6EE7B7).copy(alpha = 0.8f) else Color(0xFFFCA5A5).copy(alpha = 0.8f)
                                 )
@@ -431,7 +440,7 @@ fun MarketRateDetailScreen(
                     // Tile 4: حباب یا اسپرد
                     MetricTile(
                         title = state.bubbleOrSpreadLabel,
-                        value = "${if (state.bubbleOrSpread > 0) "+" else ""}${PersianNumberFormatter.format(state.bubbleOrSpread)} ${state.currencyUnit}",
+                        value = "${PersianNumberFormatter.format(state.bubbleOrSpread)}${if (state.bubbleOrSpread > 0) "+" else ""} ${state.currencyUnit}",
                         icon = IconSwapVert,
                         iconColor = Color(0xFF38BDF8),
                         modifier = Modifier.weight(1f)
@@ -495,7 +504,7 @@ fun MarketRateDetailScreen(
                                 fontSize = 10.5.sp,
                                 color = colors.textSecondary
                             )
-                            Text(
+                            AnimatedNumberText(
                                 text = PersianNumberFormatter.toPersianDigits(currentChart.fluctuationRangeText),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -505,39 +514,16 @@ fun MarketRateDetailScreen(
                     }
                 }
 
-                // 5 Time Horizon Filter Tabs
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(colors.surfaceElevated)
-                        .padding(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    TimeHorizon.values().forEach { horizon ->
-                        val isSelected = selectedHorizon == horizon
-                        Surface(
-                            shape = RoundedCornerShape(9.dp),
-                            color = if (isSelected) colors.surface else Color.Transparent,
-                            shadowElevation = if (isSelected) 1.dp else 0.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { selectedHorizon = horizon }
-                        ) {
-                            Box(
-                                modifier = Modifier.padding(vertical = 7.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = horizon.labelFa,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.goldPrimary else colors.textSecondary
-                                )
-                            }
-                        }
-                    }
-                }
+                // 5 Time Horizon Filter Tabs with fluid animated spring slider
+                LuxurySegmentedControl(
+                    items = TimeHorizon.values().toList(),
+                    selectedItem = selectedHorizon,
+                    onItemSelected = { selectedHorizon = it },
+                    label = { it.labelFa },
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 36.dp,
+                    fontSize = 11.sp
+                )
 
                 // Chart Canvas Area
                 Box(
@@ -647,25 +633,28 @@ fun MarketRateDetailScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Action 1: ثبت در فاکتور (Primary Gold Gradient Button)
+            // Action 1: اشتراک‌گذاری نرخ (Solid Gold Uniform Button)
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = Color.Transparent,
-                shadowElevation = 3.dp,
+                color = colors.goldPrimary,
+                shadowElevation = 2.dp,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFFE6CA65),
-                                Color(0xFFD4AF37),
-                                Color(0xFFB8860B)
-                            )
-                        )
-                    )
                     .clickable {
-                        onAddToInvoice(state.currentPrice, state.type.defaultPurityKarat)
+                        val sign = if (state.isPositive) "+" else "-"
+                        val shareText = buildString {
+                            appendLine("نرخ لحظه‌ای ${state.title}:")
+                            appendLine("قیمت: ${PersianNumberFormatter.format(state.currentPrice)} ${state.currencyUnit}")
+                            appendLine("نوسان روز: ${PersianNumberFormatter.format(state.changeAmount)}$sign (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f", state.changePercent))}$sign٪)")
+                            appendLine("پایین‌ترین / بالاترین: ${PersianNumberFormatter.format(state.dayLow)} / ${PersianNumberFormatter.format(state.dayHigh)}")
+                            appendLine("قیراط • دستیار تخصصی زرگران")
+                        }
+                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری نرخ ${state.title}")
+                        context.startActivity(shareIntent)
                     }
             ) {
                 Row(
@@ -676,14 +665,14 @@ fun MarketRateDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = CalcPostAdd,
+                        imageVector = CalcShare,
                         contentDescription = null,
                         tint = Color(0xFF111827),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ثبت در فاکتور",
+                        text = "اشتراک‌گذاری نرخ",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF111827)
@@ -694,8 +683,8 @@ fun MarketRateDetailScreen(
             // Action 2: تنظیم هشدار (Outlined Surface Button)
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = colors.surface,
-                border = BorderStroke(0.8.dp, colors.goldBorder),
+                color = if (isAlertActive) colors.goldPrimary.copy(alpha = 0.14f) else colors.surface,
+                border = BorderStroke(0.8.dp, if (isAlertActive) colors.goldPrimary else colors.goldBorder),
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -718,17 +707,17 @@ fun MarketRateDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = IconBellActive,
+                        imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "تنظیم هشدار",
+                        text = if (isAlertActive) "هشدار فعال است" else "تنظیم هشدار",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.textMain
+                        color = if (isAlertActive) colors.goldPrimary else colors.textMain
                     )
                 }
             }
@@ -984,6 +973,7 @@ fun MarketRateDetailScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
     }
+}
 }
 
 // ==========================================
@@ -1310,55 +1300,6 @@ private val IconSwapVert: ImageVector = ImageVector.Builder(
         moveTo(4f, 17f)
         lineTo(8f, 21f)
         lineTo(12f, 17f)
-    }
-}.build()
-
-private val IconBellActive: ImageVector = ImageVector.Builder(
-    name = "IconBellActive",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 2f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(18f, 8f)
-        curveTo(18f, 4.69f, 15.31f, 2f, 12f, 2f)
-        curveTo(8.69f, 2f, 6f, 4.69f, 6f, 8f)
-        curveTo(6f, 15f, 3f, 17f, 3f, 17f)
-        horizontalLineTo(21f)
-        curveTo(21f, 17f, 18f, 15f, 18f, 8f)
-        close()
-        moveTo(13.73f, 21f)
-        curveTo(13.3f, 21.6f, 12.7f, 22f, 12f, 22f)
-        curveTo(11.3f, 22f, 10.7f, 21.6f, 10.27f, 21f)
-    }
-}.build()
-
-private val IconBellNone: ImageVector = ImageVector.Builder(
-    name = "IconBellNone",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 2f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(18f, 8f)
-        curveTo(18f, 4.69f, 15.31f, 2f, 12f, 2f)
-        curveTo(8.69f, 2f, 6f, 4.69f, 6f, 8f)
-        curveTo(6f, 15f, 3f, 17f, 3f, 17f)
-        horizontalLineTo(21f)
-        curveTo(21f, 17f, 18f, 15f, 18f, 8f)
-        close()
     }
 }.build()
 

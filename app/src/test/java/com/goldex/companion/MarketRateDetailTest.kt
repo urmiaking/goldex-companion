@@ -104,4 +104,17 @@ class MarketRateDetailTest {
         val formattedWithTomans = "${PersianNumberFormatter.format(4_285_000L)} تومان"
         assertEquals("۴,۲۸۵,۰۰۰ تومان", formattedWithTomans)
     }
+
+    @Test
+    fun positiveAndNegativeSignsArePlacedBehindNumbers() {
+        val state = MarketRateDetailState.create(MarketRateItemType.GOLD_18K, sampleRates)
+        assertFalse("dailyRangeText should not start with +", state.monthlyStats.dailyRangeText.startsWith("+"))
+        assertFalse("weeklyChangeText should not start with +", state.monthlyStats.weeklyChangeText.startsWith("+"))
+        assertFalse("referenceIndexChange should not start with +", state.referenceIndexChange.startsWith("+"))
+
+        state.chartDataByHorizon.values.forEach { chart ->
+            assertFalse("fluctuationRangeText should not start with +", chart.fluctuationRangeText.startsWith("+"))
+            assertTrue("fluctuationRangeText should end with + or -", chart.fluctuationRangeText.endsWith("+") || chart.fluctuationRangeText.endsWith("-"))
+        }
+    }
 }
