@@ -73,6 +73,9 @@ import com.goldex.companion.ui.portfolio.PortfolioManagerViewModel
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModelFactory
 import com.goldex.companion.ui.rates.LiveRatesScreen
 import com.goldex.companion.ui.rates.MarketRatesUiState
+import com.goldex.companion.ui.rates.MarketRateDetailScreen
+import com.goldex.companion.model.MarketRateDetailState
+import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.ui.settings.SettingsViewModel
 import com.goldex.companion.ui.settings.SettingsViewModelFactory
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -442,6 +445,9 @@ fun MainScreen(
                                         onRefresh = { mainViewModel.refreshRates() },
                                         onNavigateCalculator = {
                                             mainViewModel.selectTab(AppTab.CALCULATOR)
+                                        },
+                                        onNavigateRateDetail = { rateType ->
+                                            mainViewModel.openRateDetail(rateType)
                                         }
                                     )
                                 }
@@ -561,7 +567,8 @@ fun MainScreen(
                           mainUiState.isStandardFormulasVisible ||
                           mainUiState.isKaratConvertVisible ||
                           mainUiState.isCoinBubbleVisible ||
-                          mainUiState.isMeltVisible
+                          mainUiState.isMeltVisible ||
+                          mainUiState.isRateDetailVisible
             ) {
                 if (customerState.selectedCustomerForStatement != null) {
                     customerViewModel.closeCustomerStatement()
@@ -569,7 +576,8 @@ fun MainScreen(
                     customerViewModel.closeCustomerLedger()
                 } else if (barterUiState.subScreen != InvoicesSubScreen.LIST) {
                     barterInvoiceViewModel.navigateBackToList()
-                } else if (mainUiState.isStandardFormulasVisible) mainViewModel.setStandardFormulasVisible(false)
+                } else if (mainUiState.isRateDetailVisible) mainViewModel.setRateDetailVisible(false)
+                else if (mainUiState.isStandardFormulasVisible) mainViewModel.setStandardFormulasVisible(false)
                 else if (mainUiState.isKaratConvertVisible) mainViewModel.setKaratConvertVisible(false)
                 else if (mainUiState.isCoinBubbleVisible) mainViewModel.setCoinBubbleVisible(false)
                 else if (mainUiState.isMeltVisible) mainViewModel.setMeltVisible(false)
@@ -735,6 +743,40 @@ fun MainScreen(
                         onBack = { customerViewModel.closeCustomerStatement() }
                     )
                 }
+            }
+
+            // Market Rate Detail & Trend Chart Screen (Stitch Screen 57d121df61a34215ba36be0989160e62)
+            AnimatedVisibility(
+                visible = mainUiState.isRateDetailVisible,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val detailState = remember(mainUiState.selectedRateDetailType, mainUiState.rates) {
+                    MarketRateDetailState.create(mainUiState.selectedRateDetailType, mainUiState.rates)
+                }
+                MarketRateDetailScreen(
+                    state = detailState,
+                    onBack = { mainViewModel.setRateDetailVisible(false) },
+                    onAddToInvoice = { price, karat ->
+                        mainViewModel.setRateDetailVisible(false)
+                        val basisTab = when (karat) {
+                            Karat.K17 -> PriceBasisTab.K17
+                            Karat.K24 -> PriceBasisTab.K24
+                            else -> PriceBasisTab.K18
+                        }
+                        mainViewModel.updatePriceBasisTab(basisTab)
+                        mainViewModel.updateSpotPriceInput(price.toString())
+                        mainViewModel.selectTab(AppTab.CALCULATOR)
+                    },
+                    onSetPriceAlert = { _, _ ->
+                        // Handled via in-app toast & state
+                    },
+                    onViewAllTransactions = {
+                        mainViewModel.setRateDetailVisible(false)
+                        customerViewModel.openCustomerLedger()
+                    }
+                )
             }
         }
     }

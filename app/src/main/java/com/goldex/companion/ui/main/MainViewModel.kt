@@ -13,6 +13,7 @@ import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.model.*
+import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.calculator.screens.MeltUiState
@@ -69,7 +70,9 @@ data class MainUiState(
     val isStandardFormulasVisible: Boolean = false,
     val isKaratConvertVisible: Boolean = false,
     val isCoinBubbleVisible: Boolean = false,
-    val isMeltVisible: Boolean = false
+    val isMeltVisible: Boolean = false,
+    val isRateDetailVisible: Boolean = false,
+    val selectedRateDetailType: MarketRateItemType = MarketRateItemType.GOLD_18K
 ) {
     fun toJewelryUiState(): JewelryUiState = JewelryUiState(
         itemTitleInput = itemTitleInput,
@@ -167,6 +170,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun setMeltVisible(visible: Boolean) {
         _uiState.update { it.copy(isMeltVisible = visible) }
+    }
+
+    fun openRateDetail(type: MarketRateItemType) {
+        _uiState.update { it.copy(selectedRateDetailType = type, isRateDetailVisible = true) }
+    }
+
+    fun setRateDetailVisible(visible: Boolean) {
+        _uiState.update { it.copy(isRateDetailVisible = visible) }
     }
 
     // --- Tab Selection & App Theme ---

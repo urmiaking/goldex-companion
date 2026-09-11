@@ -20,12 +20,15 @@ MainActivity
   -> MainScreen
        -> DashboardScreen (DashboardUiState)
        -> LiveRatesScreen (MarketRatesUiState)
+       -> MarketRateDetailScreen (MarketRateDetailState)
        -> JewelryTab (JewelryUiState & JewelryActions)
        -> KaratConvertScreen (KaratConvertViewModel)
        -> CoinBubbleScreen (MarketRates & explicit callbacks)
        -> MeltCalcScreen (MeltUiState & explicit callbacks)
+       -> CustomerLedgerScreen (CustomerManagerViewModel)
+       -> CustomerStatementScreen (CustomerManagerViewModel)
        -> MoreHubScreen (AppSettings & explicit callbacks)
-       -> InvoicesTabPreviewCard (InvoiceManagerViewModel)
+       -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
        -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog)
 
 Feature ViewModels & State Holders:

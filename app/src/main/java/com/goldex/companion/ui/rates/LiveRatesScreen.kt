@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.dashboard.*
@@ -46,7 +47,8 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 fun LiveRatesScreen(
     uiState: MarketRatesUiState,
     onRefresh: () -> Unit,
-    onNavigateCalculator: () -> Unit
+    onNavigateCalculator: () -> Unit,
+    onNavigateRateDetail: (MarketRateItemType) -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
 
@@ -171,6 +173,7 @@ fun LiveRatesScreen(
                     ),
                     shape = RoundedCornerShape(22.dp)
                 )
+                .clickable { onNavigateRateDetail(MarketRateItemType.GOLD_MELT) }
                 .padding(18.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -456,7 +459,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "کف: ${PersianNumberFormatter.format((gold18Val * 0.992).toLong())} | سقف: ${PersianNumberFormatter.format((gold18Val * 1.008).toLong())}",
                     icon = DashTollVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_18K) }
                 )
             }
 
@@ -473,7 +477,25 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "کف: ${PersianNumberFormatter.format((gold24Val * 0.992).toLong())} | سقف: ${PersianNumberFormatter.format((gold24Val * 1.008).toLong())}",
                     icon = DashIngotVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_24K) }
+                )
+            }
+
+            // Card 2.5: مظنه مثقال طلای آبشده (۱۷ عیار)
+            if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
+                val meltVal = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18550000L
+                MarketRateDetailCard(
+                    title = "مظنه مثقال آبشده (۱۷ عیار)",
+                    subtitle = "مبنای سنتی و بنکداری بازار تهران",
+                    badge = "مظنه",
+                    price = PersianNumberFormatter.format(meltVal),
+                    delta = "+۱۴۰,۰۰۰ (+۰.۸٪)",
+                    isPositive = true,
+                    infoText = "کف: ${PersianNumberFormatter.format((meltVal * 0.993).toLong())} | سقف: ${PersianNumberFormatter.format((meltVal * 1.004).toLong())}",
+                    icon = DashBalanceVector,
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_MELT) }
                 )
             }
 
@@ -490,7 +512,8 @@ fun LiveRatesScreen(
                     infoText = "حباب قیمتی: ۸,۱۵۰,۰۰۰ ت (۱۶.۶٪)",
                     icon = DashCoinVector,
                     colors = colors,
-                    hasAccentRibbon = true
+                    hasAccentRibbon = true,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.COIN_EMAMI) }
                 )
             }
 
@@ -506,7 +529,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "حباب: ۴,۳۵۰,۰۰۰ ت (۱۷.۲٪)",
                     icon = DashCoinVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.COIN_HALF) }
                 )
             }
 
@@ -522,7 +546,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "حباب: ۴,۹۰۰,۰۰۰ ت (۳۱.۸٪)",
                     icon = DashCoinVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.COIN_QUARTER) }
                 )
             }
 
@@ -538,7 +563,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "حباب: ۲,۶۵۰,۰۰۰ ت (۳۶.۸٪)",
                     icon = DashCoinVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.COIN_GERAMI) }
                 )
             }
 
@@ -554,7 +580,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "دامنه روز: ۲,۶۶۲ $ تا ۲,۶۹۰ $",
                     icon = DashGlobeVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.ONS) }
                 )
             }
 
@@ -570,7 +597,8 @@ fun LiveRatesScreen(
                     isPositive = true,
                     infoText = "حواله دبی: ۲۵,۴۰۰ ت | تتر: ۹۳,۱۰۰ ت",
                     icon = DashWalletVector,
-                    colors = colors
+                    colors = colors,
+                    onClick = { onNavigateRateDetail(MarketRateItemType.USD) }
                 )
             }
         }
@@ -637,14 +665,17 @@ private fun MarketRateDetailCard(
     infoText: String,
     icon: ImageVector,
     colors: com.goldex.companion.ui.theme.GoldExAppColors,
-    hasAccentRibbon: Boolean = false
+    hasAccentRibbon: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = BorderStroke(0.6.dp, if (hasAccentRibbon) colors.goldPrimary.copy(alpha = 0.5f) else colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (hasAccentRibbon) {
