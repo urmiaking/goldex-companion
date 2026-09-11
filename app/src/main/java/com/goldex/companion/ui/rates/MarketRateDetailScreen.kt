@@ -2,10 +2,14 @@ package com.goldex.companion.ui.rates
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -45,6 +49,7 @@ import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
 import com.goldex.companion.ui.dashboard.*
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import java.util.Locale
 
 /**
@@ -152,7 +157,7 @@ fun MarketRateDetailScreen(
                     // Left: Notification and Native Share Action Buttons
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Notification Button
                         IconButton(
@@ -169,9 +174,9 @@ fun MarketRateDetailScreen(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(if (isAlertActive) colors.goldPrimary.copy(alpha = 0.16f) else colors.surfaceElevated)
+                                .background(colors.surfaceElevated)
                                 .border(
-                                    0.6.dp,
+                                    if (isAlertActive) 1.dp else 0.6.dp,
                                     if (isAlertActive) colors.goldPrimary else colors.goldBorder.copy(alpha = 0.5f),
                                     CircleShape
                                 )
@@ -525,51 +530,71 @@ fun MarketRateDetailScreen(
                     fontSize = 11.sp
                 )
 
-                // Chart Canvas Area
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(top = 10.dp)
-                ) {
-                    TrendChartCanvas(
-                        points = currentChart.points,
-                        peakPrice = currentChart.peakPrice,
-                        peakXRatio = currentChart.peakXRatio,
-                        peakYRatio = currentChart.peakYRatio,
-                        currencyUnit = state.currencyUnit,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                // Horizontal Time Axis
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    currentChart.timeLabels.forEachIndexed { idx, label ->
-                        val isLive = idx == 0 || (selectedHorizon == TimeHorizon.TODAY && idx == currentChart.timeLabels.lastIndex)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            if (isLive && selectedHorizon == TimeHorizon.TODAY && idx == currentChart.timeLabels.lastIndex) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.goldPrimary)
-                                )
-                            }
-                            Text(
-                                text = PersianNumberFormatter.toPersianDigits(label),
-                                fontSize = 10.sp,
-                                fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isLive) colors.goldPrimary else colors.textMuted
+                // Chart Canvas Area & Horizontal Time Axis with fluid AnimatedContent transition
+                AnimatedContent(
+                    targetState = selectedHorizon,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(240, easing = LuxuryMotion.StandardEasing)) +
+                            scaleIn(initialScale = 0.96f, animationSpec = tween(240, easing = LuxuryMotion.StandardEasing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing)) +
+                                scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing))
                             )
+                    },
+                    label = "chartHorizonTransition"
+                ) { targetHorizon ->
+                    val horizonChart = state.chartDataByHorizon[targetHorizon] ?: state.chartDataByHorizon.values.first()
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Chart Canvas Area
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .padding(top = 10.dp)
+                        ) {
+                            TrendChartCanvas(
+                                points = horizonChart.points,
+                                peakPrice = horizonChart.peakPrice,
+                                peakXRatio = horizonChart.peakXRatio,
+                                peakYRatio = horizonChart.peakYRatio,
+                                currencyUnit = state.currencyUnit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        // Horizontal Time Axis
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            horizonChart.timeLabels.forEachIndexed { idx, label ->
+                                val isLive = idx == 0 || (targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    if (isLive && targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.goldPrimary)
+                                        )
+                                    }
+                                    Text(
+                                        text = PersianNumberFormatter.toPersianDigits(label),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isLive) colors.goldPrimary else colors.textMuted
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -667,7 +692,7 @@ fun MarketRateDetailScreen(
                     Icon(
                         imageVector = CalcShare,
                         contentDescription = null,
-                        tint = Color(0xFF111827),
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -675,7 +700,7 @@ fun MarketRateDetailScreen(
                         text = "اشتراک‌گذاری نرخ",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF111827)
+                        color = Color.White
                     )
                 }
             }
@@ -683,8 +708,11 @@ fun MarketRateDetailScreen(
             // Action 2: تنظیم هشدار (Outlined Surface Button)
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = if (isAlertActive) colors.goldPrimary.copy(alpha = 0.14f) else colors.surface,
-                border = BorderStroke(0.8.dp, if (isAlertActive) colors.goldPrimary else colors.goldBorder),
+                color = if (isAlertActive) colors.surfaceElevated else colors.surface,
+                border = BorderStroke(
+                    width = if (isAlertActive) 1.dp else 0.8.dp,
+                    color = if (isAlertActive) colors.goldPrimary else colors.goldBorder
+                ),
                 shadowElevation = 1.dp,
                 modifier = Modifier
                     .weight(1f)
@@ -709,7 +737,7 @@ fun MarketRateDetailScreen(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (isAlertActive) colors.goldPrimary else colors.textMuted,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
