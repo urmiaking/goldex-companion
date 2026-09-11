@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.calculator.CalcPostAdd
 import com.goldex.companion.ui.calculator.CalcReceiptLong
+import com.goldex.companion.ui.calculator.CalcShare
 import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.customers.LedgerArrowPayVector
 import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
@@ -208,7 +209,7 @@ fun MarketRateDetailScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Default.Share,
+                            imageVector = CalcShare,
                             contentDescription = "اشتراک‌گذاری",
                             tint = colors.textSecondary,
                             modifier = Modifier.size(19.dp)
