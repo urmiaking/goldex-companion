@@ -761,12 +761,11 @@ fun MainScreen(
                     onAddToInvoice = { price, karat ->
                         mainViewModel.setRateDetailVisible(false)
                         val basisTab = when (karat) {
-                            Karat.K17 -> PriceBasisTab.K17
                             Karat.K24 -> PriceBasisTab.K24
                             else -> PriceBasisTab.K18
                         }
-                        mainViewModel.updatePriceBasisTab(basisTab)
-                        mainViewModel.updateSpotPriceInput(price.toString())
+                        mainViewModel.setPriceBasisTab(basisTab)
+                        mainViewModel.onSpotPriceChanged(price.toString())
                         mainViewModel.selectTab(AppTab.CALCULATOR)
                     },
                     onSetPriceAlert = { _, _ ->

@@ -17,9 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import com.goldex.companion.ui.hub.HubArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,15 +26,20 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.calculator.CalcPostAdd
+import com.goldex.companion.ui.calculator.CalcReceiptLong
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.customers.LedgerArrowPayVector
+import com.goldex.companion.ui.customers.LedgerArrowReceiveVector
 import com.goldex.companion.ui.dashboard.*
+import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import java.util.Locale
 
@@ -174,7 +176,7 @@ fun MarketRateDetailScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = if (isAlertActive) Icons.Default.NotificationsActive else Icons.Default.NotificationsNone,
+                            imageVector = if (isAlertActive) IconBellActive else IconBellNone,
                             contentDescription = "تنظیم هشدار",
                             tint = if (isAlertActive) colors.goldPrimary else colors.textSecondary,
                             modifier = Modifier.size(19.dp)
@@ -299,7 +301,7 @@ fun MarketRateDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Verified,
+                                imageVector = DashVerifiedVector,
                                 contentDescription = null,
                                 tint = Color(0xFF6FFBBE),
                                 modifier = Modifier.size(13.dp)
@@ -367,7 +369,7 @@ fun MarketRateDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (state.isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                    imageVector = if (state.isPositive) DashTrendingUpVector else DashTrendingDownVector,
                                     contentDescription = null,
                                     tint = if (state.isPositive) Color(0xFF6EE7B7) else Color(0xFFFCA5A5),
                                     modifier = Modifier.size(16.dp)
@@ -397,7 +399,7 @@ fun MarketRateDetailScreen(
                     MetricTile(
                         title = "کف قیمت روز",
                         value = "${PersianNumberFormatter.format(state.dayLow)} ${state.currencyUnit}",
-                        icon = Icons.Default.ArrowDownward,
+                        icon = IconArrowDown,
                         iconColor = Color(0xFFF87171),
                         modifier = Modifier.weight(1f)
                     )
@@ -406,7 +408,7 @@ fun MarketRateDetailScreen(
                     MetricTile(
                         title = "سقف قیمت روز",
                         value = "${PersianNumberFormatter.format(state.dayHigh)} ${state.currencyUnit}",
-                        icon = Icons.Default.ArrowUpward,
+                        icon = IconArrowUp,
                         iconColor = Color(0xFF4ADE80),
                         modifier = Modifier.weight(1f)
                     )
@@ -420,7 +422,7 @@ fun MarketRateDetailScreen(
                     MetricTile(
                         title = "نرخ بازگشایی",
                         value = "${PersianNumberFormatter.format(state.openPrice)} ${state.currencyUnit}",
-                        icon = Icons.Default.History,
+                        icon = DashScheduleVector,
                         iconColor = Color(0xFFFFE088),
                         modifier = Modifier.weight(1f)
                     )
@@ -429,7 +431,7 @@ fun MarketRateDetailScreen(
                     MetricTile(
                         title = state.bubbleOrSpreadLabel,
                         value = "${if (state.bubbleOrSpread > 0) "+" else ""}${PersianNumberFormatter.format(state.bubbleOrSpread)} ${state.currencyUnit}",
-                        icon = Icons.Default.SwapVert,
+                        icon = IconSwapVert,
                         iconColor = Color(0xFF38BDF8),
                         modifier = Modifier.weight(1f)
                     )
@@ -464,7 +466,7 @@ fun MarketRateDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ShowChart,
+                            imageVector = IconShowChart,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(20.dp)
@@ -603,7 +605,7 @@ fun MarketRateDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Public,
+                                imageVector = DashGlobeVector,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(15.dp)
@@ -620,7 +622,7 @@ fun MarketRateDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.TrendingUp,
+                                imageVector = DashTrendingUpVector,
                                 contentDescription = null,
                                 tint = Color(0xFF10B981),
                                 modifier = Modifier.size(15.dp)
@@ -715,7 +717,7 @@ fun MarketRateDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.NotificationsActive,
+                        imageVector = IconBellActive,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -757,7 +759,7 @@ fun MarketRateDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Analytics,
+                            imageVector = IconAnalytics,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -853,7 +855,7 @@ fun MarketRateDetailScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ReceiptLong,
+                                    imageVector = CalcReceiptLong,
                                     contentDescription = null,
                                     tint = colors.goldPrimary,
                                     modifier = Modifier.size(16.dp)
@@ -909,7 +911,7 @@ fun MarketRateDetailScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                                 ) {
                                                     Icon(
-                                                        imageVector = if (tx.isBuy) Icons.Default.SouthWest else Icons.Default.NorthEast,
+                                                        imageVector = if (tx.isBuy) LedgerArrowReceiveVector else LedgerArrowPayVector,
                                                         contentDescription = null,
                                                         tint = if (tx.isBuy) Color(0xFF047857) else Color(0xFFB45309),
                                                         modifier = Modifier.size(11.dp)
@@ -991,7 +993,7 @@ fun MarketRateDetailScreen(
 private fun MetricTile(
     title: String,
     value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     iconColor: Color,
     modifier: Modifier = Modifier
 ) {
@@ -1237,3 +1239,167 @@ private fun TrendChartCanvas(
         }
     }
 }
+
+// ==========================================
+// Custom Self-Contained Vector Icons
+// ==========================================
+
+private val IconArrowDown: ImageVector = ImageVector.Builder(
+    name = "IconArrowDown",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 5f)
+        lineTo(12f, 19f)
+        moveTo(19f, 12f)
+        lineTo(12f, 19f)
+        lineTo(5f, 12f)
+    }
+}.build()
+
+private val IconArrowUp: ImageVector = ImageVector.Builder(
+    name = "IconArrowUp",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 19f)
+        lineTo(12f, 5f)
+        moveTo(5f, 12f)
+        lineTo(12f, 5f)
+        lineTo(19f, 12f)
+    }
+}.build()
+
+private val IconSwapVert: ImageVector = ImageVector.Builder(
+    name = "IconSwapVert",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(16f, 17f)
+        lineTo(16f, 3f)
+        moveTo(12f, 7f)
+        lineTo(16f, 3f)
+        lineTo(20f, 7f)
+        moveTo(8f, 7f)
+        lineTo(8f, 21f)
+        moveTo(4f, 17f)
+        lineTo(8f, 21f)
+        lineTo(12f, 17f)
+    }
+}.build()
+
+private val IconBellActive: ImageVector = ImageVector.Builder(
+    name = "IconBellActive",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(18f, 8f)
+        curveTo(18f, 4.69f, 15.31f, 2f, 12f, 2f)
+        curveTo(8.69f, 2f, 6f, 4.69f, 6f, 8f)
+        curveTo(6f, 15f, 3f, 17f, 3f, 17f)
+        horizontalLineTo(21f)
+        curveTo(21f, 17f, 18f, 15f, 18f, 8f)
+        close()
+        moveTo(13.73f, 21f)
+        curveTo(13.3f, 21.6f, 12.7f, 22f, 12f, 22f)
+        curveTo(11.3f, 22f, 10.7f, 21.6f, 10.27f, 21f)
+    }
+}.build()
+
+private val IconBellNone: ImageVector = ImageVector.Builder(
+    name = "IconBellNone",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(18f, 8f)
+        curveTo(18f, 4.69f, 15.31f, 2f, 12f, 2f)
+        curveTo(8.69f, 2f, 6f, 4.69f, 6f, 8f)
+        curveTo(6f, 15f, 3f, 17f, 3f, 17f)
+        horizontalLineTo(21f)
+        curveTo(21f, 17f, 18f, 15f, 18f, 8f)
+        close()
+    }
+}.build()
+
+private val IconAnalytics: ImageVector = ImageVector.Builder(
+    name = "IconAnalytics",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(3f, 3f)
+        verticalLineTo(21f)
+        horizontalLineTo(21f)
+        moveTo(18f, 9f)
+        lineTo(14f, 13f)
+        lineTo(10f, 9f)
+        lineTo(6f, 13f)
+    }
+}.build()
+
+private val IconShowChart: ImageVector = ImageVector.Builder(
+    name = "IconShowChart",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(3.5f, 18.5f)
+        lineTo(9.5f, 12.5f)
+        lineTo(13.5f, 16.5f)
+        lineTo(20.5f, 7.5f)
+    }
+}.build()
