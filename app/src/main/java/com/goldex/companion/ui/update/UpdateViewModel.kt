@@ -21,7 +21,29 @@ class UpdateViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(UpdateUiState())
     val uiState: StateFlow<UpdateUiState> = _uiState.asStateFlow()
 
-    fun checkForUpdates(@Suppress("UNUSED_PARAMETER") manual: Boolean = false) {
+    private var lastCheckTimeMs: Long = 0L
+
+    companion object {
+        private const val AUTO_CHECK_COOLDOWN_MS = 20_000L
+    }
+
+    fun onAppForegrounded() {
+        // Reset dialog dismissal so available updates re-prompt when user returns to app
+        _uiState.update { it.copy(isUpdateDialogDismissed = false) }
+
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastCheckTimeMs >= AUTO_CHECK_COOLDOWN_MS) {
+            checkForUpdates(manual = false)
+        }
+    }
+
+    fun checkForUpdates(manual: Boolean = false) {
+        if (_uiState.value.isCheckingForUpdate) return
+
+        if (!manual) {
+            lastCheckTimeMs = System.currentTimeMillis()
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isCheckingForUpdate = true, isUpdateDialogDismissed = false) }
             val info = try {

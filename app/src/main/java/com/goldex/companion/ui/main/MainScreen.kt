@@ -30,6 +30,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -105,9 +108,18 @@ fun MainScreen(
 
     val colors = LocalGoldExColors.current
 
-    // In-App Auto-Update Check & Dialog Prompt
-    LaunchedEffect(Unit) {
-        updateViewModel.checkForUpdates(manual = false)
+    // In-App Auto-Update Check & Dialog Prompt (Triggers on initial launch and whenever user re-enters the app)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                updateViewModel.onAppForegrounded()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Sync live market rate or input spot price with barter invoice spot price
