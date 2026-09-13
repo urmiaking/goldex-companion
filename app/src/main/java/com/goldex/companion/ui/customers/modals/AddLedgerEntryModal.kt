@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -465,11 +466,19 @@ fun AddLedgerEntryModal(
                         }
                     }
 
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(ButtonShape)
+                            .background(colors.surfaceElevated)
+                            .border(0.6.dp, colors.goldBorder, ButtonShape)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "انصراف و بستن",
-                            tint = colors.textMuted
+                            tint = colors.textMuted,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }

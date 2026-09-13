@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -110,8 +111,9 @@ fun CustomerLedgerScreen(
                             onClick = onBack,
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(CircleShape)
+                                .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ArrowForward,
@@ -149,10 +151,10 @@ fun CustomerLedgerScreen(
                         }
                     }
 
-                    // "+ افزودن مشتری" Button (Compact Solid Gold Pill Button - White Text)
+                    // "+ افزودن مشتری" Button (Compact Solid Gold Button - White Text)
                     Button(
                         onClick = onAddNewCustomer,
-                        shape = RoundedCornerShape(20.dp),
+                        shape = ButtonShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = colors.goldPrimary,
                             contentColor = Color.White
@@ -323,12 +325,12 @@ fun CustomerLedgerScreen(
 
                         // Filter Button beside Search Bar (Fix 2 - Stitch Design)
                         Surface(
-                            shape = RoundedCornerShape(14.dp),
+                            shape = ButtonShape,
                             color = colors.surfaceElevated,
                             border = BorderStroke(0.6.dp, colors.border),
                             modifier = Modifier
                                 .size(44.dp)
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(ButtonShape)
                                 .clickable {
                                     val tabs = CustomerLedgerFilterTab.values()
                                     val nextIndex = (uiState.selectedLedgerFilter.ordinal + 1) % tabs.size
@@ -917,9 +919,9 @@ private fun LedgerFilterCapsuleItem(
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
+            .clip(ButtonShape)
             .background(animatedBg)
-            .border(1.dp, animatedBorder, RoundedCornerShape(50))
+            .border(1.dp, animatedBorder, ButtonShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {

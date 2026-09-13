@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -403,9 +404,9 @@ private fun SearchAndQuickFilterBar(
         Box(
             modifier = Modifier
                 .size(46.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(ButtonShape)
                 .background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+                .border(1.dp, colors.border, ButtonShape)
                 .clickable { /* Filter and Sort Action */ },
             contentAlignment = Alignment.Center
         ) {
@@ -502,9 +503,9 @@ private fun FilterCapsuleItem(
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
+            .clip(ButtonShape)
             .background(animatedBg)
-            .border(1.dp, animatedBorder, RoundedCornerShape(50))
+            .border(1.dp, animatedBorder, ButtonShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
@@ -831,18 +832,18 @@ fun FloatingNewInvoiceButton(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = ButtonShape,
         color = Color(0xFF141B2B),
         border = BorderStroke(1.dp, Color(0x66F59E0B)),
         shadowElevation = 10.dp,
         modifier = modifier
             .shadow(
                 elevation = 12.dp,
-                shape = RoundedCornerShape(50),
+                shape = ButtonShape,
                 ambientColor = Color(0x66C7983B),
                 spotColor = Color(0xAA000000)
             )
-            .clip(RoundedCornerShape(50))
+            .clip(ButtonShape)
             .clickable(onClick = onNewInvoiceClick)
     ) {
         Box(

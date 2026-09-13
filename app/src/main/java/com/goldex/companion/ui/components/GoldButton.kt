@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
@@ -32,18 +33,19 @@ import com.goldex.companion.ui.theme.goldButtonText
 import com.goldex.companion.ui.theme.hairlineBorder
 
 /**
- * Sovereign Aurum luxury button matching user-approved button style (media_1788630349237.png).
+ * Sovereign Aurum luxury button matching unified 12.dp corner radius.
  *
  * Primary:
  * - Horizontal gradient (#FAC24B -> #E7B342)
  * - Antique dark bronze bold text (#554300, 14.sp)
- * - 24.dp pill shape, 48.dp height
+ * - 12.dp shape (ButtonShape), 48.dp height
  *
  * Secondary:
  * - surfaceElevated background
  * - hairlineBorder
  * - goldPrimary icon
  * - textMain text (13.sp)
+ * - 12.dp shape (ButtonShape)
  */
 @Composable
 fun GoldButton(
@@ -63,7 +65,7 @@ fun GoldButton(
             onClick = onClick,
             enabled = enabled && !isLoading,
             modifier = modifier.height(height),
-            shape = RoundedCornerShape(20.dp),
+            shape = ButtonShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colors.surfaceElevated,
                 contentColor = colors.textMain,
@@ -124,7 +126,7 @@ fun GoldButton(
             onClick = onClick,
             enabled = enabled && !isLoading,
             modifier = modifier.height(height),
-            shape = RoundedCornerShape(24.dp),
+            shape = ButtonShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
                 contentColor = buttonTextAndIconColor,
@@ -145,7 +147,7 @@ fun GoldButton(
                     .fillMaxSize()
                     .background(
                         brush = gradientBrush,
-                        shape = RoundedCornerShape(24.dp)
+                        shape = ButtonShape
                     ),
                 contentAlignment = Alignment.Center
             ) {

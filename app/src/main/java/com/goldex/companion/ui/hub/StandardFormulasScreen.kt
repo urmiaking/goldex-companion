@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -235,8 +236,9 @@ fun StandardFormulasScreen(
                                 onClick = onBack,
                                 modifier = Modifier
                                     .size(38.dp)
-                                    .clip(CircleShape)
+                                    .clip(ButtonShape)
                                     .background(colors.surfaceElevated)
+                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
                                 Icon(
                                     imageVector = HubArrowRight,
@@ -265,8 +267,9 @@ fun StandardFormulasScreen(
                             onClick = shareFormulasText,
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(CircleShape)
+                                .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -211,8 +212,9 @@ fun PriceSourceModal(
                                         onClick = handleDismiss,
                                         modifier = Modifier
                                             .size(32.dp)
-                                            .clip(CircleShape)
+                                            .clip(ButtonShape)
                                             .background(colors.surfaceElevated)
+                                            .border(0.6.dp, colors.goldBorder, ButtonShape)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,

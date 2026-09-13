@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -109,9 +110,9 @@ fun CoinBubbleScreen(
                                 onClick = onBack,
                                 modifier = Modifier
                                     .size(38.dp)
-                                    .clip(CircleShape)
+                                    .clip(ButtonShape)
                                     .background(colors.surfaceElevated)
-                                    .border(0.6.dp, colors.goldBorder, CircleShape)
+                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
                                 Icon(
                                     imageVector = HubArrowRight,
@@ -155,9 +156,9 @@ fun CoinBubbleScreen(
                             },
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(CircleShape)
+                                .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
-                                .border(0.6.dp, colors.goldBorder, CircleShape)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
                         ) {
                             Icon(
                                 imageVector = CalcSync,

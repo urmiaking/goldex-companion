@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.ui.components
+package com.goldex.companion.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -102,8 +103,9 @@ fun InvoiceManagerDialog(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(32.dp)
-                            .clip(CircleShape)
+                            .clip(ButtonShape)
                             .background(colors.surfaceElevated)
+                            .border(0.6.dp, colors.goldBorder, ButtonShape)
                     ) {
                         Icon(
                             Icons.Default.Close,
@@ -307,7 +309,7 @@ fun InvoiceManagerDialog(
                                                 },
                                                 modifier = Modifier
                                                     .size(34.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clip(ButtonShape)
                                                     .background(colors.goldContainer)
                                             ) {
                                                 Icon(
@@ -322,7 +324,7 @@ fun InvoiceManagerDialog(
                                                 onClick = { onDeleteInvoice(invoice.id) },
                                                 modifier = Modifier
                                                     .size(34.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clip(ButtonShape)
                                                     .background(colors.surface)
                                             ) {
                                                 Icon(

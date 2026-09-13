@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -911,7 +912,7 @@ fun JewelryTab(
                     }
 
                     Surface(
-                        shape = CircleShape,
+                        shape = ButtonShape,
                         color = Color.White.copy(alpha = 0.1f),
                         modifier = Modifier
                             .size(32.dp)

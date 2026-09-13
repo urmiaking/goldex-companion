@@ -48,7 +48,8 @@ fun GoldExCompanionTheme(
     CompositionLocalProvider(LocalGoldExColors provides appColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography
+            typography = Typography,
+            shapes = GoldExShapes
         ) {
             ProvideTextStyle(value = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings)) {
                 content()

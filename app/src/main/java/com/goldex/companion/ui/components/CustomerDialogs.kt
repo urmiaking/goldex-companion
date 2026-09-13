@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -205,11 +206,19 @@ fun CustomerPickerDialog(
                             }
                         }
 
-                        IconButton(onClick = onDismiss) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(ButtonShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "بستن",
-                                tint = colors.textSecondary
+                                tint = colors.textMuted,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
@@ -554,11 +563,19 @@ fun AddCustomerDialog(
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
-                        IconButton(onClick = onDismiss) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(ButtonShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "انصراف",
-                                tint = colors.textSecondary
+                                tint = colors.textMuted,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
@@ -729,11 +746,19 @@ fun EditCustomerDialog(
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
-                        IconButton(onClick = onDismiss) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(ButtonShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "انصراف",
-                                tint = colors.textSecondary
+                                tint = colors.textMuted,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }

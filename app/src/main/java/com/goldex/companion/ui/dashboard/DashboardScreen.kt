@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -784,7 +785,7 @@ private fun QuickActionButton(
 ) {
     val colors = LocalGoldExColors.current
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = ButtonShape,
         color = colors.surface,
         border = BorderStroke(0.6.dp, colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,

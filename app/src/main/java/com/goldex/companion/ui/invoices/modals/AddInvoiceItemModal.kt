@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -151,8 +152,9 @@ fun AddInvoiceItemModal(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(34.dp)
-                            .clip(CircleShape)
+                            .clip(ButtonShape)
                             .background(colors.surfaceVariant)
+                            .border(0.6.dp, colors.goldBorder, ButtonShape)
                     ) {
                         Icon(
                             imageVector = InvoiceCloseVector,

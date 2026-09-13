@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
@@ -118,8 +119,9 @@ fun CustomerStatementScreen(
                                 onClick = onBack,
                                 modifier = Modifier
                                     .size(38.dp)
-                                    .clip(CircleShape)
+                                    .clip(ButtonShape)
                                     .background(colors.surfaceElevated)
+                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowForward,
@@ -638,7 +640,7 @@ private fun StatementTransactionCard(
                         onClick = onEditClick,
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(CircleShape)
+                            .clip(ButtonShape)
                             .background(colors.surfaceElevated)
                     ) {
                         Icon(
@@ -653,7 +655,7 @@ private fun StatementTransactionCard(
                         onClick = onDeleteClick,
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(CircleShape)
+                            .clip(ButtonShape)
                             .background(colors.surfaceElevated)
                     ) {
                         Icon(

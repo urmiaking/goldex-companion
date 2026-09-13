@@ -202,7 +202,8 @@ Hardcoded demo content must be named as demo content in code and removed or disa
 
 The Persian Sovereign Aurum design system is a product contract.
 
-- Reuse tokens from `ui/theme/Color.kt`, `Type.kt`, and `Theme.kt`.
+- Reuse tokens from `ui/theme/Color.kt`, `Type.kt`, `Shape.kt`, and `Theme.kt`.
+- Button and interactive control curvature is standardized to `ButtonShape` (`ButtonCornerRadius = 12.dp` in `Shape.kt`), mirroring the header notification button and dashboard card curvature.
 - Preserve RTL at the screen boundary.
 - Keep Persian number formatting centralized.
 - Do not introduce screen-specific colors for existing semantic states.
@@ -260,6 +261,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Phase 2 formally completed: Dashboard, Live Rates, and dedicated Stitch calculator screens (`KaratConvertScreen`, `CoinBubbleScreen`, `MeltCalcScreen`, `StandardFormulasScreen`) are fully established.
 - Standardized two-action dialog button layout across all modals and dialogs (Cancel on right, Save/Confirm on left in RTL) governed by `.agents/rules/dialog-button-layout.md`.
 - Weight and price-based wage inputs unified to 18sp with strict LTR decimal entry semantics under RTL layouts.
+- Unified corner radius across all buttons, icon buttons, filter capsules, and action surfaces to 12.dp (`ButtonShape` in `ui/theme/Shape.kt`), eliminating arbitrary radii (pill, 20.dp, 24.dp, 50%, CircleShape) in favor of the single source of truth defined by the header notification bell and primary dashboard cards.
 
 ## 14. Known current compromises
 

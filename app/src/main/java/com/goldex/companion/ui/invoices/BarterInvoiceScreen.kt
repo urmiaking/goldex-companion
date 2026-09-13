@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -176,9 +177,9 @@ fun BarterInvoiceScreen(
                                     onClick = onNavigateBack,
                                     modifier = Modifier
                                         .size(38.dp)
-                                        .clip(CircleShape)
+                                        .clip(ButtonShape)
                                         .background(colors.surfaceElevated)
-                                        .border(0.6.dp, colors.goldBorder, CircleShape)
+                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
                                 ) {
                                     Icon(
                                         imageVector = HubArrowRight,
@@ -495,7 +496,7 @@ private fun InvoiceMetaAndRateCard(
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = ButtonShape,
                         color = Color(0x22FFFFFF),
                         modifier = Modifier.clickable { onEditRateClick() }
                     ) {
@@ -1039,7 +1040,7 @@ private fun ItemsSectionCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = ButtonShape,
                     color = colors.goldContainer.copy(alpha = 0.5f),
                     border = BorderStroke(0.6.dp, colors.goldBorder),
                     modifier = Modifier.clickable { onAddItemClick() }
