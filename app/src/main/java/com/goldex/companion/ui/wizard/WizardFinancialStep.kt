@@ -12,13 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,7 +99,7 @@ fun WizardFinancialStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Percent,
+                            imageVector = WizardPercent,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -173,7 +166,7 @@ fun WizardFinancialStep(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Remove,
+                                    imageVector = WizardRemove,
                                     contentDescription = null,
                                     tint = colors.textMain,
                                     modifier = Modifier.size(16.dp)
@@ -204,7 +197,7 @@ fun WizardFinancialStep(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
+                                    imageVector = WizardAdd,
                                     contentDescription = null,
                                     tint = colors.textMain,
                                     modifier = Modifier.size(16.dp)
@@ -267,7 +260,7 @@ fun WizardFinancialStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AccountBalance,
+                            imageVector = WizardAccountBalance,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -376,7 +369,7 @@ fun WizardFinancialStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Diamond,
+                            imageVector = WizardDiamond,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -496,7 +489,7 @@ fun WizardFinancialStep(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Calculate,
+                        imageVector = WizardCalculate,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(20.dp)
@@ -538,7 +531,7 @@ fun WizardFinancialStep(
                 }
 
                 Icon(
-                    imageVector = Icons.Default.AutoAwesome,
+                    imageVector = WizardAutoAwesome,
                     contentDescription = null,
                     tint = colors.goldPrimary,
                     modifier = Modifier.size(18.dp)

@@ -11,13 +11,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Balance
-import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -128,7 +121,7 @@ fun WizardInventoryStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Storefront,
+                            imageVector = WizardStorefront,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -202,7 +195,7 @@ fun WizardInventoryStep(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ViewInAr,
+                        imageVector = WizardViewInAr,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -266,7 +259,7 @@ fun WizardInventoryStep(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MonetizationOn,
+                        imageVector = WizardMonetizationOn,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -347,7 +340,7 @@ fun WizardInventoryStep(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = Icons.Default.Remove,
+                                            imageVector = WizardRemove,
                                             contentDescription = null,
                                             tint = colors.textMain,
                                             modifier = Modifier.size(14.dp)
@@ -373,7 +366,7 @@ fun WizardInventoryStep(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            imageVector = Icons.Default.Add,
+                                            imageVector = WizardAdd,
                                             contentDescription = null,
                                             tint = colors.goldPrimary,
                                             modifier = Modifier.size(14.dp)
@@ -410,7 +403,7 @@ fun WizardInventoryStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.AccountBalance,
+                            imageVector = WizardAccountBalance,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(18.dp)
@@ -484,7 +477,7 @@ fun WizardInventoryStep(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Balance,
+                            imageVector = WizardBalance,
                             contentDescription = null,
                             tint = colors.goldSecondary,
                             modifier = Modifier.size(20.dp)

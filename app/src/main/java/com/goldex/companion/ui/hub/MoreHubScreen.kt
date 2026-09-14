@@ -10,8 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import com.goldex.companion.ui.wizard.WizardAutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -706,7 +705,7 @@ fun MoreHubScreen(
                 HubListRowItem(
                     title = "راهنمای راه‌اندازی و معرفی امکانات",
                     subtitle = "مرور مراحل ویزارد اولیه، پیکربندی گالری و تراز گاوصندوق",
-                    icon = Icons.Default.AutoAwesome,
+                    icon = WizardAutoAwesome,
                     iconTint = colors.goldPrimary,
                     iconBg = colors.goldContainer,
                     onClick = { onOpenOnboardingWizard?.invoke() }

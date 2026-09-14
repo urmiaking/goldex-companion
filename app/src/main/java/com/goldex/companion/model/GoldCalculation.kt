@@ -116,6 +116,9 @@ object PersianNumberFormatter {
         return sb.toString()
     }
 
+    fun toPersianDigits(number: Int): String = toPersianDigits(number.toString())
+    fun toPersianDigits(number: Long): String = toPersianDigits(number.toString())
+
     fun toEnglishDigits(input: String): String {
         val sb = StringBuilder()
         for (ch in input) {
@@ -191,6 +194,8 @@ object PersianNumberFormatter {
             .trim()
         return clean.toDoubleOrNull()
     }
+
+    fun parseToCleanDouble(text: String): Double? = parsePersianOrEnglish(text)
 
     fun parseToCleanLong(text: String): Long? {
         val clean = toEnglishDigits(text)

@@ -13,16 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.Inventory2
-import androidx.compose.material.icons.filled.Monitoring
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -100,7 +91,7 @@ fun WizardCompletionStep(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.WorkspacePremium,
+                                imageVector = WizardTrophy,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(36.dp)
@@ -128,7 +119,7 @@ fun WizardCompletionStep(
 
                     // Floating spark
                     Icon(
-                        imageVector = Icons.Default.AutoAwesome,
+                        imageVector = WizardAutoAwesome,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier
@@ -180,7 +171,7 @@ fun WizardCompletionStep(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Storefront,
+                            imageVector = WizardStorefront,
                             contentDescription = null,
                             tint = colors.goldPrimary,
                             modifier = Modifier.size(20.dp)
@@ -198,7 +189,7 @@ fun WizardCompletionStep(
                                 color = colors.textMain
                             )
                             Icon(
-                                imageVector = Icons.Default.Verified,
+                                imageVector = WizardCheckCircle,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(15.dp)
@@ -266,7 +257,7 @@ fun WizardCompletionStep(
                             color = colors.textMuted
                         )
                         Row(
-                            verticalAlignment = Alignment.Baseline,
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
@@ -300,7 +291,7 @@ fun WizardCompletionStep(
                             color = colors.textMuted
                         )
                         Row(
-                            verticalAlignment = Alignment.Baseline,
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
@@ -347,25 +338,25 @@ fun WizardCompletionStep(
 
             val suggestions = listOf(
                 SuggestedAction(
-                    icon = Icons.Default.ReceiptLong,
+                    icon = WizardReceiptLong,
                     title = "صدور اولین فاکتور طلا و جواهر",
                     description = "محاسبه لحظه‌ای مظنه، کارمزد، وزن و متعلقات",
                     targetTab = AppTab.INVOICES
                 ),
                 SuggestedAction(
-                    icon = Icons.Default.Monitoring,
+                    icon = WizardMonitoring,
                     title = "مشاهده تابلوی زنده مظنه و طلا",
                     description = "نرخ آنلاین طلای ۱۸، آبشده، سکه و انس جهانی",
                     targetTab = AppTab.RATES
                 ),
                 SuggestedAction(
-                    icon = Icons.Default.Inventory2,
+                    icon = WizardInventory,
                     title = "ثبت موجودی گاوصندوق و ویترین",
                     description = "ورود طلای خام، مصنوعات کارگاهی و بار سکه",
-                    targetTab = AppTab.PORTFOLIO
+                    targetTab = AppTab.CALCULATOR
                 ),
                 SuggestedAction(
-                    icon = Icons.Default.Calculate,
+                    icon = WizardCalculate,
                     title = "ماشین‌حساب تخصصی طلا و جواهر",
                     description = "محاسبه فوری قیمت، اجرت، سود و مالیات روز",
                     targetTab = AppTab.CALCULATOR

@@ -9,15 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Apartment
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Domain
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -101,7 +94,7 @@ fun WizardProfileStep(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Storefront,
+                        imageVector = WizardStorefront,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(32.dp)
@@ -133,7 +126,7 @@ fun WizardProfileStep(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = WizardCheckCircle,
                             contentDescription = null,
                             tint = colors.profitGreen,
                             modifier = Modifier.size(16.dp)
@@ -162,7 +155,7 @@ fun WizardProfileStep(
                 label = "نام تجاری طلافروشی / بنکداری *",
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Domain,
+                        imageVector = WizardDomain,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -198,7 +191,7 @@ fun WizardProfileStep(
                 label = "شماره پروانه صنف طلا و جواهر *",
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.VerifiedUser,
+                        imageVector = WizardSecurity,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -217,7 +210,7 @@ fun WizardProfileStep(
                 label = "شماره تماس واحد تجاری *",
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Call,
+                        imageVector = Icons.Default.Phone,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
@@ -235,7 +228,7 @@ fun WizardProfileStep(
                 label = "نشانی واحد صنفی (جهت درج در فاکتور رسمی) *",
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.Apartment,
+                        imageVector = WizardApartment,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(18.dp)

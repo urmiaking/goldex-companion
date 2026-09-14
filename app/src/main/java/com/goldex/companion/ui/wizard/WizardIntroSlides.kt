@@ -18,13 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CandlestickChart
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -82,10 +75,10 @@ fun WizardIntroSlides(
                 pillCategory = "نسل چهارم محاسبات زرگری",
                 headline = "دستیار جامع و هوشمند محاسبات طلا",
                 description = "محاسبه آنی فاکتور رسمی، تابلوی زنده مظنه و حباب سکه، و حسابداری پیشرفته دفاتر معین با دقت عیار ۷۵۰ صنف زرگری.",
-                feature1Icon = Icons.Default.ReceiptLong,
+                feature1Icon = WizardReceiptLong,
                 feature1Title = "صدور فاکتور رسمی اتحادیه و استاندارد مودیان",
                 feature1Description = "محاسبه خودکار سود ۷٪، اجرت ساخت و ثبت برخط سامانه تجارت",
-                feature2Icon = Icons.Default.CandlestickChart,
+                feature2Icon = WizardCandlestick,
                 feature2Title = "اتصال به تابلوی زنده مظنه و حباب سکه",
                 feature2Description = "پایش لحظه‌ای آبشده ۱۷ عیار، انس جهانی و حباب طلا و سکه"
             ),
@@ -97,10 +90,10 @@ fun WizardIntroSlides(
                 pillCategory = "خزانه و سرمایه در گردش",
                 headline = "مدیریت جامع موجودی و دارایی‌های طلا",
                 description = "پایش دقیق وزن خالص مصنوعات ویترین، طلای آبشده عیاردار، شمش و بسته‌های سکه بانکی به همراه ارزش روز دارایی‌ها.",
-                feature1Icon = Icons.Default.Storefront,
+                feature1Icon = WizardStorefront,
                 feature1Title = "دفترداری و انبارداری دقیق گاوصندوق",
                 feature1Description = "شمارش لحظه‌ای بار سکه بانکی و تفکیک موجودی ریالی و وزنی",
-                feature2Icon = Icons.Default.Security,
+                feature2Icon = WizardSecurity,
                 feature2Title = "تراز لحظه‌ای سرمایه در گردش",
                 feature2Description = "محاسبه ارزش تخمینی دارایی‌ها بر پایه نرخ مظنه زنده بازار"
             ),
@@ -112,10 +105,10 @@ fun WizardIntroSlides(
                 pillCategory = "حسابداری معین و تهاتر زرگری",
                 headline = "صدور فاکتور هوشمند و تسویه طلایی",
                 description = "تعویض طلای کهنه با نو، ثبت خودکار بدهکار و بستانکار در دفتر معین مشتریان و چاپ فاکتور رسمی با سربرگ گالری.",
-                feature1Icon = Icons.Default.ReceiptLong,
+                feature1Icon = WizardReceiptLong,
                 feature1Title = "تهاتر هوشمند طلا با طلا و تسویه ریالی",
                 feature1Description = "محاسبه دقیق مازاد وزنی یا ریالی فاکتور خرید و فروش همزمان",
-                feature2Icon = Icons.Default.CheckCircle,
+                feature2Icon = WizardCheckCircle,
                 feature2Title = "خروجی سند رسمی و پیش‌فاکتور چاپی",
                 feature2Description = "آماده‌سازی سند چاپی با نشان تجاری، بارکد و استاندارد اتحادیه"
             )
@@ -292,7 +285,7 @@ fun WizardIntroSlides(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Verified,
+                                    imageVector = WizardCheckCircle,
                                     contentDescription = null,
                                     tint = colors.goldPrimary,
                                     modifier = Modifier.size(18.dp)
@@ -361,7 +354,7 @@ fun WizardIntroSlides(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AutoAwesome,
+                        imageVector = WizardAutoAwesome,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(14.dp)
