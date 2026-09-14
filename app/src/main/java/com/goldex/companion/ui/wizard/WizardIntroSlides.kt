@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.R
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
-import com.goldex.companion.ui.theme.ButtonCornerRadius
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 data class IntroSlideData(
@@ -59,11 +58,10 @@ data class FeatureHighlight(
 )
 
 /**
- * Top App Signature Bar for the Intro stage.
+ * Top App Signature Bar for the Intro stage (without Skip button).
  */
 @Composable
 fun WizardIntroTopBar(
-    onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -78,7 +76,7 @@ fun WizardIntroTopBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -120,30 +118,28 @@ fun WizardIntroTopBar(
                 }
             }
 
-            // Skip Button (Left side in Persian RTL)
+            // Union / Standard Badge (Left side in Persian RTL)
             Surface(
-                onClick = onSkip,
-                shape = RoundedCornerShape(ButtonCornerRadius),
+                shape = RoundedCornerShape(10.dp),
                 color = colors.surfaceElevated,
-                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                shadowElevation = if (colors.isDark) 0.dp else 1.dp
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.35f))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Text(
-                        text = "رد کردن",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.textMain
-                    )
                     Icon(
-                        imageVector = WizardArrowLeft,
+                        imageVector = WizardSecurity,
                         contentDescription = null,
                         tint = colors.goldPrimary,
                         modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "صنف طلا و جواهر",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary
                     )
                 }
             }
@@ -584,7 +580,6 @@ fun WizardIntroSlides(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         WizardIntroTopBar(
-            onSkip = onSkipAsGuest,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
         )
 
@@ -612,7 +607,7 @@ fun WizardIntroSlides(
             ) {
                 // Secondary / Guest: Right side in Persian RTL (first in Row)
                 GoldButton(
-                    text = "ورود به عنوان مهمان",
+                    text = "ورود مهمان",
                     isSecondary = true,
                     onClick = onSkipAsGuest,
                     modifier = Modifier.weight(1f)

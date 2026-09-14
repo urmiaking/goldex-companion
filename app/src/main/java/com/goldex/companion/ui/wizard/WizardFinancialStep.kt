@@ -212,15 +212,6 @@ fun WizardFinancialContent(
                 }
             }
 
-            // Luxury Segmented Control for Quick Profit Margin Presets
-            LuxurySegmentedControl(
-                items = listOf("5", "6", "7"),
-                selectedItem = financialState.profitPercent,
-                onItemSelected = { onFinancialChange(financialState.copy(profitPercent = it)) },
-                label = { "${PersianNumberFormatter.toPersianDigits(it)} درصد" },
-                height = 38.dp,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
 
         // Section 2: VAT on Fabrication / Profit (مالیات بر ارزش افزوده)
@@ -268,54 +259,37 @@ fun WizardFinancialContent(
                 }
             }
 
-            // Luxury Segmented Control for VAT Status (Active vs Exempt)
+            // Unified 3-State Segmented Control for VAT Policy (معاف از مالیات / ۹٪ / ۱۰٪)
+            val vatOptions = listOf(
+                Triple("exempt", "معاف از مالیات", false to "0"),
+                Triple("9", "۹٪ (قانون قدیم)", true to "9"),
+                Triple("10", "۱۰٪ (قانون جدید)", true to "10")
+            )
+            val currentVatKey = if (!financialState.isVatEnabled || financialState.vatRate == "0") "exempt" else financialState.vatRate
+            val selectedOption = vatOptions.find { it.first == currentVatKey } ?: vatOptions[0]
+
             LuxurySegmentedControl(
-                items = listOf(true, false),
-                selectedItem = financialState.isVatEnabled,
-                onItemSelected = { onFinancialChange(financialState.copy(isVatEnabled = it)) },
-                label = { if (it) "فعال (مشمول قانون)" else "غیرفعال (معاف)" },
-                height = 38.dp,
+                items = vatOptions,
+                selectedItem = selectedOption,
+                onItemSelected = { opt ->
+                    onFinancialChange(
+                        financialState.copy(
+                            isVatEnabled = opt.third.first,
+                            vatRate = opt.third.second
+                        )
+                    )
+                },
+                label = { it.second },
+                height = 40.dp,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text(
-                text = "مطابق قانون مالیات، اصل ارزش طلا معاف بوده و مالیات صرفاً به مجموع «اجرت ساخت + سود زرگر» تعلق می‌گیرد.",
+                text = "مطابق قانون دائمی پایانه‌های فروشگاهی، اصل طلا معاف بوده و در صورت شمولیت، مالیات صرفاً بر مجموع «اجرت ساخت + سود زرگر» محاسبه می‌شود.",
                 fontSize = 11.5.sp,
                 color = colors.textSecondary,
                 lineHeight = 17.sp
             )
-
-            if (financialState.isVatEnabled) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "نرخ مصوب ارزش افزوده اجرت و سود:",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMain
-                        )
-
-                        // Luxury Segmented Control for Rate Selection (10% vs 9%)
-                        LuxurySegmentedControl(
-                            items = listOf("10", "9"),
-                            selectedItem = financialState.vatRate,
-                            onItemSelected = { onFinancialChange(financialState.copy(vatRate = it)) },
-                            label = { if (it == "10") "۱۰٪ (قانون جدید)" else "۹٪ (قانون قدیم)" },
-                            height = 34.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
         }
 
         // Section 3: Base Karat (Standard Calculations)
@@ -377,33 +351,6 @@ fun WizardFinancialContent(
                 height = 42.dp,
                 modifier = Modifier.fillMaxWidth()
             )
-
-            // Ratio Info Banner
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = colors.surfaceElevated,
-                border = BorderStroke(0.6.dp, colors.border)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "تبدیل مظنه (مبنای مثقال ۷۰۵ به گرم ۷۵۰):",
-                        fontSize = 11.5.sp,
-                        color = colors.textSecondary
-                    )
-                    Text(
-                        text = "ضریب ۴.۳۳۱۸",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary
-                    )
-                }
-            }
         }
 
         // Section 4: Formula Preview Callout

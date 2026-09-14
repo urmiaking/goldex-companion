@@ -39,22 +39,26 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Animated Celebration Confetti particle system around the golden trophy.
+ * Animated Celebration Confetti particle system:
+ * Shoots upwards/outwards from the trophy, arcs and falls down under gravity, and smoothly fades out.
  */
 @Composable
 fun ConfettiCelebration(
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "confetti_transition")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "confetti_phase"
-    )
+    val progress = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2800, easing = LinearEasing)
+        )
+    }
+
+    if (progress.value >= 1f) {
+        // Animation finished: particles have fallen and faded out completely
+        return
+    }
 
     // Palette of vibrant celebratory colors
     val confettiColors = remember {
@@ -72,49 +76,53 @@ fun ConfettiCelebration(
     }
 
     val particles = remember {
-        val list = mutableListOf<ConfettiParticle>()
-        val count = 42
+        val list = mutableListOf<BurstConfettiParticle>()
+        val count = 55
         for (i in 0 until count) {
-            val angle = (i.toFloat() / count) * (2f * Math.PI.toFloat()) + (i * 0.17f)
-            val distanceFactor = 0.38f + (i % 5) * 0.14f
+            // Angle distributed predominantly in upper half (-165 deg to -15 deg)
+            val angleDeg = -165f + (i.toFloat() / (count - 1)) * 150f + ((i % 5) - 2) * 4f
+            val angleRad = Math.toRadians(angleDeg.toDouble()).toFloat()
+            val speed = 230f + (i % 8) * 35f
+            val vx = speed * cos(angleRad)
+            val vy = speed * sin(angleRad) // negative = moving upwards
+
             val color = confettiColors[i % confettiColors.size]
             val isRect = i % 3 != 0
-            val particleWidth = if (isRect) 10f + (i % 4) * 3f else 9f + (i % 3) * 3f
-            val particleHeight = if (isRect) 6f + (i % 3) * 2f else particleWidth
-            val flutterSpeed = 1f + (i % 3) * 0.7f
-            val rotationInitial = (i * 47f) % 360f
+            val particleWidth = if (isRect) 9f + (i % 4) * 3f else 8f + (i % 3) * 3f
+            val particleHeight = if (isRect) 5f + (i % 3) * 2f else particleWidth
+            val rotationSpeed = 360f + (i % 6) * 120f
+            val initialRotation = (i * 37f) % 360f
+
             list.add(
-                ConfettiParticle(
-                    baseAngle = angle,
-                    distanceFactor = distanceFactor,
+                BurstConfettiParticle(
+                    vx = vx,
+                    vy = vy,
                     color = color,
                     isRect = isRect,
                     width = particleWidth,
                     height = particleHeight,
-                    flutterSpeed = flutterSpeed,
-                    initialRotation = rotationInitial,
-                    phaseShift = (i * 0.23f)
+                    rotationSpeed = rotationSpeed,
+                    initialRotation = initialRotation
                 )
             )
         }
         list
     }
 
+    val t = progress.value
+    val elapsed = t * 2.5f // time in seconds
+    val gravity = 680f // gravity acceleration in px/s²
+    // Fade out during the final 35% of the animation
+    val alpha = if (t < 0.65f) 1f else ((1f - t) / 0.35f).coerceIn(0f, 1f)
+
     Canvas(modifier = modifier) {
         val centerX = size.width / 2f
-        val centerY = size.height / 2f
-        val maxRadius = (size.width.coerceAtMost(size.height) / 2f) * 0.95f
+        val centerY = size.height / 2f - 10f
 
         particles.forEach { p ->
-            val currentPhase = (phase * p.flutterSpeed + p.phaseShift) % 1f
-            // Oscillating floating orbit
-            val dynamicRadius = maxRadius * p.distanceFactor * (0.85f + 0.25f * sin(currentPhase * 2f * Math.PI.toFloat()))
-            val angle = p.baseAngle + 0.3f * sin(currentPhase * 2f * Math.PI.toFloat())
-            val px = centerX + dynamicRadius * cos(angle)
-            val py = centerY + dynamicRadius * sin(angle) + (sin(currentPhase * 4f * Math.PI.toFloat()) * 8f)
-
-            val rotation = p.initialRotation + currentPhase * 360f
-            val alpha = (0.55f + 0.45f * sin(currentPhase * Math.PI.toFloat())).coerceIn(0.2f, 1f)
+            val px = centerX + (p.vx * elapsed)
+            val py = centerY + (p.vy * elapsed) + (0.5f * gravity * elapsed * elapsed)
+            val rotation = p.initialRotation + (t * p.rotationSpeed)
 
             rotate(degrees = rotation, pivot = Offset(px, py)) {
                 if (p.isRect) {
@@ -135,16 +143,15 @@ fun ConfettiCelebration(
     }
 }
 
-private data class ConfettiParticle(
-    val baseAngle: Float,
-    val distanceFactor: Float,
+private data class BurstConfettiParticle(
+    val vx: Float,
+    val vy: Float,
     val color: Color,
     val isRect: Boolean,
     val width: Float,
     val height: Float,
-    val flutterSpeed: Float,
-    val initialRotation: Float,
-    val phaseShift: Float
+    val rotationSpeed: Float,
+    val initialRotation: Float
 )
 
 /**
@@ -180,7 +187,7 @@ fun WizardCompletionContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(130.dp),
+                        .height(160.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     // Confetti Particles Background

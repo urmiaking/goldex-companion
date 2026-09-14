@@ -94,7 +94,7 @@ fun OnboardingWizardScreen(
                     .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 if (currentStep == WizardStep.INTRO) {
-                    WizardIntroTopBar(onSkip = onSkip)
+                    WizardIntroTopBar()
                 } else {
                     WizardStepHeader(currentStep = currentStep)
                 }
@@ -175,7 +175,7 @@ fun OnboardingWizardScreen(
                         WizardStep.INTRO -> {
                             // Secondary: Right side in RTL (first in Row)
                             GoldButton(
-                                text = "ورود به عنوان مهمان",
+                                text = "ورود مهمان",
                                 isSecondary = true,
                                 onClick = onSkip,
                                 modifier = Modifier.weight(1f)
