@@ -1139,8 +1139,6 @@ fun JewelryTab(
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 
     // ─── Dialog: تغییر نرخ دستی طلا ──────────────────────────────

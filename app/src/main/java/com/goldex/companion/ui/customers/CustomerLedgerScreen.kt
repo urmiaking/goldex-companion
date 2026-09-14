@@ -362,8 +362,12 @@ fun CustomerLedgerScreen(
                             val (count, badgeBg, badgeTextColor) = when (tab) {
                                 CustomerLedgerFilterTab.ALL -> Triple(
                                     uiState.totalActiveCount,
-                                    Color(0x33F59E0B),
-                                    Color(0xFFFDE68A)
+                                    if (colors.isDark) Color(0x33F59E0B) else Color(0x20F59E0B),
+                                    if (selected) {
+                                        Color(0xFFFDE68A)
+                                    } else {
+                                        if (colors.isDark) Color(0xFFFCD34D) else Color(0xFFB45309)
+                                    }
                                 )
                                 CustomerLedgerFilterTab.DEBTORS -> Triple(
                                     uiState.debtorsCount,

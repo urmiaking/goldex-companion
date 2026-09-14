@@ -431,6 +431,7 @@ private fun FilterCapsulesRow(
     onSelectFilter: (InvoiceFilterTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
 
     Row(
@@ -443,8 +444,12 @@ private fun FilterCapsulesRow(
             title = "همه",
             count = allCount,
             isSelected = selectedFilter == InvoiceFilterTab.ALL,
-            badgeBg = Color(0x33F59E0B),
-            badgeTextColor = Color(0xFFFDE68A),
+            badgeBg = if (colors.isDark) Color(0x33F59E0B) else Color(0x20F59E0B),
+            badgeTextColor = if (selectedFilter == InvoiceFilterTab.ALL) {
+                Color(0xFFFDE68A)
+            } else {
+                if (colors.isDark) Color(0xFFFCD34D) else Color(0xFFB45309)
+            },
             onClick = { onSelectFilter(InvoiceFilterTab.ALL) }
         )
         FilterCapsuleItem(
@@ -459,8 +464,12 @@ private fun FilterCapsulesRow(
             title = "در انتظار پرداخت",
             count = pendingCount,
             isSelected = selectedFilter == InvoiceFilterTab.PENDING,
-            badgeBg = Color(0x33F59E0B),
-            badgeTextColor = Color(0xFFF59E0B),
+            badgeBg = if (colors.isDark) Color(0x33F59E0B) else Color(0x20F59E0B),
+            badgeTextColor = if (selectedFilter == InvoiceFilterTab.PENDING) {
+                Color(0xFFF59E0B)
+            } else {
+                if (colors.isDark) Color(0xFFF59E0B) else Color(0xFFB45309)
+            },
             onClick = { onSelectFilter(InvoiceFilterTab.PENDING) }
         )
         FilterCapsuleItem(

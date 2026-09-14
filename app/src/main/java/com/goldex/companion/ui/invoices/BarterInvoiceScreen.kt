@@ -394,9 +394,9 @@ private fun InvoiceMetaAndRateCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.border),
-        shadowElevation = 1.5.dp,
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -529,9 +529,9 @@ private fun CustomerAndAccountCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.border),
-        shadowElevation = 1.5.dp,
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -580,7 +580,7 @@ private fun CustomerAndAccountCard(
             // Customer Details Interactive Card
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceVariant.copy(alpha = 0.6f),
+                color = if (customer != null) colors.goldContainer.copy(alpha = 0.2f) else colors.surfaceElevated,
                 border = BorderStroke(0.8.dp, if (customer != null) colors.goldBorder else colors.border),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -601,7 +601,7 @@ private fun CustomerAndAccountCard(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (customer != null) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated)
+                                .background(if (customer != null) colors.goldContainer.copy(alpha = 0.6f) else colors.surface)
                                 .border(1.dp, if (customer != null) colors.goldBorder else colors.border, RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -638,7 +638,7 @@ private fun CustomerAndAccountCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(if (customer != null) colors.goldContainer.copy(alpha = 0.4f) else colors.surfaceElevated)
+                            .background(if (customer != null) colors.goldContainer.copy(alpha = 0.5f) else colors.surface)
                             .border(0.6.dp, if (customer != null) colors.goldBorder else colors.border, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
@@ -668,9 +668,9 @@ private fun BarterBalanceCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.2.dp, colors.goldBorder),
-        shadowElevation = 2.dp,
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -728,7 +728,7 @@ private fun BarterBalanceCard(
                 // Column 1: Sales
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = colors.goldContainer.copy(alpha = 0.35f),
+                    color = colors.goldContainer.copy(alpha = 0.25f),
                     border = BorderStroke(0.8.dp, colors.goldBorder),
                     modifier = Modifier.weight(1f)
                 ) {
@@ -794,7 +794,7 @@ private fun BarterBalanceCard(
                 // Column 2: Received
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = colors.surfaceVariant,
+                    color = colors.surfaceElevated,
                     border = BorderStroke(0.8.dp, colors.border),
                     modifier = Modifier.weight(1f)
                 ) {
@@ -973,9 +973,9 @@ private fun ItemsSectionCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.border),
-        shadowElevation = 1.5.dp,
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -998,7 +998,7 @@ private fun ItemsSectionCard(
                         modifier = Modifier
                             .size(20.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(if (isSales) colors.goldContainer else colors.surfaceVariant),
+                            .background(if (isSales) colors.goldContainer else colors.surfaceElevated),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -1120,7 +1120,7 @@ private fun ItemRowCard(
 
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = colors.surfaceVariant.copy(alpha = 0.5f),
+        color = colors.surfaceElevated,
         border = BorderStroke(0.8.dp, colors.border),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -1264,9 +1264,9 @@ private fun SettlementSummaryCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = colors.surfaceElevated,
-        border = BorderStroke(1.dp, colors.border),
-        shadowElevation = 1.5.dp,
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -1320,7 +1320,7 @@ private fun SettlementSummaryCard(
             // Summary Row
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceVariant.copy(alpha = 0.6f),
+                color = colors.surfaceElevated,
                 border = BorderStroke(0.8.dp, colors.goldBorder),
                 modifier = Modifier
                     .fillMaxWidth()
