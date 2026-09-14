@@ -2,15 +2,10 @@ package com.goldex.companion.ui.wizard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,13 +25,14 @@ import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
 
+/**
+ * Pure Scrollable Content for Step 3: Initial Vault & Showcase Inventory.
+ */
 @Composable
-fun WizardInventoryStep(
+fun WizardInventoryContent(
     inventoryState: WizardInventoryState,
     onInventoryChange: (WizardInventoryState) -> Unit,
     liveGold18Price: Long = 23_360_000L,
-    onNext: () -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -62,14 +57,11 @@ fun WizardInventoryStep(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Step Header Stepper
-        WizardStepHeader(currentStep = WizardStep.INVENTORY)
-
         // Section Narrative
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -554,29 +546,7 @@ fun WizardInventoryStep(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Navigation Action Row (RTL: Secondary/Back on Right, Primary/Next on Left)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            GoldButton(
-                text = "بازگشت",
-                icon = Icons.AutoMirrored.Filled.ArrowForward,
-                isSecondary = true,
-                onClick = onBack,
-                modifier = Modifier.weight(1f)
-            )
-
-            GoldButton(
-                text = "تأیید و گام بعدی",
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                onClick = onNext,
-                modifier = Modifier.weight(2f)
-            )
-        }
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
@@ -586,3 +556,70 @@ private data class CoinRowItem(
     val count: Int,
     val onAdjust: (Int) -> Unit
 )
+
+/**
+ * Standalone Inventory Step Screen.
+ */
+@Composable
+fun WizardInventoryStep(
+    inventoryState: WizardInventoryState,
+    onInventoryChange: (WizardInventoryState) -> Unit,
+    liveGold18Price: Long = 23_360_000L,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+
+    Column(modifier = modifier.fillMaxSize()) {
+        WizardStepHeader(
+            currentStep = WizardStep.INVENTORY,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            WizardInventoryContent(
+                inventoryState = inventoryState,
+                onInventoryChange = onInventoryChange,
+                liveGold18Price = liveGold18Price
+            )
+        }
+
+        // Sticky Footer (RTL: Back on Right, Next on Left)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = colors.surface,
+            border = BorderStroke(0.6.dp, colors.border),
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Secondary / Back: Right side in Persian RTL (first in Row)
+                GoldButton(
+                    text = "بازگشت",
+                    icon = WizardArrowRight,
+                    isSecondary = true,
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Primary / Next: Left side in Persian RTL (second in Row)
+                GoldButton(
+                    text = "تأیید و گام بعدی",
+                    trailingIcon = WizardArrowLeft,
+                    onClick = onNext,
+                    modifier = Modifier.weight(2f)
+                )
+            }
+        }
+    }
+}

@@ -53,6 +53,7 @@ fun GoldButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
     isSecondary: Boolean = false,
     enabled: Boolean = true,
     isLoading: Boolean = false,
@@ -105,6 +106,14 @@ fun GoldButton(
                         fontWeight = FontWeight.SemiBold,
                         color = if (enabled) colors.textMain else colors.textMuted
                     )
+                    if (trailingIcon != null) {
+                        Icon(
+                            imageVector = trailingIcon,
+                            contentDescription = null,
+                            tint = if (enabled) colors.goldPrimary else colors.textMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -177,6 +186,14 @@ fun GoldButton(
                             fontWeight = FontWeight.Bold,
                             color = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f)
                         )
+                        if (trailingIcon != null) {
+                            Icon(
+                                imageVector = trailingIcon,
+                                contentDescription = null,
+                                tint = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f),
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
                 }
             }

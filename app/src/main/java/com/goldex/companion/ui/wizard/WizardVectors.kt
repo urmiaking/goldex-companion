@@ -610,3 +610,64 @@ internal val WizardDiamond: ImageVector = ImageVector.Builder(
         lineTo(10f, 9f)
     }
 }.build()
+
+internal val WizardArrowLeft: ImageVector = ImageVector.Builder(
+    name = "WizardArrowLeft",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(20f, 12f)
+        lineTo(4f, 12f)
+        moveTo(10f, 6f)
+        lineTo(4f, 12f)
+        lineTo(10f, 18f)
+    }
+}.build()
+
+internal val WizardArrowRight: ImageVector = ImageVector.Builder(
+    name = "WizardArrowRight",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(4f, 12f)
+        lineTo(20f, 12f)
+        moveTo(14f, 6f)
+        lineTo(20f, 12f)
+        lineTo(14f, 18f)
+    }
+}.build()
+
+internal val WizardChevronLeft: ImageVector = ImageVector.Builder(
+    name = "WizardChevronLeft",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(15f, 6f)
+        lineTo(9f, 12f)
+        lineTo(15f, 18f)
+    }
+}.build()

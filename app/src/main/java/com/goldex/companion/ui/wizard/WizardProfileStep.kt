@@ -7,8 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
@@ -18,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -28,26 +25,24 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
+/**
+ * Pure Scrollable Content for Step 1: Profile & License Details.
+ */
 @Composable
-fun WizardProfileStep(
+fun WizardProfileContent(
     profileState: WizardProfileState,
     onProfileChange: (WizardProfileState) -> Unit,
-    onNext: () -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Step Header Stepper
-        WizardStepHeader(currentStep = WizardStep.PROFILE)
-
         // Section Narrative Title
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -240,30 +235,71 @@ fun WizardProfileStep(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+}
 
-        // Navigation Action Row (RTL: Secondary/Back on Right, Primary/Next on Left)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+/**
+ * Standalone Profile Step Screen.
+ */
+@Composable
+fun WizardProfileStep(
+    profileState: WizardProfileState,
+    onProfileChange: (WizardProfileState) -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+
+    Column(modifier = modifier.fillMaxSize()) {
+        WizardStepHeader(
+            currentStep = WizardStep.PROFILE,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
         ) {
-            // First Child in Row -> Right side in RTL
-            GoldButton(
-                text = "بازگشت",
-                icon = Icons.AutoMirrored.Filled.ArrowForward,
-                isSecondary = true,
-                onClick = onBack,
-                modifier = Modifier.weight(1f)
+            WizardProfileContent(
+                profileState = profileState,
+                onProfileChange = onProfileChange
             )
+        }
 
-            // Second Child in Row -> Left side in RTL
-            GoldButton(
-                text = "تأیید و گام بعدی",
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                onClick = onNext,
-                modifier = Modifier.weight(2f)
-            )
+        // Sticky Footer (RTL: Back on Right, Next on Left)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = colors.surface,
+            border = BorderStroke(0.6.dp, colors.border),
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Secondary / Back: Right side in Persian RTL (first in Row)
+                GoldButton(
+                    text = "بازگشت",
+                    icon = WizardArrowRight,
+                    isSecondary = true,
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Primary / Next: Left side in Persian RTL (second in Row)
+                GoldButton(
+                    text = "تأیید و گام بعدی",
+                    trailingIcon = WizardArrowLeft,
+                    onClick = onNext,
+                    modifier = Modifier.weight(2f)
+                )
+            }
         }
     }
 }

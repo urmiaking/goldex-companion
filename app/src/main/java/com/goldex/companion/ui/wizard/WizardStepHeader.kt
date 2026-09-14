@@ -101,7 +101,7 @@ fun WizardStepHeader(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(colors.surfaceElevated)
+                    .background(if (colors.isDark) Color(0x3DFBBF24) else Color(0x2E10141E))
             ) {
                 Box(
                     modifier = Modifier
@@ -148,14 +148,14 @@ fun WizardStepHeader(
                                     when {
                                         isDone -> colors.profitGreen
                                         isActive -> colors.goldPrimary
-                                        else -> colors.surfaceElevated
+                                        else -> if (colors.isDark) Color(0xFF1E2433) else Color(0xFFECEFF3)
                                     }
                                 )
                                 .then(
-                                    if (isActive) {
-                                        Modifier.border(1.5.dp, colors.goldSecondary, CircleShape)
-                                    } else {
-                                        Modifier
+                                    when {
+                                        isActive -> Modifier.border(1.5.dp, colors.goldSecondary, CircleShape)
+                                        isDone -> Modifier
+                                        else -> Modifier.border(0.7.dp, colors.goldBorder.copy(alpha = 0.45f), CircleShape)
                                     }
                                 ),
                             contentAlignment = Alignment.Center

@@ -1,6 +1,8 @@
 package com.goldex.companion.ui.wizard
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,19 +12,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,28 +35,138 @@ import com.goldex.companion.ui.calculator.AppTab
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import kotlin.math.cos
+import kotlin.math.sin
 
+/**
+ * Animated Celebration Confetti particle system around the golden trophy.
+ */
 @Composable
-fun WizardCompletionStep(
+fun ConfettiCelebration(
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "confetti_transition")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "confetti_phase"
+    )
+
+    // Palette of vibrant celebratory colors
+    val confettiColors = remember {
+        listOf(
+            Color(0xFFDFB35A), // Sovereign Gold
+            Color(0xFFF59E0B), // Warm Amber
+            Color(0xFF10B981), // Emerald Green
+            Color(0xFF00C853), // Vivid Green
+            Color(0xFFEF4444), // Ruby Red
+            Color(0xFFF43F5E), // Rose Pink
+            Color(0xFF06B6D4), // Cyan
+            Color(0xFF3B82F6), // Blue
+            Color(0xFF8B5CF6)  // Violet
+        )
+    }
+
+    val particles = remember {
+        val list = mutableListOf<ConfettiParticle>()
+        val count = 42
+        for (i in 0 until count) {
+            val angle = (i.toFloat() / count) * (2f * Math.PI.toFloat()) + (i * 0.17f)
+            val distanceFactor = 0.38f + (i % 5) * 0.14f
+            val color = confettiColors[i % confettiColors.size]
+            val isRect = i % 3 != 0
+            val particleWidth = if (isRect) 10f + (i % 4) * 3f else 9f + (i % 3) * 3f
+            val particleHeight = if (isRect) 6f + (i % 3) * 2f else particleWidth
+            val flutterSpeed = 1f + (i % 3) * 0.7f
+            val rotationInitial = (i * 47f) % 360f
+            list.add(
+                ConfettiParticle(
+                    baseAngle = angle,
+                    distanceFactor = distanceFactor,
+                    color = color,
+                    isRect = isRect,
+                    width = particleWidth,
+                    height = particleHeight,
+                    flutterSpeed = flutterSpeed,
+                    initialRotation = rotationInitial,
+                    phaseShift = (i * 0.23f)
+                )
+            )
+        }
+        list
+    }
+
+    Canvas(modifier = modifier) {
+        val centerX = size.width / 2f
+        val centerY = size.height / 2f
+        val maxRadius = (size.width.coerceAtMost(size.height) / 2f) * 0.95f
+
+        particles.forEach { p ->
+            val currentPhase = (phase * p.flutterSpeed + p.phaseShift) % 1f
+            // Oscillating floating orbit
+            val dynamicRadius = maxRadius * p.distanceFactor * (0.85f + 0.25f * sin(currentPhase * 2f * Math.PI.toFloat()))
+            val angle = p.baseAngle + 0.3f * sin(currentPhase * 2f * Math.PI.toFloat())
+            val px = centerX + dynamicRadius * cos(angle)
+            val py = centerY + dynamicRadius * sin(angle) + (sin(currentPhase * 4f * Math.PI.toFloat()) * 8f)
+
+            val rotation = p.initialRotation + currentPhase * 360f
+            val alpha = (0.55f + 0.45f * sin(currentPhase * Math.PI.toFloat())).coerceIn(0.2f, 1f)
+
+            rotate(degrees = rotation, pivot = Offset(px, py)) {
+                if (p.isRect) {
+                    drawRect(
+                        color = p.color.copy(alpha = alpha),
+                        topLeft = Offset(px - p.width / 2f, py - p.height / 2f),
+                        size = Size(p.width, p.height)
+                    )
+                } else {
+                    drawCircle(
+                        color = p.color.copy(alpha = alpha),
+                        radius = p.width / 2f,
+                        center = Offset(px, py)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class ConfettiParticle(
+    val baseAngle: Float,
+    val distanceFactor: Float,
+    val color: Color,
+    val isRect: Boolean,
+    val width: Float,
+    val height: Float,
+    val flutterSpeed: Float,
+    val initialRotation: Float,
+    val phaseShift: Float
+)
+
+/**
+ * Pure Scrollable Content for Step 4: Completion and Quick Action Suggestions.
+ */
+@Composable
+fun WizardCompletionContent(
     profileState: WizardProfileState,
     financialState: WizardFinancialState,
     onEnterApp: (AppTab) -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Step Header Stepper (100% Completed)
-        WizardStepHeader(currentStep = WizardStep.COMPLETION)
-
-        // Celebration & Congratulation Emblem
+        // Celebration & Congratulation Emblem with Animated Confetti
         LuxuryCard(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(20.dp)
@@ -64,68 +176,83 @@ fun WizardCompletionStep(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Golden Trophy Emblem with Glow
+                // Golden Trophy Emblem with Confetti Burst
                 Box(
-                    modifier = Modifier.size(76.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
+                    // Confetti Particles Background
+                    ConfettiCelebration(
                         modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        colors.goldSecondary,
-                                        colors.goldPrimary
-                                    )
-                                )
-                            ),
+                            .fillMaxSize()
+                            .padding(4.dp)
+                    )
+
+                    // Central Trophy with Golden Border & Glow
+                    Box(
+                        modifier = Modifier.size(78.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(colors.surface),
+                                .size(72.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            colors.goldSecondary,
+                                            colors.goldPrimary
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(colors.surface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = WizardTrophy,
+                                    contentDescription = null,
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                        }
+
+                        // Floating checkmark badge
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(colors.profitGreen)
+                                .border(1.5.dp, colors.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = WizardTrophy,
+                                imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(36.dp)
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
-                    }
 
-                    // Floating checkmark badge
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(colors.profitGreen)
-                            .border(1.5.dp, colors.surface, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
+                        // Floating spark
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = WizardAutoAwesome,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                            tint = colors.goldPrimary,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(18.dp)
                         )
                     }
-
-                    // Floating spark
-                    Icon(
-                        imageVector = WizardAutoAwesome,
-                        contentDescription = null,
-                        tint = colors.goldPrimary,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(18.dp)
-                    )
                 }
 
                 Text(
@@ -183,7 +310,7 @@ fun WizardCompletionStep(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = profileState.galleryName,
+                                text = profileState.galleryName.ifBlank { "گالری طلا و جواهر" },
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain
@@ -220,7 +347,7 @@ fun WizardCompletionStep(
                                 .background(colors.profitGreen)
                         )
                         Text(
-                            text = "آنلاین",
+                            text = "آماده کار",
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.profitGreen
@@ -414,26 +541,19 @@ fun WizardCompletionStep(
                             }
                         }
 
+                        // Chevron pointing Left (forward in Persian RTL)
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            imageVector = WizardChevronLeft,
                             contentDescription = null,
-                            tint = colors.textMuted,
-                            modifier = Modifier.size(20.dp)
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Primary Enter Dashboard Button
-        GoldButton(
-            text = "ورود به داشبورد قیراط",
-            icon = Icons.AutoMirrored.Filled.ArrowBack,
-            onClick = { onEnterApp(AppTab.HOME) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        Spacer(modifier = Modifier.height(12.dp))
     }
 }
 
@@ -443,3 +563,69 @@ private data class SuggestedAction(
     val description: String,
     val targetTab: AppTab
 )
+
+/**
+ * Standalone Completion Step Screen.
+ */
+@Composable
+fun WizardCompletionStep(
+    profileState: WizardProfileState,
+    financialState: WizardFinancialState,
+    onEnterApp: (AppTab) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+
+    Column(modifier = modifier.fillMaxSize()) {
+        WizardStepHeader(
+            currentStep = WizardStep.COMPLETION,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            WizardCompletionContent(
+                profileState = profileState,
+                financialState = financialState,
+                onEnterApp = onEnterApp
+            )
+        }
+
+        // Sticky Footer (RTL: Back on Right, Enter Dashboard on Left)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = colors.surface,
+            border = BorderStroke(0.6.dp, colors.border),
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Secondary / Back: Right side in Persian RTL (first in Row)
+                GoldButton(
+                    text = "بازگشت",
+                    icon = WizardArrowRight,
+                    isSecondary = true,
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // Primary / Enter Dashboard: Left side in Persian RTL (second in Row)
+                GoldButton(
+                    text = "ورود به داشبورد قیراط",
+                    trailingIcon = WizardArrowLeft,
+                    onClick = { onEnterApp(AppTab.HOME) },
+                    modifier = Modifier.weight(2f)
+                )
+            }
+        }
+    }
+}
