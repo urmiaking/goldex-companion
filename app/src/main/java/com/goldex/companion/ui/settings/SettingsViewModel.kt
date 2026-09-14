@@ -99,6 +99,20 @@ class SettingsViewModel(
         )
         updateSettings(updated)
     }
+
+    fun completeOnboarding() {
+        val updated = _uiState.value.appSettings.copy(
+            hasCompletedOnboarding = true
+        )
+        updateSettings(updated)
+    }
+
+    fun setHasCompletedOnboarding(completed: Boolean) {
+        val updated = _uiState.value.appSettings.copy(
+            hasCompletedOnboarding = completed
+        )
+        updateSettings(updated)
+    }
 }
 
 class SettingsViewModelFactory(

@@ -72,7 +72,8 @@ data class MainUiState(
     val isCoinBubbleVisible: Boolean = false,
     val isMeltVisible: Boolean = false,
     val isRateDetailVisible: Boolean = false,
-    val selectedRateDetailType: MarketRateItemType = MarketRateItemType.GOLD_18K
+    val selectedRateDetailType: MarketRateItemType = MarketRateItemType.GOLD_18K,
+    val isWizardVisible: Boolean = false
 ) {
     fun toJewelryUiState(): JewelryUiState = JewelryUiState(
         itemTitleInput = itemTitleInput,
@@ -178,6 +179,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun setRateDetailVisible(visible: Boolean) {
         _uiState.update { it.copy(isRateDetailVisible = visible) }
+    }
+
+    fun setWizardVisible(visible: Boolean) {
+        _uiState.update { it.copy(isWizardVisible = visible) }
     }
 
     // --- Tab Selection & App Theme ---

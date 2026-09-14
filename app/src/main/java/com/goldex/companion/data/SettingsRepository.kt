@@ -19,7 +19,8 @@ data class AppSettings(
     val galleryPhone: String = "۰۲۱-۵۵۶۲۳۴۸۱",
     val galleryAddress: String = "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
     val galleryLicense: String = "صنف طلا و جواهر: ۴۴۰۲",
-    val isBiometricLockEnabled: Boolean = true
+    val isBiometricLockEnabled: Boolean = true,
+    val hasCompletedOnboarding: Boolean = false
 )
 
 class SettingsRepository(context: Context) : SettingsStore {
@@ -56,7 +57,8 @@ class SettingsRepository(context: Context) : SettingsStore {
             galleryPhone = prefs.getString("key_gallery_phone", "۰۲۱-۵۵۶۲۳۴۸۱") ?: "۰۲۱-۵۵۶۲۳۴۸۱",
             galleryAddress = prefs.getString("key_gallery_address", "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲") ?: "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
             galleryLicense = prefs.getString("key_gallery_license", "صنف طلا و جواهر: ۴۴۰۲") ?: "صنف طلا و جواهر: ۴۴۰۲",
-            isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", true)
+            isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", true),
+            hasCompletedOnboarding = prefs.getBoolean("key_has_completed_onboarding", false)
         )
     }
 
@@ -74,6 +76,7 @@ class SettingsRepository(context: Context) : SettingsStore {
             .putString("key_gallery_address", newSettings.galleryAddress)
             .putString("key_gallery_license", newSettings.galleryLicense)
             .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
+            .putBoolean("key_has_completed_onboarding", newSettings.hasCompletedOnboarding)
             .apply()
 
         _settings.value = newSettings

@@ -83,6 +83,11 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.update.UpdateViewModel
+import com.goldex.companion.ui.wizard.OnboardingWizardScreen
+import com.goldex.companion.data.PortfolioItem
+import com.goldex.companion.data.PortfolioCategory
+import com.goldex.companion.model.Karat
+import com.goldex.companion.model.CoinType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -521,6 +526,9 @@ fun MainScreen(
                                         },
                                         onNavigateStandardFormulas = {
                                             mainViewModel.setStandardFormulasVisible(true)
+                                        },
+                                        onOpenOnboardingWizard = {
+                                            mainViewModel.setWizardVisible(true)
                                         }
                                     )
                                 }
@@ -775,6 +783,125 @@ fun MainScreen(
                     onViewAllTransactions = {
                         mainViewModel.setRateDetailVisible(false)
                         customerViewModel.openCustomerLedger()
+                    }
+                )
+            }
+
+            // Onboarding & Setup Wizard (First-launch or manually triggered from Hub)
+            AnimatedVisibility(
+                visible = !settingsState.appSettings.hasCompletedOnboarding || mainUiState.isWizardVisible,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                OnboardingWizardScreen(
+                    currentSettings = settingsState.appSettings,
+                    liveGold18Price = mainUiState.rates.gold18,
+                    onFinish = { targetTab, updatedSettings, initialInventory ->
+                        settingsViewModel.updateSettings(updatedSettings)
+                        mainViewModel.applySettingsDefaults(
+                            updatedSettings.defaultProfitPercent,
+                            updatedSettings.defaultTaxPercent,
+                            updatedSettings.defaultWageType
+                        )
+
+                        // Save initial inventory items into Portfolio if entered
+                        val vitrinWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinWeight) ?: 0.0
+                        if (vitrinWeight > 0.0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "مصنوعات ویترین (${updatedSettings.galleryName})",
+                                    category = PortfolioCategory.GOLD,
+                                    weightGrams = vitrinWeight,
+                                    karat = Karat.K18,
+                                    purchasePriceTotal = 0L,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        val meltWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.meltWeight) ?: 0.0
+                        if (meltWeight > 0.0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "طلای آبشده گاوصندوق",
+                                    category = PortfolioCategory.GOLD,
+                                    weightGrams = meltWeight,
+                                    karat = Karat.K18,
+                                    purchasePriceTotal = 0L,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        if (initialInventory.coinTamam > 0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "تمام بهار آزادی (طرح جدید)",
+                                    category = PortfolioCategory.COIN,
+                                    quantity = initialInventory.coinTamam,
+                                    coinType = CoinType.EMAMI,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        if (initialInventory.coinNim > 0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "نیم سکه بهار آزادی",
+                                    category = PortfolioCategory.COIN,
+                                    quantity = initialInventory.coinNim,
+                                    coinType = CoinType.HALF,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        if (initialInventory.coinRob > 0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "ربع سکه بهار آزادی",
+                                    category = PortfolioCategory.COIN,
+                                    quantity = initialInventory.coinRob,
+                                    coinType = CoinType.QUARTER,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        if (initialInventory.coinQadim > 0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "تمام بهار آزادی (طرح قدیم)",
+                                    category = PortfolioCategory.COIN,
+                                    quantity = initialInventory.coinQadim,
+                                    coinType = CoinType.BAHAR,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        if (initialInventory.coinGerami > 0) {
+                            portfolioViewModel.addPortfolioItem(
+                                PortfolioItem(
+                                    title = "سکه یک گرمی بانکی",
+                                    category = PortfolioCategory.COIN,
+                                    quantity = initialInventory.coinGerami,
+                                    coinType = CoinType.GERAMI,
+                                    purchaseDate = "موجودی اول دوره"
+                                )
+                            )
+                        }
+
+                        mainViewModel.setWizardVisible(false)
+                        mainViewModel.selectTab(targetTab)
+                        QiratoToast.show(context, "پیکربندی اولیه با موفقیت انجام شد")
+                    },
+                    onSkip = {
+                        settingsViewModel.completeOnboarding()
+                        mainViewModel.setWizardVisible(false)
+                        QiratoToast.show(context, "ورود به عنوان مهمان")
                     }
                 )
             }
