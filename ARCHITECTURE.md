@@ -29,6 +29,7 @@ MainActivity
        -> CustomerStatementScreen (CustomerManagerViewModel)
        -> MoreHubScreen (AppSettings & explicit callbacks)
        -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
+       -> OnboardingWizardScreen (WizardUiState & SettingsStore integration)
        -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog)
 
 Feature ViewModels & State Holders:
@@ -50,7 +51,7 @@ data/  -> HTTP integrations and SharedPreferences/JSON persistence via Persisten
 
 - Entry point: `app/src/main/java/com/goldex/companion/MainActivity.kt`
 - App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
-- Feature ViewModels: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`
+- Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`
 - Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
 - Domain Calculation Policies: `domain/calculator/`, `domain/invoice/BarterCalculationUseCases.kt`, `domain/portfolio/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
