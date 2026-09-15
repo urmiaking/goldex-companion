@@ -215,7 +215,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             val preferred = _uiState.value.rates.source
             val history = GoldMarketRepository.getAllHorizonsHistory(MarketRateItemType.GOLD_18K, preferred)
             val charts = history.mapValues { (horizon, candles) ->
-                candles.toTrendChart(MarketRateItemType.GOLD_18K, horizon)
+                MarketHistoryConverter.toTrendChartData(candles, horizon, _uiState.value.rates.gold18)
             }
             _uiState.update { it.copy(dashboardGold18Charts = charts) }
         }

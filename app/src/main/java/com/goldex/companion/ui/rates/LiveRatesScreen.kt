@@ -255,6 +255,13 @@ fun LiveRatesScreen(
                 .clickable { onNavigateRateDetail(MarketRateItemType.GOLD_MELT) }
                 .padding(18.dp)
         ) {
+            val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
+            val heroMeltStats = resolveDayStats(
+                MarketRateItemType.GOLD_MELT,
+                meltPrice,
+                uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT]
+            )
+
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Header
                 Row(
@@ -288,12 +295,6 @@ fun LiveRatesScreen(
                         )
                     }
 
-                    val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
-                    val heroMeltStats = resolveDayStats(
-                        MarketRateItemType.GOLD_MELT,
-                        meltPrice,
-                        uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT]
-                    )
                     val badgeBg = if (heroMeltStats.isPositive) Color(0xFF10B981).copy(alpha = 0.2f) else Color(0xFFEF4444).copy(alpha = 0.2f)
                     val badgeBorder = if (heroMeltStats.isPositive) Color(0xFF10B981).copy(alpha = 0.4f) else Color(0xFFEF4444).copy(alpha = 0.4f)
                     val badgeIcon = if (heroMeltStats.isPositive) DashTrendingUpVector else DashTrendingDownVector
