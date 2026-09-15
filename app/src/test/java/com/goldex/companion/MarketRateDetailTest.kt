@@ -133,6 +133,24 @@ class MarketRateDetailTest {
         assertEquals(23900000L, chart.peakPrice)
         assertEquals(2 / 3.0f, chart.peakXRatio, 0.01f)
         assertTrue(chart.points.all { it.first in 0.0f..1.0f && it.second in 0.10f..0.90f })
+        assertEquals(4, chart.timeLabels.size)
+        assertEquals("امروز", chart.timeLabels.last())
+    }
+
+    @Test
+    fun realWeekCandlesTransformToFiveDistributedTimeLabels() {
+        val candles = (1..7).map { day ->
+            MarketCandle(
+                open = 23000000L,
+                high = 23500000L,
+                low = 22800000L,
+                close = 23200000L + day * 10000L,
+                dateShamsi = "140506${String.format(java.util.Locale.US, "%02d", day)}"
+            )
+        }
+        val chart = MarketHistoryConverter.toTrendChartData(candles, TimeHorizon.ONE_WEEK, 23000000L)
+        assertNotNull(chart)
+        assertEquals(7, chart.points.size)
         assertEquals(5, chart.timeLabels.size)
         assertEquals("امروز", chart.timeLabels.last())
     }

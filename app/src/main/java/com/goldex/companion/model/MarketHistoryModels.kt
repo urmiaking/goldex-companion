@@ -146,7 +146,10 @@ object MarketHistoryConverter {
         }
 
         if (candles.size <= 5) {
-            return candles.map { formatCandleDate(it.dateShamsi, horizon) }
+            return candles.mapIndexed { idx, candle ->
+                val isLast = (idx == candles.lastIndex)
+                if (isLast && horizon != TimeHorizon.TODAY) "امروز" else formatCandleDate(candle.dateShamsi, horizon)
+            }
         }
 
         val step = (candles.size - 1).toDouble() / 4.0
