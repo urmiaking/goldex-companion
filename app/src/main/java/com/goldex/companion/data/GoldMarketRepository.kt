@@ -1,10 +1,16 @@
-﻿package com.goldex.companion.data
+package com.goldex.companion.data
 
+import com.goldex.companion.model.MarketCandle
+import com.goldex.companion.model.MarketRateItemType
+import com.goldex.companion.model.TimeHorizon
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -16,7 +22,9 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-object GoldMarketRepository : MarketRatesStore {
+object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
+    private val historyCache = MarketHistoryCache.getInstance()
+
     private val _rates = MutableStateFlow(MarketRates())
     override val rates: StateFlow<MarketRates> = _rates.asStateFlow()
 
@@ -307,4 +315,299 @@ object GoldMarketRepository : MarketRatesStore {
             null
         }
     }
+
+    // =========================================================================
+    // Market History Store Implementation (Multi-Provider, Caching & Fallback)
+    // =========================================================================
+
+    override suspend fun getHistory(
+        type: MarketRateItemType,
+        horizon: TimeHorizon,
+        preferredSource: PriceSource
+    ): List<MarketCandle> = withContext(Dispatchers.IO) {
+        // 1. Return fresh data from cache if available
+        val freshCached = historyCache.get(type, horizon, allowStale = false)
+        if (freshCached != null && freshCached.isNotEmpty()) {
+            return@withContext freshCached
+        }
+
+        // 2. Fetch using multi-provider fallback strategy
+        var effectiveSource = preferredSource
+        val candles = when (preferredSource) {
+            PriceSource.ISIGNAL -> {
+                // iSignal has no ONS history; fallback directly to TGJU for ONS
+                if (type == MarketRateItemType.ONS) {
+                    effectiveSource = PriceSource.TGJU
+                    fetchHistoryFromTgju(type, horizon)
+                } else {
+                    val isignalData = fetchHistoryFromISignal(type, horizon)
+                    if (isignalData != null && isignalData.isNotEmpty()) {
+                        isignalData
+                    } else {
+                        effectiveSource = PriceSource.TGJU
+                        fetchHistoryFromTgju(type, horizon)
+                    }
+                }
+            }
+            PriceSource.TGJU -> {
+                val tgjuData = fetchHistoryFromTgju(type, horizon)
+                if (tgjuData != null && tgjuData.isNotEmpty()) {
+                    tgjuData
+                } else {
+                    effectiveSource = PriceSource.ISIGNAL
+                    fetchHistoryFromISignal(type, horizon)
+                }
+            }
+            PriceSource.TALA_IR -> {
+                // Tala.ir does not offer a public historical OHLC API; fallback to TGJU then iSignal
+                effectiveSource = PriceSource.TGJU
+                fetchHistoryFromTgju(type, horizon) ?: run {
+                    effectiveSource = PriceSource.ISIGNAL
+                    fetchHistoryFromISignal(type, horizon)
+                }
+            }
+        }
+
+        // 3. Persist successful result in cache
+        if (candles != null && candles.isNotEmpty()) {
+            historyCache.put(type, horizon, effectiveSource, candles)
+            return@withContext candles
+        }
+
+        // 4. Offline Fallback: Return stale cache if available, or empty list
+        historyCache.get(type, horizon, allowStale = true) ?: emptyList()
+    }
+
+    override suspend fun getAllHorizonsHistory(
+        type: MarketRateItemType,
+        preferredSource: PriceSource
+    ): Map<TimeHorizon, List<MarketCandle>> = coroutineScope {
+        val todayDeferred = async(Dispatchers.IO) { getHistory(type, TimeHorizon.TODAY, preferredSource) }
+        val weekDeferred = async(Dispatchers.IO) { getHistory(type, TimeHorizon.ONE_WEEK, preferredSource) }
+        val monthDeferred = async(Dispatchers.IO) { getHistory(type, TimeHorizon.ONE_MONTH, preferredSource) }
+        val sixMonthsDeferred = async(Dispatchers.IO) { getHistory(type, TimeHorizon.SIX_MONTHS, preferredSource) }
+        val yearDeferred = async(Dispatchers.IO) { getHistory(type, TimeHorizon.ONE_YEAR, preferredSource) }
+
+        mapOf(
+            TimeHorizon.TODAY to todayDeferred.await(),
+            TimeHorizon.ONE_WEEK to weekDeferred.await(),
+            TimeHorizon.ONE_MONTH to monthDeferred.await(),
+            TimeHorizon.SIX_MONTHS to sixMonthsDeferred.await(),
+            TimeHorizon.ONE_YEAR to yearDeferred.await()
+        )
+    }
+
+    fun fetchHistoryFromISignal(type: MarketRateItemType, horizon: TimeHorizon): List<MarketCandle>? {
+        val (market, symbolId) = getISignalParams(type) ?: return null
+        val rangeKey = getISignalRangeKey(horizon)
+        var connection: HttpURLConnection? = null
+        return try {
+            val url = URL("https://signalpardazgroup.com/service/signalData@4.0.0/history?market=$market&symbolId=$symbolId&rangeKey=$rangeKey")
+            connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 6000
+                readTimeout = 6000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            if (connection.responseCode == 200) {
+                val responseText = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val root = JSONObject(responseText)
+                val dataObj = root.optJSONObject("data") ?: return null
+                val valueArr = dataObj.optJSONArray("value") ?: return null
+
+                val candles = ArrayList<MarketCandle>(valueArr.length())
+                for (i in 0 until valueArr.length()) {
+                    val item = valueArr.optJSONObject(i) ?: continue
+                    val openRials = item.optLong("open", 0L)
+                    val highRials = item.optLong("high", 0L)
+                    val lowRials = item.optLong("low", 0L)
+                    val closeRials = item.optLong("close", 0L)
+                    val time = item.optString("time", "")
+
+                    candles.add(
+                        MarketCandle(
+                            open = openRials / 10L,
+                            high = highRials / 10L,
+                            low = lowRials / 10L,
+                            close = closeRials / 10L,
+                            dateShamsi = time
+                        )
+                    )
+                }
+
+                // iSignal returns newest items first; reverse to chronological order (past to present)
+                candles.reversed()
+            } else null
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    fun fetchHistoryFromTgju(type: MarketRateItemType, horizon: TimeHorizon): List<MarketCandle>? {
+        val indicator = getTgjuIndicator(type)
+        return if (horizon == TimeHorizon.TODAY) {
+            fetchTgjuTodayIntraday(indicator, type)
+                ?: fetchTgjuSummary(indicator, type, length = 2)
+        } else {
+            val length = getTgjuLength(horizon)
+            fetchTgjuSummary(indicator, type, length)
+        }
+    }
+
+    private fun fetchTgjuTodayIntraday(indicator: String, type: MarketRateItemType): List<MarketCandle>? {
+        var connection: HttpURLConnection? = null
+        return try {
+            val url = URL("https://api.tgju.org/v1/market/indicator/today-table-data/$indicator")
+            connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 6000
+                readTimeout = 6000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            if (connection.responseCode == 200) {
+                val responseText = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val root = JSONObject(responseText)
+                val dataArr = root.optJSONArray("data") ?: return null
+                if (dataArr.length() == 0) return null
+
+                val candles = ArrayList<MarketCandle>(dataArr.length())
+                val divisor = if (type == MarketRateItemType.ONS) 1L else 10L
+                for (i in 0 until dataArr.length()) {
+                    val row = dataArr.optJSONArray(i) ?: continue
+                    val rawPrice = parseCleanPrice(row.optString(0, ""))
+                    val timeStr = row.optString(1, "")
+                    if (rawPrice > 0L) {
+                        val priceToman = rawPrice / divisor
+                        candles.add(
+                            MarketCandle(
+                                open = priceToman,
+                                high = priceToman,
+                                low = priceToman,
+                                close = priceToman,
+                                dateShamsi = timeStr
+                            )
+                        )
+                    }
+                }
+                if (candles.isNotEmpty()) candles.reversed() else null
+            } else null
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun fetchTgjuSummary(indicator: String, type: MarketRateItemType, length: Int): List<MarketCandle>? {
+        var connection: HttpURLConnection? = null
+        return try {
+            val url = URL("https://api.tgju.org/v1/market/indicator/summary-table-data/$indicator?start=0&length=$length")
+            connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 6000
+                readTimeout = 6000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            if (connection.responseCode == 200) {
+                val responseText = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val root = JSONObject(responseText)
+                val dataArr = root.optJSONArray("data") ?: return null
+
+                val candles = ArrayList<MarketCandle>(dataArr.length())
+                val divisor = if (type == MarketRateItemType.ONS) 1L else 10L
+                for (i in 0 until dataArr.length()) {
+                    val row = dataArr.optJSONArray(i) ?: continue
+                    val openVal = parseCleanPrice(row.optString(0, "")) / divisor
+                    val lowVal = parseCleanPrice(row.optString(1, "")) / divisor
+                    val highVal = parseCleanPrice(row.optString(2, "")) / divisor
+                    val closeVal = parseCleanPrice(row.optString(3, "")) / divisor
+                    val gregorian = row.optString(6, "")
+                    val shamsi = row.optString(7, "")
+
+                    if (closeVal > 0L) {
+                        candles.add(
+                            MarketCandle(
+                                open = if (openVal > 0L) openVal else closeVal,
+                                high = if (highVal > 0L) highVal else closeVal,
+                                low = if (lowVal > 0L) lowVal else closeVal,
+                                close = closeVal,
+                                dateShamsi = shamsi,
+                                dateGregorian = gregorian
+                            )
+                        )
+                    }
+                }
+                candles.reversed()
+            } else null
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun getISignalParams(type: MarketRateItemType): Pair<String, String>? {
+        return when (type) {
+            MarketRateItemType.GOLD_18K -> "gold" to "100011"
+            MarketRateItemType.GOLD_MELT -> "gold" to "100013"
+            MarketRateItemType.GOLD_24K -> "gold" to "100012"
+            MarketRateItemType.COIN_EMAMI -> "coin" to "100001"
+            MarketRateItemType.COIN_BAHAR -> "coin" to "100000"
+            MarketRateItemType.COIN_HALF -> "coin" to "100002"
+            MarketRateItemType.COIN_QUARTER -> "coin" to "100003"
+            MarketRateItemType.COIN_GERAMI -> "coin" to "100004"
+            MarketRateItemType.USD -> "currency" to "200000"
+            MarketRateItemType.ONS -> null
+        }
+    }
+
+    private fun getISignalRangeKey(horizon: TimeHorizon): String {
+        return when (horizon) {
+            TimeHorizon.TODAY -> "oneDay"
+            TimeHorizon.ONE_WEEK -> "oneWeek"
+            TimeHorizon.ONE_MONTH -> "oneMonth"
+            TimeHorizon.SIX_MONTHS -> "sixMonth"
+            TimeHorizon.ONE_YEAR -> "oneYear"
+        }
+    }
+
+    private fun getTgjuIndicator(type: MarketRateItemType): String {
+        return when (type) {
+            MarketRateItemType.GOLD_18K -> "geram18"
+            MarketRateItemType.GOLD_MELT -> "mesghal"
+            MarketRateItemType.GOLD_24K -> "geram24"
+            MarketRateItemType.COIN_EMAMI -> "sekee"
+            MarketRateItemType.COIN_BAHAR -> "sekeb"
+            MarketRateItemType.COIN_HALF -> "nim"
+            MarketRateItemType.COIN_QUARTER -> "rob"
+            MarketRateItemType.COIN_GERAMI -> "gerami"
+            MarketRateItemType.USD -> "price_dollar_rl"
+            MarketRateItemType.ONS -> "ons"
+        }
+    }
+
+    private fun getTgjuLength(horizon: TimeHorizon): Int {
+        return when (horizon) {
+            TimeHorizon.TODAY -> 2
+            TimeHorizon.ONE_WEEK -> 7
+            TimeHorizon.ONE_MONTH -> 30
+            TimeHorizon.SIX_MONTHS -> 180
+            TimeHorizon.ONE_YEAR -> 365
+        }
+    }
+
+    private fun parseCleanPrice(raw: String): Long {
+        val clean = raw.replace(",", "").replace("-", "").trim()
+        val num = clean.toDoubleOrNull() ?: 0.0
+        return abs(num).toLong()
+    }
 }
+

@@ -117,4 +117,62 @@ class MarketRateDetailTest {
             assertTrue("fluctuationRangeText should end with + or -", chart.fluctuationRangeText.endsWith("+") || chart.fluctuationRangeText.endsWith("-"))
         }
     }
+
+    @Test
+    fun realCandlesTransformToAccurateTrendChartData() {
+        val candles = listOf(
+            MarketCandle(open = 23000000L, high = 23200000L, low = 22900000L, close = 23100000L, dateShamsi = "14050620"),
+            MarketCandle(open = 23100000L, high = 23500000L, low = 23000000L, close = 23400000L, dateShamsi = "14050621"),
+            MarketCandle(open = 23400000L, high = 23900000L, low = 23300000L, close = 23800000L, dateShamsi = "14050622"),
+            MarketCandle(open = 23800000L, high = 23850000L, low = 23100000L, close = 23283400L, dateShamsi = "14050623")
+        )
+
+        val chart = MarketHistoryConverter.toTrendChartData(candles, TimeHorizon.ONE_WEEK, 23000000L)
+        assertNotNull(chart)
+        assertEquals(4, chart.points.size)
+        assertEquals(23900000L, chart.peakPrice)
+        assertEquals(2 / 3.0f, chart.peakXRatio, 0.01f)
+        assertTrue(chart.points.all { it.first in 0.0f..1.0f && it.second in 0.10f..0.90f })
+        assertEquals(5, chart.timeLabels.size)
+        assertEquals("امروز", chart.timeLabels.last())
+    }
+
+    @Test
+    fun realCandlesGenerateAccurateMonthlyStats() {
+        val candles = (1..30).map { day ->
+            MarketCandle(
+                open = 20000000L + day * 100000L,
+                high = 20500000L + day * 100000L,
+                low = 19800000L + day * 100000L,
+                close = 20200000L + day * 100000L,
+                dateShamsi = "140506${String.format(java.util.Locale.US, "%02d", day)}"
+            )
+        }
+
+        val stats = MarketHistoryConverter.toMonthlyMarketStats(candles, 22000000L)
+        assertEquals(23500000L, stats.thirtyDayHigh)
+        assertEquals(19900000L, stats.thirtyDayLow)
+        assertTrue(stats.weightedAverage in 19900000L..23500000L)
+    }
+
+    @Test
+    fun marketRateDetailStateIncorporatesRealHistoryMap() {
+        val weekCandles = listOf(
+            MarketCandle(open = 23000000L, high = 23200000L, low = 22900000L, close = 23100000L, dateShamsi = "14050620"),
+            MarketCandle(open = 23100000L, high = 23500000L, low = 23000000L, close = 23400000L, dateShamsi = "14050621")
+        )
+        val historyMap = mapOf(TimeHorizon.ONE_WEEK to weekCandles)
+
+        val state = MarketRateDetailState.create(
+            type = MarketRateItemType.GOLD_18K,
+            rates = sampleRates,
+            historyByHorizon = historyMap
+        )
+
+        assertNotNull(state)
+        val weekChart = state.chartDataByHorizon[TimeHorizon.ONE_WEEK]
+        assertNotNull(weekChart)
+        assertEquals(23500000L, weekChart!!.peakPrice)
+        assertEquals(2, weekChart.points.size)
+    }
 }

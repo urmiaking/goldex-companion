@@ -73,6 +73,8 @@ data class MainUiState(
     val isMeltVisible: Boolean = false,
     val isRateDetailVisible: Boolean = false,
     val selectedRateDetailType: MarketRateItemType = MarketRateItemType.GOLD_18K,
+    val rateDetailHistory: Map<TimeHorizon, List<MarketCandle>> = emptyMap(),
+    val isHistoryLoading: Boolean = false,
     val isWizardVisible: Boolean = false
 ) {
     fun toJewelryUiState(): JewelryUiState = JewelryUiState(
@@ -173,11 +175,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         _uiState.update { it.copy(isMeltVisible = visible) }
     }
 
+    private var historyLoadingJob: Job? = null
+
     fun openRateDetail(type: MarketRateItemType) {
-        _uiState.update { it.copy(selectedRateDetailType = type, isRateDetailVisible = true) }
+        _uiState.update {
+            it.copy(
+                selectedRateDetailType = type,
+                isRateDetailVisible = true,
+                isHistoryLoading = true
+            )
+        }
+        loadRateHistory(type)
+    }
+
+    fun loadRateHistory(type: MarketRateItemType) {
+        historyLoadingJob?.cancel()
+        historyLoadingJob = viewModelScope.launch(Dispatchers.IO) {
+            val preferred = _uiState.value.rates.source
+            val history = GoldMarketRepository.getAllHorizonsHistory(type, preferred)
+            _uiState.update {
+                it.copy(
+                    rateDetailHistory = history,
+                    isHistoryLoading = false
+                )
+            }
+        }
     }
 
     fun setRateDetailVisible(visible: Boolean) {
+        if (!visible) {
+            historyLoadingJob?.cancel()
+        }
         _uiState.update { it.copy(isRateDetailVisible = visible) }
     }
 

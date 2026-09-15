@@ -761,8 +761,16 @@ fun MainScreen(
                 exit = LuxuryMotion.ScreenPopExit,
                 modifier = Modifier.fillMaxSize()
             ) {
-                val detailState = remember(mainUiState.selectedRateDetailType, mainUiState.rates) {
-                    MarketRateDetailState.create(mainUiState.selectedRateDetailType, mainUiState.rates)
+                val detailState = remember(
+                    mainUiState.selectedRateDetailType,
+                    mainUiState.rates,
+                    mainUiState.rateDetailHistory
+                ) {
+                    MarketRateDetailState.create(
+                        type = mainUiState.selectedRateDetailType,
+                        rates = mainUiState.rates,
+                        historyByHorizon = mainUiState.rateDetailHistory
+                    )
                 }
                 MarketRateDetailScreen(
                     state = detailState,

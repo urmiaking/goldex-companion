@@ -3,6 +3,9 @@ package com.goldex.companion.data
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.LedgerTransaction
+import com.goldex.companion.model.MarketCandle
+import com.goldex.companion.model.MarketRateItemType
+import com.goldex.companion.model.TimeHorizon
 import kotlinx.coroutines.flow.StateFlow
 
 interface CustomerStore {
@@ -41,3 +44,17 @@ interface MarketRatesStore {
     suspend fun cycleSource(): PriceSource
     suspend fun refreshRates(): MarketRates
 }
+
+interface MarketHistoryStore {
+    suspend fun getHistory(
+        type: MarketRateItemType,
+        horizon: TimeHorizon,
+        preferredSource: PriceSource = PriceSource.ISIGNAL
+    ): List<MarketCandle>
+
+    suspend fun getAllHorizonsHistory(
+        type: MarketRateItemType,
+        preferredSource: PriceSource = PriceSource.ISIGNAL
+    ): Map<TimeHorizon, List<MarketCandle>>
+}
+

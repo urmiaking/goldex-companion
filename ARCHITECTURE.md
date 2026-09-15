@@ -40,11 +40,11 @@ Feature ViewModels & State Holders:
   -> SettingsViewModel (SettingsStore)
   -> UpdateViewModel (AppUpdateChecker)
   -> KaratConvertViewModel (GoldCalculationUseCases)
-  -> MainViewModel (MarketRatesStore, SettingsStore, Navigation & Calculator Core)
+  -> MainViewModel (MarketRatesStore, MarketHistoryStore, SettingsStore, Navigation & Calculator Core)
 
-model/ -> domain data types, calculations, formatting, invoice aggregation
+model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
 domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, PortfolioValuation)
-data/  -> HTTP integrations and SharedPreferences/JSON persistence via PersistenceJsonCodecs
+data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketHistoryCache, and SharedPreferences/JSON persistence via PersistenceJsonCodecs
 ```
 
 ### Current source of truth

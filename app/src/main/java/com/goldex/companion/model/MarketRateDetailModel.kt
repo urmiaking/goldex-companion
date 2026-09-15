@@ -98,8 +98,12 @@ data class MarketRateDetailState(
         /**
          * Factory function to generate rich, accurate detail state for any market rate item.
          */
-        fun create(type: MarketRateItemType, rates: MarketRates): MarketRateDetailState {
-            return when (type) {
+        fun create(
+            type: MarketRateItemType,
+            rates: MarketRates,
+            historyByHorizon: Map<TimeHorizon, List<MarketCandle>> = emptyMap()
+        ): MarketRateDetailState {
+            val baseState = when (type) {
                 MarketRateItemType.GOLD_18K -> buildGold18State(rates)
                 MarketRateItemType.GOLD_24K -> buildGold24State(rates)
                 MarketRateItemType.GOLD_MELT -> buildGoldMeltState(rates)
@@ -111,6 +115,52 @@ data class MarketRateDetailState(
                 MarketRateItemType.ONS -> buildOnsState(rates)
                 MarketRateItemType.USD -> buildUsdState(rates)
             }
+
+            if (historyByHorizon.isEmpty()) {
+                return baseState
+            }
+
+            // Convert real candles to TrendChartData for each available horizon
+            val updatedCharts = baseState.chartDataByHorizon.toMutableMap()
+            historyByHorizon.forEach { (horizon, candles) ->
+                if (candles.isNotEmpty()) {
+                    updatedCharts[horizon] = MarketHistoryConverter.toTrendChartData(
+                        candles = candles,
+                        horizon = horizon,
+                        fallbackBasePrice = baseState.currentPrice
+                    )
+                }
+            }
+
+            // Compute real 30-day stats if ONE_MONTH history is present
+            val monthCandles = historyByHorizon[TimeHorizon.ONE_MONTH]
+            val updatedMonthlyStats = if (monthCandles != null && monthCandles.isNotEmpty()) {
+                MarketHistoryConverter.toMonthlyMarketStats(monthCandles, baseState.currentPrice)
+            } else {
+                baseState.monthlyStats
+            }
+
+            // If TODAY history has candles, refine dayHigh, dayLow, openPrice
+            val todayCandles = historyByHorizon[TimeHorizon.TODAY]
+            val dayHigh = if (todayCandles != null && todayCandles.isNotEmpty()) {
+                todayCandles.maxOfOrNull { it.high }?.takeIf { it > 0L } ?: baseState.dayHigh
+            } else baseState.dayHigh
+
+            val dayLow = if (todayCandles != null && todayCandles.isNotEmpty()) {
+                todayCandles.minOfOrNull { it.low }?.takeIf { it > 0L } ?: baseState.dayLow
+            } else baseState.dayLow
+
+            val openPrice = if (todayCandles != null && todayCandles.isNotEmpty()) {
+                todayCandles.first().open.takeIf { it > 0L } ?: baseState.openPrice
+            } else baseState.openPrice
+
+            return baseState.copy(
+                chartDataByHorizon = updatedCharts,
+                monthlyStats = updatedMonthlyStats,
+                dayHigh = dayHigh,
+                dayLow = dayLow,
+                openPrice = openPrice
+            )
         }
 
         private fun buildGold18State(rates: MarketRates): MarketRateDetailState {
