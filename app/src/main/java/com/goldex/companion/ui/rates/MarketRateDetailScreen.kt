@@ -17,6 +17,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.goldex.companion.ui.theme.ButtonShape
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -495,10 +498,13 @@ fun MarketRateDetailScreen(
                         )
                     }
 
-                    // Fluctuation Pill
+                    // Fluctuation Pill (Green if positive, Red if negative)
+                    val isPos = currentChart.isPositive
+                    val pillBg = if (isPos) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
+                    val pillColor = if (isPos) Color(0xFF047857) else Color(0xFFEF4444)
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF10B981).copy(alpha = 0.12f)
+                        color = pillBg
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -514,7 +520,7 @@ fun MarketRateDetailScreen(
                                 text = PersianNumberFormatter.toPersianDigits(currentChart.fluctuationRangeText),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF047857)
+                                color = pillColor
                             )
                         }
                     }
@@ -562,6 +568,7 @@ fun MarketRateDetailScreen(
                                 peakXRatio = horizonChart.peakXRatio,
                                 peakYRatio = horizonChart.peakYRatio,
                                 currencyUnit = state.currencyUnit,
+                                candles = horizonChart.candles,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
@@ -1094,9 +1101,51 @@ private fun TrendChartCanvas(
     peakXRatio: Float,
     peakYRatio: Float,
     currencyUnit: String,
+    candles: List<MarketCandle> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
+    var selectedIndex by remember(points) { mutableStateOf<Int?>(null) }
+
+    Box(
+        modifier = modifier
+            .pointerInput(points) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            val closestIdx = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - offset.x)
+                            }
+                            selectedIndex = if (selectedIndex == closestIdx) null else closestIdx
+                        }
+                    }
+                )
+            }
+            .pointerInput(points) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            selectedIndex = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - offset.x)
+                            }
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            selectedIndex = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - change.position.x)
+                            }
+                        }
+                    }
+                )
+            }
+    ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -1123,18 +1172,19 @@ private fun TrendChartCanvas(
                 )
             }
 
-            // 2. Build Smooth Cubic Bezier Line Path
+            // 2. Build Smooth Catmull-Rom Spline Line Path
             val linePath = Path().apply {
                 moveTo(canvasPoints.first().x, canvasPoints.first().y)
                 for (i in 0 until canvasPoints.size - 1) {
                     val p0 = canvasPoints[i]
                     val p1 = canvasPoints[i + 1]
-                    val cx = (p0.x + p1.x) / 2f
-                    cubicTo(
-                        x1 = cx, y1 = p0.y,
-                        x2 = cx, y2 = p1.y,
-                        x3 = p1.x, y3 = p1.y
-                    )
+                    val prev = if (i > 0) canvasPoints[i - 1] else p0
+                    val next = if (i + 2 < canvasPoints.size) canvasPoints[i + 2] else p1
+                    val c1x = p0.x + (p1.x - prev.x) / 6f
+                    val c1y = p0.y + (p1.y - prev.y) / 6f
+                    val c2x = p1.x - (next.x - p0.x) / 6f
+                    val c2y = p1.y - (next.y - p0.y) / 6f
+                    cubicTo(c1x, c1y, c2x, c2y, p1.x, p1.y)
                 }
             }
 
@@ -1170,7 +1220,7 @@ private fun TrendChartCanvas(
                     )
                 ),
                 style = Stroke(
-                    width = 3.dp.toPx(),
+                    width = 2.8.dp.toPx(),
                     cap = StrokeCap.Round,
                     join = StrokeJoin.Round
                 )
@@ -1219,41 +1269,140 @@ private fun TrendChartCanvas(
                 center = endPoint,
                 style = Stroke(width = 2.dp.toPx())
             )
+
+            // 6. Active Touch/Drag Indicator Line & On-Curve Point
+            if (selectedIndex != null && selectedIndex in canvasPoints.indices) {
+                val selPoint = canvasPoints[selectedIndex!!]
+
+                // Vertical Dashed Guideline
+                drawLine(
+                    color = Color(0xFFD4AF37).copy(alpha = 0.6f),
+                    start = Offset(selPoint.x, 8.dp.toPx()),
+                    end = Offset(selPoint.x, h - 8.dp.toPx()),
+                    strokeWidth = 1.2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                )
+
+                // Indicator on Curve
+                drawCircle(
+                    color = Color(0xFFD4AF37).copy(alpha = 0.35f),
+                    radius = 9.dp.toPx(),
+                    center = selPoint
+                )
+                drawCircle(
+                    color = Color(0xFFD4AF37),
+                    radius = 5.dp.toPx(),
+                    center = selPoint
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.5.dp.toPx(),
+                    center = selPoint
+                )
+            }
         }
 
-        // 6. Floating Peak Value Marker positioned near summit
+        // Floating Overlays: Peak Badge or Interactive Tooltip
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val peakX = maxWidth * peakXRatio
-            val peakY = maxHeight * (1f - peakYRatio)
+            if (selectedIndex != null && selectedIndex in points.indices) {
+                val selIdx = selectedIndex!!
+                val normP = points[selIdx]
+                val selCandle = candles.getOrNull(selIdx)
+                val price = selCandle?.close ?: peakPrice
+                val dateOrTime = selCandle?.dateShamsi?.takeIf { it.isNotBlank() } ?: ""
 
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF24211A),
-                border = BorderStroke(0.6.dp, Color(0xFFD4AF37).copy(alpha = 0.5f)),
-                shadowElevation = 4.dp,
-                modifier = Modifier
-                    .offset(
-                        x = (peakX - 55.dp).coerceAtLeast(8.dp),
-                        y = (peakY - 26.dp).coerceAtLeast(2.dp)
-                    )
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                val ptX = maxWidth * normP.first
+                val ptY = (maxHeight - 24.dp) * (1f - normP.second) + 12.dp
+
+                val tooltipW = 120.dp
+                val tooltipH = 46.dp
+
+                // Tooltip position: top-left of the selected point with boundary clamping
+                val targetX = ptX - tooltipW - 8.dp
+                val clampedX = if (targetX >= 6.dp) {
+                    targetX
+                } else {
+                    (ptX + 8.dp).coerceAtMost(maxWidth - tooltipW - 6.dp)
+                }
+
+                val targetY = ptY - tooltipH - 8.dp
+                val clampedY = if (targetY >= 4.dp) {
+                    targetY
+                } else {
+                    (ptY + 8.dp).coerceAtMost(maxHeight - tooltipH - 4.dp)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF24211A),
+                    border = BorderStroke(0.8.dp, Color(0xFFD4AF37)),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.offset(x = clampedX, y = clampedY)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFD4AF37))
-                    )
-                    Text(
-                        text = "اوج: ${PersianNumberFormatter.format(peakPrice)} $currencyUnit",
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFE088)
-                    )
+                    Column(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(5.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFD4AF37))
+                            )
+                            Text(
+                                text = "${PersianNumberFormatter.format(price)} $currencyUnit",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFFFFE088)
+                            )
+                        }
+                        if (dateOrTime.isNotBlank()) {
+                            Text(
+                                text = PersianNumberFormatter.toPersianDigits(dateOrTime),
+                                fontSize = 9.5.sp,
+                                color = Color(0xFFC7B299)
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Peak Summit Marker
+                val peakX = maxWidth * peakXRatio
+                val peakY = maxHeight * (1f - peakYRatio)
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF24211A),
+                    border = BorderStroke(0.6.dp, Color(0xFFD4AF37).copy(alpha = 0.5f)),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .offset(
+                            x = (peakX - 55.dp).coerceAtLeast(8.dp),
+                            y = (peakY - 26.dp).coerceAtLeast(2.dp)
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFD4AF37))
+                        )
+                        Text(
+                            text = "اوج: ${PersianNumberFormatter.format(peakPrice)} $currencyUnit",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFE088)
+                        )
+                    }
                 }
             }
         }

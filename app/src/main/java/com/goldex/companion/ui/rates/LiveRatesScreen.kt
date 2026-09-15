@@ -31,11 +31,90 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.MarketCandle
 import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.dashboard.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import java.util.Locale
+import kotlin.math.abs
+
+private data class DayStats(
+    val low: Long,
+    val high: Long,
+    val deltaAmount: Long,
+    val deltaPercent: Double,
+    val deltaText: String,
+    val isPositive: Boolean,
+    val infoText: String,
+    val sparklinePoints: List<Float>
+)
+
+private fun resolveDayStats(
+    type: MarketRateItemType,
+    currentPrice: Long,
+    candles: List<MarketCandle>?,
+    isDollar: Boolean = false
+): DayStats {
+    if (!candles.isNullOrEmpty()) {
+        val validLows = candles.map { if (it.low > 0L) it.low else it.close }.filter { it > 0L }
+        val validHighs = candles.map { if (it.high > 0L) it.high else it.close }.filter { it > 0L }
+        val low = if (validLows.isNotEmpty()) validLows.minOrNull() ?: currentPrice else currentPrice
+        val high = if (validHighs.isNotEmpty()) validHighs.maxOrNull() ?: currentPrice else currentPrice
+
+        val firstPrice = candles.first().open.takeIf { it > 0L } ?: candles.first().close
+        val lastPrice = candles.last().close.takeIf { it > 0L } ?: currentPrice
+        val diff = lastPrice - firstPrice
+        val pct = if (firstPrice > 0L) (diff.toDouble() / firstPrice.toDouble()) * 100.0 else 0.0
+        val isPositive = diff >= 0L
+
+        val deltaText = if (isDollar) {
+            val sign = if (isPositive) "+" else "-"
+            val absDiff = kotlin.math.abs(diff)
+            val absPct = kotlin.math.abs(pct)
+            PersianNumberFormatter.toPersianDigits(
+                String.format(Locale.US, "%d$sign $ (%.1f%%%s)", absDiff, absPct, sign)
+            )
+        } else {
+            PersianNumberFormatter.formatDelta(diff, pct)
+        }
+
+        val points = candles.map { it.close.toFloat() }
+        val lowStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(low)} $" else PersianNumberFormatter.format(low)
+        val highStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(high)} $" else PersianNumberFormatter.format(high)
+        val info = "کف: $lowStr | سقف: $highStr"
+
+        return DayStats(
+            low = low,
+            high = high,
+            deltaAmount = diff,
+            deltaPercent = pct,
+            deltaText = deltaText,
+            isPositive = isPositive,
+            infoText = info,
+            sparklinePoints = points
+        )
+    } else {
+        val low = currentPrice
+        val high = currentPrice
+        val lowStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(low)} $" else PersianNumberFormatter.format(low)
+        val highStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(high)} $" else PersianNumberFormatter.format(high)
+        val info = "کف: $lowStr | سقف: $highStr"
+        val deltaText = if (isDollar) "+۰ $ (+۰.۰٪)" else PersianNumberFormatter.formatDelta(0L, 0.0)
+
+        return DayStats(
+            low = low,
+            high = high,
+            deltaAmount = 0L,
+            deltaPercent = 0.0,
+            deltaText = deltaText,
+            isPositive = true,
+            infoText = info,
+            sparklinePoints = listOf(1f, 1.05f, 1.02f, 1.08f, 1.1f)
+        )
+    }
+}
 
 /**
  * LiveRatesScreen: Real-time Tehran Gold Bazaar & Coin Market Board.
@@ -209,10 +288,22 @@ fun LiveRatesScreen(
                         )
                     }
 
+                    val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
+                    val heroMeltStats = resolveDayStats(
+                        MarketRateItemType.GOLD_MELT,
+                        meltPrice,
+                        uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT]
+                    )
+                    val badgeBg = if (heroMeltStats.isPositive) Color(0xFF10B981).copy(alpha = 0.2f) else Color(0xFFEF4444).copy(alpha = 0.2f)
+                    val badgeBorder = if (heroMeltStats.isPositive) Color(0xFF10B981).copy(alpha = 0.4f) else Color(0xFFEF4444).copy(alpha = 0.4f)
+                    val badgeIcon = if (heroMeltStats.isPositive) DashTrendingUpVector else DashTrendingDownVector
+                    val badgeTextColor = if (heroMeltStats.isPositive) Color(0xFF6FFBBE) else Color(0xFFFCA5A5)
+                    val badgeIconColor = if (heroMeltStats.isPositive) Color(0xFF4EDEA3) else Color(0xFFF87171)
+
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = Color(0xFF10B981).copy(alpha = 0.2f),
-                        border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+                        color = badgeBg,
+                        border = BorderStroke(0.6.dp, badgeBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -220,16 +311,16 @@ fun LiveRatesScreen(
                             horizontalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Icon(
-                                imageVector = DashTrendingUpVector,
+                                imageVector = badgeIcon,
                                 contentDescription = null,
-                                tint = Color(0xFF4EDEA3),
+                                tint = badgeIconColor,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "+۱.۴٪ (۲۵۵,۰۰۰+)",
+                                text = heroMeltStats.deltaText,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6FFBBE)
+                                color = badgeTextColor
                             )
                         }
                     }
@@ -255,7 +346,6 @@ fun LiveRatesScreen(
                     }
 
                     // Price Section
-                    val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
                     val meltPriceText = PersianNumberFormatter.format(meltPrice)
                     val meltFontSize = when {
                         meltPriceText.length > 13 -> 22.sp
@@ -300,11 +390,44 @@ fun LiveRatesScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val gold18Stats = resolveDayStats(
+                        MarketRateItemType.GOLD_18K,
+                        if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L,
+                        uiState.todayCandlesByType[MarketRateItemType.GOLD_18K]
+                    )
+                    val onsStats = resolveDayStats(
+                        MarketRateItemType.ONS,
+                        if (uiState.rates.ons > 0) uiState.rates.ons.toLong() else 2684L,
+                        uiState.todayCandlesByType[MarketRateItemType.ONS],
+                        isDollar = true
+                    )
+                    val usdStats = resolveDayStats(
+                        MarketRateItemType.USD,
+                        if (uiState.rates.usd > 0) uiState.rates.usd else 92500L,
+                        uiState.todayCandlesByType[MarketRateItemType.USD]
+                    )
+
+                    val sign18 = if (gold18Stats.isPositive) "+" else "-"
+                    val gold18DeltaStr = PersianNumberFormatter.toPersianDigits(
+                        String.format(Locale.US, "%.1f%%%s", abs(gold18Stats.deltaPercent), sign18)
+                    )
+
+                    val signOns = if (onsStats.isPositive) "+" else "-"
+                    val onsDeltaStr = PersianNumberFormatter.toPersianDigits(
+                        String.format(Locale.US, "%d$%s", abs(onsStats.deltaAmount), signOns)
+                    )
+
+                    val signUsd = if (usdStats.isPositive) "+" else "-"
+                    val usdDeltaStr = PersianNumberFormatter.toPersianDigits(
+                        String.format(Locale.US, "%.1f%%%s", abs(usdStats.deltaPercent), signUsd)
+                    )
+
                     // Metric 1: گرم ۱۸ عیار
                     MiniMetricItem(
                         label = "گرم ۱۸ عیار",
                         value = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "۴,۲۸۵,۰۰۰",
-                        delta = "+۰.۸٪",
+                        delta = gold18DeltaStr,
+                        isPositive = gold18Stats.isPositive,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -312,7 +435,8 @@ fun LiveRatesScreen(
                     MiniMetricItem(
                         label = "انس جهانی طلا",
                         value = "${PersianNumberFormatter.formatWithCommas(uiState.rates.ons.toLong())} $",
-                        delta = "+۱۲.۴ $",
+                        delta = onsDeltaStr,
+                        isPositive = onsStats.isPositive,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -320,7 +444,8 @@ fun LiveRatesScreen(
                     MiniMetricItem(
                         label = "دلار آزاد نقدی",
                         value = if (uiState.rates.usd > 0) PersianNumberFormatter.format(uiState.rates.usd) else "۹۲,۵۰۰",
-                        delta = "+۰.۴٪",
+                        delta = usdDeltaStr,
+                        isPositive = usdStats.isPositive,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -450,14 +575,16 @@ fun LiveRatesScreen(
             // Card 1: طلای ۱۸ عیار
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
+                val stats = resolveDayStats(MarketRateItemType.GOLD_18K, gold18Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_18K])
                 MarketRateDetailCard(
                     title = "طلای ۱۸ عیار (۷۵۰)",
                     subtitle = "یک گرم طلای کارنشده استاندارد",
                     badge = "مبنا",
                     price = PersianNumberFormatter.format(gold18Val),
-                    delta = "+۳۲,۰۰۰ (+۰.۸٪)",
-                    isPositive = true,
-                    infoText = "کف: ${PersianNumberFormatter.format((gold18Val * 0.992).toLong())} | سقف: ${PersianNumberFormatter.format((gold18Val * 1.008).toLong())}",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashTollVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_18K) }
@@ -468,14 +595,16 @@ fun LiveRatesScreen(
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
                 val gold24Val = (gold18Val * 1000L) / 750L
+                val stats = resolveDayStats(MarketRateItemType.GOLD_24K, gold24Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_24K])
                 MarketRateDetailCard(
                     title = "طلای ۲۴ عیار (۹۹۹)",
                     subtitle = "شمش استاندارد خلوص کامل",
                     badge = "شمش",
                     price = PersianNumberFormatter.format(gold24Val),
-                    delta = "+۴۵,۰۰۰ (+۰.۸٪)",
-                    isPositive = true,
-                    infoText = "کف: ${PersianNumberFormatter.format((gold24Val * 0.992).toLong())} | سقف: ${PersianNumberFormatter.format((gold24Val * 1.008).toLong())}",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashIngotVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_24K) }
@@ -485,14 +614,16 @@ fun LiveRatesScreen(
             // Card 2.5: مظنه مثقال طلای آبشده (۱۷ عیار)
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val meltVal = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18550000L
+                val stats = resolveDayStats(MarketRateItemType.GOLD_MELT, meltVal, uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT])
                 MarketRateDetailCard(
                     title = "مظنه مثقال آبشده (۱۷ عیار)",
                     subtitle = "مبنای سنتی و بنکداری بازار تهران",
                     badge = "مظنه",
                     price = PersianNumberFormatter.format(meltVal),
-                    delta = "+۱۴۰,۰۰۰ (+۰.۸٪)",
-                    isPositive = true,
-                    infoText = "کف: ${PersianNumberFormatter.format((meltVal * 0.993).toLong())} | سقف: ${PersianNumberFormatter.format((meltVal * 1.004).toLong())}",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashBalanceVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.GOLD_MELT) }
@@ -502,14 +633,16 @@ fun LiveRatesScreen(
             // Card 3: سکه تمام امامی (طرح جدید)
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val emamiVal = if (uiState.rates.coinEmami > 0) uiState.rates.coinEmami else 49100000L
+                val stats = resolveDayStats(MarketRateItemType.COIN_EMAMI, emamiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_EMAMI])
                 MarketRateDetailCard(
                     title = "سکه تمام امامی",
                     subtitle = "طرح جدید ۸۶ - ضرب بانک مرکزی",
                     badge = "حباب بالا",
                     price = PersianNumberFormatter.format(emamiVal),
-                    delta = "+۵۸۰,۰۰۰ (+۱.۲٪)",
-                    isPositive = true,
-                    infoText = "حباب قیمتی: ۸,۱۵۰,۰۰۰ ت (۱۶.۶٪)",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashCoinVector,
                     colors = colors,
                     hasAccentRibbon = true,
@@ -520,14 +653,16 @@ fun LiveRatesScreen(
             // Card 4: نیم سکه بهار آزادی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val halfVal = if (uiState.rates.coinHalf > 0) uiState.rates.coinHalf else 25300000L
+                val stats = resolveDayStats(MarketRateItemType.COIN_HALF, halfVal, uiState.todayCandlesByType[MarketRateItemType.COIN_HALF])
                 MarketRateDetailCard(
                     title = "نیم سکه بهار آزادی",
                     subtitle = "وزن ۴.۰۶۶ گرم - عیار ۹۰۰",
                     badge = null,
                     price = PersianNumberFormatter.format(halfVal),
-                    delta = "+۲۲۰,۰۰۰ (+۰.۹٪)",
-                    isPositive = true,
-                    infoText = "حباب: ۴,۳۵۰,۰۰۰ ت (۱۷.۲٪)",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashCoinVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.COIN_HALF) }
@@ -537,14 +672,16 @@ fun LiveRatesScreen(
             // Card 5: ربع سکه بهار آزادی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val quarterVal = if (uiState.rates.coinQuarter > 0) uiState.rates.coinQuarter else 15400000L
+                val stats = resolveDayStats(MarketRateItemType.COIN_QUARTER, quarterVal, uiState.todayCandlesByType[MarketRateItemType.COIN_QUARTER])
                 MarketRateDetailCard(
                     title = "ربع سکه بهار آزادی",
                     subtitle = "وزن ۲.۰۳۳ گرم - تقاضای بالا",
                     badge = null,
                     price = PersianNumberFormatter.format(quarterVal),
-                    delta = "+۲۳۰,۰۰۰ (+۱.۵٪)",
-                    isPositive = true,
-                    infoText = "حباب: ۴,۹۰۰,۰۰۰ ت (۳۱.۸٪)",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashCoinVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.COIN_QUARTER) }
@@ -554,14 +691,16 @@ fun LiveRatesScreen(
             // Card 6: سکه گرمی بانک مرکزی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val geramiVal = if (uiState.rates.coinGerami > 0) uiState.rates.coinGerami else 7200000L
+                val stats = resolveDayStats(MarketRateItemType.COIN_GERAMI, geramiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_GERAMI])
                 MarketRateDetailCard(
                     title = "سکه گرمی بانک مرکزی",
                     subtitle = "وزن ۱.۰۱ گرم - عیار ۹۰۰",
                     badge = null,
                     price = PersianNumberFormatter.format(geramiVal),
-                    delta = "+۷۰,۰۰۰ (+۱.۰٪)",
-                    isPositive = true,
-                    infoText = "حباب: ۲,۶۵۰,۰۰۰ ت (۳۶.۸٪)",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashCoinVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.COIN_GERAMI) }
@@ -571,14 +710,16 @@ fun LiveRatesScreen(
             // Card 7: انس جهانی طلا
             if (selectedFilterIndex == 0 || selectedFilterIndex == 4) {
                 val onsVal = if (uiState.rates.ons > 0) uiState.rates.ons else 2684.2
+                val stats = resolveDayStats(MarketRateItemType.ONS, onsVal.toLong(), uiState.todayCandlesByType[MarketRateItemType.ONS], isDollar = true)
                 MarketRateDetailCard(
                     title = "انس جهانی طلا (XAU)",
                     subtitle = "نرخ برابری هر اونس در بازار جهانی",
                     badge = "جهانی",
                     price = "${PersianNumberFormatter.formatWithCommas(onsVal.toLong())} $",
-                    delta = "+۱۸.۵ $ (+۰.۷٪)",
-                    isPositive = true,
-                    infoText = "دامنه روز: ۲,۶۶۲ $ تا ۲,۶۹۰ $",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashGlobeVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.ONS) }
@@ -588,14 +729,16 @@ fun LiveRatesScreen(
             // Card 8: دلار آزاد نقدی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 3) {
                 val usdVal = if (uiState.rates.usd > 0) uiState.rates.usd else 92500L
+                val stats = resolveDayStats(MarketRateItemType.USD, usdVal, uiState.todayCandlesByType[MarketRateItemType.USD])
                 MarketRateDetailCard(
                     title = "دلار نقدی بازار آزاد",
                     subtitle = "اسکناس نقدی تهران سبزه میدان",
                     badge = "ارز",
                     price = PersianNumberFormatter.format(usdVal),
-                    delta = "+۳۵۰ (+۰.۴٪)",
-                    isPositive = true,
-                    infoText = "حواله دبی: ۲۵,۴۰۰ ت | تتر: ۹۳,۱۰۰ ت",
+                    delta = stats.deltaText,
+                    isPositive = stats.isPositive,
+                    infoText = stats.infoText,
+                    sparklinePoints = stats.sparklinePoints,
                     icon = DashWalletVector,
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.USD) }
@@ -616,6 +759,7 @@ private fun MiniMetricItem(
     label: String,
     value: String,
     delta: String,
+    isPositive: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -646,7 +790,7 @@ private fun MiniMetricItem(
                 text = delta,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF4EDEA3),
+                color = if (isPositive) Color(0xFF4EDEA3) else Color(0xFFF87171),
                 maxLines = 1,
                 softWrap = false
             )
@@ -663,6 +807,7 @@ private fun MarketRateDetailCard(
     delta: String,
     isPositive: Boolean,
     infoText: String,
+    sparklinePoints: List<Float> = emptyList(),
     icon: ImageVector,
     colors: com.goldex.companion.ui.theme.GoldExAppColors,
     hasAccentRibbon: Boolean = false,
@@ -808,6 +953,8 @@ private fun MarketRateDetailCard(
                         modifier = Modifier
                             .width(60.dp)
                             .height(18.dp),
+                        points = sparklinePoints,
+                        isPositive = isPositive,
                         strokeColor = if (isPositive) Color(0xFF10B981) else Color(0xFFEF4444)
                     )
                 }
@@ -822,19 +969,52 @@ private fun MarketRateDetailCard(
 @Composable
 private fun MiniSparklineCanvas(
     modifier: Modifier = Modifier,
+    points: List<Float>,
+    isPositive: Boolean,
     strokeColor: Color
 ) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
+        if (points.size < 2) {
+            drawLine(
+                color = strokeColor,
+                start = Offset(0f, h / 2f),
+                end = Offset(w, h / 2f),
+                strokeWidth = 1.8.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            return@Canvas
+        }
+
+        val min = points.minOrNull() ?: 0f
+        val max = points.maxOrNull() ?: 1f
+        val range = (max - min).coerceAtLeast(0.001f)
+        val pad = 2.dp.toPx()
+
+        val pts = points.mapIndexed { i, p ->
+            val x = (i.toFloat() / (points.size - 1)) * w
+            val norm = (p - min) / range
+            val y = (h - 2 * pad) * (1f - norm) + pad
+            Offset(x, y)
+        }
+
         val path = Path().apply {
-            moveTo(0f, h * 0.8f)
-            lineTo(w * 0.2f, h * 0.65f)
-            lineTo(w * 0.4f, h * 0.75f)
-            lineTo(w * 0.6f, h * 0.4f)
-            lineTo(w * 0.8f, h * 0.45f)
-            lineTo(w, h * 0.15f)
+            moveTo(pts.first().x, pts.first().y)
+            for (i in 0 until pts.size - 1) {
+                val p0 = if (i > 0) pts[i - 1] else pts[i]
+                val p1 = pts[i]
+                val p2 = pts[i + 1]
+                val p3 = if (i + 2 < pts.size) pts[i + 2] else p2
+
+                val cp1x = p1.x + (p2.x - p0.x) / 6f
+                val cp1y = p1.y + (p2.y - p0.y) / 6f
+                val cp2x = p2.x - (p3.x - p1.x) / 6f
+                val cp2y = p2.y - (p3.y - p1.y) / 6f
+
+                cubicTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+            }
         }
 
         drawPath(

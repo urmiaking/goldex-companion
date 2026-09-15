@@ -418,7 +418,8 @@ fun MainScreen(
                                         uiState = DashboardUiState(
                                             appSettings = settingsState.appSettings,
                                             rates = mainUiState.rates,
-                                            savedInvoiceCount = invoiceState.savedInvoices.size
+                                            savedInvoiceCount = invoiceState.savedInvoices.size,
+                                            gold18Charts = mainUiState.dashboardGold18Charts
                                         ),
                                         onNavigateCalculator = {
                                             mainViewModel.selectTab(AppTab.CALCULATOR)
@@ -446,7 +447,8 @@ fun MainScreen(
                                     LiveRatesScreen(
                                         uiState = MarketRatesUiState(
                                             rates = mainUiState.rates,
-                                            isRefreshing = mainUiState.isRefreshingRates
+                                            isRefreshing = mainUiState.isRefreshingRates,
+                                            todayCandlesByType = mainUiState.todayCandlesByType
                                         ),
                                         onRefresh = { mainViewModel.refreshRates() },
                                         onNavigateCalculator = {

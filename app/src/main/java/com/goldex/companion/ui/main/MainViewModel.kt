@@ -75,7 +75,9 @@ data class MainUiState(
     val selectedRateDetailType: MarketRateItemType = MarketRateItemType.GOLD_18K,
     val rateDetailHistory: Map<TimeHorizon, List<MarketCandle>> = emptyMap(),
     val isHistoryLoading: Boolean = false,
-    val isWizardVisible: Boolean = false
+    val isWizardVisible: Boolean = false,
+    val dashboardGold18Charts: Map<TimeHorizon, TrendChartData> = emptyMap(),
+    val todayCandlesByType: Map<MarketRateItemType, List<MarketCandle>> = emptyMap()
 ) {
     fun toJewelryUiState(): JewelryUiState = JewelryUiState(
         itemTitleInput = itemTitleInput,
@@ -123,6 +125,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         loadInitialRates()
         calculateAll()
         startAutoRatesRefresh()
+        loadDashboardGold18History()
+        loadTodayCandlesForBoard()
     }
 
     private fun loadInitialSettings() {
@@ -198,6 +202,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                     rateDetailHistory = history,
                     isHistoryLoading = false
                 )
+            }
+        }
+    }
+
+    private var dashboardHistoryJob: Job? = null
+    private var boardCandlesJob: Job? = null
+
+    fun loadDashboardGold18History() {
+        dashboardHistoryJob?.cancel()
+        dashboardHistoryJob = viewModelScope.launch(Dispatchers.IO) {
+            val preferred = _uiState.value.rates.source
+            val history = GoldMarketRepository.getAllHorizonsHistory(MarketRateItemType.GOLD_18K, preferred)
+            val charts = history.mapValues { (horizon, candles) ->
+                candles.toTrendChart(MarketRateItemType.GOLD_18K, horizon)
+            }
+            _uiState.update { it.copy(dashboardGold18Charts = charts) }
+        }
+    }
+
+    fun loadTodayCandlesForBoard() {
+        boardCandlesJob?.cancel()
+        boardCandlesJob = viewModelScope.launch(Dispatchers.IO) {
+            val preferred = _uiState.value.rates.source
+            val types = MarketRateItemType.values()
+            val candlesMap = mutableMapOf<MarketRateItemType, List<MarketCandle>>()
+            for (type in types) {
+                val candles = GoldMarketRepository.getHistory(type, TimeHorizon.TODAY, preferred)
+                if (candles.isNotEmpty()) {
+                    candlesMap[type] = candles
+                }
+            }
+            if (candlesMap.isNotEmpty()) {
+                _uiState.update { it.copy(todayCandlesByType = candlesMap) }
             }
         }
     }
@@ -335,6 +372,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             try {
                 val newRates = marketRatesRepository.refreshRates()
                 applyFetchedRates(newRates)
+                loadDashboardGold18History()
+                loadTodayCandlesForBoard()
             } catch (_: Exception) { }
         }
     }
@@ -356,6 +395,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             try {
                 val newRates = marketRatesRepository.refreshRates()
                 applyFetchedRates(newRates)
+                loadDashboardGold18History()
+                loadTodayCandlesForBoard()
             } catch (_: Exception) { } finally {
                 _uiState.update { it.copy(isRefreshingRates = false) }
             }

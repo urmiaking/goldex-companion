@@ -37,8 +37,8 @@ object MarketHistoryConverter {
         val priceSpan = (maxPrice - minPrice).toFloat()
 
         // 2. Normalized points in range [0f, 1f]
-        // yNorm is scaled to [0.12f, 0.88f] to prevent the curve from touching top/bottom canvas bounds
-        val points = if (candles.size == 1) {
+        // yNorm is scaled to [0.15f, 0.85f] to prevent touching top/bottom canvas bounds
+        val rawPoints = if (candles.size == 1) {
             listOf(0.00f to 0.50f, 1.00f to 0.50f)
         } else {
             candles.mapIndexed { idx, candle ->
@@ -64,18 +64,40 @@ object MarketHistoryConverter {
         val peakRawY = if (priceSpan > 0f) (highestPrice - minPrice).toFloat() / priceSpan else 0.85f
         val peakY = (0.15f + (peakRawY * 0.70f)).coerceIn(0.20f, 0.92f)
 
-        // 4. Horizontal time labels (4 to 5 distributed labels)
+        // 4. Gentle 3-point smoothing filter for dense points (> 5 points)
+        // Eliminates micro-noise while strictly preserving endpoints, peak, and bottom
+        val points = if (rawPoints.size > 5) {
+            val smoothed = rawPoints.toMutableList()
+            for (i in 1 until rawPoints.size - 1) {
+                if (i == peakIdx || candles[i].close == maxPrice || candles[i].close == minPrice) {
+                    continue
+                }
+                val prevY = rawPoints[i - 1].second
+                val currY = rawPoints[i].second
+                val nextY = rawPoints[i + 1].second
+                val smoothY = (0.15f * prevY) + (0.70f * currY) + (0.15f * nextY)
+                smoothed[i] = rawPoints[i].first to smoothY
+            }
+            smoothed
+        } else {
+            rawPoints
+        }
+
+        // 5. Horizontal time labels (4 to 5 distributed labels)
         val timeLabels = extractTimeLabels(candles, horizon)
 
-        // 5. Fluctuation percentage
+        // 6. Fluctuation percentage (Sign placed strictly behind number: e.g. ۲.۴٪- or ۲.۴٪+)
         val firstPrice = candles.first().open.takeIf { it > 0L } ?: candles.first().close
         val lastPrice = candles.last().close
+        val diffAmount = lastPrice - firstPrice
         val pct = if (firstPrice > 0L) {
-            ((lastPrice - firstPrice).toDouble() / firstPrice.toDouble()) * 100.0
+            (diffAmount.toDouble() / firstPrice.toDouble()) * 100.0
         } else 0.0
-        val sign = if (pct >= 0.0) "+" else ""
+        val isPositive = pct >= 0.0
+        val sign = if (isPositive) "+" else "-"
+        val absPct = kotlin.math.abs(pct)
         val fluctuationText = PersianNumberFormatter.toPersianDigits(
-            String.format(Locale.US, "%.1f%%$sign", pct)
+            String.format(Locale.US, "%.1f%%%s", absPct, sign)
         )
 
         return TrendChartData(
@@ -84,7 +106,11 @@ object MarketHistoryConverter {
             peakXRatio = peakX,
             peakYRatio = peakY,
             timeLabels = timeLabels,
-            fluctuationRangeText = fluctuationText
+            fluctuationRangeText = fluctuationText,
+            isPositive = isPositive,
+            candles = candles,
+            fluctuationPercent = pct,
+            fluctuationAmount = diffAmount
         )
     }
 
@@ -197,7 +223,10 @@ object MarketHistoryConverter {
                 peakXRatio = 0.65f,
                 peakYRatio = 0.85f,
                 timeLabels = listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰"),
-                fluctuationRangeText = "۱.۱٪+"
+                fluctuationRangeText = "۱.۱٪+",
+                isPositive = true,
+                fluctuationPercent = 1.1,
+                fluctuationAmount = (peakPrice * 0.011).roundToLong()
             )
             TimeHorizon.ONE_WEEK -> TrendChartData(
                 points = listOf(0.00f to 0.30f, 0.35f to 0.45f, 0.52f to 0.88f, 0.70f to 0.60f, 1.00f to 0.68f),
@@ -205,7 +234,10 @@ object MarketHistoryConverter {
                 peakXRatio = 0.52f,
                 peakYRatio = 0.88f,
                 timeLabels = listOf("شنبه", "دوشنبه", "چهارشنبه", "جمعه", "امروز"),
-                fluctuationRangeText = "۲.۴٪+"
+                fluctuationRangeText = "۲.۴٪+",
+                isPositive = true,
+                fluctuationPercent = 2.4,
+                fluctuationAmount = (peakPrice * 0.024).roundToLong()
             )
             TimeHorizon.ONE_MONTH -> TrendChartData(
                 points = listOf(0.00f to 0.18f, 0.40f to 0.48f, 0.78f to 0.90f, 0.90f to 0.72f, 1.00f to 0.78f),
@@ -213,7 +245,10 @@ object MarketHistoryConverter {
                 peakXRatio = 0.78f,
                 peakYRatio = 0.90f,
                 timeLabels = listOf("۴ هفته پیش", "۳ هفته پیش", "۲ هفته پیش", "۱ هفته پیش", "امروز"),
-                fluctuationRangeText = "۴.۵٪+"
+                fluctuationRangeText = "۴.۵٪+",
+                isPositive = true,
+                fluctuationPercent = 4.5,
+                fluctuationAmount = (peakPrice * 0.045).roundToLong()
             )
             TimeHorizon.SIX_MONTHS -> TrendChartData(
                 points = listOf(0.00f to 0.12f, 0.42f to 0.40f, 0.75f to 0.75f, 0.88f to 0.92f, 1.00f to 0.86f),
@@ -221,7 +256,10 @@ object MarketHistoryConverter {
                 peakXRatio = 0.88f,
                 peakYRatio = 0.92f,
                 timeLabels = listOf("۶ ماه پیش", "۴ ماه پیش", "۳ ماه پیش", "۲ ماه پیش", "امروز"),
-                fluctuationRangeText = "۱۴.۲٪+"
+                fluctuationRangeText = "۱۴.۲٪+",
+                isPositive = true,
+                fluctuationPercent = 14.2,
+                fluctuationAmount = (peakPrice * 0.142).roundToLong()
             )
             TimeHorizon.ONE_YEAR -> TrendChartData(
                 points = listOf(0.00f to 0.08f, 0.50f to 0.45f, 0.70f to 0.68f, 0.85f to 0.94f, 1.00f to 0.88f),
@@ -229,7 +267,10 @@ object MarketHistoryConverter {
                 peakXRatio = 0.85f,
                 peakYRatio = 0.94f,
                 timeLabels = listOf("۱ سال پیش", "۹ ماه پیش", "۶ ماه پیش", "۳ ماه پیش", "امروز"),
-                fluctuationRangeText = "۳۸.۶٪+"
+                fluctuationRangeText = "۳۸.۶٪+",
+                isPositive = true,
+                fluctuationPercent = 38.6,
+                fluctuationAmount = (peakPrice * 0.386).roundToLong()
             )
         }
     }

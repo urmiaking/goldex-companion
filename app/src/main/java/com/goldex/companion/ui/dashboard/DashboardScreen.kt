@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -32,7 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.MarketHistoryConverter
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.TimeHorizon
+import com.goldex.companion.model.TrendChartData
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -539,6 +543,14 @@ fun DashboardScreen(
                     )
                 }
 
+                val currentHorizon = when (selectedTimeframe) {
+                    0 -> TimeHorizon.TODAY
+                    1 -> TimeHorizon.ONE_WEEK
+                    else -> TimeHorizon.ONE_MONTH
+                }
+                val activeChart = uiState.gold18Charts[currentHorizon]
+                    ?: MarketHistoryConverter.toTrendChartData(emptyList(), currentHorizon, uiState.rates.gold18)
+
                 // Active Quote & Intraday Delta
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -563,10 +575,15 @@ fun DashboardScreen(
                         )
                     }
 
+                    val isPositive = activeChart.isPositive
+                    val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
+                    val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
+                    val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
+
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = Color(0xFF10B981).copy(alpha = 0.12f),
-                        border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.3f))
+                        color = deltaBg,
+                        border = BorderStroke(0.6.dp, deltaBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
@@ -576,14 +593,19 @@ fun DashboardScreen(
                             Icon(
                                 imageVector = DashTrendingUpVector,
                                 contentDescription = null,
-                                tint = Color(0xFF059669),
-                                modifier = Modifier.size(12.dp)
+                                tint = deltaColor,
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .then(if (!isPositive) Modifier.rotate(180f) else Modifier)
                             )
+                            val deltaAmount = activeChart.fluctuationAmount
+                            val deltaPct = activeChart.fluctuationPercent
+                            val deltaText = PersianNumberFormatter.formatDelta(deltaAmount, deltaPct)
                             Text(
-                                text = "+۳۲,۰۰۰ (۰.۸+٪)",
+                                text = deltaText,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF059669)
+                                color = deltaColor
                             )
                         }
                     }
@@ -591,24 +613,28 @@ fun DashboardScreen(
 
                 // Interactive Smooth Golden Area Chart
                 GoldTrendCanvasChart(
+                    points = activeChart.points,
+                    peakXRatio = activeChart.peakXRatio,
+                    peakYRatio = activeChart.peakYRatio,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(130.dp),
                     goldColor = colors.goldPrimary
                 )
 
-                // Time Labels (LTR: 10:00 on the left to 18:00 live on the right)
+                // Time Labels (LTR: left to right)
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰ (زنده)").forEachIndexed { idx, hour ->
+                        activeChart.timeLabels.forEachIndexed { idx, hour ->
+                            val isLast = (idx == activeChart.timeLabels.lastIndex)
                             Text(
-                                text = hour,
+                                text = PersianNumberFormatter.toPersianDigits(hour),
                                 fontSize = 9.5.sp,
-                                fontWeight = if (idx == 4) FontWeight.Bold else FontWeight.Normal,
-                                color = if (idx == 4) colors.goldPrimary else colors.textMuted
+                                fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isLast) colors.goldPrimary else colors.textMuted
                             )
                         }
                     }
@@ -928,36 +954,44 @@ private fun TransactionRowItem(
  */
 @Composable
 private fun GoldTrendCanvasChart(
+    points: List<Pair<Float, Float>>,
+    peakXRatio: Float,
+    peakYRatio: Float,
     modifier: Modifier = Modifier,
     goldColor: Color
 ) {
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
+        if (points.isEmpty()) return@Canvas
 
-        val path = Path().apply {
-            moveTo(0f, height * 0.75f)
-            cubicTo(
-                width * 0.15f, height * 0.65f,
-                width * 0.25f, height * 0.85f,
-                width * 0.35f, height * 0.55f
-            )
-            cubicTo(
-                width * 0.45f, height * 0.35f,
-                width * 0.55f, height * 0.50f,
-                width * 0.65f, height * 0.30f
-            )
-            cubicTo(
-                width * 0.75f, height * 0.12f,
-                width * 0.88f, height * 0.35f,
-                width, height * 0.18f
+        val canvasPoints = points.map { (xNorm, yNorm) ->
+            Offset(
+                x = xNorm * width,
+                y = (1f - yNorm) * (height - 24.dp.toPx()) + 12.dp.toPx()
             )
         }
 
+        // Catmull-Rom smooth cubic spline
+        val linePath = Path().apply {
+            moveTo(canvasPoints.first().x, canvasPoints.first().y)
+            for (i in 0 until canvasPoints.size - 1) {
+                val p0 = canvasPoints[i]
+                val p1 = canvasPoints[i + 1]
+                val prev = if (i > 0) canvasPoints[i - 1] else p0
+                val next = if (i + 2 < canvasPoints.size) canvasPoints[i + 2] else p1
+                val c1x = p0.x + (p1.x - prev.x) / 6f
+                val c1y = p0.y + (p1.y - prev.y) / 6f
+                val c2x = p1.x - (next.x - p0.x) / 6f
+                val c2y = p1.y - (next.y - p0.y) / 6f
+                cubicTo(c1x, c1y, c2x, c2y, p1.x, p1.y)
+            }
+        }
+
         val fillPath = Path().apply {
-            addPath(path)
-            lineTo(width, height)
-            lineTo(0f, height)
+            addPath(linePath)
+            lineTo(canvasPoints.last().x, height)
+            lineTo(canvasPoints.first().x, height)
             close()
         }
 
@@ -967,7 +1001,7 @@ private fun GoldTrendCanvasChart(
             brush = Brush.verticalGradient(
                 colors = listOf(
                     goldColor.copy(alpha = 0.35f),
-                    goldColor.copy(alpha = 0.12f),
+                    goldColor.copy(alpha = 0.10f),
                     Color.Transparent
                 )
             )
@@ -975,36 +1009,41 @@ private fun GoldTrendCanvasChart(
 
         // Draw Stroke Line
         drawPath(
-            path = path,
+            path = linePath,
             color = goldColor,
             style = Stroke(
-                width = 3.dp.toPx(),
+                width = 2.5.dp.toPx(),
                 cap = StrokeCap.Round
             )
         )
 
         // Draw Peak Dot
+        val peakPoint = Offset(
+            x = peakXRatio * width,
+            y = (1f - peakYRatio) * (height - 24.dp.toPx()) + 12.dp.toPx()
+        )
         drawCircle(
             color = Color.White,
             radius = 4.dp.toPx(),
-            center = Offset(width * 0.65f, height * 0.30f)
+            center = peakPoint
         )
         drawCircle(
             color = goldColor,
             radius = 2.5.dp.toPx(),
-            center = Offset(width * 0.65f, height * 0.30f)
+            center = peakPoint
         )
 
         // Draw Live End Node
+        val endPoint = canvasPoints.last()
         drawCircle(
             color = goldColor,
-            radius = 5.dp.toPx(),
-            center = Offset(width, height * 0.18f)
+            radius = 4.5.dp.toPx(),
+            center = endPoint
         )
         drawCircle(
             color = goldColor.copy(alpha = 0.3f),
-            radius = 8.5.dp.toPx(),
-            center = Offset(width, height * 0.18f)
+            radius = 8.dp.toPx(),
+            center = endPoint
         )
     }
 }

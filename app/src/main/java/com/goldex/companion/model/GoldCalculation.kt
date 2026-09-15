@@ -178,6 +178,15 @@ object PersianNumberFormatter {
         return toPersianDigits("%.${decimals}f".format(Locale.US, value))
     }
 
+    fun formatDelta(amount: Long, percent: Double): String {
+        val sign = if (amount >= 0L) "+" else "-"
+        val absAmount = kotlin.math.abs(amount)
+        val absPct = kotlin.math.abs(percent)
+        val pctStr = toPersianDigits(String.format(Locale.US, "%.1f", absPct))
+        val amtStr = format(absAmount)
+        return "$amtStr$sign ($pctStr٪$sign)"
+    }
+
     fun normalizeForSearch(text: String): String {
         return toEnglishDigits(text)
             .replace("-", "")

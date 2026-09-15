@@ -44,7 +44,11 @@ data class TrendChartData(
     val peakXRatio: Float,
     val peakYRatio: Float,
     val timeLabels: List<String>,
-    val fluctuationRangeText: String
+    val fluctuationRangeText: String,
+    val isPositive: Boolean = true,
+    val candles: List<MarketCandle> = emptyList(),
+    val fluctuationPercent: Double = 0.0,
+    val fluctuationAmount: Long = 0L
 )
 
 /**

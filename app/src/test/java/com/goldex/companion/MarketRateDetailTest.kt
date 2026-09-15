@@ -106,6 +106,15 @@ class MarketRateDetailTest {
     }
 
     @Test
+    fun formatDeltaPlacesSignsBehindNumbers() {
+        val positive = PersianNumberFormatter.formatDelta(32000L, 0.8)
+        assertEquals("۳۲,۰۰۰+ (۰.۸٪+)", positive)
+
+        val negative = PersianNumberFormatter.formatDelta(-34000L, -1.2)
+        assertEquals("۳۴,۰۰۰- (۱.۲٪-)", negative)
+    }
+
+    @Test
     fun positiveAndNegativeSignsArePlacedBehindNumbers() {
         val state = MarketRateDetailState.create(MarketRateItemType.GOLD_18K, sampleRates)
         assertFalse("dailyRangeText should not start with +", state.monthlyStats.dailyRangeText.startsWith("+"))
