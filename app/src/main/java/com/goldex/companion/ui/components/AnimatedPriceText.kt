@@ -34,10 +34,6 @@ fun AnimatedPriceText(
     fontWeight: FontWeight? = null,
     style: TextStyle = LocalTextStyle.current
 ) {
-    var previousAmount by remember { mutableStateOf(amount) }
-    val isIncreasing = amount >= previousAmount
-    previousAmount = amount
-
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically

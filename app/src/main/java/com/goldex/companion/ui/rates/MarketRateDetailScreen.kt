@@ -80,18 +80,6 @@ fun MarketRateDetailScreen(
     var selectedHorizon by remember { mutableStateOf(TimeHorizon.TODAY) }
     var isAlertActive by remember { mutableStateOf(false) }
 
-    // Pulsing animation for live indicators
-    val infiniteTransition = rememberInfiniteTransition(label = "pulseAnim")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
-
     val currentChart = state.chartDataByHorizon[selectedHorizon] ?: state.chartDataByHorizon.values.first()
 
     Scaffold(
@@ -358,13 +346,7 @@ fun MarketRateDetailScreen(
                                 text = PersianNumberFormatter.format(state.currentPrice),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Black,
-                                color = Color.White,
-                                modifier = Modifier.shadow(
-                                    elevation = 8.dp,
-                                    shape = RoundedCornerShape(4.dp),
-                                    ambientColor = Color(0xFFD4AF37),
-                                    spotColor = Color(0xFFD4AF37)
-                                )
+                                color = Color.White
                             )
                             Text(
                                 text = state.currencyUnit,
@@ -568,8 +550,6 @@ fun MarketRateDetailScreen(
                                 TrendChartCanvas(
                                     points = horizonChart.points,
                                     peakPrice = horizonChart.peakPrice,
-                                    peakXRatio = horizonChart.peakXRatio,
-                                    peakYRatio = horizonChart.peakYRatio,
                                     currencyUnit = state.currencyUnit,
                                     candles = horizonChart.candles,
                                     modifier = Modifier.fillMaxSize()
@@ -666,6 +646,42 @@ fun MarketRateDetailScreen(
         // ==========================================
         // 4. Primary Instant Actions For Goldsmiths
         // ==========================================
+        if (onAddToInvoice != null && (state.type == MarketRateItemType.GOLD_18K || state.type == MarketRateItemType.GOLD_24K || state.type == MarketRateItemType.GOLD_MELT)) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceElevated,
+                border = BorderStroke(1.dp, colors.goldBorder),
+                shadowElevation = 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onAddToInvoice(state.currentPrice, state.type.defaultPurityKarat)
+                    }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = CalcReceiptLong,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "محاسبه و صدور فاکتور با این نرخ",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary
+                    )
+                }
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1102,8 +1118,6 @@ private fun MetricRow(
 private fun TrendChartCanvas(
     points: List<Pair<Float, Float>>,
     peakPrice: Long,
-    peakXRatio: Float,
-    peakYRatio: Float,
     currencyUnit: String,
     candles: List<MarketCandle> = emptyList(),
     modifier: Modifier = Modifier

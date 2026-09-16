@@ -25,8 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
@@ -124,7 +124,7 @@ fun CustomerStatementScreen(
                                     .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ArrowForward,
+                                    imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "بازگشت",
                                     tint = colors.textMain,
                                     modifier = Modifier.size(18.dp)

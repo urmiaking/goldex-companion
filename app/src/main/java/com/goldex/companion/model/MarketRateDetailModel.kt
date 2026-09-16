@@ -218,7 +218,7 @@ data class MarketRateDetailState(
                         documentNumber = "۸۸۳۹"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -274,7 +274,7 @@ data class MarketRateDetailState(
                         documentNumber = "۹۰۸۸"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -329,7 +329,7 @@ data class MarketRateDetailState(
                         documentNumber = "۷۶۹۵"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -384,7 +384,7 @@ data class MarketRateDetailState(
                         documentNumber = "۵۵۱۸"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -431,7 +431,7 @@ data class MarketRateDetailState(
                         documentNumber = "۴۴۱۰"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -478,7 +478,7 @@ data class MarketRateDetailState(
                         documentNumber = "۳۳۰۵"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -525,7 +525,7 @@ data class MarketRateDetailState(
                         documentNumber = "۲۲۰۱"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -572,7 +572,7 @@ data class MarketRateDetailState(
                         documentNumber = "۱۱۰۹"
                     )
                 ),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -610,7 +610,7 @@ data class MarketRateDetailState(
                     weightedAverage = (basePrice * 0.988).roundToLong()
                 ),
                 recentTransactions = emptyList(),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
@@ -648,14 +648,14 @@ data class MarketRateDetailState(
                     weightedAverage = (basePrice * 0.990).roundToLong()
                 ),
                 recentTransactions = emptyList(),
-                chartDataByHorizon = generateHorizonCharts(basePrice, dayHigh)
+                chartDataByHorizon = generateHorizonCharts(dayHigh)
             )
         }
 
         /**
          * Generates normalized smooth curve points and labels for all 5 horizons.
          */
-        private fun generateHorizonCharts(currentPrice: Long, peakPrice: Long): Map<TimeHorizon, TrendChartData> {
+        private fun generateHorizonCharts(peakPrice: Long): Map<TimeHorizon, TrendChartData> {
             return mapOf(
                 TimeHorizon.TODAY to TrendChartData(
                     points = listOf(

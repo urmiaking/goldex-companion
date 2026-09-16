@@ -52,7 +52,6 @@ private data class DayStats(
 )
 
 private fun resolveDayStats(
-    type: MarketRateItemType,
     currentPrice: Long,
     candles: List<MarketCandle>?,
     isDollar: Boolean = false
@@ -268,7 +267,6 @@ fun LiveRatesScreen(
         ) {
             val meltPrice = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18560000L
             val heroMeltStats = resolveDayStats(
-                MarketRateItemType.GOLD_MELT,
                 meltPrice,
                 uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT]
             )
@@ -403,18 +401,15 @@ fun LiveRatesScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val gold18Stats = resolveDayStats(
-                        MarketRateItemType.GOLD_18K,
                         if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L,
                         uiState.todayCandlesByType[MarketRateItemType.GOLD_18K]
                     )
                     val onsStats = resolveDayStats(
-                        MarketRateItemType.ONS,
                         if (uiState.rates.ons > 0) uiState.rates.ons.toLong() else 2684L,
                         uiState.todayCandlesByType[MarketRateItemType.ONS],
                         isDollar = true
                     )
                     val usdStats = resolveDayStats(
-                        MarketRateItemType.USD,
                         if (uiState.rates.usd > 0) uiState.rates.usd else 92500L,
                         uiState.todayCandlesByType[MarketRateItemType.USD]
                     )
@@ -587,7 +582,7 @@ fun LiveRatesScreen(
             // Card 1: طلای ۱۸ عیار
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
-                val stats = resolveDayStats(MarketRateItemType.GOLD_18K, gold18Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_18K])
+                val stats = resolveDayStats(gold18Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_18K])
                 MarketRateDetailCard(
                     title = "طلای ۱۸ عیار (۷۵۰)",
                     subtitle = "یک گرم طلای کارنشده استاندارد",
@@ -607,7 +602,7 @@ fun LiveRatesScreen(
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
                 val gold24Val = (gold18Val * 1000L) / 750L
-                val stats = resolveDayStats(MarketRateItemType.GOLD_24K, gold24Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_24K])
+                val stats = resolveDayStats(gold24Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_24K])
                 MarketRateDetailCard(
                     title = "طلای ۲۴ عیار (۹۹۹)",
                     subtitle = "شمش استاندارد خلوص کامل",
@@ -626,7 +621,7 @@ fun LiveRatesScreen(
             // Card 2.5: مظنه مثقال طلای آبشده (۱۷ عیار)
             if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
                 val meltVal = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18550000L
-                val stats = resolveDayStats(MarketRateItemType.GOLD_MELT, meltVal, uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT])
+                val stats = resolveDayStats(meltVal, uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT])
                 MarketRateDetailCard(
                     title = "مظنه مثقال آبشده (۱۷ عیار)",
                     subtitle = "مبنای سنتی و بنکداری بازار تهران",
@@ -645,7 +640,7 @@ fun LiveRatesScreen(
             // Card 3: سکه تمام امامی (طرح جدید)
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val emamiVal = if (uiState.rates.coinEmami > 0) uiState.rates.coinEmami else 49100000L
-                val stats = resolveDayStats(MarketRateItemType.COIN_EMAMI, emamiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_EMAMI])
+                val stats = resolveDayStats(emamiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_EMAMI])
                 MarketRateDetailCard(
                     title = "سکه تمام امامی",
                     subtitle = "طرح جدید ۸۶ - ضرب بانک مرکزی",
@@ -665,7 +660,7 @@ fun LiveRatesScreen(
             // Card 4: نیم سکه بهار آزادی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val halfVal = if (uiState.rates.coinHalf > 0) uiState.rates.coinHalf else 25300000L
-                val stats = resolveDayStats(MarketRateItemType.COIN_HALF, halfVal, uiState.todayCandlesByType[MarketRateItemType.COIN_HALF])
+                val stats = resolveDayStats(halfVal, uiState.todayCandlesByType[MarketRateItemType.COIN_HALF])
                 MarketRateDetailCard(
                     title = "نیم سکه بهار آزادی",
                     subtitle = "وزن ۴.۰۶۶ گرم - عیار ۹۰۰",
@@ -684,7 +679,7 @@ fun LiveRatesScreen(
             // Card 5: ربع سکه بهار آزادی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val quarterVal = if (uiState.rates.coinQuarter > 0) uiState.rates.coinQuarter else 15400000L
-                val stats = resolveDayStats(MarketRateItemType.COIN_QUARTER, quarterVal, uiState.todayCandlesByType[MarketRateItemType.COIN_QUARTER])
+                val stats = resolveDayStats(quarterVal, uiState.todayCandlesByType[MarketRateItemType.COIN_QUARTER])
                 MarketRateDetailCard(
                     title = "ربع سکه بهار آزادی",
                     subtitle = "وزن ۲.۰۳۳ گرم - تقاضای بالا",
@@ -703,7 +698,7 @@ fun LiveRatesScreen(
             // Card 6: سکه گرمی بانک مرکزی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
                 val geramiVal = if (uiState.rates.coinGerami > 0) uiState.rates.coinGerami else 7200000L
-                val stats = resolveDayStats(MarketRateItemType.COIN_GERAMI, geramiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_GERAMI])
+                val stats = resolveDayStats(geramiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_GERAMI])
                 MarketRateDetailCard(
                     title = "سکه گرمی بانک مرکزی",
                     subtitle = "وزن ۱.۰۱ گرم - عیار ۹۰۰",
@@ -722,7 +717,7 @@ fun LiveRatesScreen(
             // Card 7: انس جهانی طلا
             if (selectedFilterIndex == 0 || selectedFilterIndex == 4) {
                 val onsVal = if (uiState.rates.ons > 0) uiState.rates.ons else 2684.2
-                val stats = resolveDayStats(MarketRateItemType.ONS, onsVal.toLong(), uiState.todayCandlesByType[MarketRateItemType.ONS], isDollar = true)
+                val stats = resolveDayStats(onsVal.toLong(), uiState.todayCandlesByType[MarketRateItemType.ONS], isDollar = true)
                 MarketRateDetailCard(
                     title = "انس جهانی طلا (XAU)",
                     subtitle = "نرخ برابری هر اونس در بازار جهانی",
@@ -741,7 +736,7 @@ fun LiveRatesScreen(
             // Card 8: دلار آزاد نقدی
             if (selectedFilterIndex == 0 || selectedFilterIndex == 3) {
                 val usdVal = if (uiState.rates.usd > 0) uiState.rates.usd else 92500L
-                val stats = resolveDayStats(MarketRateItemType.USD, usdVal, uiState.todayCandlesByType[MarketRateItemType.USD])
+                val stats = resolveDayStats(usdVal, uiState.todayCandlesByType[MarketRateItemType.USD])
                 MarketRateDetailCard(
                     title = "دلار نقدی بازار آزاد",
                     subtitle = "اسکناس نقدی تهران سبزه میدان",
@@ -966,7 +961,6 @@ private fun MarketRateDetailCard(
                             .width(60.dp)
                             .height(18.dp),
                         points = sparklinePoints,
-                        isPositive = isPositive,
                         strokeColor = if (isPositive) Color(0xFF10B981) else Color(0xFFEF4444)
                     )
                 }
@@ -982,7 +976,6 @@ private fun MarketRateDetailCard(
 private fun MiniSparklineCanvas(
     modifier: Modifier = Modifier,
     points: List<Float>,
-    isPositive: Boolean,
     strokeColor: Color
 ) {
     Canvas(modifier = modifier) {

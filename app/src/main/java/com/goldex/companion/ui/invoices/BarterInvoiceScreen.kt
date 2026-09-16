@@ -112,7 +112,6 @@ import java.util.UUID
 fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
     customerList: List<Customer> = emptyList(),
-    onSetCustomerRole: (CustomerRole) -> Unit,
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
     onSetLedgerAmount: (Long) -> Unit = {},
@@ -283,16 +282,14 @@ fun BarterInvoiceScreen(
                     isSales = false
                 )
 
-                // 5. Barter Balance & Net Settlement Overview (BELOW items per requirement 4)
+                // 5. Barter Balance & Net Settlement Overview
                 BarterBalanceCard(
-                    balance = balance,
-                    spotPrice18k = invoice.spotPrice18k
+                    balance = invoice.balance
                 )
 
                 // 6. Settlement Summary Card
                 SettlementSummaryCard(
                     invoice = invoice,
-                    balance = balance,
                     onOpenSettlementModal = { isSettlementModalVisible = true }
                 )
 
@@ -521,9 +518,7 @@ private fun InvoiceMetaAndRateCard(
 @Composable
 private fun CustomerAndAccountCard(
     customer: Customer?,
-    onChangeCustomerClick: () -> Unit,
-    customerRole: CustomerRole = CustomerRole.RETAIL,
-    onRoleChange: (CustomerRole) -> Unit = {}
+    onChangeCustomerClick: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
 
@@ -661,8 +656,7 @@ private fun CustomerAndAccountCard(
 // ---------------------------------------------------------------------------
 @Composable
 private fun BarterBalanceCard(
-    balance: com.goldex.companion.model.BarterBalance,
-    spotPrice18k: Long
+    balance: com.goldex.companion.model.BarterBalance
 ) {
     val colors = LocalGoldExColors.current
 
@@ -1256,7 +1250,6 @@ private fun ItemRowCard(
 @Composable
 private fun SettlementSummaryCard(
     invoice: BarterInvoice,
-    balance: BarterBalance,
     onOpenSettlementModal: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
@@ -1391,7 +1384,7 @@ private fun SettlementSummaryCard(
                                     SettlementMethod.POS -> if (invoice.posTrackingCode.isNotBlank()) "کارتخوان - پیگیری: ${PersianNumberFormatter.toPersianDigits(invoice.posTrackingCode)}" else "پرداخت از طریق دستگاه پوز / کارتخوان"
                                     SettlementMethod.LEDGER -> if (invoice.ledgerDueDate.isNotBlank()) "دفتر حساب - موعد: ${invoice.ledgerDueDate}" else "ثبت مانده در دفتر حساب"
                                     SettlementMethod.BULLION -> if (invoice.bullionWeight > 0) "شمش و آبشده: ${PersianNumberFormatter.formatWeight(invoice.bullionWeight)} گرم" else "تحویل شمش یا طلای آبشده"
-                                    SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer?.name}" else "حواله سه طرفه بین همکاران"
+                                    SettlementMethod.TRANSFER -> if (invoice.thirdPartyCustomer != null) "حواله سه طرفه به ${invoice.thirdPartyCustomer.name}" else "حواله سه طرفه بین همکاران"
                                 }
                             }
                             Text(

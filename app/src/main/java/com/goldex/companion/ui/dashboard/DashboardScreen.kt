@@ -7,6 +7,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -25,14 +27,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.MarketCandle
 import com.goldex.companion.model.MarketHistoryConverter
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.TimeHorizon
@@ -612,30 +617,38 @@ fun DashboardScreen(
                 }
 
                 // Interactive Smooth Golden Area Chart
-                GoldTrendCanvasChart(
-                    points = activeChart.points,
-                    peakXRatio = activeChart.peakXRatio,
-                    peakYRatio = activeChart.peakYRatio,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(130.dp),
-                    goldColor = colors.goldPrimary
-                )
-
-                // Time Labels (LTR: left to right)
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        activeChart.timeLabels.forEachIndexed { idx, hour ->
-                            val isLast = (idx == activeChart.timeLabels.lastIndex)
-                            Text(
-                                text = PersianNumberFormatter.toPersianDigits(hour),
-                                fontSize = 9.5.sp,
-                                fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isLast) colors.goldPrimary else colors.textMuted
-                            )
+                        GoldTrendCanvasChart(
+                            points = activeChart.points,
+                            candles = activeChart.candles,
+                            currentPrice = uiState.rates.gold18,
+                            currencyUnit = "تومان",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp),
+                            goldColor = colors.goldPrimary
+                        )
+
+                        // Time Labels (LTR: left to right)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            activeChart.timeLabels.forEachIndexed { idx, hour ->
+                                val isLast = (idx == activeChart.timeLabels.lastIndex)
+                                Text(
+                                    text = PersianNumberFormatter.toPersianDigits(hour),
+                                    fontSize = 9.5.sp,
+                                    fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isLast) colors.goldPrimary else colors.textMuted
+                                )
+                            }
                         }
                     }
                 }
@@ -951,99 +964,228 @@ private fun TransactionRowItem(
 
 /**
  * Custom Compose Canvas for rendering the smooth golden trend area chart.
+ * Supports interactive touch/drag with vertical dashed guideline and tooltip.
  */
 @Composable
 private fun GoldTrendCanvasChart(
     points: List<Pair<Float, Float>>,
-    peakXRatio: Float,
-    peakYRatio: Float,
+    candles: List<MarketCandle> = emptyList(),
+    currentPrice: Long = 0L,
+    currencyUnit: String = "تومان",
     modifier: Modifier = Modifier,
     goldColor: Color
 ) {
-    Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        if (points.isEmpty()) return@Canvas
+    var selectedIndex by remember(points) { mutableStateOf<Int?>(points.indices.lastOrNull()) }
 
-        val canvasPoints = points.map { (xNorm, yNorm) ->
-            Offset(
-                x = xNorm * width,
-                y = (1f - yNorm) * (height - 24.dp.toPx()) + 12.dp.toPx()
+    Box(
+        modifier = modifier
+            .pointerInput(points) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            val closestIdx = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - offset.x)
+                            }
+                            if (closestIdx != null) {
+                                selectedIndex = closestIdx
+                            }
+                        }
+                    }
+                )
+            }
+            .pointerInput(points) {
+                detectDragGestures(
+                    onDragStart = { offset ->
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            selectedIndex = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - offset.x)
+                            }
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        if (points.isNotEmpty()) {
+                            val w = size.width.toFloat()
+                            selectedIndex = points.indices.minByOrNull { i ->
+                                val px = points[i].first * w
+                                kotlin.math.abs(px - change.position.x)
+                            }
+                        }
+                    }
+                )
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            if (points.isEmpty()) return@Canvas
+
+            val canvasPoints = points.map { (xNorm, yNorm) ->
+                Offset(
+                    x = xNorm * width,
+                    y = (1f - yNorm) * (height - 24.dp.toPx()) + 12.dp.toPx()
+                )
+            }
+
+            // Catmull-Rom smooth cubic spline
+            val linePath = Path().apply {
+                moveTo(canvasPoints.first().x, canvasPoints.first().y)
+                for (i in 0 until canvasPoints.size - 1) {
+                    val p0 = canvasPoints[i]
+                    val p1 = canvasPoints[i + 1]
+                    val prev = if (i > 0) canvasPoints[i - 1] else p0
+                    val next = if (i + 2 < canvasPoints.size) canvasPoints[i + 2] else p1
+                    val c1x = p0.x + (p1.x - prev.x) / 6f
+                    val c1y = p0.y + (p1.y - prev.y) / 6f
+                    val c2x = p1.x - (next.x - p0.x) / 6f
+                    val c2y = p1.y - (next.y - p0.y) / 6f
+                    cubicTo(c1x, c1y, c2x, c2y, p1.x, p1.y)
+                }
+            }
+
+            val fillPath = Path().apply {
+                addPath(linePath)
+                lineTo(canvasPoints.last().x, height)
+                lineTo(canvasPoints.first().x, height)
+                close()
+            }
+
+            // Draw Area Gradient Fill
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        goldColor.copy(alpha = 0.35f),
+                        goldColor.copy(alpha = 0.10f),
+                        Color.Transparent
+                    )
+                )
             )
-        }
 
-        // Catmull-Rom smooth cubic spline
-        val linePath = Path().apply {
-            moveTo(canvasPoints.first().x, canvasPoints.first().y)
-            for (i in 0 until canvasPoints.size - 1) {
-                val p0 = canvasPoints[i]
-                val p1 = canvasPoints[i + 1]
-                val prev = if (i > 0) canvasPoints[i - 1] else p0
-                val next = if (i + 2 < canvasPoints.size) canvasPoints[i + 2] else p1
-                val c1x = p0.x + (p1.x - prev.x) / 6f
-                val c1y = p0.y + (p1.y - prev.y) / 6f
-                val c2x = p1.x - (next.x - p0.x) / 6f
-                val c2y = p1.y - (next.y - p0.y) / 6f
-                cubicTo(c1x, c1y, c2x, c2y, p1.x, p1.y)
+            // Draw Stroke Line
+            drawPath(
+                path = linePath,
+                color = goldColor,
+                style = Stroke(
+                    width = 2.5.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            )
+
+            // Draw Live End Node
+            val endPoint = canvasPoints.last()
+            drawCircle(
+                color = goldColor,
+                radius = 4.5.dp.toPx(),
+                center = endPoint
+            )
+            drawCircle(
+                color = goldColor.copy(alpha = 0.3f),
+                radius = 8.dp.toPx(),
+                center = endPoint
+            )
+
+            // Active Touch/Drag Indicator Line & On-Curve Point
+            if (selectedIndex != null && selectedIndex in canvasPoints.indices) {
+                val selPoint = canvasPoints[selectedIndex!!]
+
+                // Vertical Dashed Guideline
+                drawLine(
+                    color = goldColor.copy(alpha = 0.6f),
+                    start = Offset(selPoint.x, 6.dp.toPx()),
+                    end = Offset(selPoint.x, height - 6.dp.toPx()),
+                    strokeWidth = 1.2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                )
+
+                // Glowing indicator circle on curve
+                drawCircle(
+                    color = goldColor.copy(alpha = 0.35f),
+                    radius = 8.dp.toPx(),
+                    center = selPoint
+                )
+                drawCircle(
+                    color = goldColor,
+                    radius = 4.5.dp.toPx(),
+                    center = selPoint
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 2.5.dp.toPx(),
+                    center = selPoint
+                )
             }
         }
 
-        val fillPath = Path().apply {
-            addPath(linePath)
-            lineTo(canvasPoints.last().x, height)
-            lineTo(canvasPoints.first().x, height)
-            close()
+        // Floating Interactive Tooltip
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            if (selectedIndex != null && selectedIndex in points.indices) {
+                val selIdx = selectedIndex!!
+                val normP = points[selIdx]
+                val selCandle = candles.getOrNull(selIdx)
+                val price = selCandle?.close ?: currentPrice
+                val dateOrTime = selCandle?.dateShamsi?.takeIf { it.isNotBlank() } ?: ""
+
+                val ptX = maxWidth * normP.first
+                val ptY = (maxHeight - 24.dp) * (1f - normP.second) + 12.dp
+
+                val tooltipW = 110.dp
+                val tooltipH = 42.dp
+
+                val targetX = ptX - (tooltipW / 2)
+                val clampedX = targetX.coerceIn(4.dp, (maxWidth - tooltipW - 4.dp).coerceAtLeast(4.dp))
+
+                val targetY = ptY - tooltipH - 6.dp
+                val clampedY = if (targetY >= 2.dp) {
+                    targetY
+                } else {
+                    (ptY + 8.dp).coerceAtMost(maxHeight - tooltipH - 2.dp)
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF24211A),
+                    border = BorderStroke(0.8.dp, goldColor),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.offset(x = clampedX, y = clampedY)
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(goldColor)
+                                )
+                                Text(
+                                    text = "${PersianNumberFormatter.format(price)} $currencyUnit",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFFFE088)
+                                )
+                            }
+                            if (dateOrTime.isNotBlank()) {
+                                Text(
+                                    text = PersianNumberFormatter.toPersianDigits(dateOrTime),
+                                    fontSize = 9.sp,
+                                    color = Color(0xFFC7B299)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
-
-        // Draw Area Gradient Fill
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    goldColor.copy(alpha = 0.35f),
-                    goldColor.copy(alpha = 0.10f),
-                    Color.Transparent
-                )
-            )
-        )
-
-        // Draw Stroke Line
-        drawPath(
-            path = linePath,
-            color = goldColor,
-            style = Stroke(
-                width = 2.5.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-        )
-
-        // Draw Peak Dot
-        val peakPoint = Offset(
-            x = peakXRatio * width,
-            y = (1f - peakYRatio) * (height - 24.dp.toPx()) + 12.dp.toPx()
-        )
-        drawCircle(
-            color = Color.White,
-            radius = 4.dp.toPx(),
-            center = peakPoint
-        )
-        drawCircle(
-            color = goldColor,
-            radius = 2.5.dp.toPx(),
-            center = peakPoint
-        )
-
-        // Draw Live End Node
-        val endPoint = canvasPoints.last()
-        drawCircle(
-            color = goldColor,
-            radius = 4.5.dp.toPx(),
-            center = endPoint
-        )
-        drawCircle(
-            color = goldColor.copy(alpha = 0.3f),
-            radius = 8.dp.toPx(),
-            center = endPoint
-        )
     }
 }

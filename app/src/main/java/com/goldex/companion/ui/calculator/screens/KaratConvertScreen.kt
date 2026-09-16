@@ -576,6 +576,23 @@ fun KaratConvertScreen(
                                 }
                             }
 
+                            // دکمه تعویض عیار مبدا و مقصد
+                            IconButton(
+                                onClick = onSwapConvertKarats,
+                                modifier = Modifier
+                                    .padding(top = 18.dp)
+                                    .size(36.dp)
+                                    .background(colors.surfaceElevated, CircleShape)
+                                    .border(BorderStroke(0.6.dp, colors.goldBorder), CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = CalcSwapHoriz,
+                                    contentDescription = "جابجایی عیار مبدا و مقصد",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
                             // عیار مقصد
                             Column(
                                 modifier = Modifier.weight(1f),

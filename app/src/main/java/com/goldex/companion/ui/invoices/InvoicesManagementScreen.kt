@@ -75,7 +75,6 @@ fun InvoicesManagementScreen(
     onScanQrClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = LocalGoldExColors.current
     val invoices = uiState.filteredInvoices
     val allInvoices = uiState.invoicesList
 
@@ -127,7 +126,8 @@ fun InvoicesManagementScreen(
                         onResetSearch = {
                             onSearchQueryChange("")
                             onFilterSelect(InvoiceFilterTab.ALL)
-                        }
+                        },
+                        onNewInvoiceClick = onNewInvoiceClick
                     )
                 } else {
                     Column(
@@ -161,8 +161,6 @@ private fun InvoicesKpiOverviewBanner(
     totalTurnoverMillionTomans: Long,
     modifier: Modifier = Modifier
 ) {
-    val colors = LocalGoldExColors.current
-
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = Color(0xFF141B2B),
@@ -895,6 +893,7 @@ fun FloatingNewInvoiceButton(
 @Composable
 private fun EmptyInvoicesCard(
     onResetSearch: () -> Unit,
+    onNewInvoiceClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -931,21 +930,42 @@ private fun EmptyInvoicesCard(
                 color = colors.textMuted,
                 fontFamily = VazirmatnFamily
             )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.surfaceElevated)
-                    .border(1.dp, colors.goldBorder, RoundedCornerShape(12.dp))
-                    .clickable(onClick = onResetSearch)
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "مشاهده همه فاکتورها",
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.goldPrimary,
-                    fontFamily = VazirmatnFamily
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surfaceElevated)
+                        .border(1.dp, colors.goldBorder, RoundedCornerShape(12.dp))
+                        .clickable(onClick = onResetSearch)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "مشاهده همه فاکتورها",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.goldPrimary,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.goldPrimary)
+                        .clickable(onClick = onNewInvoiceClick)
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "+ فاکتور جدید",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
         }
     }

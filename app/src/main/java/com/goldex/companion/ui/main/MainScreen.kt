@@ -675,7 +675,6 @@ fun MainScreen(
                 BarterInvoiceScreen(
                     uiState = barterUiState,
                     customerList = customerState.customerList,
-                    onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
                     onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
                     onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
                     onSetLedgerAmount = barterInvoiceViewModel::setLedgerAmount,
