@@ -202,4 +202,40 @@ class MarketRateDetailTest {
         assertEquals(23500000L, weekChart!!.peakPrice)
         assertEquals(2, weekChart.points.size)
     }
+
+    @Test
+    fun onsMonthlyStatsUsesDollarCurrencyUnit() {
+        val candles = listOf(
+            MarketCandle(open = 2650L, high = 2690L, low = 2640L, close = 2684L, dateShamsi = "14050620"),
+            MarketCandle(open = 2684L, high = 2700L, low = 2675L, close = 2695L, dateShamsi = "14050621")
+        )
+        val stats = MarketHistoryConverter.toMonthlyMarketStats(candles, 2684L, currencyUnit = "$")
+        assertTrue("ONS daily range must contain $", stats.dailyRangeText.contains("$"))
+        assertFalse("ONS daily range must NOT contain تومان", stats.dailyRangeText.contains("تومان"))
+        assertTrue("ONS weekly change must contain $", stats.weeklyChangeText.contains("$"))
+        assertFalse("ONS weekly change must NOT contain تومان", stats.weeklyChangeText.contains("تومان"))
+
+        val emptyStats = MarketHistoryConverter.toMonthlyMarketStats(emptyList(), 2684L, currencyUnit = "$")
+        assertTrue("Empty ONS stats must contain $", emptyStats.dailyRangeText.contains("$"))
+        assertFalse("Empty ONS stats must NOT contain تومان", emptyStats.dailyRangeText.contains("تومان"))
+    }
+
+    @Test
+    fun todayChartPreservesIntradayPointsWithoutOverSmoothing() {
+        // 6 distinct hourly candles with a deliberate sharp jump
+        val candles = listOf(
+            MarketCandle(open = 4280000L, high = 4285000L, low = 4275000L, close = 4280000L, dateShamsi = "10:30"),
+            MarketCandle(open = 4280000L, high = 4290000L, low = 4278000L, close = 4290000L, dateShamsi = "11:30"),
+            MarketCandle(open = 4290000L, high = 4320000L, low = 4288000L, close = 4315000L, dateShamsi = "12:30"),
+            MarketCandle(open = 4315000L, high = 4318000L, low = 4300000L, close = 4305000L, dateShamsi = "13:30"),
+            MarketCandle(open = 4305000L, high = 4310000L, low = 4298000L, close = 4300000L, dateShamsi = "14:30"),
+            MarketCandle(open = 4300000L, high = 4325000L, low = 4295000L, close = 4320000L, dateShamsi = "15:30")
+        )
+
+        val chart = MarketHistoryConverter.toTrendChartData(candles, TimeHorizon.TODAY, 4285000L)
+        assertEquals(6, chart.points.size)
+        // Ensure time labels are formatted in Persian digits and do not end with "امروز"
+        assertFalse("TODAY last label must not be 'امروز'", chart.timeLabels.last() == "امروز")
+        assertTrue("TODAY labels must contain Persian colon or digits", chart.timeLabels.any { it.contains(":") || it.contains(":") })
+    }
 }

@@ -80,7 +80,18 @@ private fun resolveDayStats(
             PersianNumberFormatter.formatDelta(diff, pct)
         }
 
-        val points = candles.map { it.close.toFloat() }
+        // Downsample to at most 4 points to show the overall trend smoothly without lag
+        val points = if (candles.size <= 4) {
+            candles.map { it.close.toFloat() }
+        } else {
+            val n = candles.size
+            listOf(
+                candles.first().open.takeIf { it > 0L }?.toFloat() ?: candles.first().close.toFloat(),
+                candles[n / 3].close.toFloat(),
+                candles[(2 * n) / 3].close.toFloat(),
+                candles.last().close.toFloat()
+            )
+        }
         val lowStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(low)} $" else PersianNumberFormatter.format(low)
         val highStr = if (isDollar) "${PersianNumberFormatter.formatWithCommas(high)} $" else PersianNumberFormatter.format(high)
         val info = "کف: $lowStr | سقف: $highStr"
@@ -111,7 +122,7 @@ private fun resolveDayStats(
             deltaText = deltaText,
             isPositive = true,
             infoText = info,
-            sparklinePoints = listOf(1f, 1.05f, 1.02f, 1.08f, 1.1f)
+            sparklinePoints = listOf(1f, 1.05f, 1.02f, 1.08f)
         )
     }
 }

@@ -38,7 +38,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.model.*
@@ -551,56 +553,58 @@ fun MarketRateDetailScreen(
                     label = "chartHorizonTransition"
                 ) { targetHorizon ->
                     val horizonChart = state.chartDataByHorizon[targetHorizon] ?: state.chartDataByHorizon.values.first()
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Chart Canvas Area
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .padding(top = 10.dp)
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            TrendChartCanvas(
-                                points = horizonChart.points,
-                                peakPrice = horizonChart.peakPrice,
-                                peakXRatio = horizonChart.peakXRatio,
-                                peakYRatio = horizonChart.peakYRatio,
-                                currencyUnit = state.currencyUnit,
-                                candles = horizonChart.candles,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                            // Chart Canvas Area
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .padding(top = 10.dp)
+                            ) {
+                                TrendChartCanvas(
+                                    points = horizonChart.points,
+                                    peakPrice = horizonChart.peakPrice,
+                                    peakXRatio = horizonChart.peakXRatio,
+                                    peakYRatio = horizonChart.peakYRatio,
+                                    currencyUnit = state.currencyUnit,
+                                    candles = horizonChart.candles,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
 
-                        // Horizontal Time Axis
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            horizonChart.timeLabels.forEachIndexed { idx, label ->
-                                val isLive = idx == 0 || (targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    if (isLive && targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.goldPrimary)
+                            // Horizontal Time Axis (LTR: Past on left, Present on right)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                horizonChart.timeLabels.forEachIndexed { idx, label ->
+                                    val isLive = (targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        if (isLive) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.goldPrimary)
+                                            )
+                                        }
+                                        Text(
+                                            text = PersianNumberFormatter.toPersianDigits(label),
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isLive) colors.goldPrimary else colors.textMuted
                                         )
                                     }
-                                    Text(
-                                        text = PersianNumberFormatter.toPersianDigits(label),
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isLive) colors.goldPrimary else colors.textMuted
-                                    )
                                 }
                             }
                         }
@@ -1104,7 +1108,7 @@ private fun TrendChartCanvas(
     candles: List<MarketCandle> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    var selectedIndex by remember(points) { mutableStateOf<Int?>(null) }
+    var selectedIndex by remember(points) { mutableStateOf<Int?>(points.indices.lastOrNull()) }
 
     Box(
         modifier = modifier
@@ -1117,7 +1121,9 @@ private fun TrendChartCanvas(
                                 val px = points[i].first * w
                                 kotlin.math.abs(px - offset.x)
                             }
-                            selectedIndex = if (selectedIndex == closestIdx) null else closestIdx
+                            if (closestIdx != null) {
+                                selectedIndex = closestIdx
+                            }
                         }
                     }
                 )
@@ -1226,29 +1232,12 @@ private fun TrendChartCanvas(
                 )
             )
 
-            // 5. Circle Indicators: Start Point, Peak Point, Live End Point
+            // 5. Circle Indicators: Start Point & Live End Point
             val startPoint = canvasPoints.first()
             drawCircle(
                 color = Color(0xFF735C00),
                 radius = 3.5.dp.toPx(),
                 center = startPoint
-            )
-
-            // Peak Summit Point
-            val peakPoint = Offset(
-                x = peakXRatio * w,
-                y = (1f - peakYRatio) * (h - 24.dp.toPx()) + 12.dp.toPx()
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 5.dp.toPx(),
-                center = peakPoint
-            )
-            drawCircle(
-                color = Color(0xFFB8860B),
-                radius = 5.dp.toPx(),
-                center = peakPoint,
-                style = Stroke(width = 2.5.dp.toPx())
             )
 
             // Live End Point
@@ -1302,7 +1291,7 @@ private fun TrendChartCanvas(
             }
         }
 
-        // Floating Overlays: Peak Badge or Interactive Tooltip
+        // Floating Interactive Tooltip
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             if (selectedIndex != null && selectedIndex in points.indices) {
                 val selIdx = selectedIndex!!
@@ -1317,13 +1306,9 @@ private fun TrendChartCanvas(
                 val tooltipW = 120.dp
                 val tooltipH = 46.dp
 
-                // Tooltip position: top-left of the selected point with boundary clamping
-                val targetX = ptX - tooltipW - 8.dp
-                val clampedX = if (targetX >= 6.dp) {
-                    targetX
-                } else {
-                    (ptX + 8.dp).coerceAtMost(maxWidth - tooltipW - 6.dp)
-                }
+                // Tooltip position: centered horizontally above the point with boundary clamping
+                val targetX = ptX - (tooltipW / 2)
+                val clampedX = targetX.coerceIn(6.dp, (maxWidth - tooltipW - 6.dp).coerceAtLeast(6.dp))
 
                 val targetY = ptY - tooltipH - 8.dp
                 val clampedY = if (targetY >= 4.dp) {
@@ -1339,69 +1324,36 @@ private fun TrendChartCanvas(
                     shadowElevation = 6.dp,
                     modifier = Modifier.offset(x = clampedX, y = clampedY)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(5.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFD4AF37))
-                            )
-                            Text(
-                                text = "${PersianNumberFormatter.format(price)} $currencyUnit",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = Color(0xFFFFE088)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(5.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFD4AF37))
+                                )
+                                Text(
+                                    text = "${PersianNumberFormatter.format(price)} $currencyUnit",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFFFFE088)
+                                )
+                            }
+                            if (dateOrTime.isNotBlank()) {
+                                Text(
+                                    text = PersianNumberFormatter.toPersianDigits(dateOrTime),
+                                    fontSize = 9.5.sp,
+                                    color = Color(0xFFC7B299)
+                                )
+                            }
                         }
-                        if (dateOrTime.isNotBlank()) {
-                            Text(
-                                text = PersianNumberFormatter.toPersianDigits(dateOrTime),
-                                fontSize = 9.5.sp,
-                                color = Color(0xFFC7B299)
-                            )
-                        }
-                    }
-                }
-            } else {
-                // Peak Summit Marker
-                val peakX = maxWidth * peakXRatio
-                val peakY = maxHeight * (1f - peakYRatio)
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF24211A),
-                    border = BorderStroke(0.6.dp, Color(0xFFD4AF37).copy(alpha = 0.5f)),
-                    shadowElevation = 4.dp,
-                    modifier = Modifier
-                        .offset(
-                            x = (peakX - 55.dp).coerceAtLeast(8.dp),
-                            y = (peakY - 26.dp).coerceAtLeast(2.dp)
-                        )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(5.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFD4AF37))
-                        )
-                        Text(
-                            text = "اوج: ${PersianNumberFormatter.format(peakPrice)} $currencyUnit",
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFE088)
-                        )
                     }
                 }
             }

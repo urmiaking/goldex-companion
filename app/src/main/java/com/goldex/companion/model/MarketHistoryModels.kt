@@ -65,8 +65,9 @@ object MarketHistoryConverter {
         val peakY = (0.15f + (peakRawY * 0.70f)).coerceIn(0.20f, 0.92f)
 
         // 4. Gentle 3-point smoothing filter for dense points (> 5 points)
-        // Eliminates micro-noise while strictly preserving endpoints, peak, and bottom
-        val points = if (rawPoints.size > 5) {
+        // Eliminates micro-noise while strictly preserving endpoints, peak, and bottom.
+        // Skip smoothing for TODAY horizon so intraday and hourly price movements remain sharp and unblurred.
+        val points = if (rawPoints.size > 5 && horizon != TimeHorizon.TODAY) {
             val smoothed = rawPoints.toMutableList()
             for (i in 1 until rawPoints.size - 1) {
                 if (i == peakIdx || candles[i].close == maxPrice || candles[i].close == minPrice) {
@@ -119,16 +120,30 @@ object MarketHistoryConverter {
      */
     fun toMonthlyMarketStats(
         candles: List<MarketCandle>,
-        fallbackBasePrice: Long
+        fallbackBasePrice: Long,
+        currencyUnit: String = "تومان"
     ): MonthlyMarketStats {
+        val isDollar = (currencyUnit == "$")
+        val unitSuffix = if (isDollar) " $" else " تومان"
+
         if (candles.isEmpty()) {
-            return MonthlyMarketStats(
-                dailyRangeText = "۴۵,۰۰۰+ تومان (۱.۱٪+)",
-                weeklyChangeText = "۱۰۱,۰۰۰+ تومان (۲.۴٪+)",
-                thirtyDayHigh = (fallbackBasePrice * 1.029).roundToLong(),
-                thirtyDayLow = (fallbackBasePrice * 0.976).roundToLong(),
-                weightedAverage = (fallbackBasePrice * 0.984).roundToLong()
-            )
+            return if (isDollar) {
+                MonthlyMarketStats(
+                    dailyRangeText = "۲۴+ $ (۰.۹٪+)",
+                    weeklyChangeText = "۵۲+ $ (۱.۹٪+)",
+                    thirtyDayHigh = (fallbackBasePrice * 1.025).roundToLong(),
+                    thirtyDayLow = (fallbackBasePrice * 0.978).roundToLong(),
+                    weightedAverage = (fallbackBasePrice * 0.988).roundToLong()
+                )
+            } else {
+                MonthlyMarketStats(
+                    dailyRangeText = "۴۵,۰۰۰+ تومان (۱.۱٪+)",
+                    weeklyChangeText = "۱۰۱,۰۰۰+ تومان (۲.۴٪+)",
+                    thirtyDayHigh = (fallbackBasePrice * 1.029).roundToLong(),
+                    thirtyDayLow = (fallbackBasePrice * 0.976).roundToLong(),
+                    weightedAverage = (fallbackBasePrice * 0.984).roundToLong()
+                )
+            }
         }
 
         val thirtyDayCandles = if (candles.size > 30) candles.takeLast(30) else candles
@@ -140,7 +155,7 @@ object MarketHistoryConverter {
         val latest = thirtyDayCandles.last()
         val dailyDiff = (latest.high - latest.low).coerceAtLeast(0L)
         val dailyDiffPct = if (latest.open > 0L) (dailyDiff.toDouble() / latest.open.toDouble()) * 100.0 else 0.0
-        val dailyRangeText = "${PersianNumberFormatter.format(dailyDiff)}+ تومان (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", dailyDiffPct))}٪+)"
+        val dailyRangeText = "${PersianNumberFormatter.format(dailyDiff)}+$unitSuffix (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", dailyDiffPct))}٪+)"
 
         // Weekly Change (last 7 candles)
         val weeklyCandles = if (candles.size > 7) candles.takeLast(7) else candles
@@ -149,7 +164,7 @@ object MarketHistoryConverter {
         val weekDiff = weekLast - weekFirst
         val weekSign = if (weekDiff >= 0L) "+" else "-"
         val weekPct = if (weekFirst > 0L) (kotlin.math.abs(weekDiff).toDouble() / weekFirst.toDouble()) * 100.0 else 0.0
-        val weeklyChangeText = "${PersianNumberFormatter.format(kotlin.math.abs(weekDiff))}$weekSign تومان (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", weekPct))}٪$weekSign)"
+        val weeklyChangeText = "${PersianNumberFormatter.format(kotlin.math.abs(weekDiff))}$weekSign$unitSuffix (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", weekPct))}٪$weekSign)"
 
         return MonthlyMarketStats(
             dailyRangeText = dailyRangeText,
@@ -171,10 +186,25 @@ object MarketHistoryConverter {
             }
         }
 
+        if (horizon == TimeHorizon.TODAY) {
+            val hasTimes = candles.any { it.dateShamsi.contains(":") }
+            if (!hasTimes) {
+                return listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰")
+            }
+        }
+
         if (candles.size <= 5) {
             return candles.mapIndexed { idx, candle ->
                 val isLast = (idx == candles.lastIndex)
-                if (isLast && horizon != TimeHorizon.TODAY) "امروز" else formatCandleDate(candle.dateShamsi, horizon)
+                if (isLast) {
+                    if (horizon == TimeHorizon.TODAY) {
+                        formatCandleDate(candle.dateShamsi, horizon).ifBlank { "اکنون" }
+                    } else {
+                        "امروز"
+                    }
+                } else {
+                    formatCandleDate(candle.dateShamsi, horizon)
+                }
             }
         }
 
@@ -182,11 +212,33 @@ object MarketHistoryConverter {
         return (0..4).map { i ->
             val idx = (i * step).roundToLong().toInt().coerceIn(0, candles.lastIndex)
             val isLast = (i == 4)
-            if (isLast) "امروز" else formatCandleDate(candles[idx].dateShamsi, horizon)
+            if (isLast) {
+                if (horizon == TimeHorizon.TODAY) {
+                    formatCandleDate(candles[idx].dateShamsi, horizon).ifBlank { "اکنون" }
+                } else {
+                    "امروز"
+                }
+            } else {
+                formatCandleDate(candles[idx].dateShamsi, horizon)
+            }
         }
     }
 
     private fun formatCandleDate(rawDate: String, horizon: TimeHorizon): String {
+        if (horizon == TimeHorizon.TODAY) {
+            val trimmed = rawDate.trim()
+            if (trimmed.contains(":")) {
+                val timePart = if (trimmed.contains(" ")) trimmed.substringAfterLast(" ") else trimmed
+                val parts = timePart.split(":")
+                if (parts.size >= 2) {
+                    val hh = parts[0].padStart(2, '0')
+                    val mm = parts[1].padStart(2, '0')
+                    return PersianNumberFormatter.toPersianDigits("$hh:$mm")
+                }
+            }
+            return if (trimmed.isNotEmpty()) PersianNumberFormatter.toPersianDigits(trimmed) else "اکنون"
+        }
+
         val clean = rawDate.replace("/", "").trim()
         if (clean.length == 8) {
             val month = clean.substring(4, 6)

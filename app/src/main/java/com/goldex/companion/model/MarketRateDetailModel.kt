@@ -139,7 +139,7 @@ data class MarketRateDetailState(
             // Compute real 30-day stats if ONE_MONTH history is present
             val monthCandles = historyByHorizon[TimeHorizon.ONE_MONTH]
             val updatedMonthlyStats = if (monthCandles != null && monthCandles.isNotEmpty()) {
-                MarketHistoryConverter.toMonthlyMarketStats(monthCandles, baseState.currentPrice)
+                MarketHistoryConverter.toMonthlyMarketStats(monthCandles, baseState.currentPrice, baseState.currencyUnit)
             } else {
                 baseState.monthlyStats
             }
