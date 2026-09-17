@@ -19,6 +19,14 @@ data class AppSettings(
     val galleryPhone: String = "۰۲۱-۵۵۶۲۳۴۸۱",
     val galleryAddress: String = "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
     val galleryLicense: String = "صنف طلا و جواهر: ۴۴۰۲",
+    val invoiceLogoUri: String = "",
+    val invoiceStampUri: String = "",
+    val invoiceWatermarkEnabled: Boolean = true,
+    val invoiceStampEnabled: Boolean = true,
+    val invoiceStampOpacity: Int = 85,
+    val invoiceQrVerificationEnabled: Boolean = true,
+    val invoiceQrGemCertificateEnabled: Boolean = true,
+    val invoiceQrCatalogEnabled: Boolean = false,
     val isBiometricLockEnabled: Boolean = true,
     val hasCompletedOnboarding: Boolean = false
 )
@@ -57,6 +65,14 @@ class SettingsRepository(context: Context) : SettingsStore {
             galleryPhone = prefs.getString("key_gallery_phone", "۰۲۱-۵۵۶۲۳۴۸۱") ?: "۰۲۱-۵۵۶۲۳۴۸۱",
             galleryAddress = prefs.getString("key_gallery_address", "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲") ?: "بازار بزرگ تهران، سرای اردیبهشت، پلاک ۴۲",
             galleryLicense = prefs.getString("key_gallery_license", "صنف طلا و جواهر: ۴۴۰۲") ?: "صنف طلا و جواهر: ۴۴۰۲",
+            invoiceLogoUri = prefs.getString("key_invoice_logo_uri", "") ?: "",
+            invoiceStampUri = prefs.getString("key_invoice_stamp_uri", "") ?: "",
+            invoiceWatermarkEnabled = prefs.getBoolean("key_invoice_watermark_enabled", true),
+            invoiceStampEnabled = prefs.getBoolean("key_invoice_stamp_enabled", true),
+            invoiceStampOpacity = prefs.getInt("key_invoice_stamp_opacity", 85).coerceIn(30, 100),
+            invoiceQrVerificationEnabled = prefs.getBoolean("key_invoice_qr_verification", true),
+            invoiceQrGemCertificateEnabled = prefs.getBoolean("key_invoice_qr_gem_certificate", true),
+            invoiceQrCatalogEnabled = prefs.getBoolean("key_invoice_qr_catalog", false),
             isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", true),
             hasCompletedOnboarding = prefs.getBoolean("key_has_completed_onboarding", false)
         )
@@ -75,6 +91,14 @@ class SettingsRepository(context: Context) : SettingsStore {
             .putString("key_gallery_phone", newSettings.galleryPhone)
             .putString("key_gallery_address", newSettings.galleryAddress)
             .putString("key_gallery_license", newSettings.galleryLicense)
+            .putString("key_invoice_logo_uri", newSettings.invoiceLogoUri)
+            .putString("key_invoice_stamp_uri", newSettings.invoiceStampUri)
+            .putBoolean("key_invoice_watermark_enabled", newSettings.invoiceWatermarkEnabled)
+            .putBoolean("key_invoice_stamp_enabled", newSettings.invoiceStampEnabled)
+            .putInt("key_invoice_stamp_opacity", newSettings.invoiceStampOpacity.coerceIn(30, 100))
+            .putBoolean("key_invoice_qr_verification", newSettings.invoiceQrVerificationEnabled)
+            .putBoolean("key_invoice_qr_gem_certificate", newSettings.invoiceQrGemCertificateEnabled)
+            .putBoolean("key_invoice_qr_catalog", newSettings.invoiceQrCatalogEnabled)
             .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
             .putBoolean("key_has_completed_onboarding", newSettings.hasCompletedOnboarding)
             .apply()
