@@ -142,7 +142,7 @@ class FeatureStateSplitTest {
         }
         val viewModel = SettingsViewModel(fakeStore)
 
-        viewModel.setInvoiceBrandingDrawerVisible(true)
+        viewModel.setInvoiceBrandingModalVisible(true)
         viewModel.updateInvoiceBranding(
             persisted.copy(
                 galleryName = "گالری قیراط",
@@ -158,7 +158,7 @@ class FeatureStateSplitTest {
         assertFalse(persisted.invoiceWatermarkEnabled)
         assertEquals(100, persisted.invoiceStampOpacity)
         assertTrue(persisted.invoiceQrCatalogEnabled)
-        assertFalse(viewModel.uiState.value.isInvoiceBrandingDrawerVisible)
+        assertFalse(viewModel.uiState.value.isInvoiceBrandingModalVisible)
     }
 
     @Test

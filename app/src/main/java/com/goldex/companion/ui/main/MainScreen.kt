@@ -53,7 +53,7 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.dashboard.DashboardScreen
 import com.goldex.companion.ui.dashboard.DashboardUiState
 import com.goldex.companion.ui.hub.JewelerProfileModal
-import com.goldex.companion.ui.hub.InvoiceBrandingDrawer
+import com.goldex.companion.ui.hub.InvoiceBrandingModal
 import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
@@ -243,6 +243,23 @@ fun MainScreen(
             onSaveProfile = { galleryName, managerName, unionCode, phone, address ->
                 settingsViewModel.updateJewelerProfile(galleryName, managerName, unionCode, phone, address)
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
+            }
+        )
+    }
+
+    // Invoice letterhead, stamp & QR modal — follows the same shell as jeweler profile editing.
+    if (settingsState.isInvoiceBrandingModalVisible) {
+        InvoiceBrandingModal(
+            settings = settingsState.appSettings,
+            onDismiss = { settingsViewModel.setInvoiceBrandingModalVisible(false) },
+            onSave = { updated ->
+                settingsViewModel.updateInvoiceBranding(updated)
+                QiratoToast.show(context, "سربرگ، مهر و QR فاکتور ذخیره شد")
+            },
+            onTestPdf = { draft ->
+                if (!OfficialInvoicePdfGenerator.share(context, barterUiState.invoice, draft)) {
+                    QiratoToast.show(context, "ساخت نمونه PDF ناموفق بود")
+                }
             }
         )
     }
@@ -539,7 +556,7 @@ fun MainScreen(
                                             settingsViewModel.setJewelerProfileModalVisible(true)
                                         },
                                         onOpenInvoiceBranding = {
-                                            settingsViewModel.setInvoiceBrandingDrawerVisible(true)
+                                            settingsViewModel.setInvoiceBrandingModalVisible(true)
                                         },
                                         onNavigateStandardFormulas = {
                                             mainViewModel.setStandardFormulasVisible(true)
@@ -589,7 +606,6 @@ fun MainScreen(
             BackHandler(
                 enabled = customerState.selectedCustomerForStatement != null ||
                           customerState.isCustomerLedgerVisible ||
-                          settingsState.isInvoiceBrandingDrawerVisible ||
                           barterUiState.subScreen != InvoicesSubScreen.LIST ||
                           mainUiState.isStandardFormulasVisible ||
                           mainUiState.isKaratConvertVisible ||
@@ -597,9 +613,7 @@ fun MainScreen(
                           mainUiState.isMeltVisible ||
                           mainUiState.isRateDetailVisible
             ) {
-                if (settingsState.isInvoiceBrandingDrawerVisible) {
-                    settingsViewModel.setInvoiceBrandingDrawerVisible(false)
-                } else if (customerState.selectedCustomerForStatement != null) {
+                if (customerState.selectedCustomerForStatement != null) {
                     customerViewModel.closeCustomerStatement()
                 } else if (customerState.isCustomerLedgerVisible) {
                     customerViewModel.closeCustomerLedger()
@@ -940,26 +954,6 @@ fun MainScreen(
                 )
             }
 
-            AnimatedVisibility(
-                visible = settingsState.isInvoiceBrandingDrawerVisible,
-                enter = fadeIn(tween(180)) + slideInHorizontally(tween(320)) { -it },
-                exit = fadeOut(tween(150)) + slideOutHorizontally(tween(260)) { -it },
-                modifier = Modifier.fillMaxSize()
-            ) {
-                InvoiceBrandingDrawer(
-                    settings = settingsState.appSettings,
-                    onDismiss = { settingsViewModel.setInvoiceBrandingDrawerVisible(false) },
-                    onSave = { updated ->
-                        settingsViewModel.updateInvoiceBranding(updated)
-                        QiratoToast.show(context, "سربرگ، مهر و QR فاکتور ذخیره شد")
-                    },
-                    onTestPdf = { draft ->
-                        if (!OfficialInvoicePdfGenerator.share(context, barterUiState.invoice, draft)) {
-                            QiratoToast.show(context, "ساخت نمونه PDF ناموفق بود")
-                        }
-                    }
-                )
-            }
         }
     }
 }
