@@ -11,33 +11,35 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -60,7 +62,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,24 +86,51 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.data.AppSettings
+import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.goldButtonContainer
 import com.goldex.companion.ui.theme.goldButtonText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun InvoiceBrandingDrawer(
+fun InvoiceBrandingModal(
     settings: AppSettings,
     onDismiss: () -> Unit,
     onSave: (AppSettings) -> Unit,
-    onTestPdf: (AppSettings) -> Unit,
-    modifier: Modifier = Modifier
+    onTestPdf: (AppSettings) -> Unit
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var draft by remember { mutableStateOf(settings) }
+    var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(settings) { draft = settings }
+    LaunchedEffect(Unit) { isVisible = true }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "invoiceBrandingScrim"
+    )
 
     val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
@@ -111,98 +145,115 @@ fun InvoiceBrandingDrawer(
         }
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Box(modifier = modifier.fillMaxSize()) {
+    Dialog(
+        onDismissRequest = handleDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.46f))
-                    .clickable(onClick = onDismiss)
-            )
-
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxHeight()
-                    .fillMaxWidth(0.94f)
-                    .widthIn(max = 520.dp),
-                color = colors.background,
-                shadowElevation = 24.dp,
-                shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
+                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = handleDismiss
+                    ),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        DrawerHeader(onDismiss = onDismiss)
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .imePadding(),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = 12.dp,
-                                bottom = 18.dp
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
                             ),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .heightIn(max = 620.dp)
+                                .navigationBarsPadding()
                         ) {
-                            item { LetterheadLivePreview(settings = draft) }
-                            item {
-                                BrandAssetSection(
-                                    settings = draft,
-                                    onPickLogo = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
-                                    onClearLogo = { draft = draft.copy(invoiceLogoUri = "") },
-                                    onWatermarkChange = { draft = draft.copy(invoiceWatermarkEnabled = it) }
-                                )
-                            }
-                            item {
-                                GuildInformationSection(
-                                    settings = draft,
-                                    onChange = { draft = it }
-                                )
-                            }
-                            item {
-                                DigitalStampSection(
-                                    settings = draft,
-                                    onPickStamp = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
-                                    onClearStamp = { draft = draft.copy(invoiceStampUri = "") },
-                                    onEnabledChange = { draft = draft.copy(invoiceStampEnabled = it) },
-                                    onOpacityChange = { draft = draft.copy(invoiceStampOpacity = it) }
-                                )
-                            }
-                            item {
-                                QrConfigurationSection(
-                                    settings = draft,
-                                    onChange = { draft = it }
-                                )
-                            }
-                            item {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(
-                                        onClick = { onSave(draft) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(48.dp),
-                                        shape = RoundedCornerShape(15.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = colors.goldButtonContainer,
-                                            contentColor = colors.goldButtonText
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(Modifier.size(8.dp))
-                                        Text(
-                                            "ذخیره و اعمال روی فاکتورها",
-                                            fontFamily = VazirmatnFamily,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                            BrandingModalHeader(onDismiss = handleDismiss)
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
+
+                            LazyColumn(
+                                modifier = Modifier
+                                    .weight(1f, fill = false)
+                                    .fillMaxWidth()
+                                    .imePadding(),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                    start = 20.dp,
+                                    end = 20.dp,
+                                    top = 14.dp,
+                                    bottom = 14.dp
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                item { LetterheadLivePreview(settings = draft) }
+                                item {
+                                    BrandAssetSection(
+                                        settings = draft,
+                                        onPickLogo = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                                        onClearLogo = { draft = draft.copy(invoiceLogoUri = "") },
+                                        onWatermarkChange = { draft = draft.copy(invoiceWatermarkEnabled = it) }
+                                    )
+                                }
+                                item {
+                                    GuildInformationSection(
+                                        settings = draft,
+                                        onChange = { draft = it }
+                                    )
+                                }
+                                item {
+                                    DigitalStampSection(
+                                        settings = draft,
+                                        onPickStamp = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                                        onClearStamp = { draft = draft.copy(invoiceStampUri = "") },
+                                        onEnabledChange = { draft = draft.copy(invoiceStampEnabled = it) },
+                                        onOpacityChange = { draft = draft.copy(invoiceStampOpacity = it) }
+                                    )
+                                }
+                                item {
+                                    QrConfigurationSection(
+                                        settings = draft,
+                                        onChange = { draft = it }
+                                    )
+                                }
+                                item {
                                     OutlinedButton(
                                         onClick = { onTestPdf(draft) },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(42.dp),
-                                        shape = RoundedCornerShape(14.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         border = BorderStroke(1.dp, colors.goldBorder),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary)
                                     ) {
@@ -215,6 +266,29 @@ fun InvoiceBrandingDrawer(
                                     }
                                 }
                             }
+
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.8.dp)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(colors.surfaceElevated.copy(alpha = 0.4f))
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                GoldButton(
+                                    text = "انصراف",
+                                    onClick = handleDismiss,
+                                    isSecondary = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GoldButton(
+                                    text = "ذخیره تغییرات",
+                                    onClick = { onSave(draft) },
+                                    isSecondary = false,
+                                    icon = Icons.Default.Check,
+                                    modifier = Modifier.weight(1.6f)
+                                )
+                            }
                         }
                     }
                 }
@@ -224,13 +298,23 @@ fun InvoiceBrandingDrawer(
 }
 
 @Composable
-private fun DrawerHeader(onDismiss: () -> Unit) {
+private fun BrandingModalHeader(onDismiss: () -> Unit) {
     val colors = LocalGoldExColors.current
-    Surface(color = colors.surface, shadowElevation = 2.dp) {
-        Row(
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .size(width = 44.dp, height = 4.dp)
+                .clip(CircleShape)
+                .background(colors.border)
+                .align(Alignment.CenterHorizontally)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -239,14 +323,27 @@ private fun DrawerHeader(onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                IconButton(
-                    onClick = onDismiss,
+                Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(colors.surfaceElevated)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    colors.goldContainer.copy(alpha = 0.4f),
+                                    colors.goldContainer.copy(alpha = 0.7f)
+                                )
+                            )
+                        )
+                        .border(1.dp, colors.goldBorder, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "بازگشت", tint = colors.textMain)
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
                 Column {
                     Text(
@@ -264,12 +361,21 @@ private fun DrawerHeader(onDismiss: () -> Unit) {
                     )
                 }
             }
-            Box(
+            IconButton(
+                onClick = onDismiss,
                 modifier = Modifier
-                    .size(9.dp)
-                    .clip(CircleShape)
-                    .background(colors.goldPrimary)
-            )
+                    .size(32.dp)
+                    .clip(ButtonShape)
+                    .background(colors.surfaceElevated)
+                    .border(0.6.dp, colors.goldBorder, ButtonShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "بستن",
+                    tint = colors.textMuted,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
@@ -281,10 +387,9 @@ private fun LetterheadLivePreview(settings: AppSettings) {
     val stamp = rememberPersistedBitmap(settings.invoiceStampUri)
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF171D2B),
-        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.7f)),
-        shadowElevation = 8.dp
+        shape = RoundedCornerShape(18.dp),
+        color = if (colors.isDark) colors.surfaceElevated else Color(0xFFFCFAF5),
+        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.6f))
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -300,20 +405,20 @@ private fun LetterheadLivePreview(settings: AppSettings) {
                     fontFamily = VazirmatnFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF6FFBBE)
+                    color = colors.textMain
                 )
                 Text(
                     "سند رسمی قیراط",
                     fontFamily = VazirmatnFamily,
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFE088)
+                    color = colors.goldPrimary
                 )
             }
             Surface(
                 shape = RoundedCornerShape(15.dp),
                 color = Color(0xFFFFFEFA),
-                border = BorderStroke(1.dp, Color(0x33D4AF37))
+                border = BorderStroke(1.dp, colors.border.copy(alpha = 0.7f))
             ) {
                 Column(
                     modifier = Modifier.padding(11.dp),
