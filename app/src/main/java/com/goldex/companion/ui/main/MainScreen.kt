@@ -70,6 +70,7 @@ import com.goldex.companion.ui.invoices.InvoicesManagementScreen
 import com.goldex.companion.ui.invoices.InvoicesSubScreen
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModelFactory
+import com.goldex.companion.ui.util.OfficialInvoicePdfGenerator
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModel
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModelFactory
 import com.goldex.companion.ui.rates.LiveRatesScreen
@@ -481,7 +482,17 @@ fun MainScreen(
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
                                         onExportPdfClick = { item ->
-                                            QiratoToast.show(context, "در حال صدور فایل PDF فاکتور ${item.invoiceNumber}...")
+                                            val invoice = item.barterInvoice
+                                            if (invoice == null) {
+                                                QiratoToast.show(context, "اطلاعات کامل فاکتور برای صدور PDF موجود نیست")
+                                            } else if (!OfficialInvoicePdfGenerator.share(
+                                                    context = context,
+                                                    invoice = invoice,
+                                                    settings = settingsState.appSettings
+                                                )
+                                            ) {
+                                                QiratoToast.show(context, "ساخت فایل PDF ناموفق بود؛ دوباره تلاش کنید")
+                                            }
                                         },
                                         onScanQrClick = {
                                             QiratoToast.show(context, "قابلیت اسکن بارکد و QR فاکتور فعال شد")
@@ -917,5 +928,4 @@ fun MainScreen(
         }
     }
 }
-
 
