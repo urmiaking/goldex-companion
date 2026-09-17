@@ -58,6 +58,7 @@ fun MoreHubScreen(
     onOpenTaxProfitModal: () -> Unit,
     onOpenPriceSourceModal: () -> Unit,
     onOpenJewelerProfile: () -> Unit,
+    onOpenInvoiceBranding: () -> Unit,
     onNavigateStandardFormulas: () -> Unit,
     onOpenOnboardingWizard: (() -> Unit)? = null
 ) {
@@ -639,7 +640,7 @@ fun MoreHubScreen(
                     icon = HubQrCode,
                     iconTint = colors.textSecondary,
                     iconBg = colors.surfaceElevated,
-                    onClick = onOpenJewelerProfile
+                    onClick = onOpenInvoiceBranding
                 )
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)

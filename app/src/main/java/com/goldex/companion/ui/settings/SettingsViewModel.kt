@@ -18,6 +18,7 @@ data class SettingsUiState(
     val isTaxProfitModalVisible: Boolean = false,
     val isPriceSourceModalVisible: Boolean = false,
     val isJewelerProfileModalVisible: Boolean = false,
+    val isInvoiceBrandingDrawerVisible: Boolean = false,
     val isSettingsDialogVisible: Boolean = false
 )
 
@@ -57,6 +58,10 @@ class SettingsViewModel(
         _uiState.update { it.copy(isJewelerProfileModalVisible = visible) }
     }
 
+    fun setInvoiceBrandingDrawerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isInvoiceBrandingDrawerVisible = visible) }
+    }
+
     fun updateTaxAndProfit(profitPercent: String, taxPercent: String, wageType: WageType) {
         val updated = _uiState.value.appSettings.copy(
             defaultProfitPercent = profitPercent,
@@ -91,6 +96,16 @@ class SettingsViewModel(
         )
         updateSettings(updated)
         setJewelerProfileModalVisible(false)
+    }
+
+    fun updateInvoiceBranding(settings: AppSettings) {
+        updateSettings(
+            settings.copy(
+                galleryLicense = "صنف طلا و جواهر: ${settings.unionCode}",
+                invoiceStampOpacity = settings.invoiceStampOpacity.coerceIn(30, 100)
+            )
+        )
+        setInvoiceBrandingDrawerVisible(false)
     }
 
     fun toggleBiometricLock(enabled: Boolean) {

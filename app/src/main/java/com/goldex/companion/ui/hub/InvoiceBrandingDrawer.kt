@@ -1,0 +1,818 @@
+package com.goldex.companion.ui.hub
+
+import android.content.Context
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.goldex.companion.data.AppSettings
+import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldButtonContainer
+import com.goldex.companion.ui.theme.goldButtonText
+
+@Composable
+fun InvoiceBrandingDrawer(
+    settings: AppSettings,
+    onDismiss: () -> Unit,
+    onSave: (AppSettings) -> Unit,
+    onTestPdf: (AppSettings) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val context = LocalContext.current
+    var draft by remember { mutableStateOf(settings) }
+    LaunchedEffect(settings) { draft = settings }
+
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistReadPermission(context, it)
+            draft = draft.copy(invoiceLogoUri = it.toString())
+        }
+    }
+    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistReadPermission(context, it)
+            draft = draft.copy(invoiceStampUri = it.toString())
+        }
+    }
+
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(modifier = modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.46f))
+                    .clickable(onClick = onDismiss)
+            )
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.94f)
+                    .widthIn(max = 520.dp),
+                color = colors.background,
+                shadowElevation = 24.dp,
+                shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        DrawerHeader(onDismiss = onDismiss)
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .imePadding(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 12.dp,
+                                bottom = 18.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            item { LetterheadLivePreview(settings = draft) }
+                            item {
+                                BrandAssetSection(
+                                    settings = draft,
+                                    onPickLogo = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                                    onClearLogo = { draft = draft.copy(invoiceLogoUri = "") },
+                                    onWatermarkChange = { draft = draft.copy(invoiceWatermarkEnabled = it) }
+                                )
+                            }
+                            item {
+                                GuildInformationSection(
+                                    settings = draft,
+                                    onChange = { draft = it }
+                                )
+                            }
+                            item {
+                                DigitalStampSection(
+                                    settings = draft,
+                                    onPickStamp = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                                    onClearStamp = { draft = draft.copy(invoiceStampUri = "") },
+                                    onEnabledChange = { draft = draft.copy(invoiceStampEnabled = it) },
+                                    onOpacityChange = { draft = draft.copy(invoiceStampOpacity = it) }
+                                )
+                            }
+                            item {
+                                QrConfigurationSection(
+                                    settings = draft,
+                                    onChange = { draft = it }
+                                )
+                            }
+                            item {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = { onSave(draft) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp),
+                                        shape = RoundedCornerShape(15.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = colors.goldButtonContainer,
+                                            contentColor = colors.goldButtonText
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.size(8.dp))
+                                        Text(
+                                            "ذخیره و اعمال روی فاکتورها",
+                                            fontFamily = VazirmatnFamily,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onTestPdf(draft) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(42.dp),
+                                        shape = RoundedCornerShape(14.dp),
+                                        border = BorderStroke(1.dp, colors.goldBorder),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.goldPrimary)
+                                    ) {
+                                        Text(
+                                            "ساخت نمونه آزمایشی PDF",
+                                            fontFamily = VazirmatnFamily,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerHeader(onDismiss: () -> Unit) {
+    val colors = LocalGoldExColors.current
+    Surface(color = colors.surface, shadowElevation = 2.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surfaceElevated)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "بازگشت", tint = colors.textMain)
+                }
+                Column {
+                    Text(
+                        "سربرگ و مهر اختصاصی",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.textMain
+                    )
+                    Text(
+                        "هویت رسمی فاکتور، واترمارک و QR اصالت",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(9.dp)
+                    .clip(CircleShape)
+                    .background(colors.goldPrimary)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LetterheadLivePreview(settings: AppSettings) {
+    val colors = LocalGoldExColors.current
+    val logo = rememberPersistedBitmap(settings.invoiceLogoUri)
+    val stamp = rememberPersistedBitmap(settings.invoiceStampUri)
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF171D2B),
+        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.7f)),
+        shadowElevation = 8.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "نمای زنده سربرگ فاکتور",
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF6FFBBE)
+                )
+                Text(
+                    "سند رسمی قیراط",
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFFE088)
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(15.dp),
+                color = Color(0xFFFFFEFA),
+                border = BorderStroke(1.dp, Color(0x33D4AF37))
+            ) {
+                Column(
+                    modifier = Modifier.padding(11.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(9.dp)
+                        ) {
+                            AssetPreview(bitmap = logo, fallback = settings.galleryName.take(2), square = true)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    settings.galleryName.ifBlank { "نام واحد صنفی" },
+                                    fontFamily = VazirmatnFamily,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF1C1917),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    "کد صنفی ${settings.unionCode.ifBlank { "-" }} • ${settings.managerName}",
+                                    fontFamily = VazirmatnFamily,
+                                    fontSize = 9.sp,
+                                    color = Color(0xFF78716C),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            if (settings.invoiceStampEnabled) {
+                                AssetPreview(
+                                    bitmap = stamp,
+                                    fallback = "مهر",
+                                    square = false,
+                                    opacity = settings.invoiceStampOpacity / 100f
+                                )
+                            }
+                            QrPreview(size = 38.dp)
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFFE7E5E4))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            settings.galleryAddress,
+                            modifier = Modifier.weight(1f),
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 8.5.sp,
+                            color = Color(0xFF57534E),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            settings.galleryPhone,
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8A680E)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrandAssetSection(
+    settings: AppSettings,
+    onPickLogo: () -> Unit,
+    onClearLogo: () -> Unit,
+    onWatermarkChange: (Boolean) -> Unit
+) {
+    val logo = rememberPersistedBitmap(settings.invoiceLogoUri)
+    BrandingSectionCard(title = "نشان تجاری و واترمارک", badge = "PNG / JPG") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(13.dp))
+                .background(LocalGoldExColors.current.surfaceElevated.copy(alpha = 0.6f))
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                AssetPreview(bitmap = logo, fallback = "نشان", square = true, size = 48.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (settings.invoiceLogoUri.isBlank()) "نشان پیش‌فرض قیراط" else "نشان اختصاصی فعال",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LocalGoldExColors.current.textMain
+                    )
+                    Text(
+                        "پیشنهاد: تصویر مربع با پس‌زمینه شفاف",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 9.5.sp,
+                        color = LocalGoldExColors.current.textMuted
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (settings.invoiceLogoUri.isNotBlank()) {
+                    IconButton(onClick = onClearLogo, modifier = Modifier.size(34.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "حذف نشان", tint = LocalGoldExColors.current.errorRed)
+                    }
+                }
+                OutlinedButton(
+                    onClick = onPickLogo,
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                ) {
+                    Text("انتخاب", fontFamily = VazirmatnFamily, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        SettingToggleRow(
+            title = "واترمارک محو در جدول اقلام",
+            subtitle = "نشانه امنیتی کم‌رنگ برای اصالت نسخه چاپی",
+            checked = settings.invoiceWatermarkEnabled,
+            onCheckedChange = onWatermarkChange
+        )
+    }
+}
+
+@Composable
+private fun GuildInformationSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    BrandingSectionCard(title = "اطلاعات صنفی سربرگ", badge = "اتحادیه") {
+        BrandingTextField(
+            label = "نام فروشگاه / بنکداری",
+            value = settings.galleryName,
+            onValueChange = { onChange(settings.copy(galleryName = it)) },
+            trailing = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(17.dp)) }
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandingTextField(
+                label = "پروانه / کد صنفی",
+                value = settings.unionCode,
+                onValueChange = { onChange(settings.copy(unionCode = it)) },
+                modifier = Modifier.weight(1f)
+            )
+            BrandingTextField(
+                label = "تلفن رسمی",
+                value = settings.galleryPhone,
+                onValueChange = { onChange(settings.copy(galleryPhone = it)) },
+                keyboardType = KeyboardType.Phone,
+                modifier = Modifier.weight(1f),
+                trailing = { Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(17.dp)) }
+            )
+        }
+        BrandingTextField(
+            label = "نشانی دقیق واحد صنفی",
+            value = settings.galleryAddress,
+            onValueChange = { onChange(settings.copy(galleryAddress = it)) },
+            singleLine = false,
+            trailing = { Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(17.dp)) }
+        )
+    }
+}
+
+@Composable
+private fun DigitalStampSection(
+    settings: AppSettings,
+    onPickStamp: () -> Unit,
+    onClearStamp: () -> Unit,
+    onEnabledChange: (Boolean) -> Unit,
+    onOpacityChange: (Int) -> Unit
+) {
+    val stamp = rememberPersistedBitmap(settings.invoiceStampUri)
+    BrandingSectionCard(title = "مهر دیجیتال و امضای زرگر", badge = "هویت صنفی") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AssetPreview(
+                bitmap = stamp,
+                fallback = "مهر\n${settings.unionCode}",
+                square = false,
+                size = 66.dp,
+                opacity = settings.invoiceStampOpacity / 100f
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        "شفافیت مهر",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LocalGoldExColors.current.textMain
+                    )
+                    Text(
+                        "${settings.invoiceStampOpacity}٪",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = LocalGoldExColors.current.goldPrimary
+                    )
+                }
+                Slider(
+                    value = settings.invoiceStampOpacity.toFloat(),
+                    onValueChange = { onOpacityChange(it.toInt()) },
+                    valueRange = 30f..100f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = LocalGoldExColors.current.goldPrimary,
+                        activeTrackColor = LocalGoldExColors.current.goldSecondary
+                    )
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (settings.invoiceStampUri.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = onClearStamp,
+                            modifier = Modifier.height(34.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp)
+                        ) { Text("حذف", fontFamily = VazirmatnFamily, fontSize = 10.sp) }
+                    }
+                    OutlinedButton(
+                        onClick = onPickStamp,
+                        modifier = Modifier.height(34.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp)
+                    ) { Text("بارگذاری PNG", fontFamily = VazirmatnFamily, fontSize = 10.sp) }
+                }
+            }
+        }
+        SettingToggleRow(
+            title = "درج خودکار مهر در انتهای فاکتور",
+            subtitle = "برای PDF و چاپ رسمی فعال می‌شود",
+            checked = settings.invoiceStampEnabled,
+            onCheckedChange = onEnabledChange
+        )
+    }
+}
+
+@Composable
+private fun QrConfigurationSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    BrandingSectionCard(title = "QR اصالت و رهگیری فاکتور", badge = "شبکه قیراط") {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(
+                modifier = Modifier.size(82.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = LocalGoldExColors.current.surfaceElevated,
+                border = BorderStroke(1.dp, LocalGoldExColors.current.border)
+            ) { Box(contentAlignment = Alignment.Center) { QrPreview(size = 58.dp) } }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                QrOption(
+                    text = "استعلام اصالت فاکتور",
+                    checked = settings.invoiceQrVerificationEnabled,
+                    onCheckedChange = { onChange(settings.copy(invoiceQrVerificationEnabled = it)) }
+                )
+                QrOption(
+                    text = "شناسنامه سنگ و نگین",
+                    checked = settings.invoiceQrGemCertificateEnabled,
+                    onCheckedChange = { onChange(settings.copy(invoiceQrGemCertificateEnabled = it)) }
+                )
+                QrOption(
+                    text = "کاتالوگ و شبکه اجتماعی",
+                    checked = settings.invoiceQrCatalogEnabled,
+                    onCheckedChange = { onChange(settings.copy(invoiceQrCatalogEnabled = it)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrandingSectionCard(
+    title: String,
+    badge: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surface,
+        border = BorderStroke(1.dp, colors.border.copy(alpha = 0.75f)),
+        shadowElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(13.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    title,
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.textMain
+                )
+                Text(
+                    badge,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(colors.goldContainer.copy(alpha = 0.55f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.goldPrimary
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun BrandingTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    trailing: (@Composable (() -> Unit))? = null
+) {
+    val colors = LocalGoldExColors.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            label,
+            fontFamily = VazirmatnFamily,
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textSecondary
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = singleLine,
+            maxLines = if (singleLine) 1 else 2,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            trailingIcon = trailing,
+            textStyle = LocalTextStyle.current.copy(
+                fontFamily = VazirmatnFamily,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Right
+            ),
+            shape = RoundedCornerShape(13.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colors.goldPrimary,
+                unfocusedBorderColor = colors.border,
+                focusedContainerColor = colors.surface,
+                unfocusedContainerColor = colors.surfaceElevated.copy(alpha = 0.55f)
+            )
+        )
+    }
+}
+
+@Composable
+private fun SettingToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontFamily = VazirmatnFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+            Text(subtitle, fontFamily = VazirmatnFamily, fontSize = 9.5.sp, color = colors.textMuted)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = colors.goldButtonText,
+                checkedTrackColor = colors.goldButtonContainer
+            )
+        )
+    }
+}
+
+@Composable
+private fun QrOption(text: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = CheckboxDefaults.colors(checkedColor = LocalGoldExColors.current.goldPrimary)
+        )
+        Text(
+            text,
+            fontFamily = VazirmatnFamily,
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (checked) LocalGoldExColors.current.textMain else LocalGoldExColors.current.textMuted
+        )
+    }
+}
+
+@Composable
+private fun AssetPreview(
+    bitmap: ImageBitmap?,
+    fallback: String,
+    square: Boolean,
+    size: androidx.compose.ui.unit.Dp = 42.dp,
+    opacity: Float = 1f
+) {
+    val shape = if (square) RoundedCornerShape(11.dp) else CircleShape
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(shape)
+            .background(if (square) Color(0xFFFFFBEB) else Color(0xFFFFF1F2))
+            .then(
+                if (square) Modifier.border(1.dp, Color(0x33D4AF37), shape)
+                else Modifier.border(1.dp, Color(0xB9B91C1C), shape)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                alpha = opacity
+            )
+        } else {
+            Text(
+                fallback,
+                modifier = if (square) Modifier else Modifier.rotate(-6f),
+                fontFamily = VazirmatnFamily,
+                fontSize = if (square) 9.sp else 8.sp,
+                lineHeight = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                color = if (square) Color(0xFF8A680E) else Color(0xFFB91C1C)
+            )
+        }
+    }
+}
+
+@Composable
+private fun QrPreview(size: androidx.compose.ui.unit.Dp) {
+    val pattern = remember {
+        listOf(
+            "111010111", "101010101", "111110111", "000101000", "111011101",
+            "101110001", "111011111", "001101001", "111001111"
+        )
+    }
+    Column(modifier = Modifier.size(size), verticalArrangement = Arrangement.SpaceEvenly) {
+        pattern.forEach { line ->
+            Row(modifier = Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
+                line.forEach { value ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(if (value == '1') Color(0xFF1C1917) else Color.Transparent)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberPersistedBitmap(uriValue: String): ImageBitmap? {
+    val context = LocalContext.current
+    return remember(uriValue) {
+        if (uriValue.isBlank()) return@remember null
+        runCatching {
+            context.contentResolver.openInputStream(Uri.parse(uriValue))
+                ?.use { BitmapFactory.decodeStream(it) }
+                ?.asImageBitmap()
+        }.getOrNull()
+    }
+}
+
+private fun persistReadPermission(context: Context, uri: Uri) {
+    runCatching {
+        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+}

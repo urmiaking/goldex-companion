@@ -354,7 +354,7 @@ fun SettingsDialog(
                 GoldButton(
                     text = "ذخیره تغییرات",
                     onClick = {
-                        val updated = AppSettings(
+                        val updated = initialSettings.copy(
                             priceSource = selectedSource,
                             defaultProfitPercent = profitPct.ifBlank { "7" },
                             defaultTaxPercent = taxPct.ifBlank { "9" },

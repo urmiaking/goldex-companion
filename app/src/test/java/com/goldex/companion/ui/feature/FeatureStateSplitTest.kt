@@ -129,6 +129,39 @@ class FeatureStateSplitTest {
     }
 
     @Test
+    fun settingsManagerPersistsInvoiceBrandingAndClampsStampOpacity() {
+        var persisted = AppSettings()
+        val flow = MutableStateFlow(persisted)
+        val fakeStore = object : SettingsStore {
+            override val settings: StateFlow<AppSettings> = flow
+            override fun loadSettings(): AppSettings = persisted
+            override fun saveSettings(newSettings: AppSettings) {
+                persisted = newSettings
+                flow.value = newSettings
+            }
+        }
+        val viewModel = SettingsViewModel(fakeStore)
+
+        viewModel.setInvoiceBrandingDrawerVisible(true)
+        viewModel.updateInvoiceBranding(
+            persisted.copy(
+                galleryName = "گالری قیراط",
+                unionCode = "۱۲۳۴",
+                invoiceWatermarkEnabled = false,
+                invoiceStampOpacity = 140,
+                invoiceQrCatalogEnabled = true
+            )
+        )
+
+        assertEquals("گالری قیراط", persisted.galleryName)
+        assertEquals("صنف طلا و جواهر: ۱۲۳۴", persisted.galleryLicense)
+        assertFalse(persisted.invoiceWatermarkEnabled)
+        assertEquals(100, persisted.invoiceStampOpacity)
+        assertTrue(persisted.invoiceQrCatalogEnabled)
+        assertFalse(viewModel.uiState.value.isInvoiceBrandingDrawerVisible)
+    }
+
+    @Test
     fun updateViewModelTracksDialogDismissalState() {
         val viewModel = UpdateViewModel()
         assertFalse(viewModel.uiState.value.isUpdateDialogDismissed)
