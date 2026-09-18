@@ -608,7 +608,7 @@ fun MoreHubScreen(
                                 color = colors.textMain
                             )
                             Text(
-                                text = "سود مغازه ۷٪ • مالیات اجرت ۹٪ (ماده ۲۶ ق.م.ا)",
+                                text = "نرخ سود و مالیات قابل تنظیم برای محاسبات فاکتور",
                                 fontSize = 10.5.sp,
                                 color = colors.textMuted
                             )

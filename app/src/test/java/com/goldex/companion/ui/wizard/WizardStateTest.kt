@@ -11,6 +11,14 @@ import org.junit.Test
 class WizardStateTest {
 
     @Test
+    fun `intro slider advances on right swipe in rtl`() {
+        assertEquals(1, introSlideIndexAfterSwipe(0, 3, horizontalDrag = 80f))
+        assertEquals(0, introSlideIndexAfterSwipe(1, 3, horizontalDrag = -80f))
+        assertEquals(2, introSlideIndexAfterSwipe(0, 3, horizontalDrag = -80f))
+        assertEquals(1, introSlideIndexAfterSwipe(1, 3, horizontalDrag = 10f))
+    }
+
+    @Test
     fun testWizardStepsSequence() {
         val steps = WizardStep.values()
         assertEquals(5, steps.size)

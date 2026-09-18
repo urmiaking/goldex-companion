@@ -259,10 +259,10 @@ fun WizardFinancialContent(
                 }
             }
 
-            // Unified 3-State Segmented Control for VAT Policy (معاف از مالیات / ۹٪ / ۱۰٪)
+            // Unified 3-State Segmented Control for the configurable VAT policy.
             val vatOptions = listOf(
                 Triple("exempt", "معاف از مالیات", false to "0"),
-                Triple("9", "۹٪ (قانون قدیم)", true to "9"),
+                Triple("9", "۹٪", true to "9"),
                 Triple("10", "۱۰٪ (قانون جدید)", true to "10")
             )
             val currentVatKey = if (!financialState.isVatEnabled || financialState.vatRate == "0") "exempt" else financialState.vatRate

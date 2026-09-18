@@ -1,6 +1,8 @@
 package com.goldex.companion.ui.rates
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -37,6 +39,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.dashboard.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import java.util.Locale
 import kotlin.math.abs
 
@@ -513,7 +516,7 @@ fun LiveRatesScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "محاسبه خودکار اجرت، ۷٪ سود و ۹٪ مالیات اتحادیه",
+                            text = "محاسبه خودکار اجرت، سود و مالیات بر اساس تنظیمات",
                             fontSize = 10.sp,
                             color = Color(0xFFFFE5B4)
                         )
@@ -578,9 +581,14 @@ fun LiveRatesScreen(
         // ==========================================
         // 5. Real-time Rate Cards
         // ==========================================
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        AnimatedContent(
+            targetState = selectedFilterIndex,
+            transitionSpec = { LuxuryMotion.FilterEnter togetherWith LuxuryMotion.FilterExit },
+            label = "marketRateFilterTransition"
+        ) { activeFilterIndex ->
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // Card 1: طلای ۱۸ عیار
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
                 val stats = resolveDayStats(gold18Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_18K])
                 MarketRateDetailCard(
@@ -599,7 +607,7 @@ fun LiveRatesScreen(
             }
 
             // Card 2: طلای ۲۴ عیار
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 1) {
                 val gold18Val = if (uiState.rates.gold18 > 0) uiState.rates.gold18 else 4285000L
                 val gold24Val = (gold18Val * 1000L) / 750L
                 val stats = resolveDayStats(gold24Val, uiState.todayCandlesByType[MarketRateItemType.GOLD_24K])
@@ -619,7 +627,7 @@ fun LiveRatesScreen(
             }
 
             // Card 2.5: مظنه مثقال طلای آبشده (۱۷ عیار)
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 1) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 1) {
                 val meltVal = if (uiState.rates.goldMelt > 0) uiState.rates.goldMelt else 18550000L
                 val stats = resolveDayStats(meltVal, uiState.todayCandlesByType[MarketRateItemType.GOLD_MELT])
                 MarketRateDetailCard(
@@ -638,7 +646,7 @@ fun LiveRatesScreen(
             }
 
             // Card 3: سکه تمام امامی (طرح جدید)
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 2) {
                 val emamiVal = if (uiState.rates.coinEmami > 0) uiState.rates.coinEmami else 49100000L
                 val stats = resolveDayStats(emamiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_EMAMI])
                 MarketRateDetailCard(
@@ -658,7 +666,7 @@ fun LiveRatesScreen(
             }
 
             // Card 4: نیم سکه بهار آزادی
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 2) {
                 val halfVal = if (uiState.rates.coinHalf > 0) uiState.rates.coinHalf else 25300000L
                 val stats = resolveDayStats(halfVal, uiState.todayCandlesByType[MarketRateItemType.COIN_HALF])
                 MarketRateDetailCard(
@@ -677,7 +685,7 @@ fun LiveRatesScreen(
             }
 
             // Card 5: ربع سکه بهار آزادی
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 2) {
                 val quarterVal = if (uiState.rates.coinQuarter > 0) uiState.rates.coinQuarter else 15400000L
                 val stats = resolveDayStats(quarterVal, uiState.todayCandlesByType[MarketRateItemType.COIN_QUARTER])
                 MarketRateDetailCard(
@@ -696,7 +704,7 @@ fun LiveRatesScreen(
             }
 
             // Card 6: سکه گرمی بانک مرکزی
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 2) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 2) {
                 val geramiVal = if (uiState.rates.coinGerami > 0) uiState.rates.coinGerami else 7200000L
                 val stats = resolveDayStats(geramiVal, uiState.todayCandlesByType[MarketRateItemType.COIN_GERAMI])
                 MarketRateDetailCard(
@@ -715,7 +723,7 @@ fun LiveRatesScreen(
             }
 
             // Card 7: انس جهانی طلا
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 4) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 4) {
                 val onsVal = if (uiState.rates.ons > 0) uiState.rates.ons else 2684.2
                 val stats = resolveDayStats(onsVal.toLong(), uiState.todayCandlesByType[MarketRateItemType.ONS], isDollar = true)
                 MarketRateDetailCard(
@@ -734,7 +742,7 @@ fun LiveRatesScreen(
             }
 
             // Card 8: دلار آزاد نقدی
-            if (selectedFilterIndex == 0 || selectedFilterIndex == 3) {
+            if (activeFilterIndex == 0 || activeFilterIndex == 3) {
                 val usdVal = if (uiState.rates.usd > 0) uiState.rates.usd else 92500L
                 val stats = resolveDayStats(usdVal, uiState.todayCandlesByType[MarketRateItemType.USD])
                 MarketRateDetailCard(
@@ -750,6 +758,7 @@ fun LiveRatesScreen(
                     colors = colors,
                     onClick = { onNavigateRateDetail(MarketRateItemType.USD) }
                 )
+            }
             }
         }
 

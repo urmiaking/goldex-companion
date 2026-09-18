@@ -51,6 +51,8 @@ import com.goldex.companion.model.TimeHorizon
 import com.goldex.companion.model.TrendChartData
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -555,6 +557,76 @@ fun DashboardScreen(
                     )
                 }
 
+                val activeHorizon = when (selectedTimeframe) {
+                    0 -> TimeHorizon.TODAY
+                    1 -> TimeHorizon.ONE_WEEK
+                    else -> TimeHorizon.ONE_MONTH
+                }
+                val activeChart = uiState.gold18Charts[activeHorizon]
+                val activeChartAvailable = activeChart?.isAvailable == true && activeChart.points.isNotEmpty()
+                val activeRate = activeChart?.candles?.lastOrNull()?.close?.takeIf { it > 0L }
+                    ?: uiState.rates.gold18.takeIf { it > 0L }
+                    ?: 4_285_000L
+
+                // Keep the quote outside chart AnimatedContent so its digits animate independently.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        AnimatedPriceText(
+                            amount = activeRate,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "تومان / گرم",
+                            fontSize = 11.sp,
+                            color = colors.textMuted,
+                            modifier = Modifier.padding(bottom = 3.dp)
+                        )
+                    }
+
+                    if (activeChartAvailable && activeChart != null) {
+                        val isPositive = activeChart.isPositive
+                        val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
+                        val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
+                        val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = deltaBg,
+                            border = BorderStroke(0.6.dp, deltaBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = DashTrendingUpVector,
+                                    contentDescription = null,
+                                    tint = deltaColor,
+                                    modifier = Modifier.size(12.dp).then(if (!isPositive) Modifier.rotate(180f) else Modifier)
+                                )
+                                AnimatedNumberText(
+                                    text = PersianNumberFormatter.formatDelta(
+                                        activeChart.fluctuationAmount,
+                                        activeChart.fluctuationPercent
+                                    ),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = deltaColor
+                                )
+                            }
+                        }
+                    }
+                }
+
                 AnimatedContent(
                     targetState = selectedTimeframe,
                     transitionSpec = {
@@ -562,7 +634,7 @@ fun DashboardScreen(
                             scaleIn(initialScale = 0.96f, animationSpec = tween(240, easing = LuxuryMotion.StandardEasing)))
                             .togetherWith(
                                 fadeOut(animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing)) +
-                                scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing))
+                                    scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing))
                             )
                     },
                     label = "dashboardChartHorizonTransition"
@@ -573,119 +645,40 @@ fun DashboardScreen(
                         else -> TimeHorizon.ONE_MONTH
                     }
                     val chart = uiState.gold18Charts[horizon]
-                    val isAvailable = chart != null && chart.isAvailable && chart.points.isNotEmpty()
-
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // Active Quote & Intraday Delta
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Bottom
+                    val isAvailable = chart?.isAvailable == true && chart.points.isNotEmpty()
+                    if (!isAvailable) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(130.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(
-                                    text = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "۴,۲۸۵,۰۰۰",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = colors.textMain
+                                Icon(
+                                    imageVector = DashCandlestickVector,
+                                    contentDescription = null,
+                                    tint = colors.textMuted.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(28.dp)
                                 )
                                 Text(
-                                    text = "تومان / گرم",
-                                    fontSize = 11.sp,
-                                    color = colors.textMuted,
-                                    modifier = Modifier.padding(bottom = 3.dp)
+                                    text = if (horizon == TimeHorizon.TODAY) "داده‌های نوسان امروز هنوز در دسترس نیست"
+                                    else "داده‌های نمودار برای این بازه در دسترس نیست",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textMuted
                                 )
-                            }
-
-                            if (isAvailable && chart != null) {
-                                val isPositive = chart.isPositive
-                                val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
-                                val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
-                                val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
-
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = deltaBg,
-                                    border = BorderStroke(0.6.dp, deltaBorder)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = DashTrendingUpVector,
-                                            contentDescription = null,
-                                            tint = deltaColor,
-                                            modifier = Modifier
-                                                .size(12.dp)
-                                                .then(if (!isPositive) Modifier.rotate(180f) else Modifier)
-                                        )
-                                        val deltaAmount = chart.fluctuationAmount
-                                        val deltaPct = chart.fluctuationPercent
-                                        val deltaText = PersianNumberFormatter.formatDelta(deltaAmount, deltaPct)
-                                        Text(
-                                            text = deltaText,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = deltaColor
-                                        )
-                                    }
-                                }
                             }
                         }
-
-                        // Chart Content or Unavailable Placeholder
-                        if (!isAvailable) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(130.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = DashCandlestickVector,
-                                        contentDescription = null,
-                                        tint = colors.textMuted.copy(alpha = 0.4f),
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Text(
-                                        text = if (horizon == TimeHorizon.TODAY) {
-                                            "داده‌های نوسان امروز هنوز در دسترس نیست"
-                                        } else {
-                                            "داده‌های نمودار برای این بازه در دسترس نیست"
-                                        },
-                                        fontSize = 11.5.sp,
-                                        color = colors.textMuted
-                                    )
-                                }
-                            }
-                        } else {
-                            // Interactive Smooth Golden Area Chart
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    GoldTrendCanvasChart(
-                                        points = chart!!.points,
-                                        candles = chart.candles,
-                                        currentPrice = uiState.rates.gold18,
-                                        currencyUnit = "تومان",
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(130.dp),
-                                        goldColor = colors.goldPrimary
-                                    )
-                                }
-                            }
+                    } else {
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            GoldTrendCanvasChart(
+                                points = chart!!.points,
+                                candles = chart.candles,
+                                currentPrice = chart.candles.lastOrNull()?.close ?: activeRate,
+                                currencyUnit = "تومان",
+                                modifier = Modifier.fillMaxWidth().height(130.dp),
+                                goldColor = colors.goldPrimary
+                            )
                         }
                     }
                 }

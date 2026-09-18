@@ -8,6 +8,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
+import com.goldex.companion.R
 import com.goldex.companion.model.DetailedJewelryResult
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.InvoiceItem
@@ -90,6 +92,8 @@ object PdfInvoiceGenerator {
         var page = doc.startPage(pageInfo)
         var canvas: Canvas = page.canvas
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val regularTypeface = ResourcesCompat.getFont(context, R.font.vazirmatn_regular) ?: Typeface.DEFAULT
+        val boldTypeface = ResourcesCompat.getFont(context, R.font.vazirmatn_bold) ?: Typeface.DEFAULT_BOLD
 
         fun drawHeaderRibbon(c: Canvas, isFirstPage: Boolean, pageNum: Int) {
             paint.color = Color.WHITE
@@ -101,13 +105,13 @@ object PdfInvoiceGenerator {
 
                 paint.color = Color.rgb(17, 24, 39)
                 paint.textSize = 16.5f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                paint.typeface = boldTypeface
                 paint.textAlign = Paint.Align.CENTER
                 c.drawText(settings.galleryName, 595f / 2f, 32f, paint)
 
                 paint.color = Color.rgb(71, 85, 105)
                 paint.textSize = 9.5f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                paint.typeface = regularTypeface
                 c.drawText("فاکتور رسمی برآورد و معامله طلا و جواهر • ${settings.galleryLicense}", 595f / 2f, 47f, paint)
                 c.drawText("تلفن: ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)} • نشانی: ${settings.galleryAddress}", 595f / 2f, 60f, paint)
             } else {
@@ -115,7 +119,7 @@ object PdfInvoiceGenerator {
 
                 paint.color = Color.rgb(17, 24, 39)
                 paint.textSize = 11.5f
-                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                paint.typeface = boldTypeface
                 paint.textAlign = Paint.Align.CENTER
                 c.drawText("ادامه اقلام فاکتور رسمی زرگری #${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)} (صفحه ${PersianNumberFormatter.toPersianDigits(pageNum.toString())})", 595f / 2f, 21f, paint)
             }
@@ -133,7 +137,7 @@ object PdfInvoiceGenerator {
 
             paint.color = Color.rgb(15, 23, 42)
             paint.textSize = 9.5f
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.typeface = boldTypeface
             paint.textAlign = Paint.Align.RIGHT
 
             c.drawText("ردیف", 545f, yTop + 17f, paint)
@@ -162,11 +166,11 @@ object PdfInvoiceGenerator {
 
         paint.textAlign = Paint.Align.RIGHT
         paint.textSize = 9.5f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.typeface = boldTypeface
         paint.color = Color.rgb(184, 134, 11)
         canvas.drawText("اطلاعات رسمی فاکتور", 545f, 91f, paint)
 
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.typeface = regularTypeface
         paint.color = Color.rgb(51, 65, 85)
         canvas.drawText("شماره فاکتور: #${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}", 545f, 106f, paint)
         canvas.drawText("تاریخ صدور: ${PersianNumberFormatter.toPersianDigits(dateStr)}", 545f, 120f, paint)
@@ -186,11 +190,11 @@ object PdfInvoiceGenerator {
         paint.style = Paint.Style.FILL
 
         paint.textAlign = Paint.Align.RIGHT
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.typeface = boldTypeface
         paint.color = Color.rgb(184, 134, 11)
         canvas.drawText("مشخصات خریدار", 280f, 91f, paint)
 
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.typeface = regularTypeface
         paint.color = Color.rgb(51, 65, 85)
         canvas.drawText("نام خریدار: $custName", 280f, 106f, paint)
         canvas.drawText("شماره تماس: ${PersianNumberFormatter.toPersianDigits(custPhone)}", 280f, 120f, paint)
@@ -222,7 +226,7 @@ object PdfInvoiceGenerator {
 
             paint.color = Color.rgb(30, 41, 59)
             paint.textAlign = Paint.Align.RIGHT
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.typeface = regularTypeface
             paint.textSize = 9f
 
             // Row #
@@ -256,11 +260,11 @@ object PdfInvoiceGenerator {
             canvas.drawText("$wageText | $profitText", 235f, y, paint)
 
             // Row Total
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.typeface = boldTypeface
             paint.color = Color.rgb(184, 134, 11)
             canvas.drawText("${PersianNumberFormatter.formatPrice(item.totalPayable)} ت", 150f, y, paint)
 
-            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.typeface = regularTypeface
             paint.color = Color.rgb(241, 245, 249)
             paint.strokeWidth = 0.5f
             canvas.drawLine(40f, y + 5f, 555f, y + 5f, paint)
@@ -281,7 +285,7 @@ object PdfInvoiceGenerator {
         // Summary Breakdown Box
         y += 8f
         fun drawSummaryRow(label: String, value: String, isBold: Boolean = false) {
-            paint.typeface = if (isBold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
+            paint.typeface = if (isBold) boldTypeface else regularTypeface
             paint.color = if (isBold) Color.rgb(184, 134, 11) else Color.rgb(51, 65, 85)
             paint.textSize = 9f
             paint.textAlign = Paint.Align.RIGHT
@@ -318,13 +322,13 @@ object PdfInvoiceGenerator {
         canvas.drawText("مبلغ کل نهایی قابل پرداخت فاکتور", 595f / 2f, y + 20f, paint)
 
         paint.textSize = 16f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.typeface = boldTypeface
         paint.color = Color.rgb(184, 134, 11)
         canvas.drawText("${PersianNumberFormatter.formatPrice(invoice.totalPayable)} تومان", 595f / 2f, y + 39f, paint)
 
         paint.textSize = 9f
         paint.color = Color.rgb(30, 41, 59)
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        paint.typeface = regularTypeface
         canvas.drawText("(${PersianWordsFormatter.toWords(invoice.totalPayable.toLong())})", 595f / 2f, y + 54f, paint)
 
         // Legal footnote
@@ -333,7 +337,7 @@ object PdfInvoiceGenerator {
         paint.textSize = 8f
         paint.color = Color.rgb(100, 116, 139)
         canvas.drawText(
-            "طبق ماده ۲۶ قانون دائمی مالیات بر ارزش افزوده، اصل طلا از مالیات معاف بوده و ۹٪ صرفاً بر سود و اجرت ساخت محاسبه گردیده است.",
+            "اصل طلا از مالیات معاف بوده و نرخ ثبت‌شده صرفاً بر سود و اجرت ساخت محاسبه شده است.",
             595f / 2f,
             y,
             paint

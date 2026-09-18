@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
  *
  * Allows jewelers to configure:
  * 1. Legal dealer profit percentage (Union cap: 7%)
- * 2. VAT tax percentage (Article 26 VAT Law: 9% on wage + profit only)
+ * 2. Configurable VAT percentage on wage + profit only
  * 3. Default workshop wage type (Percentage vs Fixed Toman/gram)
  *
  * Follows Google Stitch "Persian Sovereign Aurum" design standards and LuxuryMotion specifications.
@@ -260,13 +260,13 @@ fun TaxProfitModal(
                                         )
                                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                             Text(
-                                                text = "قانون معافیت اصل طلا (ماده ۲۶ ق.م.ا)",
+                                                text = "مبنای محاسبه مالیات طلا",
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.textMain
                                             )
                                             Text(
-                                                text = "مطابق قانون دائمی مالیات بر ارزش افزوده، اصل طلا ۱۰۰٪ از مالیات معاف است. مالیات ۹٪ صرفاً به مجموع (اجرت ساخت + سود فروشنده) تعلق می‌گیرد. حداکثر سود مصوب اتحادیه طلا ۷٪ می‌باشد.",
+                                                text = "اصل طلا از مالیات معاف است. نرخ مالیات انتخابی فقط بر مجموع اجرت ساخت و سود فروشنده اعمال می‌شود؛ نرخ سود و مالیات را متناسب با سیاست مالی واحد صنفی ثبت کنید.",
                                                 fontSize = 10.5.sp,
                                                 color = colors.textMuted,
                                                 lineHeight = 16.sp
@@ -400,7 +400,7 @@ fun TaxProfitModal(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        listOf("۰" to "۰٪ (معاف)", "۹" to "۹٪ (مصوب صنف)", "۱۰" to "۱۰٪").forEach { (value, label) ->
+                                        listOf("۰" to "۰٪ (معاف)", "۹" to "۹٪", "۱۰" to "۱۰٪").forEach { (value, label) ->
                                             val isSelected = taxPct.trim() == value
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),

@@ -53,7 +53,7 @@ data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallbac
 - App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
 - Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`
 - Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
-- Official invoice export: `domain/invoice/OfficialInvoiceDocument.kt` is the shared, pure projection of a barter invoice and gallery settings; `ui/util/OfficialInvoicePdfGenerator.kt` renders that projection as an A5 landscape PDF and hands it to Android share/print services.
+- Official invoice export: `domain/invoice/OfficialInvoiceDocument.kt` is the shared, pure projection of a barter invoice and gallery settings; `ui/util/OfficialInvoicePdfGenerator.kt` renders that projection as a premium A5 landscape PDF through one Vazirmatn/RTL typography path. `ui/invoices/InvoicePdfPreviewModal.kt` renders the generated file in-app with `PdfRenderer` before the same cached file is shared.
 - Business identity: `ui/hub/JewelerProfileModal.kt` owns the registered jeweler details plus logo and commercial-stamp selection. Their persistent URIs live beside the profile in `AppSettings`; the PDF renderer consumes the same profile-owned values. There is no separate invoice-branding state or QR configuration surface.
 - Domain Calculation Policies: `domain/calculator/`, `domain/invoice/BarterCalculationUseCases.kt`, `domain/portfolio/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
@@ -265,7 +265,9 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Standardized two-action dialog button layout across all modals and dialogs (Cancel on right, Save/Confirm on left in RTL) governed by `.agents/rules/dialog-button-layout.md`.
 - Weight and price-based wage inputs unified to 18sp with strict LTR decimal entry semantics under RTL layouts.
 - Unified corner radius across all buttons, icon buttons, filter capsules, and action surfaces to 12.dp (`ButtonShape` in `ui/theme/Shape.kt`), eliminating arbitrary radii (pill, 20.dp, 24.dp, 50%, CircleShape) in favor of the single source of truth defined by the header notification bell and primary dashboard cards.
-- Onboarding Wizard module established in `ui/wizard/` (`OnboardingWizardScreen`, `WizardIntroSlides`, `WizardProfileStep`, `WizardFinancialStep`, `WizardInventoryStep`, `WizardCompletionStep`) featuring a fixed sticky stepper header, scrollable `AnimatedContent` horizontal slide/fade middle body, sticky fixed footer navigation with strict RTL button semantics, auto-advancing intro slider with progress-filling indicators and gesture swipe support, `LuxurySegmentedControl` financial selectors, and animated confetti celebration.
+- Onboarding Wizard module established in `ui/wizard/` (`OnboardingWizardScreen`, `WizardIntroSlides`, `WizardProfileStep`, `WizardFinancialStep`, `WizardInventoryStep`, `WizardCompletionStep`) featuring a fixed sticky stepper header, scrollable `AnimatedContent` horizontal slide/fade middle body, sticky fixed footer navigation with strict RTL button semantics, auto-advancing intro slider with progress-filling indicators, RTL-native gesture direction, subtle hero-image zoom, `LuxurySegmentedControl` financial selectors, and animated confetti celebration.
+- Market and dashboard motion is presentation-owned: Live Rates uses the shared filter enter/exit transition, while the dashboard keeps price and fluctuation counters outside the chart transition so their digits animate independently when the horizon changes.
+- User-facing tax guidance derives its displayed percentage from `AppSettings`; legal article labels and fixed tax-rate claims are not UI sources of truth.
 
 ## 14. Known current compromises
 
