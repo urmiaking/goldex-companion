@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.AppSettings
+import com.goldex.companion.data.license.LicenseInfo
+import com.goldex.companion.data.license.LicenseStatus
+import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -47,6 +50,7 @@ fun MoreHubScreen(
     settings: AppSettings,
     customerCount: Int,
     isDarkTheme: Boolean,
+    licenseInfo: LicenseInfo = LicenseInfo(),
     onToggleTheme: () -> Unit,
     onToggleBiometricLock: (Boolean) -> Unit,
     onCheckForUpdates: () -> Unit,
@@ -61,6 +65,7 @@ fun MoreHubScreen(
     onOpenPriceSourceModal: () -> Unit,
     onOpenJewelerProfile: () -> Unit,
     onNavigateStandardFormulas: () -> Unit,
+    onOpenLicenseActivation: () -> Unit = {},
     onOpenOnboardingWizard: (() -> Unit)? = null
 ) {
     val colors = LocalGoldExColors.current
@@ -304,18 +309,29 @@ fun MoreHubScreen(
 
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onOpenLicenseActivation() }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "اعتبار اشتراک",
                                 fontSize = 10.sp,
                                 color = Color(0xFF94A3B8)
                             )
+                            val (statusText, statusColor) = when (licenseInfo.status) {
+                                LicenseStatus.LIFETIME -> "اشتراک دائمی" to Color(0xFF34D399)
+                                LicenseStatus.TRIAL_ACTIVE -> "${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز باقی" to Color(0xFFFBBF24)
+                                LicenseStatus.TRIAL_EXPIRED -> "پایان مهلت تست" to Color(0xFFEF4444)
+                                LicenseStatus.REVOKED -> "مسدود شده" to Color(0xFFEF4444)
+                                LicenseStatus.NONE -> "فعال‌سازی تست" to Color(0xFF60A5FA)
+                            }
                             Text(
-                                text = "۱۱ ماه باقی",
+                                text = statusText,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF34D399)
+                                color = statusColor
                             )
                         }
                     }
@@ -757,6 +773,24 @@ fun MoreHubScreen(
                     iconTint = colors.goldPrimary,
                     iconBg = colors.goldContainer,
                     onClick = { onOpenOnboardingWizard?.invoke() }
+                )
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
+                // Setting 6: Subscription & License Management
+                HubListRowItem(
+                    title = "مدیریت اشتراک و فعال‌سازی قیراط",
+                    subtitle = when (licenseInfo.status) {
+                        LicenseStatus.LIFETIME -> "اشتراک دائمی فعال است • بدون انقضا"
+                        LicenseStatus.TRIAL_ACTIVE -> "مهلت تست فعال (${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز باقی‌مانده)"
+                        LicenseStatus.TRIAL_EXPIRED -> "مهلت تست منقضی شده؛ جهت فعال‌سازی کلیک کنید"
+                        LicenseStatus.REVOKED -> "لایسنس غیرفعال شده است"
+                        LicenseStatus.NONE -> "نسخه آزمایشی / ورود کد فعال‌سازی"
+                    },
+                    icon = HubShieldCheck,
+                    iconTint = if (licenseInfo.isLifetime) colors.profitGreen else colors.goldPrimary,
+                    iconBg = if (licenseInfo.isLifetime) colors.profitGreen.copy(alpha = 0.15f) else colors.goldContainer,
+                    onClick = { onOpenLicenseActivation() }
                 )
             }
         }

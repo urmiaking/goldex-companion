@@ -14,8 +14,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -161,6 +168,8 @@ private data class BurstConfettiParticle(
 fun WizardCompletionContent(
     profileState: WizardProfileState,
     financialState: WizardFinancialState,
+    licenseState: WizardLicenseState = WizardLicenseState(),
+    onLicenseStateChange: (WizardLicenseState) -> Unit = {},
     onEnterApp: (AppTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -278,6 +287,153 @@ fun WizardCompletionContent(
                     lineHeight = 19.sp,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
+            }
+        }
+
+        // License / Trial Selection Card
+        LuxuryCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "انتخاب اشتراک و فعال‌سازی امکانات",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textMain
+            )
+
+            // Option 1: 14 Days Free Trial
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onLicenseStateChange(licenseState.copy(choice = WizardLicenseChoice.TRIAL))
+                    },
+                shape = RoundedCornerShape(12.dp),
+                color = if (licenseState.choice == WizardLicenseChoice.TRIAL) {
+                    colors.goldPrimary.copy(alpha = 0.12f)
+                } else colors.surfaceElevated,
+                border = BorderStroke(
+                    1.dp,
+                    if (licenseState.choice == WizardLicenseChoice.TRIAL) {
+                        colors.goldPrimary
+                    } else colors.border
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    RadioButton(
+                        selected = licenseState.choice == WizardLicenseChoice.TRIAL,
+                        onClick = {
+                            onLicenseStateChange(licenseState.copy(choice = WizardLicenseChoice.TRIAL))
+                        },
+                        colors = RadioButtonDefaults.colors(
+                            selectedColor = colors.goldPrimary
+                        )
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "🎁 فعال‌سازی مهلت تست ۱۴ روزه رایگان (پیشنهادی)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "دسترسی نامحدود به صدور فاکتور و معین؛ بدون نیاز به پرداخت",
+                            fontSize = 10.5.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+            }
+
+            // Option 2: Enter Permanent License Code
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onLicenseStateChange(licenseState.copy(choice = WizardLicenseChoice.CODE))
+                    },
+                shape = RoundedCornerShape(12.dp),
+                color = if (licenseState.choice == WizardLicenseChoice.CODE) {
+                    colors.goldPrimary.copy(alpha = 0.12f)
+                } else colors.surfaceElevated,
+                border = BorderStroke(
+                    1.dp,
+                    if (licenseState.choice == WizardLicenseChoice.CODE) {
+                        colors.goldPrimary
+                    } else colors.border
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        RadioButton(
+                            selected = licenseState.choice == WizardLicenseChoice.CODE,
+                            onClick = {
+                                onLicenseStateChange(licenseState.copy(choice = WizardLicenseChoice.CODE))
+                            },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = colors.goldPrimary
+                            )
+                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "🔑 کد فعال‌سازی دائمی دارم",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = "اتصال کد لایسنس خریداری شده به سخت‌افزار این دستگاه",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+
+                    if (licenseState.choice == WizardLicenseChoice.CODE) {
+                        OutlinedTextField(
+                            value = licenseState.licenseCode,
+                            onValueChange = {
+                                onLicenseStateChange(licenseState.copy(licenseCode = it.uppercase()))
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            placeholder = {
+                                Text(
+                                    text = "مثال: QIR-91C7-2M4P",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textMuted
+                                )
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                capitalization = KeyboardCapitalization.Characters,
+                                imeAction = ImeAction.Done
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = colors.goldPrimary,
+                                unfocusedBorderColor = colors.goldBorder.copy(alpha = 0.5f),
+                                focusedContainerColor = colors.surface,
+                                unfocusedContainerColor = colors.surface
+                            )
+                        )
+                    }
+                }
             }
         }
 

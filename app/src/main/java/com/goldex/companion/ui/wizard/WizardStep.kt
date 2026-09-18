@@ -39,11 +39,22 @@ data class WizardInventoryState(
     val bankBalances: String = "۱۴۲۰۰۰۰۰۰۰"
 )
 
+enum class WizardLicenseChoice {
+    TRIAL,
+    CODE
+}
+
+data class WizardLicenseState(
+    val choice: WizardLicenseChoice = WizardLicenseChoice.TRIAL,
+    val licenseCode: String = ""
+)
+
 data class WizardUiState(
     val currentStep: WizardStep = WizardStep.INTRO,
     val introSlideIndex: Int = 0,
     val profile: WizardProfileState = WizardProfileState(),
     val financial: WizardFinancialState = WizardFinancialState(),
     val inventory: WizardInventoryState = WizardInventoryState(),
+    val license: WizardLicenseState = WizardLicenseState(),
     val isSaving: Boolean = false
 )

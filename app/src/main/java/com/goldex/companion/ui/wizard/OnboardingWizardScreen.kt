@@ -22,7 +22,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 fun OnboardingWizardScreen(
     currentSettings: AppSettings,
     liveGold18Price: Long,
-    onFinish: (targetTab: AppTab, updatedSettings: AppSettings, initialInventory: WizardInventoryState) -> Unit,
+    onFinish: (targetTab: AppTab, updatedSettings: AppSettings, initialInventory: WizardInventoryState, licenseState: WizardLicenseState) -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -52,6 +52,7 @@ fun OnboardingWizardScreen(
     }
 
     var inventoryState by remember { mutableStateOf(WizardInventoryState()) }
+    var licenseState by remember { mutableStateOf(WizardLicenseState()) }
 
     fun finishWizard(targetTab: AppTab) {
         val updatedSettings = currentSettings.copy(
@@ -65,7 +66,7 @@ fun OnboardingWizardScreen(
             defaultTaxPercent = if (financialState.isVatEnabled) financialState.vatRate else "0",
             hasCompletedOnboarding = true
         )
-        onFinish(targetTab, updatedSettings, inventoryState)
+        onFinish(targetTab, updatedSettings, inventoryState, licenseState)
     }
 
     // Intercept Back Button
@@ -150,6 +151,8 @@ fun OnboardingWizardScreen(
                             WizardCompletionContent(
                                 profileState = profileState,
                                 financialState = financialState,
+                                licenseState = licenseState,
+                                onLicenseStateChange = { licenseState = it },
                                 onEnterApp = { targetTab -> finishWizard(targetTab) }
                             )
                         }

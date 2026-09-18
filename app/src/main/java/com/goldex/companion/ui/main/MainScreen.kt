@@ -86,6 +86,10 @@ import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.update.UpdateViewModel
 import com.goldex.companion.ui.wizard.OnboardingWizardScreen
+import com.goldex.companion.ui.wizard.WizardLicenseChoice
+import com.goldex.companion.ui.license.LicenseViewModel
+import com.goldex.companion.ui.license.LicenseViewModelFactory
+import com.goldex.companion.ui.license.LicenseActivationDialog
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.model.Karat
@@ -107,6 +111,7 @@ fun MainScreen(
     val updateViewModel: UpdateViewModel = viewModel()
     val karatConvertViewModel: KaratConvertViewModel = viewModel()
     val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel()
+    val licenseViewModel: LicenseViewModel = viewModel(factory = LicenseViewModelFactory(app))
 
     val mainUiState by mainViewModel.uiState.collectAsState()
     val customerState by customerViewModel.uiState.collectAsState()
@@ -117,6 +122,8 @@ fun MainScreen(
     val updateState by updateViewModel.uiState.collectAsState()
     val karatConvertUiState by karatConvertViewModel.uiState.collectAsState()
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
+    val licenseUiState by licenseViewModel.uiState.collectAsState()
+    val licenseInfo = licenseUiState.licenseInfo
 
     val colors = LocalGoldExColors.current
     var pdfPreview by remember { mutableStateOf<Pair<File, String>?>(null) }
@@ -211,14 +218,19 @@ fun MainScreen(
             editingTransaction = customerState.editingLedgerTransaction,
             onDismiss = { customerViewModel.closeAddLedgerEntry() },
             onSaveEntry = { tx ->
-                val isEditing = customerState.editingLedgerTransaction != null
-                customerViewModel.saveLedgerEntry(tx)
-                val msg = if (isEditing) {
-                    "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
+                if (!licenseInfo.isLicensed) {
+                    licenseViewModel.setActivationDialogVisible(true)
+                    QiratoToast.show(context, "ثبت سند در دفتر معین نیازمند اشتراک معتبر است.")
                 } else {
-                    "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                    val isEditing = customerState.editingLedgerTransaction != null
+                    customerViewModel.saveLedgerEntry(tx)
+                    val msg = if (isEditing) {
+                        "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
+                    } else {
+                        "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                    }
+                    QiratoToast.show(context, msg)
                 }
-                QiratoToast.show(context, msg)
             }
         )
     }
@@ -276,6 +288,19 @@ fun MainScreen(
                 )
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
             }
+        )
+    }
+
+    // License & Subscription Activation Dialog
+    if (licenseUiState.isActivationDialogVisible) {
+        LicenseActivationDialog(
+            licenseInfo = licenseInfo,
+            isLoading = licenseUiState.isLoading,
+            errorMessage = licenseUiState.errorMessage,
+            successMessage = licenseUiState.successMessage,
+            onDismiss = { licenseViewModel.setActivationDialogVisible(false) },
+            onActivateCode = { code -> licenseViewModel.activateCode(code) },
+            onActivateTrial = { licenseViewModel.activateTrial() }
         )
     }
 
@@ -507,18 +532,28 @@ fun MainScreen(
                                         onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
                                         onFilterSelect = barterInvoiceViewModel::setSelectedFilter,
                                         onNewInvoiceClick = {
-                                            val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
-                                                PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
-                                                mainUiState.priceBasisTab
-                                            ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-                                            barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                            if (!licenseInfo.isLicensed) {
+                                                licenseViewModel.setActivationDialogVisible(true)
+                                                QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                                            } else {
+                                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                                    mainUiState.priceBasisTab
+                                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+                                                barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                            }
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
                                         onExportPdfClick = { item ->
-                                            val invoice = item.barterInvoice
-                                            if (invoice == null) {
-                                                QiratoToast.show(context, "اطلاعات کامل فاکتور برای صدور PDF موجود نیست")
-                                            } else openPdfPreview(invoice)
+                                            if (!licenseInfo.isLicensed) {
+                                                licenseViewModel.setActivationDialogVisible(true)
+                                                QiratoToast.show(context, "صدور فایل PDF فاکتور نیازمند اشتراک معتبر است.")
+                                            } else {
+                                                val invoice = item.barterInvoice
+                                                if (invoice == null) {
+                                                    QiratoToast.show(context, "اطلاعات کامل فاکتور برای صدور PDF موجود نیست")
+                                                } else openPdfPreview(invoice)
+                                            }
                                         }
                                     )
                                 }
@@ -528,6 +563,10 @@ fun MainScreen(
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
                                         isDarkTheme = mainUiState.isDarkTheme,
+                                        licenseInfo = licenseInfo,
+                                        onOpenLicenseActivation = {
+                                            licenseViewModel.setActivationDialogVisible(true)
+                                        },
                                         onToggleTheme = mainViewModel::toggleTheme,
                                         onToggleBiometricLock = { settingsViewModel.toggleBiometricLock(it) },
                                         onCheckForUpdates = { updateViewModel.checkForUpdates(manual = true) },
@@ -588,11 +627,16 @@ fun MainScreen(
                     ) {
                         FloatingNewInvoiceButton(
                             onNewInvoiceClick = {
-                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
-                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
-                                    mainUiState.priceBasisTab
-                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-                                barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                if (!licenseInfo.isLicensed) {
+                                    licenseViewModel.setActivationDialogVisible(true)
+                                    QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                                } else {
+                                    val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                        PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                        mainUiState.priceBasisTab
+                                    ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+                                    barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                }
                             }
                         )
                     }
@@ -846,13 +890,20 @@ fun MainScreen(
                 OnboardingWizardScreen(
                     currentSettings = settingsState.appSettings,
                     liveGold18Price = mainUiState.rates.gold18,
-                    onFinish = { targetTab, updatedSettings, initialInventory ->
+                    onFinish = { targetTab, updatedSettings, initialInventory, licenseState ->
                         settingsViewModel.updateSettings(updatedSettings)
                         mainViewModel.applySettingsDefaults(
                             updatedSettings.defaultProfitPercent,
                             updatedSettings.defaultTaxPercent,
                             updatedSettings.defaultWageType
                         )
+
+                        // Activate selected license or trial
+                        if (licenseState.choice == WizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
+                            licenseViewModel.activateCode(licenseState.licenseCode)
+                        } else if (licenseState.choice == WizardLicenseChoice.TRIAL) {
+                            licenseViewModel.activateTrial()
+                        }
 
                         // Save initial inventory items into Portfolio if entered
                         val vitrinWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinWeight) ?: 0.0
