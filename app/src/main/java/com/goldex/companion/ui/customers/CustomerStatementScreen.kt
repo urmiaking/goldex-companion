@@ -571,10 +571,10 @@ private fun StatementTransactionCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Top Row: Category Icon, Title, Doc #, Badge & Action Buttons
+            // Keep the document identity on its own row so long titles never
+            // compete with destructive actions for horizontal space.
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
@@ -599,7 +599,7 @@ private fun StatementTransactionCard(
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = transaction.title,
                             fontSize = 13.sp,
@@ -617,29 +617,37 @@ private fun StatementTransactionCard(
                         )
                     }
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (transaction.tagBadge.isNotBlank()) {
+                    Text(
+                        text = transaction.tagBadge,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(colors.surfaceElevated)
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                } else {
+                    Spacer(Modifier.width(1.dp))
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (transaction.tagBadge.isNotBlank()) {
-                        Text(
-                            text = transaction.tagBadge,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textSecondary,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(colors.surfaceElevated)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-
                     IconButton(
                         onClick = onEditClick,
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(ButtonShape)
                             .background(colors.surfaceElevated)
                     ) {
@@ -654,9 +662,9 @@ private fun StatementTransactionCard(
                     IconButton(
                         onClick = onDeleteClick,
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(ButtonShape)
-                            .background(colors.surfaceElevated)
+                            .background(colors.errorRed.copy(alpha = 0.08f))
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,

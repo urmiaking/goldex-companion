@@ -165,6 +165,29 @@ object PersianNumberFormatter {
         return toPersianDigits(df.format(weight))
     }
 
+    /**
+     * Formats a signed weight for Persian RTL surfaces. Keeping the sign at the
+     * visual end of the number prevents the Unicode bidi algorithm from moving
+     * a leading minus to the wrong side of mixed Persian/Latin content.
+     */
+    fun formatSignedWeight(weight: Double): String {
+        val sign = when {
+            weight > 0.0 -> "+"
+            weight < 0.0 -> "-"
+            else -> ""
+        }
+        return "${formatWeight(kotlin.math.abs(weight))}$sign"
+    }
+
+    fun formatSignedInteger(value: Int): String {
+        val sign = when {
+            value > 0 -> "+"
+            value < 0 -> "-"
+            else -> ""
+        }
+        return "${toPersianDigits(kotlin.math.abs(value).toString())}$sign"
+    }
+
     fun formatPercent(value: Double): String {
         val formatted = if (value % 1.0 == 0.0) {
             value.toLong().toString()

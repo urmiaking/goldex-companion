@@ -555,7 +555,7 @@ private fun FormulaCardItem(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Row(
                     modifier = Modifier.weight(1f),
@@ -572,10 +572,13 @@ private fun FormulaCardItem(
                         text = item.title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp,
-                        color = colors.textMain
+                        color = colors.textMain,
+                        lineHeight = 20.sp,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
+                Spacer(Modifier.width(10.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = colors.goldContainer,
@@ -598,12 +601,11 @@ private fun FormulaCardItem(
                 border = BorderStroke(0.8.dp, colors.border.copy(alpha = 0.7f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = item.mathFormula,
@@ -611,22 +613,40 @@ private fun FormulaCardItem(
                         fontWeight = FontWeight.SemiBold,
                         color = if (colors.isDark) Color(0xFFFDE68A) else Color(0xFF92400E),
                         lineHeight = 19.sp,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    IconButton(
+                    HorizontalDivider(
+                        color = colors.border.copy(alpha = 0.55f),
+                        thickness = 0.5.dp
+                    )
+
+                    Surface(
                         onClick = { onCopy(item.mathFormula) },
+                        shape = ButtonShape,
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.goldBorder),
                         modifier = Modifier
-                            .size(30.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(colors.surfaceElevated)
+                            .align(Alignment.End)
                     ) {
-                        Icon(
-                            imageVector = HubCopy,
-                            contentDescription = "کپی",
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(15.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = HubCopy,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "کپی فرمول",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                        }
                     }
                 }
             }
@@ -648,18 +668,24 @@ private fun FormulaCardItem(
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary
                         )
-                        Text(
-                            text = "$label: ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = colors.textMain
-                        )
-                        Text(
-                            text = desc,
-                            fontSize = 11.sp,
-                            color = colors.textMuted,
-                            lineHeight = 16.sp
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = desc,
+                                fontSize = 11.sp,
+                                color = colors.textMuted,
+                                lineHeight = 16.sp,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }

@@ -347,7 +347,7 @@ fun KaratConvertScreen(
                                             )
                                         }
                                         Text(
-                                            text = "اختلاف: ${if (weightDiff >= 0) "+" else ""}${PersianNumberFormatter.formatWeight(weightDiff)} گرم",
+                                            text = "اختلاف: ${PersianNumberFormatter.formatSignedWeight(weightDiff)} گرم",
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Medium,
                                             color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
@@ -423,7 +423,7 @@ fun KaratConvertScreen(
                                     text = if (uiState.convertMode == KaratConvertMode.DIRECT)
                                         "وزن × (عیار مبدا ÷ عیار مقصد)"
                                     else
-                                        "${PersianNumberFormatter.toPersianDigits(karatDiff.toInt().toString())} خط ${if (karatDiff >= 0) "مازاد" else "کسری"} • ${if (settlementRial >= 0) "بستانکار" else "بدهکار"}",
+                                        "${PersianNumberFormatter.formatSignedInteger(karatDiff.toInt())} خط ${if (karatDiff >= 0) "مازاد" else "کسری"} • ${if (settlementRial >= 0) "بستانکار" else "بدهکار"}",
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.goldPrimary
@@ -576,21 +576,34 @@ fun KaratConvertScreen(
                                 }
                             }
 
-                            // دکمه تعویض عیار مبدا و مقصد
-                            IconButton(
+                            // Explicit swap action: the label makes the intent clear at a glance.
+                            Surface(
                                 onClick = onSwapConvertKarats,
+                                shape = ButtonShape,
+                                color = colors.goldContainer,
+                                border = BorderStroke(0.8.dp, colors.goldBorder),
                                 modifier = Modifier
                                     .padding(top = 18.dp)
-                                    .size(36.dp)
-                                    .background(colors.surfaceElevated, CircleShape)
-                                    .border(BorderStroke(0.6.dp, colors.goldBorder), CircleShape)
+                                    .height(40.dp)
                             ) {
-                                Icon(
-                                    imageVector = CalcSwapHoriz,
-                                    contentDescription = "جابجایی عیار مبدا و مقصد",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = CalcSwapHoriz,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "جابه‌جایی",
+                                        fontSize = 8.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.goldPrimary
+                                    )
+                                }
                             }
 
                             // عیار مقصد
@@ -756,7 +769,7 @@ fun KaratConvertScreen(
                                     ) {
                                         Text("اختلاف عیار ری‌گیری:", fontSize = 11.sp, color = colors.textSecondary)
                                         AnimatedNumberText(
-                                            text = "${PersianNumberFormatter.toPersianDigits(karatDiff.toInt().toString())} خط (${if (karatDiff >= 0) "مازاد" else "کسری"})",
+                                            text = "${PersianNumberFormatter.formatSignedInteger(karatDiff.toInt())} خط (${if (karatDiff >= 0) "مازاد" else "کسری"})",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = if (karatDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
@@ -769,7 +782,7 @@ fun KaratConvertScreen(
                                     ) {
                                         Text("اختلاف وزن طلا:", fontSize = 11.sp, color = colors.textSecondary)
                                         AnimatedNumberText(
-                                            text = PersianNumberFormatter.formatWeight(kotlin.math.abs(weightDiff)),
+                                            text = PersianNumberFormatter.formatSignedWeight(weightDiff),
                                             unit = "گرم طلا",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,

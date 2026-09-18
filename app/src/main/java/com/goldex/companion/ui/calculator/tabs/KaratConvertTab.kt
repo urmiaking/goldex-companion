@@ -125,7 +125,7 @@ fun KaratConvertTab(
 
                 // Swap Button: معکوس
                 GoldButton(
-                    text = "معکوس",
+                    text = "جابه‌جایی عیارها",
                     icon = CalcSwapHoriz,
                     onClick = {
                         onSwapConvertKarats()
@@ -551,9 +551,8 @@ fun KaratConvertTab(
                         ) {
                             Text("اختلاف وزن طلا (کسر / اضافه):", fontSize = 11.sp, color = colors.textSecondary)
                             val isDeficit = labDiffWeight < 0
-                            val sign = if (labDiffWeight > 0) "+" else ""
                             Text(
-                                "$sign${PersianNumberFormatter.formatWeight(labDiffWeight)} گرم",
+                                "${PersianNumberFormatter.formatSignedWeight(labDiffWeight)} گرم",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDeficit) colors.errorRed else if (labDiffWeight > 0) colors.profitGreen else colors.textMain
