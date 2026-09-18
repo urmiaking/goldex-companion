@@ -37,6 +37,14 @@ class GoldCalculationTest {
     }
 
     @Test
+    fun testSignedNumbersKeepSignAfterValueInRtl() {
+        assertEquals("۱.۲۵۰-", PersianNumberFormatter.formatSignedWeight(-1.25))
+        assertEquals("۱.۲۵۰+", PersianNumberFormatter.formatSignedWeight(1.25))
+        assertEquals("۰.۰۰۰", PersianNumberFormatter.formatSignedWeight(0.0))
+        assertEquals("۱۲-", PersianNumberFormatter.formatSignedInteger(-12))
+    }
+
+    @Test
     fun testPersianWordsFormatter() {
         assertEquals("صفر تومان", PersianWordsFormatter.toWords(0))
         assertEquals("یک میلیون تومان", PersianWordsFormatter.toWords(1_000_000))

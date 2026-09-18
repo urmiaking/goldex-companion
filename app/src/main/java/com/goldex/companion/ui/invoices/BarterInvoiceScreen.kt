@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -1554,47 +1555,78 @@ private fun SettlementModal(
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
             ) {
-                // Fixed Header
-                Surface(
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth()
+                // Standard modal header: grabber, identity block, and close action.
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                            .align(Alignment.CenterHorizontally)
+                            .width(44.dp)
+                            .height(4.dp)
+                            .clip(CircleShape)
+                            .background(colors.border)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(6.dp, 16.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(colors.goldPrimary)
-                            )
-                            Text(
-                                text = "تنظیم روش تسویه مانده صافی",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                fontFamily = VazirmatnFamily
-                            )
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(colors.goldPrimary, colors.goldSecondary)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = InvoiceCheckVector,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "روش تسویه مانده صافی",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "ترکیب پرداخت و ثبت مانده حساب",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
                         }
 
+                        Spacer(Modifier.width(12.dp))
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
                                 .size(32.dp)
-                                .clip(CircleShape)
-                                .background(colors.surfaceVariant)
+                                .clip(ButtonShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.border, ButtonShape)
                         ) {
                             Icon(
                                 imageVector = InvoiceCloseVector,
@@ -1605,13 +1637,14 @@ private fun SettlementModal(
                         }
                     }
                 }
+                HorizontalDivider(color = colors.border, thickness = 0.6.dp)
 
                 // Scrollable Body
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Multi-payment Overview & Balance Status Card
@@ -2787,16 +2820,15 @@ private fun SettlementModal(
         }
 
         // Sticky Footer per dialog button layout invariant
+        HorizontalDivider(color = colors.border, thickness = 0.6.dp)
         Surface(
-            color = colors.surfaceElevated,
-            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-            shadowElevation = 4.dp,
+            color = colors.surfaceElevated.copy(alpha = 0.4f),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

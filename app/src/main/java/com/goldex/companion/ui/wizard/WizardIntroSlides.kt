@@ -390,7 +390,7 @@ fun WizardIntroContent(
                                         text = slide.unionBadgeSubtitle,
                                         fontSize = 9.5.sp,
                                         fontWeight = FontWeight.Medium,
-                                        color = colors.textSecondary
+                                        color = Color.White.copy(alpha = 0.74f)
                                     )
                                 }
                             }
