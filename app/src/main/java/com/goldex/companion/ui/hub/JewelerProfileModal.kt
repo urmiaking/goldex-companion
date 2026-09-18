@@ -1,5 +1,12 @@
 package com.goldex.companion.ui.hub
 
+import android.content.Context
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,6 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,19 +56,43 @@ import kotlinx.coroutines.launch
 fun JewelerProfileModal(
     settings: AppSettings,
     onDismiss: () -> Unit,
-    onSaveProfile: (galleryName: String, managerName: String, unionCode: String, phone: String, address: String) -> Unit
+    onSaveProfile: (
+        galleryName: String,
+        managerName: String,
+        unionCode: String,
+        phone: String,
+        address: String,
+        logoUri: String,
+        stampUri: String
+    ) -> Unit
 ) {
     var galleryName by remember { mutableStateOf(settings.galleryName) }
     var managerName by remember { mutableStateOf(settings.managerName) }
     var unionCode by remember { mutableStateOf(settings.unionCode) }
     var phone by remember { mutableStateOf(settings.galleryPhone) }
     var address by remember { mutableStateOf(settings.galleryAddress) }
+    var logoUri by remember { mutableStateOf(settings.invoiceLogoUri) }
+    var stampUri by remember { mutableStateOf(settings.invoiceStampUri) }
 
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
     var isVisible by remember { mutableStateOf(false) }
+
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistProfileAssetPermission(context, it)
+            logoUri = it.toString()
+        }
+    }
+    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistProfileAssetPermission(context, it)
+            stampUri = it.toString()
+        }
+    }
 
     val handleDismiss: () -> Unit = {
         if (isVisible) {
@@ -241,96 +276,47 @@ fun JewelerProfileModal(
                                 .padding(horizontal = 20.dp, vertical = 14.dp),
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            // Stamp & Logo Upload Field Card
+                            // Brand assets belong to the business profile.
                             Surface(
                                 shape = RoundedCornerShape(18.dp),
                                 color = if (colors.isDark) colors.surfaceElevated else Color(0xFFFCFAF5),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.6f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Row(
+                                        modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Box(contentAlignment = Alignment.BottomStart) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .clip(RoundedCornerShape(14.dp))
-                                                    .background(
-                                                        Brush.linearGradient(
-                                                            listOf(
-                                                                Color(0xFFF59E0B),
-                                                                Color(0xFFD97706)
-                                                            )
-                                                        )
-                                                    )
-                                                    .border(2.dp, colors.goldPrimary.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = monogram,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    fontSize = 17.sp,
-                                                    color = Color(0xFF1E293B)
-                                                )
-                                            }
-
-                                            // Green verified dot badge
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .offset(x = (-3).dp, y = 3.dp)
-                                                    .clip(CircleShape)
-                                                    .background(colors.surface)
-                                                    .padding(1.5.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .clip(CircleShape)
-                                                        .background(colors.profitGreen),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = null,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(9.dp)
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        Column {
-                                            Text(
-                                                text = "نشان و مهر رسمی زرگری",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.5.sp,
-                                                color = colors.textMain
-                                            )
-                                            Text(
-                                                text = "نمایش در سربرگ فاکتور و رسید ترازو",
-                                                fontSize = 10.5.sp,
-                                                color = colors.textMuted
-                                            )
-                                        }
+                                        Icon(HubCamera, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
+                                        Text("لوگو و مهر تجاری", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                     }
-
-                                    GoldButton(
-                                        text = "تغییر نشان",
-                                        icon = HubCamera,
-                                        onClick = { /* Change stamp visual action */ },
-                                        isSecondary = true,
-                                        modifier = Modifier.height(36.dp)
-                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        ProfileBrandAssetTile(
+                                            title = "لوگوی واحد صنفی",
+                                            actionLabel = "تغییر لوگو",
+                                            bitmap = rememberProfileAssetBitmap(logoUri),
+                                            fallback = monogram,
+                                            onPick = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                                            onClear = if (logoUri.isNotBlank()) ({ logoUri = "" }) else null,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        ProfileBrandAssetTile(
+                                            title = "مهر تجاری",
+                                            actionLabel = "انتخاب مهر",
+                                            bitmap = rememberProfileAssetBitmap(stampUri),
+                                            fallback = "مهر",
+                                            onPick = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                                            onClear = if (stampUri.isNotBlank()) ({ stampUri = "" }) else null,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
 
@@ -571,7 +557,9 @@ fun JewelerProfileModal(
                                         managerName.trim(),
                                         unionCode.trim(),
                                         phone.trim(),
-                                        address.trim()
+                                        address.trim(),
+                                        logoUri,
+                                        stampUri
                                     )
                                     handleDismiss()
                                 },
@@ -586,4 +574,89 @@ fun JewelerProfileModal(
         }
     }
 }
+}
+
+@Composable
+private fun ProfileBrandAssetTile(
+    title: String,
+    actionLabel: String,
+    bitmap: ImageBitmap?,
+    fallback: String,
+    onPick: () -> Unit,
+    onClear: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surface,
+        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.border)
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors.goldContainer.copy(alpha = 0.35f))
+                    .border(1.dp, colors.goldBorder.copy(alpha = 0.7f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize().padding(4.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Text(
+                        text = fallback.ifBlank { "نشان" },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.goldPrimary
+                    )
+                }
+            }
+            Text(title, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = onPick,
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text(actionLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
+                }
+                if (onClear != null) {
+                    IconButton(onClick = onClear, modifier = Modifier.size(30.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = "حذف $title", tint = colors.errorRed, modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberProfileAssetBitmap(uriValue: String): ImageBitmap? {
+    val context = LocalContext.current
+    return remember(uriValue) {
+        if (uriValue.isBlank()) return@remember null
+        runCatching {
+            context.contentResolver.openInputStream(Uri.parse(uriValue))
+                ?.use { BitmapFactory.decodeStream(it) }
+                ?.asImageBitmap()
+        }.getOrNull()
+    }
+}
+
+private fun persistProfileAssetPermission(context: Context, uri: Uri) {
+    runCatching {
+        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
 }

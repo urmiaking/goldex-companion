@@ -48,29 +48,6 @@ internal val InvoiceSealVector: ImageVector = ImageVector.Builder(
     }
 }.build()
 
-internal val InvoiceQrVector: ImageVector = ImageVector.Builder(
-    name = "InvoiceQr",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.8f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(3f, 3f); horizontalLineTo(9f); verticalLineTo(9f); horizontalLineTo(3f); close()
-        moveTo(15f, 3f); horizontalLineTo(21f); verticalLineTo(9f); horizontalLineTo(15f); close()
-        moveTo(3f, 15f); horizontalLineTo(9f); verticalLineTo(21f); horizontalLineTo(3f); close()
-        moveTo(15f, 15f); horizontalLineTo(17f); verticalLineTo(17f); horizontalLineTo(15f); close()
-        moveTo(19f, 15f); horizontalLineTo(21f); verticalLineTo(17f); horizontalLineTo(19f); close()
-        moveTo(15f, 19f); horizontalLineTo(17f); verticalLineTo(21f); horizontalLineTo(15f); close()
-        moveTo(19f, 19f); horizontalLineTo(21f); verticalLineTo(21f); horizontalLineTo(19f); close()
-    }
-}.build()
-
 internal val InvoiceDiamondVector: ImageVector = ImageVector.Builder(
     name = "InvoiceDiamond",
     defaultWidth = 24.dp,

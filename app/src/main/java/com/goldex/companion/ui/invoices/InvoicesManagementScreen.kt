@@ -72,7 +72,6 @@ fun InvoicesManagementScreen(
     onNewInvoiceClick: () -> Unit,
     onInvoiceItemClick: (InvoiceListItem) -> Unit,
     onExportPdfClick: (InvoiceListItem) -> Unit,
-    onScanQrClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val invoices = uiState.filteredInvoices
@@ -99,8 +98,7 @@ fun InvoicesManagementScreen(
             // 2. Search & Filter Bar
             SearchAndQuickFilterBar(
                 query = uiState.searchQuery,
-                onQueryChange = onSearchQueryChange,
-                onScanQrClick = onScanQrClick
+                onQueryChange = onSearchQueryChange
             )
 
             // 3. Filter Capsules
@@ -325,7 +323,6 @@ private fun KpiStatBox(
 private fun SearchAndQuickFilterBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    onScanQrClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -385,16 +382,6 @@ private fun SearchAndQuickFilterBar(
                     )
                 }
 
-                // QR/Barcode Scan Icon Button
-                IconButton(
-                    onClick = onScanQrClick,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Text(
-                        text = "📷",
-                        fontSize = 16.sp
-                    )
-                }
             }
         }
 

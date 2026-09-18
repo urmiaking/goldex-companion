@@ -54,7 +54,7 @@ data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallbac
 - Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`
 - Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
 - Official invoice export: `domain/invoice/OfficialInvoiceDocument.kt` is the shared, pure projection of a barter invoice and gallery settings; `ui/util/OfficialInvoicePdfGenerator.kt` renders that projection as an A5 landscape PDF and hands it to Android share/print services.
-- Invoice branding: `ui/hub/InvoiceBrandingModal.kt` owns the bottom modal and live header preview, reusing the same modal shell and motion as jeweler-profile editing. Persistent logo/stamp URIs, watermark, stamp opacity, and QR options live in `AppSettings`; the PDF renderer consumes those settings directly so the editor and exported document share one source of truth.
+- Business identity: `ui/hub/JewelerProfileModal.kt` owns the registered jeweler details plus logo and commercial-stamp selection. Their persistent URIs live beside the profile in `AppSettings`; the PDF renderer consumes the same profile-owned values. There is no separate invoice-branding state or QR configuration surface.
 - Domain Calculation Policies: `domain/calculator/`, `domain/invoice/BarterCalculationUseCases.kt`, `domain/portfolio/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
 - Financial models and formatters: `model/`
