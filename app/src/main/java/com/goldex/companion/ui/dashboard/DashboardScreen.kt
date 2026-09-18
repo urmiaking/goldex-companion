@@ -1,7 +1,14 @@
 package com.goldex.companion.ui.dashboard
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import com.goldex.companion.ui.theme.LuxuryMotion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -548,106 +555,154 @@ fun DashboardScreen(
                     )
                 }
 
-                val currentHorizon = when (selectedTimeframe) {
-                    0 -> TimeHorizon.TODAY
-                    1 -> TimeHorizon.ONE_WEEK
-                    else -> TimeHorizon.ONE_MONTH
-                }
-                val activeChart = uiState.gold18Charts[currentHorizon]
-                    ?: MarketHistoryConverter.toTrendChartData(emptyList(), currentHorizon, uiState.rates.gold18)
-
-                // Active Quote & Intraday Delta
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "۴,۲۸۵,۰۰۰",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textMain
-                        )
-                        Text(
-                            text = "تومان / گرم",
-                            fontSize = 11.sp,
-                            color = colors.textMuted,
-                            modifier = Modifier.padding(bottom = 3.dp)
-                        )
-                    }
-
-                    val isPositive = activeChart.isPositive
-                    val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
-                    val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
-                    val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
-
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = deltaBg,
-                        border = BorderStroke(0.6.dp, deltaBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = DashTrendingUpVector,
-                                contentDescription = null,
-                                tint = deltaColor,
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .then(if (!isPositive) Modifier.rotate(180f) else Modifier)
+                AnimatedContent(
+                    targetState = selectedTimeframe,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(240, easing = LuxuryMotion.StandardEasing)) +
+                            scaleIn(initialScale = 0.96f, animationSpec = tween(240, easing = LuxuryMotion.StandardEasing)))
+                            .togetherWith(
+                                fadeOut(animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing)) +
+                                scaleOut(targetScale = 0.98f, animationSpec = tween(180, easing = LuxuryMotion.AccelerationEasing))
                             )
-                            val deltaAmount = activeChart.fluctuationAmount
-                            val deltaPct = activeChart.fluctuationPercent
-                            val deltaText = PersianNumberFormatter.formatDelta(deltaAmount, deltaPct)
-                            Text(
-                                text = deltaText,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = deltaColor
-                            )
-                        }
+                    },
+                    label = "dashboardChartHorizonTransition"
+                ) { targetTimeframe ->
+                    val horizon = when (targetTimeframe) {
+                        0 -> TimeHorizon.TODAY
+                        1 -> TimeHorizon.ONE_WEEK
+                        else -> TimeHorizon.ONE_MONTH
                     }
-                }
+                    val chart = uiState.gold18Charts[horizon]
+                    val isAvailable = chart != null && chart.isAvailable && chart.points.isNotEmpty()
 
-                // Interactive Smooth Golden Area Chart
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        GoldTrendCanvasChart(
-                            points = activeChart.points,
-                            candles = activeChart.candles,
-                            currentPrice = uiState.rates.gold18,
-                            currencyUnit = "تومان",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(130.dp),
-                            goldColor = colors.goldPrimary
-                        )
-
-                        // Time Labels (LTR: left to right)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Active Quote & Intraday Delta
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
                         ) {
-                            activeChart.timeLabels.forEachIndexed { idx, hour ->
-                                val isLast = (idx == activeChart.timeLabels.lastIndex)
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
                                 Text(
-                                    text = PersianNumberFormatter.toPersianDigits(hour),
-                                    fontSize = 9.5.sp,
-                                    fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isLast) colors.goldPrimary else colors.textMuted
+                                    text = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "۴,۲۸۵,۰۰۰",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = colors.textMain
                                 )
+                                Text(
+                                    text = "تومان / گرم",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted,
+                                    modifier = Modifier.padding(bottom = 3.dp)
+                                )
+                            }
+
+                            if (isAvailable && chart != null) {
+                                val isPositive = chart.isPositive
+                                val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
+                                val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
+                                val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
+
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = deltaBg,
+                                    border = BorderStroke(0.6.dp, deltaBorder)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = DashTrendingUpVector,
+                                            contentDescription = null,
+                                            tint = deltaColor,
+                                            modifier = Modifier
+                                                .size(12.dp)
+                                                .then(if (!isPositive) Modifier.rotate(180f) else Modifier)
+                                        )
+                                        val deltaAmount = chart.fluctuationAmount
+                                        val deltaPct = chart.fluctuationPercent
+                                        val deltaText = PersianNumberFormatter.formatDelta(deltaAmount, deltaPct)
+                                        Text(
+                                            text = deltaText,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = deltaColor
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Chart Content or Unavailable Placeholder
+                        if (!isAvailable) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(130.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = DashCandlestickVector,
+                                        contentDescription = null,
+                                        tint = colors.textMuted.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Text(
+                                        text = if (horizon == TimeHorizon.TODAY) {
+                                            "داده‌های نوسان امروز هنوز در دسترس نیست"
+                                        } else {
+                                            "داده‌های نمودار برای این بازه در دسترس نیست"
+                                        },
+                                        fontSize = 11.5.sp,
+                                        color = colors.textMuted
+                                    )
+                                }
+                            }
+                        } else {
+                            // Interactive Smooth Golden Area Chart
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    GoldTrendCanvasChart(
+                                        points = chart!!.points,
+                                        candles = chart.candles,
+                                        currentPrice = uiState.rates.gold18,
+                                        currencyUnit = "تومان",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(130.dp),
+                                        goldColor = colors.goldPrimary
+                                    )
+
+                                    // Time Labels (LTR: left to right)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 4.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        chart.timeLabels.forEachIndexed { idx, hour ->
+                                            val isLast = (idx == chart.timeLabels.lastIndex)
+                                            Text(
+                                                text = PersianNumberFormatter.toPersianDigits(hour),
+                                                fontSize = 9.5.sp,
+                                                fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isLast) colors.goldPrimary else colors.textMuted
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

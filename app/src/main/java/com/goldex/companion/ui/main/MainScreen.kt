@@ -804,12 +804,14 @@ fun MainScreen(
                 val detailState = remember(
                     mainUiState.selectedRateDetailType,
                     mainUiState.rates,
-                    mainUiState.rateDetailHistory
+                    mainUiState.rateDetailHistory,
+                    mainUiState.isHistoryLoading
                 ) {
                     MarketRateDetailState.create(
                         type = mainUiState.selectedRateDetailType,
                         rates = mainUiState.rates,
-                        historyByHorizon = mainUiState.rateDetailHistory
+                        historyByHorizon = mainUiState.rateDetailHistory,
+                        isLoading = mainUiState.isHistoryLoading
                     )
                 }
                 MarketRateDetailScreen(

@@ -483,29 +483,31 @@ fun MarketRateDetailScreen(
                     }
 
                     // Fluctuation Pill (Green if positive, Red if negative)
-                    val isPos = currentChart.isPositive
-                    val pillBg = if (isPos) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
-                    val pillColor = if (isPos) Color(0xFF047857) else Color(0xFFEF4444)
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = pillBg
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    if (currentChart.isAvailable && currentChart.points.isNotEmpty()) {
+                        val isPos = currentChart.isPositive
+                        val pillBg = if (isPos) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
+                        val pillColor = if (isPos) Color(0xFF047857) else Color(0xFFEF4444)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = pillBg
                         ) {
-                            Text(
-                                text = "دامنه نوسان:",
-                                fontSize = 10.5.sp,
-                                color = colors.textSecondary
-                            )
-                            AnimatedNumberText(
-                                text = PersianNumberFormatter.toPersianDigits(currentChart.fluctuationRangeText),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = pillColor
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "دامنه نوسان:",
+                                    fontSize = 10.5.sp,
+                                    color = colors.textSecondary
+                                )
+                                AnimatedNumberText(
+                                    text = PersianNumberFormatter.toPersianDigits(currentChart.fluctuationRangeText),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = pillColor
+                                )
+                            }
                         }
                     }
                 }
@@ -534,56 +536,112 @@ fun MarketRateDetailScreen(
                     },
                     label = "chartHorizonTransition"
                 ) { targetHorizon ->
-                    val horizonChart = state.chartDataByHorizon[targetHorizon] ?: state.chartDataByHorizon.values.first()
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                    val horizonChart = state.chartDataByHorizon[targetHorizon]
+                    val isAvailable = horizonChart != null && horizonChart.isAvailable && horizonChart.points.isNotEmpty()
+
+                    if (state.isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Chart Canvas Area
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .padding(top = 10.dp)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                TrendChartCanvas(
-                                    points = horizonChart.points,
-                                    peakPrice = horizonChart.peakPrice,
-                                    currencyUnit = state.currencyUnit,
-                                    candles = horizonChart.candles,
-                                    modifier = Modifier.fillMaxSize()
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    color = colors.goldPrimary,
+                                    strokeWidth = 2.5.dp
+                                )
+                                Text(
+                                    text = "در حال دریافت داده‌های بازار...",
+                                    fontSize = 11.5.sp,
+                                    color = colors.textSecondary
                                 )
                             }
-
-                            // Horizontal Time Axis (LTR: Past on left, Present on right)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                        }
+                    } else if (!isAvailable) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                horizonChart.timeLabels.forEachIndexed { idx, label ->
-                                    val isLive = (targetHorizon == TimeHorizon.TODAY && idx == horizonChart.timeLabels.lastIndex)
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        if (isLive) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(colors.goldPrimary)
+                                Icon(
+                                    imageVector = IconShowChart,
+                                    contentDescription = null,
+                                    tint = colors.textMuted.copy(alpha = 0.45f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Text(
+                                    text = if (targetHorizon == TimeHorizon.TODAY) {
+                                        "داده‌های نوسان امروز هنوز در دسترس نیست"
+                                    } else {
+                                        "داده‌های نمودار برای این بازه در دسترس نیست"
+                                    },
+                                    fontSize = 12.sp,
+                                    color = colors.textMuted
+                                )
+                            }
+                        }
+                    } else {
+                        val activeChart = horizonChart!!
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Chart Canvas Area
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .padding(top = 10.dp)
+                                ) {
+                                    TrendChartCanvas(
+                                        points = activeChart.points,
+                                        peakPrice = activeChart.peakPrice,
+                                        currencyUnit = state.currencyUnit,
+                                        candles = activeChart.candles,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+
+                                // Horizontal Time Axis (LTR: Past on left, Present on right)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    activeChart.timeLabels.forEachIndexed { idx, label ->
+                                        val isLive = (targetHorizon == TimeHorizon.TODAY && idx == activeChart.timeLabels.lastIndex)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            if (isLive) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(colors.goldPrimary)
+                                                )
+                                            }
+                                            Text(
+                                                text = PersianNumberFormatter.toPersianDigits(label),
+                                                fontSize = 10.sp,
+                                                fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isLive) colors.goldPrimary else colors.textMuted
                                             )
                                         }
-                                        Text(
-                                            text = PersianNumberFormatter.toPersianDigits(label),
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isLive) colors.goldPrimary else colors.textMuted
-                                        )
                                     }
                                 }
                             }

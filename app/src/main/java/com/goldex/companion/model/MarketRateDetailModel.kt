@@ -48,7 +48,8 @@ data class TrendChartData(
     val isPositive: Boolean = true,
     val candles: List<MarketCandle> = emptyList(),
     val fluctuationPercent: Double = 0.0,
-    val fluctuationAmount: Long = 0L
+    val fluctuationAmount: Long = 0L,
+    val isAvailable: Boolean = true
 )
 
 /**
@@ -63,7 +64,7 @@ data class MonthlyMarketStats(
 )
 
 /**
- * Representative or ledger-backed transaction tied to the asset.
+ * Historical transaction item for the quote details ledger.
  */
 data class RateTransactionItem(
     val isBuy: Boolean,
@@ -96,7 +97,8 @@ data class MarketRateDetailState(
     val referenceIndexChange: String,
     val monthlyStats: MonthlyMarketStats,
     val recentTransactions: List<RateTransactionItem>,
-    val chartDataByHorizon: Map<TimeHorizon, TrendChartData>
+    val chartDataByHorizon: Map<TimeHorizon, TrendChartData>,
+    val isLoading: Boolean = false
 ) {
     companion object {
         /**
@@ -105,7 +107,8 @@ data class MarketRateDetailState(
         fun create(
             type: MarketRateItemType,
             rates: MarketRates,
-            historyByHorizon: Map<TimeHorizon, List<MarketCandle>> = emptyMap()
+            historyByHorizon: Map<TimeHorizon, List<MarketCandle>> = emptyMap(),
+            isLoading: Boolean = false
         ): MarketRateDetailState {
             val baseState = when (type) {
                 MarketRateItemType.GOLD_18K -> buildGold18State(rates)
@@ -121,7 +124,7 @@ data class MarketRateDetailState(
             }
 
             if (historyByHorizon.isEmpty()) {
-                return baseState
+                return baseState.copy(isLoading = isLoading)
             }
 
             // Convert real candles to TrendChartData for each available horizon
@@ -163,7 +166,8 @@ data class MarketRateDetailState(
                 monthlyStats = updatedMonthlyStats,
                 dayHigh = dayHigh,
                 dayLow = dayLow,
-                openPrice = openPrice
+                openPrice = openPrice,
+                isLoading = isLoading
             )
         }
 
@@ -653,91 +657,24 @@ data class MarketRateDetailState(
         }
 
         /**
-         * Generates normalized smooth curve points and labels for all 5 horizons.
+         * Generates initial placeholder charts marked as unavailable until real history loads.
          */
         private fun generateHorizonCharts(peakPrice: Long): Map<TimeHorizon, TrendChartData> {
-            return mapOf(
-                TimeHorizon.TODAY to TrendChartData(
-                    points = listOf(
-                        0.00f to 0.22f,
-                        0.12f to 0.20f,
-                        0.25f to 0.38f,
-                        0.45f to 0.55f,
-                        0.65f to 0.85f, // Summit / Peak
-                        0.80f to 0.32f,
-                        0.90f to 0.34f,
-                        1.00f to 0.48f  // Live closing point
-                    ),
+            return TimeHorizon.values().associateWith {
+                TrendChartData(
+                    points = emptyList(),
                     peakPrice = peakPrice,
-                    peakXRatio = 0.65f,
-                    peakYRatio = 0.85f,
-                    timeLabels = listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰"),
-                    fluctuationRangeText = "۱.۱٪+"
-                ),
-                TimeHorizon.ONE_WEEK to TrendChartData(
-                    points = listOf(
-                        0.00f to 0.30f,
-                        0.18f to 0.25f,
-                        0.35f to 0.45f,
-                        0.52f to 0.88f, // Peak mid-week
-                        0.70f to 0.60f,
-                        0.85f to 0.50f,
-                        1.00f to 0.68f
-                    ),
-                    peakPrice = (peakPrice * 1.008).roundToLong(),
-                    peakXRatio = 0.52f,
-                    peakYRatio = 0.88f,
-                    timeLabels = listOf("شنبه", "دوشنبه", "چهارشنبه", "جمعه", "امروز"),
-                    fluctuationRangeText = "۲.۴٪+"
-                ),
-                TimeHorizon.ONE_MONTH to TrendChartData(
-                    points = listOf(
-                        0.00f to 0.18f,
-                        0.20f to 0.32f,
-                        0.40f to 0.48f,
-                        0.60f to 0.62f,
-                        0.78f to 0.90f, // Peak late month
-                        0.90f to 0.72f,
-                        1.00f to 0.78f
-                    ),
-                    peakPrice = (peakPrice * 1.025).roundToLong(),
-                    peakXRatio = 0.78f,
-                    peakYRatio = 0.90f,
-                    timeLabels = listOf("۴ هفته پیش", "۳ هفته پیش", "۲ هفته پیش", "۱ هفته پیش", "امروز"),
-                    fluctuationRangeText = "۴.۵٪+"
-                ),
-                TimeHorizon.SIX_MONTHS to TrendChartData(
-                    points = listOf(
-                        0.00f to 0.12f,
-                        0.22f to 0.28f,
-                        0.42f to 0.40f,
-                        0.60f to 0.58f,
-                        0.75f to 0.75f,
-                        0.88f to 0.92f, // Peak near end
-                        1.00f to 0.86f
-                    ),
-                    peakPrice = (peakPrice * 1.065).roundToLong(),
-                    peakXRatio = 0.88f,
-                    peakYRatio = 0.92f,
-                    timeLabels = listOf("۶ ماه پیش", "۴ ماه پیش", "۳ ماه پیش", "۲ ماه پیش", "امروز"),
-                    fluctuationRangeText = "۱۴.۲٪+"
-                ),
-                TimeHorizon.ONE_YEAR to TrendChartData(
-                    points = listOf(
-                        0.00f to 0.08f,
-                        0.25f to 0.22f,
-                        0.50f to 0.45f,
-                        0.70f to 0.68f,
-                        0.85f to 0.94f,
-                        1.00f to 0.88f
-                    ),
-                    peakPrice = (peakPrice * 1.150).roundToLong(),
-                    peakXRatio = 0.85f,
-                    peakYRatio = 0.94f,
-                    timeLabels = listOf("۱ سال پیش", "۹ ماه پیش", "۶ ماه پیش", "۳ ماه پیش", "امروز"),
-                    fluctuationRangeText = "۳۸.۶٪+"
+                    peakXRatio = 0.5f,
+                    peakYRatio = 0.5f,
+                    timeLabels = emptyList(),
+                    fluctuationRangeText = "۰.۰٪",
+                    isPositive = true,
+                    candles = emptyList(),
+                    fluctuationPercent = 0.0,
+                    fluctuationAmount = 0L,
+                    isAvailable = false
                 )
-            )
+            }
         }
     }
 }

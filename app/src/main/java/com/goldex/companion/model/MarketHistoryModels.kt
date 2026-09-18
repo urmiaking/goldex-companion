@@ -27,22 +27,28 @@ object MarketHistoryConverter {
         fallbackBasePrice: Long
     ): TrendChartData {
         if (candles.isEmpty()) {
-            return fallbackTrendChart(horizon, fallbackBasePrice)
+            return emptyTrendChart(fallbackBasePrice)
+        }
+
+        val processedCandles = if (horizon == TimeHorizon.TODAY) {
+            sampleIntradayCandles(candles)
+        } else {
+            candles
         }
 
         // 1. Identify min, max and peak
-        val prices = candles.map { it.close.coerceAtLeast(1L) }
+        val prices = processedCandles.map { it.close.coerceAtLeast(1L) }
         val minPrice = prices.minOrNull() ?: fallbackBasePrice
         val maxPrice = prices.maxOrNull() ?: fallbackBasePrice
         val priceSpan = (maxPrice - minPrice).toFloat()
 
         // 2. Normalized points in range [0f, 1f]
         // yNorm is scaled to [0.15f, 0.85f] to prevent touching top/bottom canvas bounds
-        val rawPoints = if (candles.size == 1) {
+        val rawPoints = if (processedCandles.size == 1) {
             listOf(0.00f to 0.50f, 1.00f to 0.50f)
         } else {
-            candles.mapIndexed { idx, candle ->
-                val xNorm = idx.toFloat() / (candles.size - 1).toFloat()
+            processedCandles.mapIndexed { idx, candle ->
+                val xNorm = idx.toFloat() / (processedCandles.size - 1).toFloat()
                 val price = candle.close.coerceAtLeast(1L)
                 val rawY = if (priceSpan > 0f) (price - minPrice).toFloat() / priceSpan else 0.5f
                 val clampedY = 0.15f + (rawY * 0.70f)
@@ -52,25 +58,24 @@ object MarketHistoryConverter {
 
         // 3. Peak detection
         var peakIdx = 0
-        var highestPrice = candles.first().close
-        candles.forEachIndexed { index, candle ->
+        var highestPrice = processedCandles.first().close
+        processedCandles.forEachIndexed { index, candle ->
             val candlePeak = if (candle.high > 0L) candle.high else candle.close
             if (candlePeak > highestPrice) {
                 highestPrice = candlePeak
                 peakIdx = index
             }
         }
-        val peakX = if (candles.size > 1) peakIdx.toFloat() / (candles.size - 1).toFloat() else 0.5f
+        val peakX = if (processedCandles.size > 1) peakIdx.toFloat() / (processedCandles.size - 1).toFloat() else 0.5f
         val peakRawY = if (priceSpan > 0f) (highestPrice - minPrice).toFloat() / priceSpan else 0.85f
         val peakY = (0.15f + (peakRawY * 0.70f)).coerceIn(0.20f, 0.92f)
 
         // 4. Gentle 3-point smoothing filter for dense points (> 5 points)
         // Eliminates micro-noise while strictly preserving endpoints, peak, and bottom.
-        // Skip smoothing for TODAY horizon so intraday and hourly price movements remain sharp and unblurred.
-        val points = if (rawPoints.size > 5 && horizon != TimeHorizon.TODAY) {
+        val points = if (rawPoints.size > 5) {
             val smoothed = rawPoints.toMutableList()
             for (i in 1 until rawPoints.size - 1) {
-                if (i == peakIdx || candles[i].close == maxPrice || candles[i].close == minPrice) {
+                if (i == peakIdx || processedCandles[i].close == maxPrice || processedCandles[i].close == minPrice) {
                     continue
                 }
                 val prevY = rawPoints[i - 1].second
@@ -85,11 +90,11 @@ object MarketHistoryConverter {
         }
 
         // 5. Horizontal time labels (4 to 5 distributed labels)
-        val timeLabels = extractTimeLabels(candles, horizon)
+        val timeLabels = extractTimeLabels(processedCandles, horizon)
 
         // 6. Fluctuation percentage (Sign placed strictly behind number: e.g. ۲.۴٪- or ۲.۴٪+)
-        val firstPrice = candles.first().open.takeIf { it > 0L } ?: candles.first().close
-        val lastPrice = candles.last().close
+        val firstPrice = processedCandles.first().open.takeIf { it > 0L } ?: processedCandles.first().close
+        val lastPrice = processedCandles.last().close
         val diffAmount = lastPrice - firstPrice
         val pct = if (firstPrice > 0L) {
             (diffAmount.toDouble() / firstPrice.toDouble()) * 100.0
@@ -109,9 +114,10 @@ object MarketHistoryConverter {
             timeLabels = timeLabels,
             fluctuationRangeText = fluctuationText,
             isPositive = isPositive,
-            candles = candles,
+            candles = processedCandles,
             fluctuationPercent = pct,
-            fluctuationAmount = diffAmount
+            fluctuationAmount = diffAmount,
+            isAvailable = true
         )
     }
 
@@ -267,63 +273,106 @@ object MarketHistoryConverter {
         return if (rawDate.length > 5) rawDate.takeLast(5) else rawDate
     }
 
-    private fun fallbackTrendChart(horizon: TimeHorizon, peakPrice: Long): TrendChartData {
-        return when (horizon) {
-            TimeHorizon.TODAY -> TrendChartData(
-                points = listOf(0.00f to 0.22f, 0.25f to 0.38f, 0.65f to 0.85f, 0.80f to 0.32f, 1.00f to 0.48f),
-                peakPrice = peakPrice,
-                peakXRatio = 0.65f,
-                peakYRatio = 0.85f,
-                timeLabels = listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰"),
-                fluctuationRangeText = "۱.۱٪+",
-                isPositive = true,
-                fluctuationPercent = 1.1,
-                fluctuationAmount = (peakPrice * 0.011).roundToLong()
-            )
-            TimeHorizon.ONE_WEEK -> TrendChartData(
-                points = listOf(0.00f to 0.30f, 0.35f to 0.45f, 0.52f to 0.88f, 0.70f to 0.60f, 1.00f to 0.68f),
-                peakPrice = (peakPrice * 1.008).roundToLong(),
-                peakXRatio = 0.52f,
-                peakYRatio = 0.88f,
-                timeLabels = listOf("شنبه", "دوشنبه", "چهارشنبه", "جمعه", "امروز"),
-                fluctuationRangeText = "۲.۴٪+",
-                isPositive = true,
-                fluctuationPercent = 2.4,
-                fluctuationAmount = (peakPrice * 0.024).roundToLong()
-            )
-            TimeHorizon.ONE_MONTH -> TrendChartData(
-                points = listOf(0.00f to 0.18f, 0.40f to 0.48f, 0.78f to 0.90f, 0.90f to 0.72f, 1.00f to 0.78f),
-                peakPrice = (peakPrice * 1.025).roundToLong(),
-                peakXRatio = 0.78f,
-                peakYRatio = 0.90f,
-                timeLabels = listOf("۴ هفته پیش", "۳ هفته پیش", "۲ هفته پیش", "۱ هفته پیش", "امروز"),
-                fluctuationRangeText = "۴.۵٪+",
-                isPositive = true,
-                fluctuationPercent = 4.5,
-                fluctuationAmount = (peakPrice * 0.045).roundToLong()
-            )
-            TimeHorizon.SIX_MONTHS -> TrendChartData(
-                points = listOf(0.00f to 0.12f, 0.42f to 0.40f, 0.75f to 0.75f, 0.88f to 0.92f, 1.00f to 0.86f),
-                peakPrice = (peakPrice * 1.065).roundToLong(),
-                peakXRatio = 0.88f,
-                peakYRatio = 0.92f,
-                timeLabels = listOf("۶ ماه پیش", "۴ ماه پیش", "۳ ماه پیش", "۲ ماه پیش", "امروز"),
-                fluctuationRangeText = "۱۴.۲٪+",
-                isPositive = true,
-                fluctuationPercent = 14.2,
-                fluctuationAmount = (peakPrice * 0.142).roundToLong()
-            )
-            TimeHorizon.ONE_YEAR -> TrendChartData(
-                points = listOf(0.00f to 0.08f, 0.50f to 0.45f, 0.70f to 0.68f, 0.85f to 0.94f, 1.00f to 0.88f),
-                peakPrice = (peakPrice * 1.150).roundToLong(),
-                peakXRatio = 0.85f,
-                peakYRatio = 0.94f,
-                timeLabels = listOf("۱ سال پیش", "۹ ماه پیش", "۶ ماه پیش", "۳ ماه پیش", "امروز"),
-                fluctuationRangeText = "۳۸.۶٪+",
-                isPositive = true,
-                fluctuationPercent = 38.6,
-                fluctuationAmount = (peakPrice * 0.386).roundToLong()
+    fun emptyTrendChart(fallbackBasePrice: Long = 0L): TrendChartData {
+        return TrendChartData(
+            points = emptyList(),
+            peakPrice = fallbackBasePrice,
+            peakXRatio = 0.5f,
+            peakYRatio = 0.5f,
+            timeLabels = emptyList(),
+            fluctuationRangeText = "۰.۰٪",
+            isPositive = true,
+            candles = emptyList(),
+            fluctuationPercent = 0.0,
+            fluctuationAmount = 0L,
+            isAvailable = false
+        )
+    }
+
+    /**
+     * Parses minute of day (0..1439) from a time string such as "14:30", "14:30:15", or "1405/06/23 14:30".
+     * Supports both English and Persian digits.
+     */
+    fun parseMinuteOfDay(dateStr: String): Int? {
+        val normalized = PersianNumberFormatter.toEnglishDigits(dateStr).trim()
+        if (!normalized.contains(":")) return null
+        val timePart = if (normalized.contains(" ")) normalized.substringAfterLast(" ") else normalized
+        val parts = timePart.split(":")
+        if (parts.size < 2) return null
+        val hh = parts[0].toIntOrNull() ?: return null
+        val mm = parts[1].toIntOrNull() ?: return null
+        return if (hh in 0..23 && mm in 0..59) hh * 60 + mm else null
+    }
+
+    /**
+     * Downsamples dense intraday candles into ~30-minute interval buckets.
+     * Smooths out micro-second fluctuations while strictly preserving:
+     * - Opening trade of the session
+     * - Latest/live market quote
+     * - High and low extremes
+     * If data has gaps, connects nearest available intervals linearly.
+     */
+    fun sampleIntradayCandles(candles: List<MarketCandle>): List<MarketCandle> {
+        if (candles.size <= 8) return candles
+
+        val parsed = candles.map { candle ->
+            candle to parseMinuteOfDay(candle.dateShamsi)
+        }
+
+        // If timestamps cannot be parsed, fallback to uniform stride sampling (~12 points)
+        if (parsed.any { it.second == null }) {
+            return sampleUniformly(candles, targetCount = 12)
+        }
+
+        // Group by 30-minute bucket (0..47)
+        val grouped = parsed.groupBy { it.second!! / 30 }
+        val sortedBuckets = grouped.toSortedMap()
+
+        val sampled = mutableListOf<MarketCandle>()
+        for ((_, bucket) in sortedBuckets) {
+            val bucketCandles = bucket.map { it.first }
+            val first = bucketCandles.first()
+            val last = bucketCandles.last()
+            val high = bucketCandles.maxOf { if (it.high > 0L) it.high else it.close }
+            val low = bucketCandles.minOf { if (it.low > 0L) it.low else it.close }
+            sampled.add(
+                MarketCandle(
+                    open = if (first.open > 0L) first.open else first.close,
+                    high = high,
+                    low = low,
+                    close = last.close,
+                    dateShamsi = last.dateShamsi,
+                    dateGregorian = last.dateGregorian
+                )
             )
         }
+
+        // Ensure session opening candle is preserved as first point if different from first bucket's representative
+        val firstOriginal = candles.first()
+        if (sampled.isNotEmpty() && sampled.first().dateShamsi != firstOriginal.dateShamsi) {
+            sampled.add(0, firstOriginal)
+        }
+
+        // Ensure latest live candle is preserved as last point if different from last bucket's representative
+        val lastOriginal = candles.last()
+        if (sampled.isNotEmpty() && sampled.last().dateShamsi != lastOriginal.dateShamsi) {
+            sampled.add(lastOriginal)
+        }
+
+        return sampled
+    }
+
+    private fun sampleUniformly(candles: List<MarketCandle>, targetCount: Int): List<MarketCandle> {
+        if (candles.size <= targetCount) return candles
+        val step = (candles.size - 1).toDouble() / (targetCount - 1).toDouble()
+        val result = mutableListOf<MarketCandle>()
+        val seenIndices = mutableSetOf<Int>()
+        for (i in 0 until targetCount) {
+            val idx = (i * step).roundToLong().toInt().coerceIn(0, candles.lastIndex)
+            if (seenIndices.add(idx)) {
+                result.add(candles[idx])
+            }
+        }
+        return result
     }
 }

@@ -69,11 +69,9 @@ class MarketRateDetailTest {
         TimeHorizon.values().forEach { horizon ->
             val chart = state.chartDataByHorizon[horizon]
             assertNotNull("Chart for $horizon must exist", chart)
-            assertTrue("Points must not be empty for $horizon", chart!!.points.isNotEmpty())
-            assertEquals("Must have 5 time labels for $horizon", 5, chart.timeLabels.size)
+            assertFalse("Unpopulated chart for $horizon must not be available", chart!!.isAvailable)
+            assertTrue("Points must be empty for unpopulated $horizon", chart.points.isEmpty())
             assertTrue("Peak price must be positive for $horizon", chart.peakPrice > 0L)
-            assertTrue("Peak X ratio must be in (0, 1) for $horizon", chart.peakXRatio in 0.0f..1.0f)
-            assertTrue("Peak Y ratio must be in (0, 1) for $horizon", chart.peakYRatio in 0.0f..1.0f)
         }
     }
 
@@ -121,10 +119,18 @@ class MarketRateDetailTest {
         assertFalse("weeklyChangeText should not start with +", state.monthlyStats.weeklyChangeText.startsWith("+"))
         assertFalse("referenceIndexChange should not start with +", state.referenceIndexChange.startsWith("+"))
 
-        state.chartDataByHorizon.values.forEach { chart ->
-            assertFalse("fluctuationRangeText should not start with +", chart.fluctuationRangeText.startsWith("+"))
-            assertTrue("fluctuationRangeText should end with + or -", chart.fluctuationRangeText.endsWith("+") || chart.fluctuationRangeText.endsWith("-"))
-        }
+        val candles = listOf(
+            MarketCandle(open = 23000000L, high = 23200000L, low = 22900000L, close = 23100000L, dateShamsi = "14050620"),
+            MarketCandle(open = 23100000L, high = 23500000L, low = 23000000L, close = 23400000L, dateShamsi = "14050621")
+        )
+        val populatedState = MarketRateDetailState.create(
+            type = MarketRateItemType.GOLD_18K,
+            rates = sampleRates,
+            historyByHorizon = mapOf(TimeHorizon.ONE_WEEK to candles)
+        )
+        val populatedChart = populatedState.chartDataByHorizon[TimeHorizon.ONE_WEEK]!!
+        assertFalse("fluctuationRangeText should not start with +", populatedChart.fluctuationRangeText.startsWith("+"))
+        assertTrue("fluctuationRangeText should end with + or -", populatedChart.fluctuationRangeText.endsWith("+") || populatedChart.fluctuationRangeText.endsWith("-"))
     }
 
     @Test

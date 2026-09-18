@@ -86,4 +86,57 @@ class MarketHistoryTest {
             assertTrue("TGJU length must be positive", tgjuLen > 0)
         }
     }
+
+    @Test
+    fun emptyCandlesReturnUnavailableTrendChartWithoutFakeData() {
+        val chart = MarketHistoryConverter.toTrendChartData(emptyList(), TimeHorizon.TODAY, 4_285_000L)
+        assertFalse("Chart should be marked unavailable", chart.isAvailable)
+        assertTrue("Chart points should be empty", chart.points.isEmpty())
+        assertTrue("Time labels should be empty", chart.timeLabels.isEmpty())
+        assertEquals("۰.۰٪", chart.fluctuationRangeText)
+    }
+
+    @Test
+    fun sampleIntradayCandlesDownsamplesDenseTicksIntoThirtyMinuteBuckets() {
+        // Generate 60 ticks every minute from 10:00 to 10:59
+        val denseCandles = (0 until 60).map { minute ->
+            val hh = 10
+            val mm = String.format(java.util.Locale.US, "%02d", minute)
+            MarketCandle(
+                open = 4_280_000L + minute * 100L,
+                high = 4_285_000L + minute * 100L,
+                low = 4_275_000L + minute * 100L,
+                close = 4_282_000L + minute * 100L,
+                dateShamsi = "$hh:$mm"
+            )
+        }
+
+        val sampled = MarketHistoryConverter.sampleIntradayCandles(denseCandles)
+        assertTrue("Sampled candles should be significantly fewer than 60 ticks", sampled.size in 2..4)
+        assertEquals("First candle close should match first raw tick", denseCandles.first().close, sampled.first().close)
+        assertEquals("Last candle close should match last raw tick", denseCandles.last().close, sampled.last().close)
+    }
+
+    @Test
+    fun sampleIntradayCandlesHandlesGapsBetweenIntervals() {
+        val gappedCandles = listOf(
+            MarketCandle(open = 4_280_000L, high = 4_282_000L, low = 4_279_000L, close = 4_281_000L, dateShamsi = "10:05"),
+            MarketCandle(open = 4_281_000L, high = 4_285_000L, low = 4_280_000L, close = 4_284_000L, dateShamsi = "10:15"),
+            MarketCandle(open = 4_290_000L, high = 4_295_000L, low = 4_288_000L, close = 4_292_000L, dateShamsi = "14:20"),
+            MarketCandle(open = 4_292_000L, high = 4_300_000L, low = 4_290_000L, close = 4_298_000L, dateShamsi = "14:50")
+        )
+
+        val sampled = MarketHistoryConverter.sampleIntradayCandles(gappedCandles)
+        assertEquals(4, sampled.size)
+        assertEquals("10:05", sampled.first().dateShamsi)
+        assertEquals("14:50", sampled.last().dateShamsi)
+    }
+
+    @Test
+    fun parseMinuteOfDayHandlesPersianAndEnglishDigits() {
+        assertEquals(10 * 60 + 30, MarketHistoryConverter.parseMinuteOfDay("10:30"))
+        assertEquals(14 * 60 + 45, MarketHistoryConverter.parseMinuteOfDay("۱۴:۴۵"))
+        assertEquals(9 * 60 + 5, MarketHistoryConverter.parseMinuteOfDay("09:05:22"))
+        assertNull(MarketHistoryConverter.parseMinuteOfDay("14050623"))
+    }
 }
