@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1258,14 +1259,14 @@ private fun DashboardLicenseAlertBanner(
                 border = if (isDark) Color(0xFFE53935).copy(alpha = 0.55f) else Color(0xFFEF4444),
                 accent = if (isDark) Color(0xFFEF5350) else Color(0xFFDC2626),
                 icon = DashAlertLock,
-                title = "مهلت تست رایگان به پایان رسیده است",
-                subtitle = "صدور فاکتور جدید و مدیریت دفاتر غیرفعال شده است. لطفاً کد اشتراک قیراط را ثبت کنید.",
-                buttonText = "ثبت کد اشتراک"
+                title = "مهلت تست به پایان رسیده است",
+                subtitle = "جهت ادامه کار، کد اشتراک را ثبت کنید",
+                buttonText = "ثبت کد"
             )
         }
         LicenseStatus.TRIAL_ACTIVE -> {
             val daysText = if (licenseInfo.remainingDays <= 0) {
-                "کمتر از یک روز"
+                "کمتر از ۱ روز"
             } else {
                 "${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز"
             }
@@ -1274,9 +1275,9 @@ private fun DashboardLicenseAlertBanner(
                 border = if (isDark) Color(0xFFF59E0B).copy(alpha = 0.55f) else Color(0xFFF59E0B),
                 accent = if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706),
                 icon = DashAlertWarning,
-                title = "تنها $daysText از مهلت تست رایگان باقی مانده است",
-                subtitle = "برای جلوگیری از وقفه در امور حسابداری و صدور فاکتور، کد اشتراک دائمی را وارد کنید.",
-                buttonText = "ارتقا به دائمی"
+                title = "تنها $daysText تا پایان مهلت تست",
+                subtitle = "جهت جلوگیری از وقفه، اشتراک را دائمی کنید",
+                buttonText = "ارتقا"
             )
         }
         LicenseStatus.NONE -> {
@@ -1285,9 +1286,9 @@ private fun DashboardLicenseAlertBanner(
                 border = if (isDark) colors.goldBorder.copy(alpha = 0.6f) else colors.goldBorder,
                 accent = if (isDark) colors.goldPrimary else colors.goldSecondary,
                 icon = DashAlertGift,
-                title = "حساب کاربری شما هنوز فعال نشده است",
-                subtitle = "جهت فعال‌سازی قابلیت‌های صدور فاکتور و معین، مهلت تست ۱۴ روزه رایگان را فعال فرمایید.",
-                buttonText = "فعال‌سازی مهلت تست"
+                title = "مهلت تست ۱۴ روزه رایگان قیراط",
+                subtitle = "جهت دسترسی کامل به صدور فاکتور و دفاتر",
+                buttonText = "فعال‌سازی"
             )
         }
         else -> return
@@ -1297,80 +1298,85 @@ private fun DashboardLicenseAlertBanner(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onOpenLicenseActivation() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = Color.Transparent,
         border = BorderStroke(1.dp, config.border),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = if (isDark) 0.dp else 1.5.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(config.bg))
-                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .padding(horizontal = 12.dp, vertical = 9.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 // Icon Badge
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(config.accent.copy(alpha = if (isDark) 0.18f else 0.22f))
-                        .border(0.8.dp, config.accent.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                        .border(0.8.dp, config.accent.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = config.icon,
                         contentDescription = null,
                         tint = config.accent,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Text Details
+                // Text Details (Clean and single-line to prevent layout wrapping)
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = config.title,
-                        fontSize = 12.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = if (isDark) Color.White else Color(0xFF1F2937)
                     )
                     Text(
                         text = config.subtitle,
-                        fontSize = 10.5.sp,
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = if (isDark) Color(0xFFD1D5DB) else Color(0xFF4B5563),
-                        lineHeight = 15.sp
+                        lineHeight = 14.sp
                     )
                 }
 
-                // Call to Action Chip
+                // Call to Action Chip (Compact)
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = config.accent.copy(alpha = if (isDark) 0.18f else 0.25f),
                     border = BorderStroke(1.dp, config.accent.copy(alpha = 0.55f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text(
                             text = config.buttonText,
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = config.accent
+                            color = config.accent,
+                            maxLines = 1
                         )
                         Icon(
                             imageVector = DashChevronLeft,
                             contentDescription = null,
                             tint = config.accent,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
                 }
