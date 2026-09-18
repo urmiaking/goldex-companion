@@ -483,3 +483,33 @@ internal val HubCopy: ImageVector = ImageVector.Builder(
         close()
     }
 }.build()
+
+internal val HubThemeMode: ImageVector = ImageVector.Builder(
+    name = "HubThemeMode",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 4f)
+        curveTo(16.42f, 4f, 20f, 7.58f, 20f, 12f)
+        curveTo(20f, 16.42f, 16.42f, 20f, 12f, 20f)
+        curveTo(12f, 15.58f, 12f, 8.42f, 12f, 4f)
+        curveTo(7.58f, 4f, 4f, 7.58f, 4f, 12f)
+        curveTo(4f, 16.42f, 7.58f, 20f, 12f, 20f)
+        moveTo(12f, 1.5f)
+        verticalLineTo(2.5f)
+        moveTo(12f, 21.5f)
+        verticalLineTo(22.5f)
+        moveTo(1.5f, 12f)
+        horizontalLineTo(2.5f)
+        moveTo(21.5f, 12f)
+        horizontalLineTo(22.5f)
+    }
+}.build()

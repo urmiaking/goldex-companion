@@ -35,6 +35,8 @@ interface SettingsStore {
     val settings: StateFlow<AppSettings>
     fun loadSettings(): AppSettings
     fun saveSettings(newSettings: AppSettings)
+    fun loadDarkTheme(): Boolean = false
+    fun saveDarkTheme(enabled: Boolean) = Unit
 }
 
 interface MarketRatesStore {

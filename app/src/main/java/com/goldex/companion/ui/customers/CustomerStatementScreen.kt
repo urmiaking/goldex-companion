@@ -571,8 +571,8 @@ private fun StatementTransactionCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Keep the document identity on its own row so long titles never
-            // compete with destructive actions for horizontal space.
+            // One compact header row: document identity keeps the available
+            // width while the two actions stay as bare, recognizable icons.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -615,41 +615,29 @@ private fun StatementTransactionCard(
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
+                        if (transaction.tagBadge.isNotBlank()) {
+                            Text(
+                                text = transaction.tagBadge,
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(top = 2.dp),
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
                 }
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (transaction.tagBadge.isNotBlank()) {
-                    Text(
-                        text = transaction.tagBadge,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.textSecondary,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(colors.surfaceElevated)
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
-                        fontFamily = VazirmatnFamily
-                    )
-                } else {
-                    Spacer(Modifier.width(1.dp))
-                }
-
+                Spacer(Modifier.width(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    IconButton(
-                        onClick = onEditClick,
+                    Box(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(ButtonShape)
-                            .background(colors.surfaceElevated)
+                            .size(24.dp)
+                            .clickable(onClick = onEditClick),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
@@ -659,12 +647,11 @@ private fun StatementTransactionCard(
                         )
                     }
 
-                    IconButton(
-                        onClick = onDeleteClick,
+                    Box(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(ButtonShape)
-                            .background(colors.errorRed.copy(alpha = 0.08f))
+                            .size(24.dp)
+                            .clickable(onClick = onDeleteClick),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,

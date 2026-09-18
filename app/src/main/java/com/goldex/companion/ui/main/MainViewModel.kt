@@ -111,6 +111,7 @@ typealias CalculatorUiState = MainUiState
 class MainViewModel(application: Application) : AndroidViewModel(application), JewelryActions {
 
     private val settingsRepository: SettingsStore = SettingsRepository(application.applicationContext)
+    private val themePreference = ThemePreference(settingsRepository)
     private val marketRatesRepository: MarketRatesStore = GoldMarketRepository
     private val networkMonitor = NetworkMonitor(application.applicationContext)
 
@@ -133,6 +134,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         val s = settingsRepository.loadSettings()
         _uiState.update {
             it.copy(
+                isDarkTheme = themePreference.load(),
                 profitPercentInput = s.defaultProfitPercent,
                 taxPercentInput = s.defaultTaxPercent,
                 wageType = s.defaultWageType
@@ -256,7 +258,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     fun toggleTheme() {
-        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
+        _uiState.update { current ->
+            current.copy(isDarkTheme = themePreference.toggle(current.isDarkTheme))
+        }
     }
 
     // --- Customer Bridge (for active invoice) ---

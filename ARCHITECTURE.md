@@ -268,6 +268,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Onboarding Wizard module established in `ui/wizard/` (`OnboardingWizardScreen`, `WizardIntroSlides`, `WizardProfileStep`, `WizardFinancialStep`, `WizardInventoryStep`, `WizardCompletionStep`) featuring a fixed sticky stepper header, scrollable `AnimatedContent` horizontal slide/fade middle body, sticky fixed footer navigation with strict RTL button semantics, auto-advancing intro slider with progress-filling indicators, RTL-native gesture direction, subtle hero-image zoom, `LuxurySegmentedControl` financial selectors, and animated confetti celebration.
 - Market and dashboard motion is presentation-owned: Live Rates uses the shared filter enter/exit transition, while the dashboard keeps price and fluctuation counters outside the chart transition so their digits animate independently when the horizon changes.
 - User-facing tax guidance derives its displayed percentage from `AppSettings`; legal article labels and fixed tax-rate claims are not UI sources of truth.
+- The app-shell light/dark choice is owned by `MainViewModel` through `ThemePreference` and the `SettingsStore` theme preference methods. It is persisted independently from financial and jeweler-profile settings so stale feature state cannot overwrite the selected appearance.
 
 ## 14. Known current compromises
 
