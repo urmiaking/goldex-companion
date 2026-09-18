@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.wizard
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -169,6 +170,8 @@ fun WizardCompletionContent(
     profileState: WizardProfileState,
     financialState: WizardFinancialState,
     licenseState: WizardLicenseState = WizardLicenseState(),
+    isValidating: Boolean = false,
+    validationError: String? = null,
     onLicenseStateChange: (WizardLicenseState) -> Unit = {},
     onEnterApp: (AppTab) -> Unit,
     modifier: Modifier = Modifier
@@ -435,6 +438,35 @@ fun WizardCompletionContent(
                     }
                 }
             }
+
+            // Validation Error Alert Banner
+            AnimatedVisibility(visible = !validationError.isNullOrBlank()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.errorRed.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, colors.errorRed.copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = WizardErrorOutline,
+                            contentDescription = null,
+                            tint = colors.errorRed,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = validationError ?: "",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.errorRed
+                        )
+                    }
+                }
+            }
         }
 
         // Configuration Summary Card
@@ -657,7 +689,7 @@ fun WizardCompletionContent(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onEnterApp(action.targetTab) },
+                        .clickable(enabled = !isValidating) { onEnterApp(action.targetTab) },
                     shape = RoundedCornerShape(12.dp),
                     color = colors.surface,
                     border = BorderStroke(0.6.dp, colors.border),

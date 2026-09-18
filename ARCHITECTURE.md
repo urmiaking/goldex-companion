@@ -51,10 +51,11 @@ data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallbac
 
 - Entry point: `app/src/main/java/com/goldex/companion/MainActivity.kt`
 - App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
-- Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`
+- Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`, `ui/license/`
 - Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
 - Official invoice export: `domain/invoice/OfficialInvoiceDocument.kt` is the shared, pure projection of a barter invoice and gallery settings; `ui/util/OfficialInvoicePdfGenerator.kt` renders that projection as a premium A5 landscape PDF through one Vazirmatn/RTL typography path. `ui/invoices/InvoicePdfPreviewModal.kt` renders the generated file in-app with `PdfRenderer` before the same cached file is shared.
 - Business identity: `ui/hub/JewelerProfileModal.kt` owns the registered jeweler details plus logo and commercial-stamp selection. Their persistent URIs live beside the profile in `AppSettings`; the PDF renderer consumes the same profile-owned values. There is no separate invoice-branding state or QR configuration surface.
+- License & Subscription Management: `ui/license/LicenseActivationModal.kt` (bottom-sheet modal with RTL layout) and `data/license/LicenseRepository.kt` (integrates with `api.qirato.ir` for 14-day trials and lifetime code activation).
 - Domain Calculation Policies: `domain/calculator/`, `domain/invoice/BarterCalculationUseCases.kt`, `domain/portfolio/`
 - Dashboard: `ui/dashboard/DashboardScreen.kt`
 - Financial models and formatters: `model/`

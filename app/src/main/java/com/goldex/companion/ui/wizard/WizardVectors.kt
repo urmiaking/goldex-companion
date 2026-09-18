@@ -671,3 +671,26 @@ internal val WizardChevronLeft: ImageVector = ImageVector.Builder(
         lineTo(15f, 18f)
     }
 }.build()
+
+internal val WizardErrorOutline: ImageVector = ImageVector.Builder(
+    name = "WizardErrorOutline",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(12f, 22f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 2f)
+        arcTo(10f, 10f, 0f, isMoreThanHalf = true, isPositiveArc = true, 12f, 22f)
+        moveTo(12f, 8f)
+        verticalLineTo(12f)
+        moveTo(12f, 16f)
+        horizontalLineTo(12.01f)
+    }
+}.build()

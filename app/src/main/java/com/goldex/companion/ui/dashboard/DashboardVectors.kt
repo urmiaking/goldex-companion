@@ -583,3 +583,104 @@ internal val DashChevronLeft: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+internal val DashAlertWarning: ImageVector = ImageVector.Builder(
+    name = "DashAlertWarning",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(10.29f, 3.86f)
+        lineTo(1.82f, 18f)
+        curveTo(1.64f, 18.3f, 1.55f, 18.65f, 1.55f, 19f)
+        curveTo(1.55f, 20.1f, 2.45f, 21f, 3.55f, 21f)
+        horizontalLineTo(20.45f)
+        curveTo(21.55f, 21f, 22.45f, 20.1f, 22.45f, 19f)
+        curveTo(22.45f, 18.65f, 22.36f, 18.3f, 22.18f, 18f)
+        lineTo(13.71f, 3.86f)
+        curveTo(13.19f, 2.96f, 11.81f, 2.96f, 11.29f, 3.86f)
+        close()
+        moveTo(12f, 9f)
+        verticalLineTo(13f)
+        moveTo(12f, 17f)
+        horizontalLineTo(12.01f)
+    }
+}.build()
+
+internal val DashAlertLock: ImageVector = ImageVector.Builder(
+    name = "DashAlertLock",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(7f, 11f)
+        verticalLineTo(7f)
+        curveTo(7f, 4.24f, 9.24f, 2f, 12f, 2f)
+        curveTo(14.76f, 2f, 17f, 4.24f, 17f, 7f)
+        verticalLineTo(11f)
+        moveTo(5f, 11f)
+        horizontalLineTo(19f)
+        curveTo(20.1f, 11f, 21f, 11.9f, 21f, 13f)
+        verticalLineTo(20f)
+        curveTo(21f, 21.1f, 20.1f, 22f, 19f, 22f)
+        horizontalLineTo(5f)
+        curveTo(3.9f, 22f, 3f, 21.1f, 3f, 20f)
+        verticalLineTo(13f)
+        curveTo(3f, 11.9f, 3.9f, 11f, 5f, 11f)
+        close()
+        moveTo(12f, 15f)
+        verticalLineTo(18f)
+    }
+}.build()
+
+internal val DashAlertGift: ImageVector = ImageVector.Builder(
+    name = "DashAlertGift",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(20f, 12f)
+        verticalLineTo(22f)
+        horizontalLineTo(4f)
+        verticalLineTo(12f)
+        moveTo(22f, 7f)
+        horizontalLineTo(2f)
+        verticalLineTo(12f)
+        horizontalLineTo(22f)
+        verticalLineTo(7f)
+        close()
+        moveTo(12f, 22f)
+        verticalLineTo(7f)
+        moveTo(12f, 7f)
+        horizontalLineTo(7.5f)
+        curveTo(5.5f, 7f, 4.5f, 5.5f, 5.5f, 3.5f)
+        curveTo(6.5f, 1.5f, 9f, 2.5f, 12f, 7f)
+        close()
+        moveTo(12f, 7f)
+        horizontalLineTo(16.5f)
+        curveTo(18.5f, 7f, 19.5f, 5.5f, 18.5f, 3.5f)
+        curveTo(17.5f, 1.5f, 15f, 2.5f, 12f, 7f)
+        close()
+    }
+}.build()
+

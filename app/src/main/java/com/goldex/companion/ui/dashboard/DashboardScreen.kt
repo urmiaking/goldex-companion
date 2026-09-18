@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.data.license.LicenseInfo
+import com.goldex.companion.data.license.LicenseStatus
 import com.goldex.companion.model.MarketCandle
 import com.goldex.companion.model.MarketHistoryConverter
 import com.goldex.companion.model.PersianNumberFormatter
@@ -69,7 +71,8 @@ fun DashboardScreen(
     onNavigateConvert: () -> Unit,
     onNavigateCoinBubble: () -> Unit,
     onNavigateMelt: () -> Unit,
-    onNavigateLedger: () -> Unit
+    onNavigateLedger: () -> Unit,
+    onOpenLicenseActivation: () -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
     var selectedTimeframe by remember { mutableStateOf(0) } // 0: امروز, 1: هفتگی, 2: ماهانه
@@ -178,6 +181,14 @@ fun DashboardScreen(
                 }
             }
         }
+
+        // ==========================================
+        // 1.5 Smart License & Trial Alert Banner
+        // ==========================================
+        DashboardLicenseAlertBanner(
+            licenseInfo = uiState.licenseInfo,
+            onOpenLicenseActivation = onOpenLicenseActivation
+        )
 
         // ==========================================
         // 2. Sovereign Gold Vault Asset Card
@@ -1220,3 +1231,160 @@ private fun GoldTrendCanvasChart(
         }
     }
 }
+
+@Composable
+private fun DashboardLicenseAlertBanner(
+    licenseInfo: LicenseInfo,
+    onOpenLicenseActivation: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+
+    val shouldShow = when (licenseInfo.status) {
+        LicenseStatus.NONE -> true
+        LicenseStatus.TRIAL_ACTIVE -> licenseInfo.remainingDays <= 3
+        LicenseStatus.TRIAL_EXPIRED, LicenseStatus.REVOKED -> true
+        LicenseStatus.LIFETIME -> false
+    }
+
+    if (!shouldShow) return
+
+    val isDark = colors.isDark
+
+    val config = when (licenseInfo.status) {
+        LicenseStatus.TRIAL_EXPIRED, LicenseStatus.REVOKED -> {
+            AlertBannerConfig(
+                bg = if (isDark) listOf(Color(0xFF2E1316), Color(0xFF1B0B0D)) else listOf(Color(0xFFFEE2E2), Color(0xFFFECACA)),
+                border = if (isDark) Color(0xFFE53935).copy(alpha = 0.55f) else Color(0xFFEF4444),
+                accent = if (isDark) Color(0xFFEF5350) else Color(0xFFDC2626),
+                icon = DashAlertLock,
+                title = "مهلت تست رایگان به پایان رسیده است",
+                subtitle = "صدور فاکتور جدید و مدیریت دفاتر غیرفعال شده است. لطفاً کد اشتراک قیراط را ثبت کنید.",
+                buttonText = "ثبت کد اشتراک"
+            )
+        }
+        LicenseStatus.TRIAL_ACTIVE -> {
+            val daysText = if (licenseInfo.remainingDays <= 0) {
+                "کمتر از یک روز"
+            } else {
+                "${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز"
+            }
+            AlertBannerConfig(
+                bg = if (isDark) listOf(Color(0xFF2C1E0A), Color(0xFF1A1206)) else listOf(Color(0xFFFEF3C7), Color(0xFFFDE68A)),
+                border = if (isDark) Color(0xFFF59E0B).copy(alpha = 0.55f) else Color(0xFFF59E0B),
+                accent = if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706),
+                icon = DashAlertWarning,
+                title = "تنها $daysText از مهلت تست رایگان باقی مانده است",
+                subtitle = "برای جلوگیری از وقفه در امور حسابداری و صدور فاکتور، کد اشتراک دائمی را وارد کنید.",
+                buttonText = "ارتقا به دائمی"
+            )
+        }
+        LicenseStatus.NONE -> {
+            AlertBannerConfig(
+                bg = if (isDark) listOf(Color(0xFF1D1F2C), Color(0xFF141520)) else listOf(Color(0xFFFFFBEB), Color(0xFFFEF3C7)),
+                border = if (isDark) colors.goldBorder.copy(alpha = 0.6f) else colors.goldBorder,
+                accent = if (isDark) colors.goldPrimary else colors.goldSecondary,
+                icon = DashAlertGift,
+                title = "حساب کاربری شما هنوز فعال نشده است",
+                subtitle = "جهت فعال‌سازی قابلیت‌های صدور فاکتور و معین، مهلت تست ۱۴ روزه رایگان را فعال فرمایید.",
+                buttonText = "فعال‌سازی مهلت تست"
+            )
+        }
+        else -> return
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onOpenLicenseActivation() },
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, config.border),
+        shadowElevation = if (isDark) 0.dp else 2.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.horizontalGradient(config.bg))
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Icon Badge
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(config.accent.copy(alpha = if (isDark) 0.18f else 0.22f))
+                        .border(0.8.dp, config.accent.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = config.icon,
+                        contentDescription = null,
+                        tint = config.accent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Text Details
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = config.title,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color(0xFF1F2937)
+                    )
+                    Text(
+                        text = config.subtitle,
+                        fontSize = 10.5.sp,
+                        color = if (isDark) Color(0xFFD1D5DB) else Color(0xFF4B5563),
+                        lineHeight = 15.sp
+                    )
+                }
+
+                // Call to Action Chip
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = config.accent.copy(alpha = if (isDark) 0.18f else 0.25f),
+                    border = BorderStroke(1.dp, config.accent.copy(alpha = 0.55f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Text(
+                            text = config.buttonText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = config.accent
+                        )
+                        Icon(
+                            imageVector = DashChevronLeft,
+                            contentDescription = null,
+                            tint = config.accent,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class AlertBannerConfig(
+    val bg: List<Color>,
+    val border: Color,
+    val accent: Color,
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+    val buttonText: String
+)

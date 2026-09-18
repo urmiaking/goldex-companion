@@ -23,6 +23,7 @@ fun OnboardingWizardScreen(
     currentSettings: AppSettings,
     liveGold18Price: Long,
     onFinish: (targetTab: AppTab, updatedSettings: AppSettings, initialInventory: WizardInventoryState, licenseState: WizardLicenseState) -> Unit,
+    onValidateLicense: (choice: WizardLicenseChoice, code: String, onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit = { _, _, onSuccess, _ -> onSuccess() },
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,6 +54,8 @@ fun OnboardingWizardScreen(
 
     var inventoryState by remember { mutableStateOf(WizardInventoryState()) }
     var licenseState by remember { mutableStateOf(WizardLicenseState()) }
+    var isValidating by remember { mutableStateOf(false) }
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     fun finishWizard(targetTab: AppTab) {
         val updatedSettings = currentSettings.copy(
@@ -67,6 +70,49 @@ fun OnboardingWizardScreen(
             hasCompletedOnboarding = true
         )
         onFinish(targetTab, updatedSettings, inventoryState, licenseState)
+    }
+
+    fun requestFinishWithValidation(targetTab: AppTab) {
+        if (isValidating) return
+        validationError = null
+
+        when (licenseState.choice) {
+            WizardLicenseChoice.TRIAL -> {
+                isValidating = true
+                onValidateLicense(
+                    WizardLicenseChoice.TRIAL,
+                    "",
+                    {
+                        isValidating = false
+                        finishWizard(targetTab)
+                    },
+                    { error ->
+                        isValidating = false
+                        validationError = error
+                    }
+                )
+            }
+            WizardLicenseChoice.CODE -> {
+                val code = licenseState.licenseCode.trim().uppercase()
+                if (code.length < 5) {
+                    validationError = "لطفاً کد اشتراک معتبر را وارد کنید."
+                    return
+                }
+                isValidating = true
+                onValidateLicense(
+                    WizardLicenseChoice.CODE,
+                    code,
+                    {
+                        isValidating = false
+                        finishWizard(targetTab)
+                    },
+                    { error ->
+                        isValidating = false
+                        validationError = error
+                    }
+                )
+            }
+        }
     }
 
     // Intercept Back Button
@@ -152,8 +198,13 @@ fun OnboardingWizardScreen(
                                 profileState = profileState,
                                 financialState = financialState,
                                 licenseState = licenseState,
-                                onLicenseStateChange = { licenseState = it },
-                                onEnterApp = { targetTab -> finishWizard(targetTab) }
+                                isValidating = isValidating,
+                                validationError = validationError,
+                                onLicenseStateChange = {
+                                    licenseState = it
+                                    validationError = null
+                                },
+                                onEnterApp = { targetTab -> requestFinishWithValidation(targetTab) }
                             )
                         }
                     }
@@ -249,14 +300,17 @@ fun OnboardingWizardScreen(
                                 text = "بازگشت",
                                 icon = WizardArrowRight,
                                 isSecondary = true,
+                                enabled = !isValidating,
                                 onClick = { currentStep = WizardStep.INVENTORY },
                                 modifier = Modifier.weight(1f)
                             )
 
                             GoldButton(
-                                text = "ورود به داشبورد قیراط",
-                                trailingIcon = WizardArrowLeft,
-                                onClick = { finishWizard(AppTab.HOME) },
+                                text = if (isValidating) "در حال اعتبارسنجی..." else "ورود به داشبورد قیراط",
+                                trailingIcon = if (isValidating) null else WizardArrowLeft,
+                                isLoading = isValidating,
+                                enabled = !isValidating,
+                                onClick = { requestFinishWithValidation(AppTab.HOME) },
                                 modifier = Modifier.weight(2f)
                             )
                         }

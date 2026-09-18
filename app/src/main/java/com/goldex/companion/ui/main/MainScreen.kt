@@ -89,7 +89,7 @@ import com.goldex.companion.ui.wizard.OnboardingWizardScreen
 import com.goldex.companion.ui.wizard.WizardLicenseChoice
 import com.goldex.companion.ui.license.LicenseViewModel
 import com.goldex.companion.ui.license.LicenseViewModelFactory
-import com.goldex.companion.ui.license.LicenseActivationDialog
+import com.goldex.companion.ui.license.LicenseActivationModal
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.model.Karat
@@ -291,9 +291,9 @@ fun MainScreen(
         )
     }
 
-    // License & Subscription Activation Dialog
+    // License & Subscription Activation Modal
     if (licenseUiState.isActivationDialogVisible) {
-        LicenseActivationDialog(
+        LicenseActivationModal(
             licenseInfo = licenseInfo,
             isLoading = licenseUiState.isLoading,
             errorMessage = licenseUiState.errorMessage,
@@ -478,7 +478,8 @@ fun MainScreen(
                                             appSettings = settingsState.appSettings,
                                             rates = mainUiState.rates,
                                             savedInvoiceCount = invoiceState.savedInvoices.size,
-                                            gold18Charts = mainUiState.dashboardGold18Charts
+                                            gold18Charts = mainUiState.dashboardGold18Charts,
+                                            licenseInfo = licenseInfo
                                         ),
                                         onNavigateCalculator = {
                                             mainViewModel.selectTab(AppTab.CALCULATOR)
@@ -498,6 +499,9 @@ fun MainScreen(
                                         },
                                         onNavigateLedger = {
                                             customerViewModel.openCustomerLedger()
+                                        },
+                                        onOpenLicenseActivation = {
+                                            licenseViewModel.setActivationDialogVisible(true)
                                         }
                                     )
                                 }
@@ -890,6 +894,23 @@ fun MainScreen(
                 OnboardingWizardScreen(
                     currentSettings = settingsState.appSettings,
                     liveGold18Price = mainUiState.rates.gold18,
+                    onValidateLicense = { choice, code, onSuccess, onError ->
+                        when (choice) {
+                            WizardLicenseChoice.TRIAL -> {
+                                licenseViewModel.activateTrial(
+                                    onSuccess = onSuccess,
+                                    onError = onError
+                                )
+                            }
+                            WizardLicenseChoice.CODE -> {
+                                licenseViewModel.activateCode(
+                                    code = code,
+                                    onSuccess = onSuccess,
+                                    onError = onError
+                                )
+                            }
+                        }
+                    },
                     onFinish = { targetTab, updatedSettings, initialInventory, licenseState ->
                         settingsViewModel.updateSettings(updatedSettings)
                         mainViewModel.applySettingsDefaults(
@@ -897,13 +918,6 @@ fun MainScreen(
                             updatedSettings.defaultTaxPercent,
                             updatedSettings.defaultWageType
                         )
-
-                        // Activate selected license or trial
-                        if (licenseState.choice == WizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
-                            licenseViewModel.activateCode(licenseState.licenseCode)
-                        } else if (licenseState.choice == WizardLicenseChoice.TRIAL) {
-                            licenseViewModel.activateTrial()
-                        }
 
                         // Save initial inventory items into Portfolio if entered
                         val vitrinWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinWeight) ?: 0.0
