@@ -17,6 +17,7 @@ import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
 import com.goldex.companion.ui.main.MainUiState
+import com.goldex.companion.ui.main.ThemePreference
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModel
 import com.goldex.companion.ui.settings.SettingsViewModel
 import com.goldex.companion.ui.update.UpdateViewModel
@@ -126,6 +127,27 @@ class FeatureStateSplitTest {
 
         viewModel.toggleBiometricLock(true)
         assertTrue(viewModel.uiState.value.appSettings.isBiometricLockEnabled)
+    }
+
+    @Test
+    fun themePreferenceLoadsAndPersistsIndependentThemeValue() {
+        var darkTheme = false
+        val fakeStore = object : SettingsStore {
+            override val settings: StateFlow<AppSettings> = MutableStateFlow(AppSettings())
+            override fun loadSettings(): AppSettings = AppSettings()
+            override fun saveSettings(newSettings: AppSettings) = Unit
+            override fun loadDarkTheme(): Boolean = darkTheme
+            override fun saveDarkTheme(enabled: Boolean) {
+                darkTheme = enabled
+            }
+        }
+        val preference = ThemePreference(fakeStore)
+
+        assertFalse(preference.load())
+        assertTrue(preference.toggle(current = false))
+        assertTrue(preference.load())
+        assertFalse(preference.toggle(current = true))
+        assertFalse(preference.load())
     }
 
     @Test

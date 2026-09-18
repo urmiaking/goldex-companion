@@ -527,6 +527,8 @@ fun MainScreen(
                                     MoreHubScreen(
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
+                                        isDarkTheme = mainUiState.isDarkTheme,
+                                        onToggleTheme = mainViewModel::toggleTheme,
                                         onToggleBiometricLock = { settingsViewModel.toggleBiometricLock(it) },
                                         onCheckForUpdates = { updateViewModel.checkForUpdates(manual = true) },
                                         onNavigateLedger = {

@@ -46,6 +46,8 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 fun MoreHubScreen(
     settings: AppSettings,
     customerCount: Int,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onToggleBiometricLock: (Boolean) -> Unit,
     onCheckForUpdates: () -> Unit,
     onNavigateLedger: () -> Unit,
@@ -632,7 +634,7 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
-                // Setting 2: Biometric Lock Switch
+                // Setting 3: Biometric Lock Switch
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -689,7 +691,65 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
-                // Setting 4: Re-run Onboarding & Setup Wizard
+                // Setting 4: App appearance
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onToggleTheme)
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.goldContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = HubThemeMode,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "ظاهر برنامه",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = if (isDarkTheme) "حالت تیره فعال است" else "حالت روشن فعال است",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isDarkTheme,
+                        onCheckedChange = { onToggleTheme() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = colors.goldPrimary,
+                            uncheckedThumbColor = colors.textMuted,
+                            uncheckedTrackColor = colors.surfaceElevated
+                        )
+                    )
+                }
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
+                // Setting 5: Re-run Onboarding & Setup Wizard
                 HubListRowItem(
                     title = "راهنمای راه‌اندازی و معرفی امکانات",
                     subtitle = "مرور مراحل ویزارد اولیه، پیکربندی گالری و تراز گاوصندوق",

@@ -87,4 +87,10 @@ class SettingsRepository(context: Context) : SettingsStore {
 
         _settings.value = newSettings
     }
+
+    override fun loadDarkTheme(): Boolean = prefs.getBoolean("key_dark_theme", false)
+
+    override fun saveDarkTheme(enabled: Boolean) {
+        prefs.edit().putBoolean("key_dark_theme", enabled).apply()
+    }
 }
