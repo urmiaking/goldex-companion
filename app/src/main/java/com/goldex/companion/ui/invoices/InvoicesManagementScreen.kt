@@ -143,8 +143,8 @@ fun InvoicesManagementScreen(
                 }
             }
 
-            // Bottom spacer to ensure content is not covered by floating button or bottom dock
-            Spacer(modifier = Modifier.height(90.dp))
+            // The parent content already accounts for the floating dock; keep only a compact breathing space.
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

@@ -97,7 +97,7 @@ data class Invoice(
         sb.append("(${PersianWordsFormatter.toWords(totalPayable.toLong())})\n")
         sb.append("✨ میانگین تمام‌شده هر گرم: ${PersianNumberFormatter.formatPrice(effectiveGramPrice)} تومان\n")
         sb.append("════════════════════════════════════════\n")
-        sb.append("توضیحات قانونی: اصل طلا از ۹٪ مالیات معاف بوده و مالیات صرفاً بر اجرت و سود اعمال گردیده است.\n")
+        sb.append("توضیحات مالیاتی: اصل طلا معاف بوده و مالیات صرفاً بر اجرت و سود اعمال گردیده است.\n")
         sb.append("GoldEx Pro • همراه هوشمند معامله‌گران طلا\n")
         return sb.toString()
     }

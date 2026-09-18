@@ -68,6 +68,7 @@ import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
 import com.goldex.companion.ui.invoices.FloatingNewInvoiceButton
 import com.goldex.companion.ui.invoices.InvoicesManagementScreen
 import com.goldex.companion.ui.invoices.InvoicesSubScreen
+import com.goldex.companion.ui.invoices.InvoicePdfPreviewModal
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModelFactory
 import com.goldex.companion.ui.util.OfficialInvoicePdfGenerator
@@ -89,6 +90,7 @@ import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.CoinType
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,6 +119,29 @@ fun MainScreen(
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
 
     val colors = LocalGoldExColors.current
+    var pdfPreview by remember { mutableStateOf<Pair<File, String>?>(null) }
+
+    fun openPdfPreview(invoice: BarterInvoice) {
+        val file = OfficialInvoicePdfGenerator.create(context, invoice, settingsState.appSettings)
+        if (file == null) {
+            QiratoToast.show(context, "ساخت فایل PDF ناموفق بود؛ دوباره تلاش کنید")
+        } else {
+            pdfPreview = file to invoice.invoiceNumber
+        }
+    }
+
+    pdfPreview?.let { (file, invoiceNumber) ->
+        InvoicePdfPreviewModal(
+            file = file,
+            invoiceNumber = invoiceNumber,
+            onDismiss = { pdfPreview = null },
+            onShare = {
+                if (!OfficialInvoicePdfGenerator.share(context, file, invoiceNumber)) {
+                    QiratoToast.show(context, "اشتراک‌گذاری فایل PDF ناموفق بود")
+                }
+            }
+        )
+    }
 
     // In-App Auto-Update Check & Dialog Prompt (Triggers on initial launch and whenever user re-enters the app)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -493,14 +518,7 @@ fun MainScreen(
                                             val invoice = item.barterInvoice
                                             if (invoice == null) {
                                                 QiratoToast.show(context, "اطلاعات کامل فاکتور برای صدور PDF موجود نیست")
-                                            } else if (!OfficialInvoicePdfGenerator.share(
-                                                    context = context,
-                                                    invoice = invoice,
-                                                    settings = settingsState.appSettings
-                                                )
-                                            ) {
-                                                QiratoToast.show(context, "ساخت فایل PDF ناموفق بود؛ دوباره تلاش کنید")
-                                            }
+                                            } else openPdfPreview(invoice)
                                         }
                                     )
                                 }
@@ -618,6 +636,8 @@ fun MainScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 StandardFormulasScreen(
+                    defaultProfitPercent = settingsState.appSettings.defaultProfitPercent,
+                    defaultTaxPercent = settingsState.appSettings.defaultTaxPercent,
                     onBack = { mainViewModel.setStandardFormulasVisible(false) },
                     onNavigateCalculator = {
                         mainViewModel.setStandardFormulasVisible(false)
@@ -716,14 +736,7 @@ fun MainScreen(
                         barterInvoiceViewModel.navigateBackToList()
                     },
                     onPreviewPdf = {
-                        if (!OfficialInvoicePdfGenerator.share(
-                                context = context,
-                                invoice = barterUiState.invoice,
-                                settings = settingsState.appSettings
-                            )
-                        ) {
-                            QiratoToast.show(context, "ساخت فایل PDF ناموفق بود")
-                        }
+                        openPdfPreview(barterUiState.invoice)
                     },
                     onSendSms = {
                         QiratoToast.show(context, "ارسال پیامک فاکتور به شماره طرف حساب...")

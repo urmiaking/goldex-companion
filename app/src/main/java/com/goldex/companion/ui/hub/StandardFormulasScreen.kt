@@ -37,12 +37,13 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
  * Gold Union Standard Formulas Guide (Stitch Screen ID: 1e8173ae11924cad8cabf7f74a1c042b)
  *
- * Official Iranian Gold & Jewelry Union calculation rules, tax exemption laws (Article 26 VAT Law),
+ * Gold and jewelry calculation rules, configurable tax policy,
  * and standard bazaar formulas for jewelry, melt, karat conversion, coin bubbles, and barters.
  */
 
@@ -67,6 +68,8 @@ private data class FormulaItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StandardFormulasScreen(
+    defaultProfitPercent: String,
+    defaultTaxPercent: String,
     onBack: () -> Unit,
     onNavigateCalculator: () -> Unit,
     modifier: Modifier = Modifier
@@ -75,9 +78,11 @@ fun StandardFormulasScreen(
     val context = LocalContext.current
     var selectedCategory by remember { mutableStateOf(FormulaCategory.ALL) }
 
-    val masterFormulaText = "قیمت نهایی فاکتور = [ (وزن خالص × (مظنه روز ÷ ۴.۳۳۱۸) + اجرت ساخت) × ۱.۰۷ ] × ۱.۰۹"
+    val profitLabel = PersianNumberFormatter.toPersianDigits(defaultProfitPercent.ifBlank { "0" })
+    val taxLabel = PersianNumberFormatter.toPersianDigits(defaultTaxPercent.ifBlank { "0" })
+    val masterFormulaText = "قیمت نهایی = ارزش طلای خام + اجرت + سود (${profitLabel}٪) + مالیات اجرت و سود (${taxLabel}٪)"
 
-    val formulas = remember {
+    val formulas = remember(profitLabel, taxLabel) {
         listOf(
             FormulaItem(
                 id = "f1",
@@ -109,19 +114,19 @@ fun StandardFormulasScreen(
                 title = "فرمول سود قانونی طلافروش (خرده‌فروشی)",
                 category = FormulaCategory.INVOICE,
                 categoryBadge = "سود مصوب",
-                mathFormula = "سود طلافروش = (ارزش طلای خام + مبلغ اجرت ساخت) × ۷٪",
+                mathFormula = "سود طلافروش = (ارزش طلای خام + مبلغ اجرت ساخت) × ${profitLabel}٪",
                 parameters = listOf(
-                    "سقف سود قانونی" to "مطابق مصوبه اتحادیه طلا و جواهر، حداکثر سود خرده‌فروشی ۷٪ است.",
+                    "درصد سود" to "درصد سود انتخاب‌شده در تنظیمات مالی برنامه.",
                     "مبنای محاسبه سود" to "سود فروشنده به مجموع اصل طلا و اجرت ساخت تعلق می‌گیرد."
                 ),
-                unionTip = "اخذ هرگونه درصد یا وجه مازاد بر ۷٪ تخلف صنفی محسوب می‌شود."
+                unionTip = "درصد سود باید شفاف و مطابق تنظیمات ثبت‌شده در فاکتور نمایش داده شود."
             ),
             FormulaItem(
                 id = "f4",
-                title = "فرمول مالیات بر ارزش افزوده (ماده ۲۶ ق.م.ا)",
+                title = "فرمول مالیات بر ارزش افزوده",
                 category = FormulaCategory.INVOICE,
-                categoryBadge = "مالیات ۹٪",
-                mathFormula = "مالیات بر ارزش افزوده (۹٪) = (مبلغ اجرت ساخت + سود طلافروش) × ۹٪",
+                categoryBadge = "مالیات ${taxLabel}٪",
+                mathFormula = "مالیات بر ارزش افزوده (${taxLabel}٪) = (مبلغ اجرت ساخت + سود طلافروش) × ${taxLabel}٪",
                 parameters = listOf(
                     "مأخذ محاسبه مالیات" to "صرفاً خدمات ساخت (اجرت) و سود حاصل از فروش.",
                     "معافیت اصل طلا" to "طبق قانون دائمی مالیات بر ارزش افزوده، هیچ مالیاتی به ارزش خود طلا تعلق نمی‌گیرد."
@@ -192,12 +197,12 @@ fun StandardFormulasScreen(
             appendLine("⭐️ فرمول جامع محاسبه فاکتور قانونی:")
             appendLine(masterFormulaText)
             appendLine()
-            appendLine("📌 قانون معافیت اصل طلا (ماده ۲۶ ق.م.ا):")
-            appendLine("اصل طلا از ۹٪ مالیات معاف است. مالیات صرفاً به (اجرت + سود) تعلق می‌گیرد.")
+            appendLine("📌 مبنای محاسبه مالیات:")
+            appendLine("اصل طلا از مالیات معاف است. مالیات با نرخ ${taxLabel}٪ صرفاً به (اجرت + سود) تعلق می‌گیرد.")
             appendLine()
             appendLine("۱. ارزش طلای خام = وزن × (مظنه ÷ ۴.۳۳۱۸)")
-            appendLine("۲. سود طلافروش = (ارزش خام + اجرت) × ۷٪")
-            appendLine("۳. مالیات قانونی = (اجرت + سود) × ۹٪")
+            appendLine("۲. سود طلافروش = (ارزش خام + اجرت) × ${profitLabel}٪")
+            appendLine("۳. مالیات = (اجرت + سود) × ${taxLabel}٪")
             appendLine("۴. قیمت ذاتی سکه = (انس × دلار × وزن × ۰.۹۰۰) ÷ ۳۱.۱۰۳۵")
         }
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -380,7 +385,7 @@ fun StandardFormulasScreen(
                                     border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.5f))
                                 ) {
                                     Text(
-                                        text = "ماده ۲۶ ق.م.ا",
+                                        text = "مبنای مالیاتی",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF34D399),
@@ -407,7 +412,7 @@ fun StandardFormulasScreen(
                                         color = Color(0xFFFBBF24)
                                     )
                                     Text(
-                                        text = "[ (وزن × (مظنه ÷ ۴.۳۳۱۸) + اجرت) × ۱.۰۷ ] × ۱.۰۹",
+                                        text = masterFormulaText,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 13.5.sp,
                                         color = Color.White,
@@ -464,7 +469,7 @@ fun StandardFormulasScreen(
                                     modifier = Modifier.size(16.dp).padding(top = 1.dp)
                                 )
                                 Text(
-                                    text = "اصل طلا از پرداخت ۹٪ مالیات معاف است. مالیات بر ارزش افزوده منحصراً به مجموع «اجرت ساخت طلا + سود فروشنده» تعلق می‌گیرد.",
+                                    text = "اصل طلا از پرداخت مالیات معاف است. نرخ ${taxLabel}٪ منحصراً بر مجموع «اجرت ساخت + سود فروشنده» اعمال می‌شود.",
                                     fontSize = 10.5.sp,
                                     lineHeight = 17.sp,
                                     color = Color(0xFFE2E8F0),

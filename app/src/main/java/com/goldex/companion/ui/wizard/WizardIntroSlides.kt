@@ -26,6 +26,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +57,20 @@ data class FeatureHighlight(
     val title: String,
     val description: String
 )
+
+internal fun introSlideIndexAfterSwipe(
+    currentIndex: Int,
+    slideCount: Int,
+    horizontalDrag: Float,
+    threshold: Float = 40f
+): Int {
+    if (slideCount <= 0) return 0
+    return when {
+        horizontalDrag > threshold -> (currentIndex + 1) % slideCount
+        horizontalDrag < -threshold -> if (currentIndex > 0) currentIndex - 1 else slideCount - 1
+        else -> currentIndex
+    }
+}
 
 /**
  * Top App Signature Bar for the Intro stage (without Skip button).
@@ -245,14 +260,11 @@ fun WizardIntroContent(
                     detectHorizontalDragGestures(
                         onDragStart = { dragAccumulator = 0f },
                         onDragEnd = {
-                            val threshold = 40f
-                            if (dragAccumulator < -threshold) {
-                                // Swiped Left -> Forward in Persian RTL
-                                activeSlideIndex = (activeSlideIndex + 1) % slides.size
-                            } else if (dragAccumulator > threshold) {
-                                // Swiped Right -> Backward in Persian RTL
-                                activeSlideIndex = if (activeSlideIndex > 0) activeSlideIndex - 1 else slides.size - 1
-                            }
+                            activeSlideIndex = introSlideIndexAfterSwipe(
+                                currentIndex = activeSlideIndex,
+                                slideCount = slides.size,
+                                horizontalDrag = dragAccumulator
+                            )
                             dragAccumulator = 0f
                         },
                         onDragCancel = { dragAccumulator = 0f },
@@ -267,6 +279,13 @@ fun WizardIntroContent(
                 transitionSpec = { fadeIn(tween(320)) togetherWith fadeOut(tween(260)) },
                 label = "slide_hero"
             ) { slide ->
+                val imageScale = remember(slide.imageRes) { Animatable(1.02f) }
+                LaunchedEffect(slide.imageRes) {
+                    imageScale.animateTo(
+                        targetValue = 1.10f,
+                        animationSpec = tween(durationMillis = 4800, easing = LinearEasing)
+                    )
+                }
                 LuxuryCard(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(0.dp)
@@ -280,7 +299,12 @@ fun WizardIntroContent(
                             painter = painterResource(id = slide.imageRes),
                             contentDescription = slide.headline,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = imageScale.value
+                                    scaleY = imageScale.value
+                                }
                         )
 
                         // Scrim gradient

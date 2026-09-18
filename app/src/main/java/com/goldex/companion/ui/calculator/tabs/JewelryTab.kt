@@ -1438,7 +1438,7 @@ fun JewelryTab(
                     }
 
                     Text(
-                        text = "درصد مالیات ارزش افزوده (طبق قانون مالیات، ۹٪ روی اجرت و سود اعمال می‌شود):",
+                        text = "درصد مالیات ارزش افزوده (فقط روی اجرت و سود اعمال می‌شود):",
                         fontFamily = VazirmatnFamily,
                         fontSize = 11.sp,
                         color = colors.textMuted,
@@ -1483,12 +1483,12 @@ fun JewelryTab(
                         }
                     }
 
-                    // Quick Chips for Tax (۰٪ معاف, ۹٪ قانونی)
+                    // Quick presets for the configurable tax percentage.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        listOf("0" to "۰٪ (معافیت)", "9" to "۹٪ (نرخ مصوب)").forEach { (chip, label) ->
+                        listOf("0" to "۰٪ (معافیت)", "9" to "۹٪").forEach { (chip, label) ->
                             val isSel = tempTaxInput == chip || (chip == "0" && tempTaxInput.toDoubleOrNull() == 0.0) || (chip == "9" && tempTaxInput.toDoubleOrNull() == 9.0)
                             Surface(
                                 shape = RoundedCornerShape(7.dp),
