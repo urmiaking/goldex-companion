@@ -58,7 +58,6 @@ fun MoreHubScreen(
     onOpenTaxProfitModal: () -> Unit,
     onOpenPriceSourceModal: () -> Unit,
     onOpenJewelerProfile: () -> Unit,
-    onOpenInvoiceBranding: () -> Unit,
     onNavigateStandardFormulas: () -> Unit,
     onOpenOnboardingWizard: (() -> Unit)? = null
 ) {
@@ -633,19 +632,7 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
-                // Setting 2: Letterhead & QR Code
-                HubListRowItem(
-                    title = "طراحی سربرگ، مهر و QR سامانه جامع",
-                    subtitle = "تنظیم لوگو، آدرس، تلفن و بارکد اصالت کالا",
-                    icon = HubQrCode,
-                    iconTint = colors.textSecondary,
-                    iconBg = colors.surfaceElevated,
-                    onClick = onOpenInvoiceBranding
-                )
-
-                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
-
-                // Setting 3: Biometric Lock Switch
+                // Setting 2: Biometric Lock Switch
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

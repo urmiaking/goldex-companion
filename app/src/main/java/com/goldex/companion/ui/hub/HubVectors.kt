@@ -260,28 +260,6 @@ internal val HubPercent: ImageVector = ImageVector.Builder(
     }
 }.build()
 
-internal val HubQrCode: ImageVector = ImageVector.Builder(
-    name = "HubQrCode",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(
-        stroke = SolidColor(Color.White),
-        strokeLineWidth = 1.9f,
-        strokeLineCap = StrokeCap.Round,
-        strokeLineJoin = StrokeJoin.Round
-    ) {
-        moveTo(3.5f, 3.5f); horizontalLineTo(9.5f); verticalLineTo(9.5f); horizontalLineTo(3.5f); close()
-        moveTo(14.5f, 3.5f); horizontalLineTo(20.5f); verticalLineTo(9.5f); horizontalLineTo(14.5f); close()
-        moveTo(3.5f, 14.5f); horizontalLineTo(9.5f); verticalLineTo(20.5f); horizontalLineTo(3.5f); close()
-        moveTo(14.5f, 14.5f); lineTo(17.5f, 14.5f); lineTo(17.5f, 17.5f)
-        moveTo(20.5f, 14.5f); verticalLineTo(17.5f)
-        moveTo(14.5f, 20.5f); horizontalLineTo(20.5f)
-    }
-}.build()
-
 internal val HubFingerprint: ImageVector = ImageVector.Builder(
     name = "HubFingerprint",
     defaultWidth = 24.dp,
@@ -505,4 +483,3 @@ internal val HubCopy: ImageVector = ImageVector.Builder(
         close()
     }
 }.build()
-

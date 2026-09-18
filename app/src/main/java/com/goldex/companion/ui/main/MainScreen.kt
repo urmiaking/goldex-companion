@@ -53,7 +53,6 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.dashboard.DashboardScreen
 import com.goldex.companion.ui.dashboard.DashboardUiState
 import com.goldex.companion.ui.hub.JewelerProfileModal
-import com.goldex.companion.ui.hub.InvoiceBrandingModal
 import com.goldex.companion.ui.hub.MoreHubScreen
 import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
@@ -240,26 +239,17 @@ fun MainScreen(
         JewelerProfileModal(
             settings = settingsState.appSettings,
             onDismiss = { settingsViewModel.setJewelerProfileModalVisible(false) },
-            onSaveProfile = { galleryName, managerName, unionCode, phone, address ->
-                settingsViewModel.updateJewelerProfile(galleryName, managerName, unionCode, phone, address)
+            onSaveProfile = { galleryName, managerName, unionCode, phone, address, logoUri, stampUri ->
+                settingsViewModel.updateJewelerProfile(
+                    galleryName = galleryName,
+                    managerName = managerName,
+                    unionCode = unionCode,
+                    phone = phone,
+                    address = address,
+                    logoUri = logoUri,
+                    stampUri = stampUri
+                )
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
-            }
-        )
-    }
-
-    // Invoice letterhead, stamp & QR modal — follows the same shell as jeweler profile editing.
-    if (settingsState.isInvoiceBrandingModalVisible) {
-        InvoiceBrandingModal(
-            settings = settingsState.appSettings,
-            onDismiss = { settingsViewModel.setInvoiceBrandingModalVisible(false) },
-            onSave = { updated ->
-                settingsViewModel.updateInvoiceBranding(updated)
-                QiratoToast.show(context, "سربرگ، مهر و QR فاکتور ذخیره شد")
-            },
-            onTestPdf = { draft ->
-                if (!OfficialInvoicePdfGenerator.share(context, barterUiState.invoice, draft)) {
-                    QiratoToast.show(context, "ساخت نمونه PDF ناموفق بود")
-                }
             }
         )
     }
@@ -511,9 +501,6 @@ fun MainScreen(
                                             ) {
                                                 QiratoToast.show(context, "ساخت فایل PDF ناموفق بود؛ دوباره تلاش کنید")
                                             }
-                                        },
-                                        onScanQrClick = {
-                                            QiratoToast.show(context, "قابلیت اسکن بارکد و QR فاکتور فعال شد")
                                         }
                                     )
                                 }
@@ -554,9 +541,6 @@ fun MainScreen(
                                         },
                                         onOpenJewelerProfile = {
                                             settingsViewModel.setJewelerProfileModalVisible(true)
-                                        },
-                                        onOpenInvoiceBranding = {
-                                            settingsViewModel.setInvoiceBrandingModalVisible(true)
                                         },
                                         onNavigateStandardFormulas = {
                                             mainViewModel.setStandardFormulasVisible(true)

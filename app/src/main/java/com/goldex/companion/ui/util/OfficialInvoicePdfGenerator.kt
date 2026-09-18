@@ -150,16 +150,9 @@ object OfficialInvoicePdfGenerator {
                 paint.typeface = if (bold) boldTypeface else regularTypeface
                 canvas.drawText(value, x, y, paint)
                 paint.alpha = 255
-            }
+        }
 
         box(PAPER, RectF(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat()), 0f)
-        if (settings.invoiceWatermarkEnabled) {
-            canvas.save()
-            canvas.rotate(-12f, PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f)
-            label(settings.galleryName.ifBlank { "قیراط" }, PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f + 14f, 38f, GOLD, Paint.Align.CENTER, true, 16)
-            label("سند رسمی طلا و جواهر", PAGE_WIDTH / 2f, PAGE_HEIGHT / 2f + 32f, 11f, GOLD, Paint.Align.CENTER, true, 14)
-            canvas.restore()
-        }
 
         drawTopRibbon(canvas, paint)
         drawBrandHeader(canvas, paint, model, settings, logo, label, box, outline)
@@ -167,7 +160,7 @@ object OfficialInvoicePdfGenerator {
         drawRateStrip(model, settings, label, box, outline)
         drawItemsTable(model, rows, rowStartIndex, label, box, outline)
         if (isLastPage) {
-            drawSummaryAndSignatures(canvas, model, settings, stamp, label, box, outline)
+            drawSummaryAndSignatures(canvas, model, stamp, label, box, outline)
         } else {
             label("ادامه اقلام و جمع‌بندی مالی در صفحه بعد", PAGE_WIDTH / 2f, 338f, 7f, MUTED, Paint.Align.CENTER, true, 255)
         }
@@ -215,16 +208,9 @@ object OfficialInvoicePdfGenerator {
         label("فاکتور رسمی فروش و مبادله طلا", 297.5f, 41f, 8f, INK, Paint.Align.CENTER, true, 255)
         label("شماره ${model.invoiceNumber}  •  ${model.issuedDate}  •  ${model.issuedTime}", 297.5f, 53f, 5.9f, MUTED, Paint.Align.CENTER, false, 255)
 
-        val qrEnabled = settings.invoiceQrVerificationEnabled || settings.invoiceQrGemCertificateEnabled || settings.invoiceQrCatalogEnabled
-        if (qrEnabled) drawQrMark(canvas, paint, 31f, 29f, 3f)
-        label("QR اصالت", 70f, 38f, 6.4f, INK, Paint.Align.LEFT, true, 255)
-        label(model.trackingCode.take(22), 70f, 49f, 5.5f, GOLD, Paint.Align.LEFT, true, 255)
-        val features = buildList {
-            if (settings.invoiceQrVerificationEnabled) add("استعلام")
-            if (settings.invoiceQrGemCertificateEnabled) add("شناسنامه")
-            if (settings.invoiceQrCatalogEnabled) add("کاتالوگ")
-        }.joinToString(" • ").ifBlank { "غیرفعال" }
-        label(features, 70f, 59f, 5f, MUTED, Paint.Align.LEFT, false, 255)
+        label("شناسه پیگیری سند", 31f, 38f, 6.4f, INK, Paint.Align.LEFT, true, 255)
+        label(model.trackingCode.take(28), 31f, 49f, 5.5f, GOLD, Paint.Align.LEFT, true, 255)
+        label(settings.galleryPhone, 31f, 59f, 5f, MUTED, Paint.Align.LEFT, false, 255)
     }
 
     private fun drawPartyCards(
@@ -264,10 +250,8 @@ object OfficialInvoicePdfGenerator {
         label("مبنای محاسبه", 558f, 136f, 6f, GOLD, Paint.Align.RIGHT, true, 255)
         label("هر گرم طلای ۱۸ عیار: ${PersianNumberFormatter.formatPrice(model.spotPrice18k.toDouble())} تومان", 402f, 136f, 6.5f, INK, Paint.Align.RIGHT, true, 255)
         label("روش تسویه: ${model.settlementLabel}", 35f, 136f, 6f, MUTED, Paint.Align.LEFT, false, 255)
-        if (settings.invoiceQrVerificationEnabled) {
-            box(0xFFDDF7EC.toInt(), RectF(213f, 127f, 270f, 139f), 6f)
-            label("اصالت فعال", 241.5f, 135.5f, 5.3f, 0xFF08704F.toInt(), Paint.Align.CENTER, true, 255)
-        }
+        box(0xFFFFF4CC.toInt(), RectF(213f, 127f, 280f, 139f), 6f)
+        label("پروانه ${settings.unionCode}", 246.5f, 135.5f, 5.1f, GOLD, Paint.Align.CENTER, true, 255)
     }
 
     private fun drawItemsTable(
@@ -317,7 +301,6 @@ object OfficialInvoicePdfGenerator {
     private fun drawSummaryAndSignatures(
         canvas: Canvas,
         model: OfficialInvoiceDocument,
-        settings: AppSettings,
         stamp: Bitmap?,
         label: (String, Float, Float, Float, Int, Paint.Align, Boolean, Int) -> Unit,
         box: (Int, RectF, Float) -> Unit,
@@ -350,35 +333,19 @@ object OfficialInvoicePdfGenerator {
         label("اصل طلا مطابق ماده ۲۶ از مالیات معاف است؛ مالیات فقط", 280f, top + 27f, 5.2f, MUTED, Paint.Align.RIGHT, false, 255)
         label("بر اجرت و سود محاسبه شده و عیار اقلام تضمین می‌شود.", 280f, top + 37f, 5.2f, MUTED, Paint.Align.RIGHT, false, 255)
         if (model.note.isNotBlank()) label("توضیحات: ${model.note.take(55)}", 280f, top + 49f, 5.1f, GOLD, Paint.Align.RIGHT, true, 255)
-        if (settings.invoiceStampEnabled) {
-            val stampRect = RectF(35f, top + 48f, 78f, top + 87f)
-            if (stamp != null) {
-                canvas.drawBitmap(stamp, null, stampRect, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    alpha = (settings.invoiceStampOpacity.coerceIn(30, 100) * 2.55f).toInt()
-                })
-            } else {
-                outline(0xFFB42318.toInt(), stampRect, 22f, 1.1f)
-                val alpha = settings.invoiceStampOpacity * 255 / 100
-                label("مهر رسمی", 56.5f, top + 68f, 5.5f, 0xFFB42318.toInt(), Paint.Align.CENTER, true, alpha)
-                label(settings.unionCode, 56.5f, top + 77f, 4.7f, 0xFFB42318.toInt(), Paint.Align.CENTER, true, alpha)
-            }
+        val stampRect = RectF(35f, top + 48f, 78f, top + 87f)
+        if (stamp != null) {
+            canvas.drawBitmap(stamp, null, stampRect, Paint(Paint.ANTI_ALIAS_FLAG))
+        } else {
+            outline(LINE, stampRect, 22f, 0.8f)
+            label("محل مهر", 56.5f, top + 68f, 5.2f, MUTED, Paint.Align.CENTER, true, 255)
+            label("تجاری", 56.5f, top + 77f, 4.7f, MUTED, Paint.Align.CENTER, true, 255)
         }
         label("امضاء فروشنده", 142f, top + 72f, 5.6f, MUTED, Paint.Align.CENTER, true, 255)
         label("امضاء خریدار", 238f, top + 72f, 5.6f, MUTED, Paint.Align.CENTER, true, 255)
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = LINE; strokeWidth = 0.6f }
         canvas.drawLine(105f, top + 78f, 178f, top + 78f, linePaint)
         canvas.drawLine(201f, top + 78f, 274f, top + 78f, linePaint)
-    }
-
-    private fun drawQrMark(canvas: Canvas, paint: Paint, left: Float, top: Float, cell: Float) {
-        paint.color = 0xFF1C1917.toInt()
-        val pattern = arrayOf(
-            "111010111", "101010101", "111110111", "000101000", "111011101",
-            "101110001", "111011111", "001101001", "111001111"
-        )
-        pattern.forEachIndexed { y, line -> line.forEachIndexed { x, char ->
-            if (char == '1') canvas.drawRect(left + x * cell, top + y * cell, left + (x + 1) * cell, top + (y + 1) * cell, paint)
-        } }
     }
 
     private fun loadPersistedBitmap(context: Context, uriValue: String): Bitmap? {

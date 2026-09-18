@@ -18,7 +18,6 @@ data class SettingsUiState(
     val isTaxProfitModalVisible: Boolean = false,
     val isPriceSourceModalVisible: Boolean = false,
     val isJewelerProfileModalVisible: Boolean = false,
-    val isInvoiceBrandingModalVisible: Boolean = false,
     val isSettingsDialogVisible: Boolean = false
 )
 
@@ -58,10 +57,6 @@ class SettingsViewModel(
         _uiState.update { it.copy(isJewelerProfileModalVisible = visible) }
     }
 
-    fun setInvoiceBrandingModalVisible(visible: Boolean) {
-        _uiState.update { it.copy(isInvoiceBrandingModalVisible = visible) }
-    }
-
     fun updateTaxAndProfit(profitPercent: String, taxPercent: String, wageType: WageType) {
         val updated = _uiState.value.appSettings.copy(
             defaultProfitPercent = profitPercent,
@@ -84,7 +79,9 @@ class SettingsViewModel(
         managerName: String,
         unionCode: String,
         phone: String,
-        address: String
+        address: String,
+        logoUri: String,
+        stampUri: String
     ) {
         val updated = _uiState.value.appSettings.copy(
             galleryName = galleryName,
@@ -92,20 +89,12 @@ class SettingsViewModel(
             unionCode = unionCode,
             galleryPhone = phone,
             galleryAddress = address,
-            galleryLicense = "صنف طلا و جواهر: $unionCode"
+            galleryLicense = "صنف طلا و جواهر: $unionCode",
+            invoiceLogoUri = logoUri,
+            invoiceStampUri = stampUri
         )
         updateSettings(updated)
         setJewelerProfileModalVisible(false)
-    }
-
-    fun updateInvoiceBranding(settings: AppSettings) {
-        updateSettings(
-            settings.copy(
-                galleryLicense = "صنف طلا و جواهر: ${settings.unionCode}",
-                invoiceStampOpacity = settings.invoiceStampOpacity.coerceIn(30, 100)
-            )
-        )
-        setInvoiceBrandingModalVisible(false)
     }
 
     fun toggleBiometricLock(enabled: Boolean) {

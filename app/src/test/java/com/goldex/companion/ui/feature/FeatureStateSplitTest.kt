@@ -129,7 +129,7 @@ class FeatureStateSplitTest {
     }
 
     @Test
-    fun settingsManagerPersistsInvoiceBrandingAndClampsStampOpacity() {
+    fun settingsManagerPersistsProfileLogoAndCommercialStamp() {
         var persisted = AppSettings()
         val flow = MutableStateFlow(persisted)
         val fakeStore = object : SettingsStore {
@@ -142,23 +142,22 @@ class FeatureStateSplitTest {
         }
         val viewModel = SettingsViewModel(fakeStore)
 
-        viewModel.setInvoiceBrandingModalVisible(true)
-        viewModel.updateInvoiceBranding(
-            persisted.copy(
-                galleryName = "گالری قیراط",
-                unionCode = "۱۲۳۴",
-                invoiceWatermarkEnabled = false,
-                invoiceStampOpacity = 140,
-                invoiceQrCatalogEnabled = true
-            )
+        viewModel.setJewelerProfileModalVisible(true)
+        viewModel.updateJewelerProfile(
+            galleryName = "گالری قیراط",
+            managerName = "مدیر نمونه",
+            unionCode = "۱۲۳۴",
+            phone = "۰۲۱۱۲۳۴",
+            address = "بازار تهران",
+            logoUri = "content://profile/logo",
+            stampUri = "content://profile/stamp"
         )
 
         assertEquals("گالری قیراط", persisted.galleryName)
         assertEquals("صنف طلا و جواهر: ۱۲۳۴", persisted.galleryLicense)
-        assertFalse(persisted.invoiceWatermarkEnabled)
-        assertEquals(100, persisted.invoiceStampOpacity)
-        assertTrue(persisted.invoiceQrCatalogEnabled)
-        assertFalse(viewModel.uiState.value.isInvoiceBrandingModalVisible)
+        assertEquals("content://profile/logo", persisted.invoiceLogoUri)
+        assertEquals("content://profile/stamp", persisted.invoiceStampUri)
+        assertFalse(viewModel.uiState.value.isJewelerProfileModalVisible)
     }
 
     @Test
