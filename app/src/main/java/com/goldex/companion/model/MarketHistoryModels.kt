@@ -223,14 +223,14 @@ object MarketHistoryConverter {
      * Formats 8-digit date string into "YYYY/MM/DD".
      */
     fun formatShamsiDateOnly(raw: String): String {
-        val clean = raw.replace("/", "").replace("-", "").trim()
+        val clean = raw.replace("/", "").replace("-", "").replace(".", "").trim()
         if (clean.length == 8) {
             val yyyy = clean.substring(0, 4)
             val mm = clean.substring(4, 6)
             val dd = clean.substring(6, 8)
             return "$yyyy/$mm/$dd"
         }
-        return raw
+        return raw.replace(".", "/")
     }
 
     /**
