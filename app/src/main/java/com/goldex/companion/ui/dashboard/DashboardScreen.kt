@@ -684,24 +684,6 @@ fun DashboardScreen(
                                             .height(130.dp),
                                         goldColor = colors.goldPrimary
                                     )
-
-                                    // Time Labels (LTR: left to right)
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        chart.timeLabels.forEachIndexed { idx, hour ->
-                                            val isLast = (idx == chart.timeLabels.lastIndex)
-                                            Text(
-                                                text = PersianNumberFormatter.toPersianDigits(hour),
-                                                fontSize = 9.5.sp,
-                                                fontWeight = if (isLast) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isLast) colors.goldPrimary else colors.textMuted
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -1188,8 +1170,8 @@ private fun GoldTrendCanvasChart(
                 val ptX = maxWidth * normP.first
                 val ptY = (maxHeight - 24.dp) * (1f - normP.second) + 12.dp
 
-                val tooltipW = 110.dp
-                val tooltipH = 42.dp
+                val tooltipW = 135.dp
+                val tooltipH = 44.dp
 
                 val targetX = ptX - (tooltipW / 2)
                 val clampedX = targetX.coerceIn(4.dp, (maxWidth - tooltipW - 4.dp).coerceAtLeast(4.dp))
@@ -1234,6 +1216,7 @@ private fun GoldTrendCanvasChart(
                                 Text(
                                     text = PersianNumberFormatter.toPersianDigits(dateOrTime),
                                     fontSize = 9.sp,
+                                    maxLines = 1,
                                     color = Color(0xFFC7B299)
                                 )
                             }

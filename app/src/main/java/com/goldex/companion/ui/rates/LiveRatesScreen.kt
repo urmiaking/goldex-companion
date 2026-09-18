@@ -349,7 +349,7 @@ fun LiveRatesScreen(
                             color = Color(0xFFFFDEA6)
                         )
                         Text(
-                            text = "حباب: منفی ۳۴,۰۰۰ ت",
+                            text = "حباب: ۳۴,۰۰۰- ت",
                             fontSize = 9.5.sp,
                             color = Color(0xFFA5B2CD)
                         )

@@ -604,8 +604,8 @@ data class MarketRateDetailState(
                 openPrice = openPrice,
                 bubbleOrSpread = spread,
                 bubbleOrSpreadLabel = "اسپرد جهانی",
-                referenceIndexText = "نقره جهانی: ۳۱.۵۰ $ • شاخص دلار DXY: ۱۰۴.۲",
-                referenceIndexChange = "۰.۶۸٪+ امروز",
+                referenceIndexText = "",
+                referenceIndexChange = "",
                 monthlyStats = MonthlyMarketStats(
                     dailyRangeText = "۲۴+ $ (۰.۹٪+)",
                     weeklyChangeText = "۵۲+ $ (۱.۹٪+)",
@@ -642,8 +642,8 @@ data class MarketRateDetailState(
                 openPrice = openPrice,
                 bubbleOrSpread = spread,
                 bubbleOrSpreadLabel = "اختلاف حواله",
-                referenceIndexText = "حواله درهم دبی: ۲۵,۴۰۰ تومان • تتر: ۹۳,۱۰۰ تومان",
-                referenceIndexChange = "۰.۳۸٪+ امروز",
+                referenceIndexText = "",
+                referenceIndexChange = "",
                 monthlyStats = MonthlyMarketStats(
                     dailyRangeText = "۶۰۰+ تومان (۰.۷٪+)",
                     weeklyChangeText = "۱,۲۰۰+ تومان (۱.۳٪+)",

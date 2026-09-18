@@ -1,5 +1,6 @@
 package com.goldex.companion.model
 
+import java.util.Calendar
 import java.util.Locale
 import kotlin.math.roundToLong
 
@@ -33,7 +34,7 @@ object MarketHistoryConverter {
         val processedCandles = if (horizon == TimeHorizon.TODAY) {
             sampleIntradayCandles(candles)
         } else {
-            candles
+            candles.map { it.copy(dateShamsi = formatFullShamsiDateTime(it.dateShamsi)) }
         }
 
         // 1. Identify min, max and peak
@@ -89,8 +90,8 @@ object MarketHistoryConverter {
             rawPoints
         }
 
-        // 5. Horizontal time labels (4 to 5 distributed labels)
-        val timeLabels = extractTimeLabels(processedCandles, horizon)
+        // 5. Horizontal time labels - omitted per user preference to avoid clutter
+        val timeLabels = emptyList<String>()
 
         // 6. Fluctuation percentage (Sign placed strictly behind number: e.g. ۲.۴٪- or ۲.۴٪+)
         val firstPrice = processedCandles.first().open.takeIf { it > 0L } ?: processedCandles.first().close
@@ -181,96 +182,85 @@ object MarketHistoryConverter {
         )
     }
 
-    private fun extractTimeLabels(candles: List<MarketCandle>, horizon: TimeHorizon): List<String> {
-        if (candles.isEmpty()) {
-            return when (horizon) {
-                TimeHorizon.TODAY -> listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰")
-                TimeHorizon.ONE_WEEK -> listOf("شنبه", "دوشنبه", "چهارشنبه", "جمعه", "امروز")
-                TimeHorizon.ONE_MONTH -> listOf("۴ هفته پیش", "۳ هفته پیش", "۲ هفته پیش", "۱ هفته پیش", "امروز")
-                TimeHorizon.SIX_MONTHS -> listOf("۶ ماه پیش", "۴ ماه پیش", "۳ ماه پیش", "۲ ماه پیش", "امروز")
-                TimeHorizon.ONE_YEAR -> listOf("۱ سال پیش", "۹ ماه پیش", "۶ ماه پیش", "۳ ماه پیش", "امروز")
-            }
+    /**
+     * Converts Gregorian date (year, month 1..12, day 1..31) to Solar Hijri / Shamsi (year, month, day).
+     * Standard mathematical conversion algorithm without external dependencies.
+     */
+    fun gregorianToShamsi(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> {
+        val gdm = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+        val gy2 = if (gm > 2) (gy + 1) else gy
+        var days = 355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + gdm[gm - 1]
+        var jy = -1595 + (33 * (days / 12053))
+        days %= 12053
+        jy += 4 * (days / 1461)
+        days %= 1461
+        if (days > 365) {
+            jy += ((days - 1) / 365)
+            days = (days - 1) % 365
         }
-
-        if (horizon == TimeHorizon.TODAY) {
-            val hasTimes = candles.any { it.dateShamsi.contains(":") }
-            if (!hasTimes) {
-                return listOf("۱۰:۰۰", "۱۲:۰۰", "۱۴:۰۰", "۱۶:۰۰", "۱۸:۰۰")
-            }
-        }
-
-        if (candles.size <= 5) {
-            return candles.mapIndexed { idx, candle ->
-                val isLast = (idx == candles.lastIndex)
-                if (isLast) {
-                    if (horizon == TimeHorizon.TODAY) {
-                        formatCandleDate(candle.dateShamsi, horizon).ifBlank { "اکنون" }
-                    } else {
-                        "امروز"
-                    }
-                } else {
-                    formatCandleDate(candle.dateShamsi, horizon)
-                }
-            }
-        }
-
-        val step = (candles.size - 1).toDouble() / 4.0
-        return (0..4).map { i ->
-            val idx = (i * step).roundToLong().toInt().coerceIn(0, candles.lastIndex)
-            val isLast = (i == 4)
-            if (isLast) {
-                if (horizon == TimeHorizon.TODAY) {
-                    formatCandleDate(candles[idx].dateShamsi, horizon).ifBlank { "اکنون" }
-                } else {
-                    "امروز"
-                }
-            } else {
-                formatCandleDate(candles[idx].dateShamsi, horizon)
-            }
-        }
+        val jm = if (days < 186) 1 + (days / 31) else 7 + ((days - 186) / 30)
+        val jd = 1 + (if (days < 186) (days % 31) else ((days - 186) % 30))
+        return Triple(jy, jm, jd)
     }
 
-    private fun formatCandleDate(rawDate: String, horizon: TimeHorizon): String {
-        if (horizon == TimeHorizon.TODAY) {
-            val trimmed = rawDate.trim()
-            if (trimmed.contains(":")) {
-                val timePart = if (trimmed.contains(" ")) trimmed.substringAfterLast(" ") else trimmed
-                val parts = timePart.split(":")
-                if (parts.size >= 2) {
-                    val hh = parts[0].padStart(2, '0')
-                    val mm = parts[1].padStart(2, '0')
-                    return PersianNumberFormatter.toPersianDigits("$hh:$mm")
-                }
+    /**
+     * Returns today's Solar Hijri / Shamsi date string in format "YYYY/MM/DD".
+     */
+    fun getTodayShamsiDate(timestamp: Long = System.currentTimeMillis()): String {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = timestamp
+        }
+        val gy = cal.get(Calendar.YEAR)
+        val gm = cal.get(Calendar.MONTH) + 1
+        val gd = cal.get(Calendar.DAY_OF_MONTH)
+        val (jy, jm, jd) = gregorianToShamsi(gy, gm, gd)
+        val mm = String.format(Locale.US, "%02d", jm)
+        val dd = String.format(Locale.US, "%02d", jd)
+        return "$jy/$mm/$dd"
+    }
+
+    /**
+     * Formats 8-digit date string into "YYYY/MM/DD".
+     */
+    fun formatShamsiDateOnly(raw: String): String {
+        val clean = raw.replace("/", "").replace("-", "").trim()
+        if (clean.length == 8) {
+            val yyyy = clean.substring(0, 4)
+            val mm = clean.substring(4, 6)
+            val dd = clean.substring(6, 8)
+            return "$yyyy/$mm/$dd"
+        }
+        return raw
+    }
+
+    /**
+     * Formats a candle date/time string into a complete Shamsi date and time:
+     * e.g. "1405/06/25 18:22".
+     * In RTL layout, this reads as "۱۴۰۵/۰۶/۲۵ ۱۸:۲۲" (date first, then time).
+     */
+    fun formatFullShamsiDateTime(raw: String): String {
+        val normalized = PersianNumberFormatter.toEnglishDigits(raw).trim()
+        if (normalized.isEmpty()) return ""
+
+        val todayShamsi = getTodayShamsiDate()
+
+        if (normalized.contains(":")) {
+            val timePart = if (normalized.contains(" ")) normalized.substringAfterLast(" ") else normalized
+            val timeTokens = timePart.split(":")
+            val hh = timeTokens.getOrNull(0)?.padStart(2, '0') ?: "00"
+            val mm = timeTokens.getOrNull(1)?.padStart(2, '0') ?: "00"
+            val formattedTime = "$hh:$mm"
+
+            val datePart = if (normalized.contains(" ")) normalized.substringBeforeLast(" ").trim() else ""
+            val formattedDate = if (datePart.isNotBlank()) {
+                formatShamsiDateOnly(datePart)
+            } else {
+                todayShamsi
             }
-            return if (trimmed.isNotEmpty()) PersianNumberFormatter.toPersianDigits(trimmed) else "اکنون"
+            return "$formattedDate $formattedTime"
         }
 
-        val clean = rawDate.replace("/", "").trim()
-        if (clean.length == 8) {
-            val month = clean.substring(4, 6)
-            val day = clean.substring(6, 8)
-            val monthName = when (month) {
-                "01" -> "فروردین"
-                "02" -> "اردیبهشت"
-                "03" -> "خرداد"
-                "04" -> "تیر"
-                "05" -> "مرداد"
-                "06" -> "شهریور"
-                "07" -> "مهر"
-                "08" -> "آبان"
-                "09" -> "آذر"
-                "10" -> "دی"
-                "11" -> "بهمن"
-                "12" -> "اسفند"
-                else -> month
-            }
-            return if (horizon == TimeHorizon.ONE_YEAR || horizon == TimeHorizon.SIX_MONTHS) {
-                monthName
-            } else {
-                "${day.toIntOrNull() ?: day} $monthName"
-            }
-        }
-        return if (rawDate.length > 5) rawDate.takeLast(5) else rawDate
+        return formatShamsiDateOnly(normalized)
     }
 
     fun emptyTrendChart(fallbackBasePrice: Long = 0L): TrendChartData {
@@ -305,7 +295,7 @@ object MarketHistoryConverter {
     }
 
     /**
-     * Downsamples dense intraday candles into ~30-minute interval buckets.
+     * Downsamples dense intraday candles into ~15-minute interval buckets (0..95) from midnight 00:00 to current time.
      * Smooths out micro-second fluctuations while strictly preserving:
      * - Opening trade of the session
      * - Latest/live market quote
@@ -313,19 +303,23 @@ object MarketHistoryConverter {
      * If data has gaps, connects nearest available intervals linearly.
      */
     fun sampleIntradayCandles(candles: List<MarketCandle>): List<MarketCandle> {
-        if (candles.size <= 8) return candles
+        if (candles.size <= 8) {
+            return candles.map { it.copy(dateShamsi = formatFullShamsiDateTime(it.dateShamsi)) }
+        }
 
         val parsed = candles.map { candle ->
             candle to parseMinuteOfDay(candle.dateShamsi)
         }
 
-        // If timestamps cannot be parsed, fallback to uniform stride sampling (~12 points)
+        // If timestamps cannot be parsed, fallback to uniform stride sampling (~16 points)
         if (parsed.any { it.second == null }) {
-            return sampleUniformly(candles, targetCount = 12)
+            return sampleUniformly(candles, targetCount = 16).map {
+                it.copy(dateShamsi = formatFullShamsiDateTime(it.dateShamsi))
+            }
         }
 
-        // Group by 30-minute bucket (0..47)
-        val grouped = parsed.groupBy { it.second!! / 30 }
+        // Group by 15-minute bucket (0..95 for minuteOfDay in 0..1439)
+        val grouped = parsed.groupBy { it.second!! / 15 }
         val sortedBuckets = grouped.toSortedMap()
 
         val sampled = mutableListOf<MarketCandle>()
@@ -341,22 +335,24 @@ object MarketHistoryConverter {
                     high = high,
                     low = low,
                     close = last.close,
-                    dateShamsi = last.dateShamsi,
+                    dateShamsi = formatFullShamsiDateTime(last.dateShamsi),
                     dateGregorian = last.dateGregorian
                 )
             )
         }
 
-        // Ensure session opening candle is preserved as first point if different from first bucket's representative
+        // Ensure session opening candle is preserved as first point with full date format
         val firstOriginal = candles.first()
-        if (sampled.isNotEmpty() && sampled.first().dateShamsi != firstOriginal.dateShamsi) {
-            sampled.add(0, firstOriginal)
+        val firstFormatted = firstOriginal.copy(dateShamsi = formatFullShamsiDateTime(firstOriginal.dateShamsi))
+        if (sampled.isNotEmpty() && sampled.first().dateShamsi != firstFormatted.dateShamsi) {
+            sampled.add(0, firstFormatted)
         }
 
-        // Ensure latest live candle is preserved as last point if different from last bucket's representative
+        // Ensure latest live candle is preserved as last point with full date format
         val lastOriginal = candles.last()
-        if (sampled.isNotEmpty() && sampled.last().dateShamsi != lastOriginal.dateShamsi) {
-            sampled.add(lastOriginal)
+        val lastFormatted = lastOriginal.copy(dateShamsi = formatFullShamsiDateTime(lastOriginal.dateShamsi))
+        if (sampled.isNotEmpty() && sampled.last().dateShamsi != lastFormatted.dateShamsi) {
+            sampled.add(lastFormatted)
         }
 
         return sampled

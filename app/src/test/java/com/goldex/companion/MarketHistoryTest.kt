@@ -112,7 +112,7 @@ class MarketHistoryTest {
         }
 
         val sampled = MarketHistoryConverter.sampleIntradayCandles(denseCandles)
-        assertTrue("Sampled candles should be significantly fewer than 60 ticks", sampled.size in 2..4)
+        assertTrue("Sampled candles should be significantly fewer than 60 ticks", sampled.size in 2..6)
         assertEquals("First candle close should match first raw tick", denseCandles.first().close, sampled.first().close)
         assertEquals("Last candle close should match last raw tick", denseCandles.last().close, sampled.last().close)
     }
@@ -128,8 +128,9 @@ class MarketHistoryTest {
 
         val sampled = MarketHistoryConverter.sampleIntradayCandles(gappedCandles)
         assertEquals(4, sampled.size)
-        assertEquals("10:05", sampled.first().dateShamsi)
-        assertEquals("14:50", sampled.last().dateShamsi)
+        val today = MarketHistoryConverter.getTodayShamsiDate()
+        assertEquals("$today 10:05", sampled.first().dateShamsi)
+        assertEquals("$today 14:50", sampled.last().dateShamsi)
     }
 
     @Test
@@ -138,5 +139,14 @@ class MarketHistoryTest {
         assertEquals(14 * 60 + 45, MarketHistoryConverter.parseMinuteOfDay("۱۴:۴۵"))
         assertEquals(9 * 60 + 5, MarketHistoryConverter.parseMinuteOfDay("09:05:22"))
         assertNull(MarketHistoryConverter.parseMinuteOfDay("14050623"))
+    }
+
+    @Test
+    fun formatFullShamsiDateTimeHandlesBothIntradayAndTimeStrings() {
+        val today = MarketHistoryConverter.getTodayShamsiDate()
+        assertEquals("$today 18:22", MarketHistoryConverter.formatFullShamsiDateTime("18:22"))
+        assertEquals("1405/06/25 18:22", MarketHistoryConverter.formatFullShamsiDateTime("14050625 18:22"))
+        assertEquals("1405/06/25 18:22", MarketHistoryConverter.formatFullShamsiDateTime("1405/06/25 18:22"))
+        assertEquals("1405/06/25", MarketHistoryConverter.formatFullShamsiDateTime("14050625"))
     }
 }

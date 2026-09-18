@@ -431,9 +431,13 @@ fun MarketRateDetailScreen(
                     )
 
                     // Tile 4: حباب یا اسپرد
+                    val bubbleVal = state.bubbleOrSpread
+                    val absBubble = kotlin.math.abs(bubbleVal)
+                    val bubbleSign = if (bubbleVal > 0) "+" else if (bubbleVal < 0) "-" else ""
+                    val bubbleDisplay = "${PersianNumberFormatter.format(absBubble)}$bubbleSign ${state.currencyUnit}"
                     MetricTile(
                         title = state.bubbleOrSpreadLabel,
-                        value = "${PersianNumberFormatter.format(state.bubbleOrSpread)}${if (state.bubbleOrSpread > 0) "+" else ""} ${state.currencyUnit}",
+                        value = bubbleDisplay,
                         icon = IconSwapVert,
                         iconColor = Color(0xFF38BDF8),
                         modifier = Modifier.weight(1f)
@@ -612,89 +616,59 @@ fun MarketRateDetailScreen(
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
-
-                                // Horizontal Time Axis (LTR: Past on left, Present on right)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    activeChart.timeLabels.forEachIndexed { idx, label ->
-                                        val isLive = (targetHorizon == TimeHorizon.TODAY && idx == activeChart.timeLabels.lastIndex)
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            if (isLive) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(6.dp)
-                                                        .clip(CircleShape)
-                                                        .background(colors.goldPrimary)
-                                                )
-                                            }
-                                            Text(
-                                                text = PersianNumberFormatter.toPersianDigits(label),
-                                                fontSize = 10.sp,
-                                                fontWeight = if (isLive) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isLive) colors.goldPrimary else colors.textMuted
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
                 }
 
                 // Reference Basis Footer
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                if (state.referenceIndexText.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = DashGlobeVector,
-                                contentDescription = null,
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Text(
-                                text = state.referenceIndexText,
-                                fontSize = 11.sp,
-                                color = colors.textSecondary
-                            )
-                        }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = DashGlobeVector,
+                                    contentDescription = null,
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = state.referenceIndexText,
+                                    fontSize = 11.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = DashTrendingUpVector,
-                                contentDescription = null,
-                                tint = Color(0xFF10B981),
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Text(
-                                text = state.referenceIndexChange,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF047857)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = DashTrendingUpVector,
+                                    contentDescription = null,
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = state.referenceIndexChange,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF047857)
+                                )
+                            }
                         }
                     }
                 }
@@ -1375,7 +1349,7 @@ private fun TrendChartCanvas(
                 val ptX = maxWidth * normP.first
                 val ptY = (maxHeight - 24.dp) * (1f - normP.second) + 12.dp
 
-                val tooltipW = 120.dp
+                val tooltipW = 135.dp
                 val tooltipH = 46.dp
 
                 // Tooltip position: centered horizontally above the point with boundary clamping
@@ -1422,6 +1396,7 @@ private fun TrendChartCanvas(
                                 Text(
                                     text = PersianNumberFormatter.toPersianDigits(dateOrTime),
                                     fontSize = 9.5.sp,
+                                    maxLines = 1,
                                     color = Color(0xFFC7B299)
                                 )
                             }

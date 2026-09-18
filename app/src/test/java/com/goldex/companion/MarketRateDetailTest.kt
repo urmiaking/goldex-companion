@@ -92,6 +92,15 @@ class MarketRateDetailTest {
         assertEquals("$", state.currencyUnit)
         assertEquals(2684L, state.currentPrice)
         assertEquals("اسپرد جهانی", state.bubbleOrSpreadLabel)
+        assertEquals("", state.referenceIndexText)
+        assertEquals("", state.referenceIndexChange)
+    }
+
+    @Test
+    fun usdDetailStateHasCleanReferenceText() {
+        val state = MarketRateDetailState.create(MarketRateItemType.USD, sampleRates)
+        assertEquals("", state.referenceIndexText)
+        assertEquals("", state.referenceIndexChange)
     }
 
     @Test
@@ -148,12 +157,11 @@ class MarketRateDetailTest {
         assertEquals(23900000L, chart.peakPrice)
         assertEquals(2 / 3.0f, chart.peakXRatio, 0.01f)
         assertTrue(chart.points.all { it.first in 0.0f..1.0f && it.second in 0.10f..0.90f })
-        assertEquals(4, chart.timeLabels.size)
-        assertEquals("امروز", chart.timeLabels.last())
+        assertTrue("Time labels are omitted to keep UI clean", chart.timeLabels.isEmpty())
     }
 
     @Test
-    fun realWeekCandlesTransformToFiveDistributedTimeLabels() {
+    fun realWeekCandlesTransformWithEmptyTimeLabels() {
         val candles = (1..7).map { day ->
             MarketCandle(
                 open = 23000000L,
@@ -166,8 +174,7 @@ class MarketRateDetailTest {
         val chart = MarketHistoryConverter.toTrendChartData(candles, TimeHorizon.ONE_WEEK, 23000000L)
         assertNotNull(chart)
         assertEquals(7, chart.points.size)
-        assertEquals(5, chart.timeLabels.size)
-        assertEquals("امروز", chart.timeLabels.last())
+        assertTrue("Time labels are omitted across all horizons", chart.timeLabels.isEmpty())
     }
 
     @Test
@@ -240,8 +247,7 @@ class MarketRateDetailTest {
 
         val chart = MarketHistoryConverter.toTrendChartData(candles, TimeHorizon.TODAY, 4285000L)
         assertEquals(6, chart.points.size)
-        // Ensure time labels are formatted in Persian digits and do not end with "امروز"
-        assertFalse("TODAY last label must not be 'امروز'", chart.timeLabels.last() == "امروز")
-        assertTrue("TODAY labels must contain Persian colon or digits", chart.timeLabels.any { it.contains(":") || it.contains(":") })
+        assertTrue("TODAY time labels are removed per user spec", chart.timeLabels.isEmpty())
+        assertTrue("Candles have full date and time populated", chart.candles.all { it.dateShamsi.contains(":") })
     }
 }
