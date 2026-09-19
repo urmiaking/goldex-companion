@@ -118,18 +118,7 @@ fun GoldButton(
             }
         }
     } else {
-        val buttonTextAndIconColor = colors.goldButtonText
-        val gradientBrush = if (enabled) {
-            colors.goldButtonGradient
-        } else {
-            Brush.horizontalGradient(
-                listOf(
-                    colors.border.copy(alpha = 0.5f),
-                    colors.surfaceVariant.copy(alpha = 0.5f),
-                    colors.border.copy(alpha = 0.5f)
-                )
-            )
-        }
+        val buttonContentColor = if (enabled) colors.goldButtonText else colors.textMuted
 
         Button(
             onClick = onClick,
@@ -138,9 +127,9 @@ fun GoldButton(
             shape = ButtonShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
-                contentColor = buttonTextAndIconColor,
+                contentColor = colors.goldButtonText,
                 disabledContainerColor = Color.Transparent,
-                disabledContentColor = buttonTextAndIconColor.copy(alpha = 0.5f)
+                disabledContentColor = colors.textMuted
             ),
             elevation = ButtonDefaults.buttonElevation(
                 defaultElevation = if (enabled) 1.5.dp else 0.dp,
@@ -149,21 +138,31 @@ fun GoldButton(
                 hoveredElevation = 2.dp,
                 disabledElevation = 0.dp
             ),
+            border = if (enabled) null else androidx.compose.foundation.BorderStroke(0.6.dp, colors.border.copy(alpha = 0.35f)),
             contentPadding = PaddingValues()
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = gradientBrush,
-                        shape = ButtonShape
+                    .then(
+                        if (enabled) {
+                            Modifier.background(
+                                brush = colors.goldButtonGradient,
+                                shape = ButtonShape
+                            )
+                        } else {
+                            Modifier.background(
+                                color = colors.surfaceElevated.copy(alpha = 0.6f),
+                                shape = ButtonShape
+                            )
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = buttonTextAndIconColor,
+                        color = buttonContentColor,
                         strokeWidth = 2.dp
                     )
                 } else {
@@ -175,7 +174,7 @@ fun GoldButton(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f),
+                                tint = buttonContentColor,
                                 modifier = Modifier.size(19.dp)
                             )
                         }
@@ -184,13 +183,13 @@ fun GoldButton(
                             fontFamily = VazirmatnFamily,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f)
+                            color = buttonContentColor
                         )
                         if (trailingIcon != null) {
                             Icon(
                                 imageVector = trailingIcon,
                                 contentDescription = null,
-                                tint = if (enabled) buttonTextAndIconColor else buttonTextAndIconColor.copy(alpha = 0.5f),
+                                tint = buttonContentColor,
                                 modifier = Modifier.size(19.dp)
                             )
                         }

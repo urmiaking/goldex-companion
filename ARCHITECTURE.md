@@ -273,6 +273,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Market and dashboard motion is presentation-owned: Live Rates uses the shared filter enter/exit transition, while the dashboard keeps price and fluctuation counters outside the chart transition so their digits animate independently when the horizon changes.
 - User-facing tax guidance derives its displayed percentage from `AppSettings`; legal article labels and fixed tax-rate claims are not UI sources of truth.
 - The app-shell light/dark choice is owned by `MainViewModel` through `ThemePreference` and the `SettingsStore` theme preference methods. It is persisted independently from financial and jeweler-profile settings so stale feature state cannot overwrite the selected appearance.
+- Gold Inventory & Showcase module established in `ui/inventory/` (`InventoryScreen`, `InventoryViewModel`, `AddInventoryItemModal`, `AdjustStockModal`) with official guild retail price formulas, automated profit by category (20% jewelry, 0% coins, 7% standard), dual wage modes (percentage and toman per gram), custom gold fineness, RFID/tray tracking, animated category capsule filters, and stock adjustment logging.
 
 ## 14. Known current compromises
 

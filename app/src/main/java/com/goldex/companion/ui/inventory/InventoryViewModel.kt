@@ -42,6 +42,9 @@ data class InventoryUiState(
     val totalPiecesCount: Int
         get() = items.sumOf { it.quantity }
 
+    val totalItemCount: Int
+        get() = items.size
+
     val activeTraysCount: Int
         get() = items.map { it.location }.filter { it.contains("سینی") || it.contains("ویترین") }.distinct().size.coerceAtLeast(1)
 

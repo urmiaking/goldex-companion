@@ -318,13 +318,18 @@ internal object PersistenceJsonCodecs {
                 if (id.isEmpty() || title.isEmpty()) continue
                 val category = enumOrDefault(obj.stringValue("category"), InventoryCategory.RINGS)
                 val karat = enumOrDefault(obj.stringValue("karat"), Karat.K18)
-                val customKaratValue = obj.intValue("customKaratValue", 750)
+                val defaultKaratNum = if (karat == Karat.K21) 875 else if (karat == Karat.K24) 999 else 750
+                val customKaratValue = obj.intValue("customKaratValue", defaultKaratNum)
                 val location = obj.stringValue("location", "سینی شماره ۱ ویترین اصلی")
                 val grossWeightGrams = obj.doubleValue("grossWeightGrams", 0.0)
                 val stoneWeightGrams = obj.doubleValue("stoneWeightGrams", 0.0)
                 val workshop = obj.stringValue("workshop", "کارگاه زرین تهران")
-                val wagePercent = obj.doubleValue("wagePercent", 0.0)
-                val profitPercent = obj.doubleValue("profitPercent", 7.0)
+                val wageType = enumOrDefault(obj.stringValue("wageType"), WageType.PERCENTAGE)
+                val wageValue = obj.doubleValue("wageValue", obj.doubleValue("wagePercent", 0.0))
+                val profitPercent = obj.doubleValue(
+                    "profitPercent",
+                    if (category == InventoryCategory.JEWELRY) 20.0 else if (category == InventoryCategory.COINS) 0.0 else 7.0
+                )
                 val taxPercent = obj.doubleValue("taxPercent", 9.0)
                 val rfidTag = obj.stringValue("rfidTag", "")
                 val quantity = obj.intValue("quantity", 1)
@@ -342,7 +347,9 @@ internal object PersistenceJsonCodecs {
                     karat = karat,
                     customKaratValue = customKaratValue,
                     workshop = workshop,
-                    wagePercent = wagePercent,
+                    wageType = wageType,
+                    wageValue = wageValue,
+                    wagePercent = if (wageType == WageType.PERCENTAGE) wageValue else 0.0,
                     profitPercent = profitPercent,
                     taxPercent = taxPercent,
                     rfidTag = rfidTag,
@@ -369,6 +376,8 @@ internal object PersistenceJsonCodecs {
                 put("karat", item.karat.name)
                 put("customKaratValue", item.customKaratValue)
                 put("workshop", item.workshop)
+                put("wageType", item.wageType.name)
+                put("wageValue", item.wageValue)
                 put("wagePercent", item.wagePercent)
                 put("profitPercent", item.profitPercent)
                 put("taxPercent", item.taxPercent)

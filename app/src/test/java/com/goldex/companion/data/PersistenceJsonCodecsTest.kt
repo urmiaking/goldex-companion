@@ -152,6 +152,36 @@ class PersistenceJsonCodecsTest {
         assertEquals(0.150, decodedItem.stoneWeightGrams, 0.001)
         assertEquals(5.270, decodedItem.netGoldWeightGrams, 0.001)
         assertEquals(3, decodedItem.quantity)
+        assertEquals(WageType.PERCENTAGE, decodedItem.wageType)
+        assertEquals(12.0, decodedItem.wageValue, 0.001)
+        assertEquals(750, decodedItem.customKaratValue)
+    }
+
+    @Test
+    fun inventoryItemsJewelryAndCustomKaratRoundTrip() {
+        val item = InventoryItem(
+            id = "inv-jewelry",
+            code = "JWL-200",
+            title = "سرویس برلیان",
+            category = InventoryCategory.JEWELRY,
+            grossWeightGrams = 12.500,
+            stoneWeightGrams = 2.500,
+            karat = Karat.K18,
+            customKaratValue = 740,
+            wageType = WageType.TOMAN_PER_GRAM,
+            wageValue = 500_000.0,
+            profitPercent = 20.0,
+            quantity = 1
+        )
+        val json = PersistenceJsonCodecs.encodeInventoryItems(listOf(item))
+        val decoded = PersistenceJsonCodecs.decodeInventoryItems(json).single()
+
+        assertEquals(InventoryCategory.JEWELRY, decoded.category)
+        assertEquals(Karat.K18, decoded.karat)
+        assertEquals(740, decoded.customKaratValue)
+        assertEquals(WageType.TOMAN_PER_GRAM, decoded.wageType)
+        assertEquals(500_000.0, decoded.wageValue, 0.001)
+        assertEquals(20.0, decoded.profitPercent, 0.001)
     }
 
     @Test

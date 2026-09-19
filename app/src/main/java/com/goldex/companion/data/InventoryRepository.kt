@@ -7,6 +7,7 @@ import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.StockAdjustment
 import com.goldex.companion.model.StockAdjustmentType
+import com.goldex.companion.model.WageType
 
 class InventoryRepository(context: Context) : InventoryStore {
     private val prefs: SharedPreferences =
@@ -101,6 +102,8 @@ class InventoryRepository(context: Context) : InventoryStore {
                 stoneWeightGrams = 2.100,
                 karat = Karat.K18,
                 workshop = "کارگاه زرین تهران",
+                wageType = WageType.PERCENTAGE,
+                wageValue = 16.0,
                 wagePercent = 16.0,
                 profitPercent = 7.0,
                 taxPercent = 9.0,
@@ -117,6 +120,8 @@ class InventoryRepository(context: Context) : InventoryStore {
                 stoneWeightGrams = 0.0,
                 karat = Karat.K18,
                 workshop = "طلاسازی اصفهان",
+                wageType = WageType.PERCENTAGE,
+                wageValue = 9.5,
                 wagePercent = 9.5,
                 profitPercent = 7.0,
                 taxPercent = 9.0,
@@ -133,6 +138,8 @@ class InventoryRepository(context: Context) : InventoryStore {
                 stoneWeightGrams = 0.0,
                 karat = Karat.K18,
                 workshop = "بانک مرکزی",
+                wageType = WageType.PERCENTAGE,
+                wageValue = 0.0,
                 wagePercent = 0.0,
                 profitPercent = 0.0,
                 taxPercent = 0.0,
@@ -149,6 +156,8 @@ class InventoryRepository(context: Context) : InventoryStore {
                 stoneWeightGrams = 0.150,
                 karat = Karat.K18,
                 workshop = "کارگاه زرین تهران",
+                wageType = WageType.PERCENTAGE,
+                wageValue = 12.0,
                 wagePercent = 12.0,
                 profitPercent = 7.0,
                 taxPercent = 9.0,

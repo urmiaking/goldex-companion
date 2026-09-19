@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.inventory.modals
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,20 +11,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,8 +57,13 @@ import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.StockAdjustment
 import com.goldex.companion.model.StockAdjustmentType
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.hub.HubKaratSync
+import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
+import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import java.util.UUID
@@ -121,14 +127,13 @@ fun AdjustStockModal(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .navigationBarsPadding(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .fillMaxHeight(0.88f)
             ) {
-                // Modal Header
+                // Fixed Modal Header
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -143,45 +148,41 @@ fun AdjustStockModal(
                                 .background(colors.goldContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "🔄", fontSize = 20.sp)
+                            Icon(
+                                imageVector = HubKaratSync,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                         Column {
                             Text(
                                 text = "کسر یا شارژ موجودی",
-                                fontSize = 15.sp,
+                                fontSize = 14.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
                                 fontFamily = VazirmatnFamily
                             )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.profitGreen)
-                                )
-                                Text(
-                                    text = "تنظیم کاردکس انبار و سینی‌های ویترین",
-                                    fontSize = 11.sp,
-                                    color = colors.textSecondary,
-                                    fontFamily = VazirmatnFamily
-                                )
-                            }
+                            Text(
+                                text = "تنظیم کاردکس انبار و سینی‌های ویترین",
+                                fontSize = 10.5.sp,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
                         }
                     }
 
+                    // Standard Close Button
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(34.dp)
-                            .clip(CircleShape)
-                            .background(colors.surfaceElevated)
+                            .clip(ButtonShape)
+                            .background(colors.surfaceVariant)
+                            .border(0.6.dp, colors.goldBorder, ButtonShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = InvoiceCloseVector,
                             contentDescription = "بستن",
                             tint = colors.textSecondary,
                             modifier = Modifier.size(18.dp)
@@ -189,436 +190,361 @@ fun AdjustStockModal(
                     }
                 }
 
-                HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.7.dp)
+                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
 
-                // Operation Mode Tabs (شارژ موجودی / کسر موجودی)
-                Row(
+                // Scrollable Body
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(colors.surfaceElevated)
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    val isCharge = adjustmentType == StockAdjustmentType.CHARGE
+                    // Operation Mode Switching (With LuxurySegmentedControl spring animation)
+                    LuxurySegmentedControl(
+                        items = listOf(StockAdjustmentType.CHARGE, StockAdjustmentType.DEDUCT),
+                        selectedItem = adjustmentType,
+                        onItemSelected = { adjustmentType = it },
+                        label = {
+                            if (it == StockAdjustmentType.CHARGE) "+ شارژ موجودی (ورود)" else "- کسر موجودی (خروج)"
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 36.dp,
+                        fontSize = 11.5.sp
+                    )
+
+                    // Target Item Info Card
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (isCharge) colors.profitGreen.copy(alpha = 0.15f) else Color.Transparent,
-                        border = if (isCharge) BorderStroke(1.2.dp, colors.profitGreen) else null,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { adjustmentType = StockAdjustmentType.CHARGE }
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.surfaceElevated.copy(alpha = 0.6f),
+                        border = BorderStroke(1.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "+ شارژ موجودی (ورود)",
-                                fontSize = 11.5.sp,
-                                fontWeight = if (isCharge) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isCharge) colors.profitGreen else colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-
-                    val isDeduct = adjustmentType == StockAdjustmentType.DEDUCT
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (isDeduct) colors.errorRed.copy(alpha = 0.15f) else Color.Transparent,
-                        border = if (isDeduct) BorderStroke(1.2.dp, colors.errorRed) else null,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { adjustmentType = StockAdjustmentType.DEDUCT }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "- کسر موجودی (خروج)",
-                                fontSize = 11.5.sp,
-                                fontWeight = if (isDeduct) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isDeduct) colors.errorRed else colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-                }
-
-                // Target Item Info Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = colors.surfaceElevated.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = item.title,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                fontFamily = VazirmatnFamily
-                            )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = colors.goldContainer,
-                                border = BorderStroke(0.6.dp, colors.goldBorder)
-                            ) {
-                                Text(
-                                    text = item.code,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.goldSecondary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = item.location,
-                            fontSize = 10.5.sp,
-                            color = colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
-
-                        // Current Stock Status
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = colors.surface,
-                            border = BorderStroke(0.8.dp, colors.border.copy(alpha = 0.7f)),
-                            modifier = Modifier.fillMaxWidth()
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "موجودی فعلی در کاردکس:",
-                                    fontSize = 10.5.sp,
-                                    color = colors.textSecondary,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "${PersianNumberFormatter.toPersianDigits(currentQty.toString())} عدد | ${PersianNumberFormatter.formatWeight(currentGross)} گرم",
-                                    fontSize = 11.sp,
+                                    text = item.title,
+                                    fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.textMain,
                                     fontFamily = VazirmatnFamily
                                 )
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = colors.goldContainer,
+                                    border = BorderStroke(0.6.dp, colors.goldBorder)
+                                ) {
+                                    Text(
+                                        text = item.code,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.goldSecondary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
-                        }
-                    }
-                }
 
-                // Quantity Stepper & Gold Weight Input
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Piece Count Stepper
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(1.dp, colors.border),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
                             Text(
-                                text = "تعداد قطعه",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = item.location,
+                                fontSize = 10.5.sp,
                                 color = colors.textSecondary,
                                 fontFamily = VazirmatnFamily
                             )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+
+                            // Current Stock Status
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = colors.surface,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                IconButton(
-                                    onClick = { quantityChange++ },
+                                Row(
                                     modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(colors.surface)
-                                        .border(1.dp, colors.border, RoundedCornerShape(8.dp))
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "افزایش",
-                                        tint = colors.textMain,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-
-                                Text(
-                                    text = PersianNumberFormatter.toPersianDigits(quantityChange.toString()),
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = if (adjustmentType == StockAdjustmentType.CHARGE) colors.profitGreen else colors.errorRed,
-                                    fontFamily = VazirmatnFamily
-                                )
-
-                                IconButton(
-                                    onClick = { if (quantityChange > 1) quantityChange-- },
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(colors.surface)
-                                        .border(1.dp, colors.border, RoundedCornerShape(8.dp))
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "—",
-                                        fontSize = 14.sp,
+                                        text = "موجودی فعلی: ${PersianNumberFormatter.toPersianDigits(currentQty.toString())} عدد",
+                                        fontSize = 10.5.sp,
+                                        color = colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "وزن ثبت‌شده: ${PersianNumberFormatter.formatWeight(currentGross)} گرم",
+                                        fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.textMain
+                                        color = colors.goldPrimary,
+                                        fontFamily = VazirmatnFamily
                                     )
                                 }
                             }
                         }
                     }
 
-                    // Weight Input (Gram)
-                    Box(modifier = Modifier.weight(1f)) {
-                        GoldInputField(
-                            value = weightInput,
-                            onValueChange = { weightInput = it },
-                            label = "وزن کل طلا",
-                            trailingText = "گرم",
-                            isDecimal = true,
-                            keyboardType = KeyboardType.Decimal
-                        )
-                    }
-                }
-
-                // Reason Selector Chips
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "علت و سرفصل ${if (adjustmentType == StockAdjustmentType.CHARGE) "شارژ" else "کسر"} موجودی",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textSecondary,
-                        fontFamily = VazirmatnFamily
-                    )
+                    // Adjustment Inputs: Polished Stepper + Weight Input
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        listOf(
-                            "دریافت از کارگاه ساخت",
-                            "انتقال از گاوصندوق پشتی",
-                            "اصلاح تراز انبارگردانی",
-                            "مرجوعی فاکتور مشتری"
-                        ).forEach { reason ->
-                            val isSelected = selectedReason == reason
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) colors.textMain else colors.surfaceElevated,
-                                modifier = Modifier.clickable { selectedReason = reason }
+                        // Polished Piece Count Stepper
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(1.dp, colors.border),
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = reason,
+                                    text = "تعداد تغییر (قطعه)",
                                     fontSize = 10.5.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) Color(0xFFFBBF24) else colors.textSecondary,
-                                    fontFamily = VazirmatnFamily,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
                                 )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // [-] button
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = colors.surface,
+                                        border = BorderStroke(0.6.dp, colors.border),
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clickable { if (quantityChange > 1) quantityChange-- }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "—",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textMain
+                                            )
+                                        }
+                                    }
+
+                                    AnimatedContent(
+                                        targetState = quantityChange,
+                                        label = "qtyAnim"
+                                    ) { qty ->
+                                        Text(
+                                            text = PersianNumberFormatter.toPersianDigits(qty.toString()),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = if (adjustmentType == StockAdjustmentType.CHARGE) colors.profitGreen else colors.errorRed,
+                                            fontFamily = VazirmatnFamily,
+                                            modifier = Modifier.widthIn(min = 28.dp),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+
+                                    // [+] button
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = colors.surface,
+                                        border = BorderStroke(0.6.dp, colors.border),
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clickable { quantityChange++ }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "افزایش",
+                                                tint = colors.goldPrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Weight Input (Gram)
+                        Box(modifier = Modifier.weight(1f)) {
+                            GoldInputField(
+                                value = weightInput,
+                                onValueChange = { weightInput = it },
+                                label = "وزن کل طلا",
+                                trailingText = "گرم",
+                                isDecimal = true,
+                                keyboardType = KeyboardType.Decimal
+                            )
+                        }
+                    }
+
+                    // Reason Selector Chips
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "علت و سرفصل ${if (adjustmentType == StockAdjustmentType.CHARGE) "شارژ" else "کسر"} موجودی",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(
+                                "دریافت از کارگاه ساخت",
+                                "انتقال از گاوصندوق پشتی",
+                                "اصلاح تراز انبارگردانی",
+                                "مرجوعی فاکتور مشتری",
+                                "تحویل به ری‌گیری یا آبکاری"
+                            ).forEach { reason ->
+                                val isSelected = selectedReason == reason
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = if (isSelected) colors.goldPrimary else colors.surfaceElevated,
+                                    border = BorderStroke(
+                                        width = if (isSelected) 1.2.dp else 0.8.dp,
+                                        color = if (isSelected) colors.goldPrimary else colors.border
+                                    ),
+                                    modifier = Modifier.clickable { selectedReason = reason }
+                                ) {
+                                    Text(
+                                        text = reason,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else colors.textSecondary,
+                                        fontFamily = VazirmatnFamily,
+                                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp)
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Description / Tracking Input
-                GoldInputField(
-                    value = noteInput,
-                    onValueChange = { noteInput = it },
-                    label = "توضیحات، شماره حواله یا بارنامه",
-                    trailingText = null,
-                    keyboardType = KeyboardType.Text
-                )
+                    // Description / Tracking Input
+                    GoldInputField(
+                        value = noteInput,
+                        onValueChange = { noteInput = it },
+                        label = "توضیحات اختیاری، شماره حواله یا بارنامه",
+                        trailingText = null,
+                        keyboardType = KeyboardType.Text
+                    )
 
-                // Luxury Balance Summary Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF131722),
-                    border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Balance Summary Card
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFF131722),
+                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "پیش‌نمایش تراز کاردکس پس از ثبت",
+                                text = "پیش‌نمایش تراز کاردکس پس از این عملیات",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFBBF24),
                                 fontFamily = VazirmatnFamily
                             )
-                            Text(
-                                text = "آنلاین و قطعی",
-                                fontSize = 9.5.sp,
-                                color = Color(0xFF94A3B8),
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
 
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.6.dp)
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = "موجودی فعلی", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
-                                Text(
-                                    text = "${PersianNumberFormatter.toPersianDigits(currentQty.toString())} عدد",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "${PersianNumberFormatter.formatWeight(currentGross)} گرم",
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8),
-                                    fontFamily = VazirmatnFamily
-                                )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(text = "موجودی پس از ثبت:", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
+                                    Text(
+                                        text = "${PersianNumberFormatter.toPersianDigits(newQty.toString())} عدد",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                                Column {
+                                    Text(text = "وزن کل جدید:", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
+                                    Text(
+                                        text = "${PersianNumberFormatter.formatWeight(newGross)} گرم",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFFBBF24),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(text = "گردش ریالی طلا:", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
+                                    AnimatedPriceText(
+                                        amount = deltaMonetaryValue,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = if (adjustmentType == StockAdjustmentType.CHARGE) Color(0xFF34D399) else Color(0xFFF87171),
+                                        unit = "تومان"
+                                    )
+                                }
                             }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                val changeSign = if (adjustmentType == StockAdjustmentType.CHARGE) "+" else "-"
-                                val changeColor = if (adjustmentType == StockAdjustmentType.CHARGE) colors.profitGreen else colors.errorRed
-                                Text(
-                                    text = if (adjustmentType == StockAdjustmentType.CHARGE) "افزایش اعمالی" else "کاهش اعمالی",
-                                    fontSize = 9.5.sp,
-                                    color = changeColor,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "$changeSign${PersianNumberFormatter.toPersianDigits(quantityChange.toString())} عدد",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = changeColor,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "$changeSign${PersianNumberFormatter.formatWeight(effectiveWeight)} گرم",
-                                    fontSize = 10.sp,
-                                    color = changeColor,
-                                    fontFamily = VazirmatnFamily
-                                )
-                            }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = "موجودی نهایی", fontSize = 9.5.sp, color = Color(0xFFFBBF24), fontFamily = VazirmatnFamily)
-                                Text(
-                                    text = "${PersianNumberFormatter.toPersianDigits(newQty.toString())} عدد",
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFBBF24),
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "${PersianNumberFormatter.formatWeight(newGross)} گرم",
-                                    fontSize = 10.sp,
-                                    color = Color(0xFFFBBF24),
-                                    fontFamily = VazirmatnFamily
-                                )
-                            }
-                        }
-
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "ارزش طلای ${if (adjustmentType == StockAdjustmentType.CHARGE) "افزوده" else "کسر شده"}:",
-                                fontSize = 10.sp,
-                                color = Color(0xFF94A3B8),
-                                fontFamily = VazirmatnFamily
-                            )
-                            Text(
-                                text = "${PersianNumberFormatter.formatPrice(deltaMonetaryValue)} تومان",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontFamily = VazirmatnFamily
-                            )
                         }
                     }
                 }
 
-                // Two-Action Footer Buttons (Rule: RTL Secondary on Right, Primary on Left)
-                Row(
+                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+                // Fixed Footer with Action Buttons (Rule: RTL Secondary on Right, Primary on Left)
+                Surface(
+                    color = colors.surface,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .navigationBarsPadding()
                 ) {
-                    // Right child (Secondary / Cancel)
-                    GoldButton(
-                        text = "انصراف",
-                        onClick = onDismiss,
-                        isSecondary = true,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Right child (Secondary / Cancel) - Rule: RTL Cancel on right
+                        GoldButton(
+                            text = "انصراف",
+                            onClick = onDismiss,
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    // Left child (Primary / Confirm)
-                    GoldButton(
-                        text = "تایید و ثبت در کاردکس انبار",
-                        onClick = {
-                            val adj = StockAdjustment(
-                                id = UUID.randomUUID().toString(),
-                                itemId = item.id,
-                                itemTitle = item.title,
-                                type = adjustmentType,
-                                quantityChange = quantityChange,
-                                weightGrams = effectiveWeight,
-                                reason = selectedReason,
-                                note = noteInput.trim()
-                            )
-                            onConfirmAdjustment(adj)
-                        },
-                        isSecondary = false,
-                        icon = Icons.Default.Check,
-                        modifier = Modifier.weight(2f)
-                    )
+                        // Left child (Primary / Confirm) - Rule: RTL Confirm on left
+                        GoldButton(
+                            text = if (adjustmentType == StockAdjustmentType.CHARGE) "ثبت و شارژ موجودی" else "ثبت و کسر موجودی",
+                            onClick = {
+                                val adj = StockAdjustment(
+                                    id = UUID.randomUUID().toString(),
+                                    itemId = item.id,
+                                    itemTitle = item.title,
+                                    type = adjustmentType,
+                                    quantityChange = quantityChange,
+                                    weightGrams = effectiveWeight,
+                                    reason = selectedReason,
+                                    note = noteInput.trim()
+                                )
+                                onConfirmAdjustment(adj)
+                            },
+                            isSecondary = false,
+                            icon = Icons.Default.Check,
+                            modifier = Modifier.weight(1.8f)
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
             }
         }
     }
