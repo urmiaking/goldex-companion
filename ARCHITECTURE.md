@@ -27,12 +27,14 @@ MainActivity
        -> MeltCalcScreen (MeltUiState & explicit callbacks)
        -> CustomerLedgerScreen (CustomerManagerViewModel)
        -> CustomerStatementScreen (CustomerManagerViewModel)
+       -> InventoryScreen (InventoryViewModel & explicit callbacks)
        -> MoreHubScreen (AppSettings & explicit callbacks)
        -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
        -> OnboardingWizardScreen (WizardUiState & SettingsStore integration)
-       -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog)
+       -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog, AddInventoryItemModal, AdjustStockModal)
 
 Feature ViewModels & State Holders:
+  -> InventoryViewModel (InventoryStore)
   -> CustomerManagerViewModel (CustomerStore)
   -> InvoiceManagerViewModel (InvoiceStore)
   -> BarterInvoiceViewModel (BarterCalculationUseCases)
@@ -85,6 +87,7 @@ Recommended feature areas:
 - `calculator`: jewelry, melt, coin bubble, and karat conversion
 - `invoices`: invoice lifecycle, customer association, PDF/export
 - `portfolio`: holdings, valuation, profit/loss
+- `inventory`: showcase items, stock kardex ledger, weight conversions, vault valuation
 - `settings`: user preferences and jeweler profile
 
 ## 4. State and UI contracts

@@ -26,6 +26,7 @@ import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.goldex.companion.ui.hub.HubShowcase
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +74,7 @@ fun DashboardScreen(
     onNavigateCoinBubble: () -> Unit,
     onNavigateMelt: () -> Unit,
     onNavigateLedger: () -> Unit,
+    onNavigateInventory: () -> Unit = {},
     onOpenLicenseActivation: () -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
@@ -513,9 +515,9 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f)
                 )
                 QuickActionButton(
-                    title = "مظنه آبشده",
-                    icon = DashCandlestickVector,
-                    onClick = onNavigateMelt,
+                    title = "مدیریت انبار",
+                    icon = HubShowcase,
+                    onClick = onNavigateInventory,
                     modifier = Modifier.weight(1f)
                 )
                 QuickActionButton(

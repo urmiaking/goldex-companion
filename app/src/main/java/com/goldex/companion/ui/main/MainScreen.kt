@@ -61,6 +61,9 @@ import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.ui.customers.CustomerLedgerScreen
 import com.goldex.companion.ui.customers.CustomerStatementScreen
 import com.goldex.companion.ui.customers.modals.AddLedgerEntryModal
+import com.goldex.companion.ui.inventory.InventoryScreen
+import com.goldex.companion.ui.inventory.InventoryViewModel
+import com.goldex.companion.ui.inventory.InventoryViewModelFactory
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
@@ -112,6 +115,7 @@ fun MainScreen(
     val karatConvertViewModel: KaratConvertViewModel = viewModel()
     val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel()
     val licenseViewModel: LicenseViewModel = viewModel(factory = LicenseViewModelFactory(app))
+    val inventoryViewModel: InventoryViewModel = viewModel(factory = InventoryViewModelFactory(app))
 
     val mainUiState by mainViewModel.uiState.collectAsState()
     val customerState by customerViewModel.uiState.collectAsState()
@@ -123,6 +127,7 @@ fun MainScreen(
     val karatConvertUiState by karatConvertViewModel.uiState.collectAsState()
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
     val licenseUiState by licenseViewModel.uiState.collectAsState()
+    val inventoryState by inventoryViewModel.uiState.collectAsState()
     val licenseInfo = licenseUiState.licenseInfo
 
     val colors = LocalGoldExColors.current
@@ -500,6 +505,9 @@ fun MainScreen(
                                         onNavigateLedger = {
                                             customerViewModel.openCustomerLedger()
                                         },
+                                        onNavigateInventory = {
+                                            inventoryViewModel.setInventoryVisible(true)
+                                        },
                                         onOpenLicenseActivation = {
                                             licenseViewModel.setActivationDialogVisible(true)
                                         }
@@ -584,7 +592,7 @@ fun MainScreen(
                                             QiratoToast.show(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد")
                                         },
                                         onNavigateInventory = {
-                                            QiratoToast.show(context, "سامانه انبارداری و موجودی در فاز ۴ فعال خواهد شد")
+                                            inventoryViewModel.setInventoryVisible(true)
                                         },
                                         onNavigateConvert = {
                                             mainViewModel.setKaratConvertVisible(true)
@@ -659,6 +667,7 @@ fun MainScreen(
                 enabled = customerState.selectedCustomerForStatement != null ||
                           customerState.isCustomerLedgerVisible ||
                           barterUiState.subScreen != InvoicesSubScreen.LIST ||
+                          inventoryState.isInventoryVisible ||
                           mainUiState.isStandardFormulasVisible ||
                           mainUiState.isKaratConvertVisible ||
                           mainUiState.isCoinBubbleVisible ||
@@ -671,6 +680,12 @@ fun MainScreen(
                     customerViewModel.closeCustomerLedger()
                 } else if (barterUiState.subScreen != InvoicesSubScreen.LIST) {
                     barterInvoiceViewModel.navigateBackToList()
+                } else if (inventoryState.isAddModalOpen) {
+                    inventoryViewModel.closeAddModal()
+                } else if (inventoryState.isAdjustModalOpen) {
+                    inventoryViewModel.closeAdjustModal()
+                } else if (inventoryState.isInventoryVisible) {
+                    inventoryViewModel.setInventoryVisible(false)
                 } else if (mainUiState.isRateDetailVisible) mainViewModel.setRateDetailVisible(false)
                 else if (mainUiState.isStandardFormulasVisible) mainViewModel.setStandardFormulasVisible(false)
                 else if (mainUiState.isKaratConvertVisible) mainViewModel.setKaratConvertVisible(false)
@@ -748,6 +763,66 @@ fun MainScreen(
                     onMeltWeightChanged = mainViewModel::onMeltWeightChanged,
                     onMesghalPriceChanged = mainViewModel::onMesghalPriceChanged,
                     onBack = { mainViewModel.setMeltVisible(false) }
+                )
+            }
+
+            // Gold Inventory & Showcase Screen
+            AnimatedVisibility(
+                visible = inventoryState.isInventoryVisible,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                InventoryScreen(
+                    uiState = inventoryState,
+                    rates = mainUiState.rates,
+                    onBack = { inventoryViewModel.setInventoryVisible(false) },
+                    onSelectCategory = inventoryViewModel::selectCategory,
+                    onSearchQueryChanged = inventoryViewModel::setSearchQuery,
+                    onOpenAddModal = inventoryViewModel::openAddModal,
+                    onCloseAddModal = inventoryViewModel::closeAddModal,
+                    onOpenAdjustModal = inventoryViewModel::openAdjustModal,
+                    onCloseAdjustModal = inventoryViewModel::closeAdjustModal,
+                    onSaveNewItem = inventoryViewModel::addItem,
+                    onConfirmAdjustment = inventoryViewModel::adjustStock,
+                    onDeleteItem = inventoryViewModel::deleteItem,
+                    onTransferToInvoice = { item ->
+                        val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                            PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                            mainUiState.priceBasisTab
+                        ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+
+                        barterInvoiceViewModel.openNewInvoice(currentSpot)
+
+                        val rawGoldValue = item.netGoldWeightGrams * currentSpot * (item.karat.value.toDouble() / 750.0)
+                        val wageAmount = rawGoldValue * (item.wagePercent / 100.0)
+                        val profitAmount = (rawGoldValue + wageAmount) * (item.profitPercent / 100.0)
+                        val taxAmount = (wageAmount + profitAmount) * (item.taxPercent / 100.0)
+                        val totalPayable = rawGoldValue + wageAmount + profitAmount + taxAmount
+
+                        val barterItem = CraftedGoldItem(
+                            title = item.title,
+                            karat = item.karat,
+                            grossWeight = item.grossWeightGrams,
+                            stoneWeight = item.stoneWeightGrams,
+                            netWeight = item.netGoldWeightGrams,
+                            spotPrice = currentSpot,
+                            wageType = WageType.PERCENTAGE,
+                            wageInput = item.wagePercent,
+                            wageAmount = wageAmount,
+                            profitPercent = item.profitPercent,
+                            profitAmount = profitAmount,
+                            taxPercent = item.taxPercent,
+                            taxAmount = taxAmount,
+                            rawGoldValue = rawGoldValue,
+                            totalPayable = totalPayable,
+                            equivalent18kWeight = item.weightIn18kGrams
+                        )
+                        barterInvoiceViewModel.addSalesItem(barterItem)
+                        inventoryViewModel.setInventoryVisible(false)
+                        mainViewModel.selectTab(AppTab.INVOICES)
+                        QiratoToast.show(context, "کالای ${item.code} به فاکتور منتقل شد")
+                    }
                 )
             }
 

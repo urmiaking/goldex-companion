@@ -1,12 +1,16 @@
 package com.goldex.companion.data
 
 import com.goldex.companion.model.Customer
+import com.goldex.companion.model.InventoryCategory
+import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.InvoiceItem
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.LedgerDirection
 import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.LedgerTransaction
+import com.goldex.companion.model.StockAdjustment
+import com.goldex.companion.model.StockAdjustmentType
 import com.goldex.companion.model.WageType
 import org.json.JSONArray
 import org.json.JSONObject
@@ -296,6 +300,134 @@ internal object PersistenceJsonCodecs {
                 put("resultingGoldBalance", tx.resultingGoldBalance)
                 put("resultingCashBalance", tx.resultingCashBalance)
                 put("timestamp", tx.timestamp)
+            })
+        }
+        return array.toString()
+    }
+
+    fun decodeInventoryItems(json: String?): List<InventoryItem> {
+        if (json.isNullOrBlank()) return emptyList()
+        return runCatching {
+            val array = JSONArray(json)
+            val items = mutableListOf<InventoryItem>()
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                val id = obj.stringValue("id").trim()
+                val code = obj.stringValue("code").trim()
+                val title = obj.stringValue("title").trim()
+                if (id.isEmpty() || title.isEmpty()) continue
+                val category = enumOrDefault(obj.stringValue("category"), InventoryCategory.RINGS)
+                val karat = enumOrDefault(obj.stringValue("karat"), Karat.K18)
+                val customKaratValue = obj.intValue("customKaratValue", 750)
+                val location = obj.stringValue("location", "سینی شماره ۱ ویترین اصلی")
+                val grossWeightGrams = obj.doubleValue("grossWeightGrams", 0.0)
+                val stoneWeightGrams = obj.doubleValue("stoneWeightGrams", 0.0)
+                val workshop = obj.stringValue("workshop", "کارگاه زرین تهران")
+                val wagePercent = obj.doubleValue("wagePercent", 0.0)
+                val profitPercent = obj.doubleValue("profitPercent", 7.0)
+                val taxPercent = obj.doubleValue("taxPercent", 9.0)
+                val rfidTag = obj.stringValue("rfidTag", "")
+                val quantity = obj.intValue("quantity", 1)
+                val imageUrl = obj.stringValue("imageUrl", "")
+                val createdAt = obj.longValue("createdAt", System.currentTimeMillis())
+
+                items += InventoryItem(
+                    id = id,
+                    code = code,
+                    title = title,
+                    category = category,
+                    location = location,
+                    grossWeightGrams = grossWeightGrams,
+                    stoneWeightGrams = stoneWeightGrams,
+                    karat = karat,
+                    customKaratValue = customKaratValue,
+                    workshop = workshop,
+                    wagePercent = wagePercent,
+                    profitPercent = profitPercent,
+                    taxPercent = taxPercent,
+                    rfidTag = rfidTag,
+                    quantity = quantity,
+                    imageUrl = imageUrl,
+                    createdAt = createdAt
+                )
+            }
+            items
+        }.getOrDefault(emptyList())
+    }
+
+    fun encodeInventoryItems(items: List<InventoryItem>): String {
+        val array = JSONArray()
+        items.forEach { item ->
+            array.put(JSONObject().apply {
+                put("id", item.id)
+                put("code", item.code)
+                put("title", item.title)
+                put("category", item.category.name)
+                put("location", item.location)
+                put("grossWeightGrams", item.grossWeightGrams)
+                put("stoneWeightGrams", item.stoneWeightGrams)
+                put("karat", item.karat.name)
+                put("customKaratValue", item.customKaratValue)
+                put("workshop", item.workshop)
+                put("wagePercent", item.wagePercent)
+                put("profitPercent", item.profitPercent)
+                put("taxPercent", item.taxPercent)
+                put("rfidTag", item.rfidTag)
+                put("quantity", item.quantity)
+                put("imageUrl", item.imageUrl)
+                put("createdAt", item.createdAt)
+            })
+        }
+        return array.toString()
+    }
+
+    fun decodeStockAdjustments(json: String?): List<StockAdjustment> {
+        if (json.isNullOrBlank()) return emptyList()
+        return runCatching {
+            val array = JSONArray(json)
+            val adjustments = mutableListOf<StockAdjustment>()
+            for (index in 0 until array.length()) {
+                val obj = array.optJSONObject(index) ?: continue
+                val id = obj.stringValue("id").trim()
+                val itemId = obj.stringValue("itemId").trim()
+                if (id.isEmpty() || itemId.isEmpty()) continue
+                val itemTitle = obj.stringValue("itemTitle", "")
+                val type = enumOrDefault(obj.stringValue("type"), StockAdjustmentType.CHARGE)
+                val quantityChange = obj.intValue("quantityChange", 1)
+                val weightGrams = obj.doubleValue("weightGrams", 0.0)
+                val reason = obj.stringValue("reason", "دریافت از کارگاه ساخت")
+                val note = obj.stringValue("note", "")
+                val timestamp = obj.longValue("timestamp", System.currentTimeMillis())
+
+                adjustments += StockAdjustment(
+                    id = id,
+                    itemId = itemId,
+                    itemTitle = itemTitle,
+                    type = type,
+                    quantityChange = quantityChange,
+                    weightGrams = weightGrams,
+                    reason = reason,
+                    note = note,
+                    timestamp = timestamp
+                )
+            }
+            adjustments
+        }.getOrDefault(emptyList())
+    }
+
+    fun encodeStockAdjustments(adjustments: List<StockAdjustment>): String {
+        val array = JSONArray()
+        adjustments.forEach { adj ->
+            array.put(JSONObject().apply {
+                put("id", adj.id)
+                put("itemId", adj.itemId)
+                put("itemTitle", adj.itemTitle)
+                put("type", adj.type.name)
+                put("quantityChange", adj.quantityChange)
+                put("weightGrams", adj.weightGrams)
+                put("reason", adj.reason)
+                put("note", adj.note)
+                put("timestamp", adj.timestamp)
             })
         }
         return array.toString()

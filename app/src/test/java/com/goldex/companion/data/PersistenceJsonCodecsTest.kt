@@ -2,9 +2,13 @@ package com.goldex.companion.data
 
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.Customer
+import com.goldex.companion.model.InventoryCategory
+import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.InvoiceItem
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.StockAdjustment
+import com.goldex.companion.model.StockAdjustmentType
 import com.goldex.companion.model.WageType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -114,5 +118,65 @@ class PersistenceJsonCodecsTest {
         assertEquals(999, decoded.items.single().customKaratValue)
         assertEquals(1.001, decoded.items.single().netWeight, 0.0001)
         assertEquals(CoinType.EMAMI, CoinType.valueOf("EMAMI"))
+    }
+
+    @Test
+    fun inventoryItemsSerializationAndLegacyTolerantDecoding() {
+        val item = InventoryItem(
+            id = "inv-1",
+            code = "RNG-104",
+            title = "انگشتر البرنادو",
+            category = InventoryCategory.RINGS,
+            location = "سینی ۱",
+            grossWeightGrams = 5.420,
+            stoneWeightGrams = 0.150,
+            karat = Karat.K18,
+            workshop = "زرین",
+            wagePercent = 12.0,
+            profitPercent = 7.0,
+            taxPercent = 9.0,
+            rfidTag = "RF-104",
+            quantity = 3
+        )
+
+        val json = PersistenceJsonCodecs.encodeInventoryItems(listOf(item))
+        val decoded = PersistenceJsonCodecs.decodeInventoryItems(json)
+
+        assertEquals(1, decoded.size)
+        val decodedItem = decoded.single()
+        assertEquals(item.id, decodedItem.id)
+        assertEquals(item.code, decodedItem.code)
+        assertEquals(item.title, decodedItem.title)
+        assertEquals(item.category, decodedItem.category)
+        assertEquals(5.420, decodedItem.grossWeightGrams, 0.001)
+        assertEquals(0.150, decodedItem.stoneWeightGrams, 0.001)
+        assertEquals(5.270, decodedItem.netGoldWeightGrams, 0.001)
+        assertEquals(3, decodedItem.quantity)
+    }
+
+    @Test
+    fun stockAdjustmentCodecPreservesData() {
+        val adj = StockAdjustment(
+            id = "adj-1",
+            itemId = "inv-1",
+            itemTitle = "انگشتر",
+            type = StockAdjustmentType.CHARGE,
+            quantityChange = 5,
+            weightGrams = 27.180,
+            reason = "دریافت از کارگاه ساخت",
+            note = "حواله ۱۲۳"
+        )
+
+        val json = PersistenceJsonCodecs.encodeStockAdjustments(listOf(adj))
+        val decoded = PersistenceJsonCodecs.decodeStockAdjustments(json)
+
+        assertEquals(1, decoded.size)
+        val decodedAdj = decoded.single()
+        assertEquals(adj.id, decodedAdj.id)
+        assertEquals(adj.itemId, decodedAdj.itemId)
+        assertEquals(StockAdjustmentType.CHARGE, decodedAdj.type)
+        assertEquals(5, decodedAdj.quantityChange)
+        assertEquals(27.180, decodedAdj.weightGrams, 0.001)
+        assertEquals("دریافت از کارگاه ساخت", decodedAdj.reason)
     }
 }

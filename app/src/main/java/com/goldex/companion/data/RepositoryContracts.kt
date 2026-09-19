@@ -1,10 +1,12 @@
 package com.goldex.companion.data
 
 import com.goldex.companion.model.Customer
+import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Invoice
 import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.MarketCandle
 import com.goldex.companion.model.MarketRateItemType
+import com.goldex.companion.model.StockAdjustment
 import com.goldex.companion.model.TimeHorizon
 import kotlinx.coroutines.flow.StateFlow
 
@@ -17,6 +19,15 @@ interface CustomerStore {
     fun addTransaction(transaction: LedgerTransaction)
     fun updateTransaction(transaction: LedgerTransaction) {}
     fun deleteTransaction(id: String) {}
+}
+
+interface InventoryStore {
+    fun getItems(): List<InventoryItem>
+    fun addItem(item: InventoryItem)
+    fun updateItem(item: InventoryItem)
+    fun deleteItem(id: String)
+    fun adjustStock(adjustment: StockAdjustment)
+    fun getAdjustments(): List<StockAdjustment>
 }
 
 interface PortfolioStore {

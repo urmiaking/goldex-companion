@@ -464,6 +464,18 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
 
+                // Item 0: Melt gold calculator
+                HubListRowItem(
+                    title = "محاسبه مظنه آبشده و طلای خام",
+                    subtitle = "تبدیل مظنه مثقال به گرم ۱۸ عیار و آزمایشگاه ری‌گیری",
+                    icon = HubInbox,
+                    iconTint = Color(0xFFD97706),
+                    iconBg = Color(0xFFFEF3C7),
+                    onClick = onNavigateMelt
+                )
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
                 // Item 1: Karat conversion
                 HubListRowItem(
                     title = "تبدیل عیار و محاسبه شرطی (۷۵۰ به ۷۰۵ و ۹۹۹)",

@@ -546,6 +546,12 @@ class BarterInvoiceViewModel : ViewModel() {
         }
     }
 
+    fun addSalesItem(item: BarterItem) {
+        _uiState.update { state ->
+            state.copy(invoice = state.invoice.copy(salesItems = state.invoice.salesItems + item))
+        }
+    }
+
     fun deleteSalesItem(id: String) {
         _uiState.update { state ->
             state.copy(invoice = state.invoice.copy(salesItems = state.invoice.salesItems.filterNot { it.id == id }))
