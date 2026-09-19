@@ -43,16 +43,16 @@ class InventoryCalculationTest {
             stoneWeightGrams = 0.0,
             karat = Karat.K24 // 999/750 = 1.332
         )
-        assertEquals(10.0 * (999.0 / 750.0), item24k.weightIn18kGrams, 0.001)
+        assertEquals(10.0 * (Karat.K24.purityRatio / Karat.K18.purityRatio), item24k.weightIn18kGrams, 0.001)
 
-        val item17k = InventoryItem(
-            code = "OLD-01",
-            title = "طلای سنتی ۷۰۵",
+        val item21k = InventoryItem(
+            code = "GULF-01",
+            title = "طلای ۲۱ عیار خلیجی",
             grossWeightGrams = 10.0,
             stoneWeightGrams = 0.0,
-            karat = Karat.K17 // 705/750 = 0.94
+            karat = Karat.K21
         )
-        assertEquals(10.0 * (705.0 / 750.0), item17k.weightIn18kGrams, 0.001)
+        assertEquals(10.0 * (Karat.K21.purityRatio / Karat.K18.purityRatio), item21k.weightIn18kGrams, 0.001)
     }
 
     @Test
