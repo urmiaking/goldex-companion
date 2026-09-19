@@ -1,27 +1,42 @@
 package com.goldex.companion.ui.inventory.modals
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.rememberCoroutineScope
+import com.goldex.companion.ui.theme.LuxuryMotion
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -29,10 +44,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -77,7 +91,6 @@ fun AdjustStockModal(
     onConfirmAdjustment: (StockAdjustment) -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var adjustmentType by remember { mutableStateOf(StockAdjustmentType.CHARGE) }
     var quantityChange by remember { mutableIntStateOf(1) }
@@ -109,34 +122,106 @@ fun AdjustStockModal(
         (effectiveWeight * spotPrice).toLong()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = colors.surface,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 44.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(colors.border)
-            )
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "scrimAlpha"
+    )
+
+    Dialog(
+        onDismissRequest = handleDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.88f)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = handleDismiss
+                    ),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                // Fixed Modal Header
-                Row(
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .wrapContentHeight()
                 ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            ),
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .heightIn(max = 580.dp)
+                                .navigationBarsPadding()
+                        ) {
+                            // Top Drag Handle
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 10.dp, bottom = 4.dp)
+                                    .size(width = 44.dp, height = 4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.border)
+                                    .align(Alignment.CenterHorizontally)
+                            )
+
+                            // Fixed Modal Header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -174,7 +259,7 @@ fun AdjustStockModal(
 
                     // Standard Close Button
                     IconButton(
-                        onClick = onDismiss,
+                        onClick = handleDismiss,
                         modifier = Modifier
                             .size(34.dp)
                             .clip(ButtonShape)
@@ -196,7 +281,7 @@ fun AdjustStockModal(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -518,7 +603,7 @@ fun AdjustStockModal(
                         // Right child (Secondary / Cancel) - Rule: RTL Cancel on right
                         GoldButton(
                             text = "انصراف",
-                            onClick = onDismiss,
+                            onClick = handleDismiss,
                             isSecondary = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -538,6 +623,7 @@ fun AdjustStockModal(
                                     note = noteInput.trim()
                                 )
                                 onConfirmAdjustment(adj)
+                                handleDismiss()
                             },
                             isSecondary = false,
                             icon = Icons.Default.Check,
@@ -548,4 +634,7 @@ fun AdjustStockModal(
             }
         }
     }
+}
+}
+}
 }

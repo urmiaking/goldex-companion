@@ -56,6 +56,72 @@ import com.goldex.companion.ui.theme.goldButtonGradient
 import com.goldex.companion.ui.theme.goldButtonText
 import com.goldex.companion.ui.theme.heroCardGradient
 
+@Composable
+private fun InlineCustomKaratChip(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "سفارشی"
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated,
+        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+        modifier = modifier
+            .height(36.dp)
+            .clickable { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = PersianNumberFormatter.toPersianDigits(value),
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() || ch in '\u06F0'..'\u06F9' }
+                    val clean = PersianNumberFormatter.toEnglishDigits(filtered)
+                    onValueChange(clean)
+                    onSelect()
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = TextStyle(
+                    fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings,
+                    fontSize = 11.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                    textDirection = TextDirection.Ltr
+                ),
+                cursorBrush = SolidColor(colors.goldPrimary),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted,
+                                fontFamily = VazirmatnFamily,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+        }
+    }
+}
+
 /**
  * Pixel-perfect Jewelry Calculator Tab adhering strictly to Google Stitch
  * Design Screen ID: 5e8f08bf3eea421a888f20d95c28262c and user reference.
@@ -316,153 +382,126 @@ fun JewelryTab(
                     }
                 }
 
-                // Two Inputs Side-by-Side: Weight (وزن) & Karat (عیار)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Box 1: وزن طلا
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.6.dp, colors.border),
-                        modifier = Modifier.weight(1.15f)
+                // 1. Karat Chips at Top (Presets + Inline Custom Karat Chip)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "عیار طلا",
+                        fontFamily = VazirmatnFamily,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    BasicTextField(
-                                        value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
-                                        onValueChange = { viewModel.onGrossWeightChanged(it) },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontFamily = VazirmatnFamily,
-                                            fontFeatureSettings = VazirmatnFeatureSettings,
-                                            fontSize = 17.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.textMain,
-                                            textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Ltr
-                                        ),
-                                        cursorBrush = SolidColor(colors.goldPrimary),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "گرم",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMuted
-                            )
-                        }
-                    }
-
-                    // Box 2: عیار طلا (بر مبنای ۷۵۰)
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.6.dp, colors.border),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    BasicTextField(
-                                        value = PersianNumberFormatter.toPersianDigits(uiState.karatInput),
-                                        onValueChange = { viewModel.onKaratInputChanged(it) },
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontFamily = VazirmatnFamily,
-                                            fontFeatureSettings = VazirmatnFeatureSettings,
-                                            fontSize = 17.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.textMain,
-                                            textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Ltr
-                                        ),
-                                        cursorBrush = SolidColor(colors.goldPrimary),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        decorationBox = { innerTextField ->
-                                            if (uiState.karatInput.isEmpty()) {
-                                                Text(
-                                                    text = "۷۵۰",
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 17.sp,
-                                                    color = colors.textMuted.copy(alpha = 0.5f),
-                                                    textAlign = TextAlign.Right,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
-                                            }
-                                            innerTextField()
+                        val presets = listOf(
+                            Triple(Karat.K18, "750", "۱۸ (۷۵۰)"),
+                            Triple(null, "705", "۱۷ (۷۰۵)"),
+                            Triple(Karat.K21, "875", "۲۱ (۸۷۵)"),
+                            Triple(Karat.K24, "999", "۲۴ (۹۹۹)")
+                        )
+                        val isCustomKarat = uiState.karatInput !in listOf("750", "705", "875", "999")
+                        presets.forEach { (presetKarat, karatVal, label) ->
+                            val isSelected = !isCustomKarat && uiState.karatInput == karatVal
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                                border = if (isSelected) BorderStroke(1.2.dp, colors.goldPrimary) else BorderStroke(0.6.dp, colors.border),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp)
+                                    .clickable {
+                                        if (presetKarat != null) {
+                                            viewModel.onKaratSelected(presetKarat)
+                                        } else {
+                                            viewModel.onKaratInputChanged(karatVal)
                                         }
+                                    }
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = label,
+                                        fontFamily = VazirmatnFamily,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
-                            Text(
-                                text = "عیار",
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMuted
-                            )
                         }
+
+                        InlineCustomKaratChip(
+                            value = if (isCustomKarat) uiState.karatInput else "",
+                            onValueChange = { viewModel.onKaratInputChanged(it) },
+                            isSelected = isCustomKarat,
+                            onSelect = {
+                                if (!isCustomKarat) {
+                                    viewModel.onKaratInputChanged("")
+                                }
+                            },
+                            modifier = Modifier.weight(1.1f),
+                            placeholder = "سفارشی"
+                        )
                     }
                 }
 
-                // Quick Preset Karat Chips Row
+                // 2. Weights: Gross & Stone side-by-side
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val presets = listOf(
-                        Triple(Karat.K18, "750", "۱۸ (۷۵۰)"),
-                        Triple(Karat.K21, "875", "۲۱ (۸۷۵)"),
-                        Triple(Karat.K24, "999", "۲۴ (۹۹۹)"),
-                        Triple(null, "705", "۱۷ (۷۰۵)")
+                    GoldInputField(
+                        value = uiState.grossWeightInput,
+                        onValueChange = { viewModel.onGrossWeightChanged(it) },
+                        label = "وزن ناخالص",
+                        trailingText = "گرم",
+                        isDecimal = true,
+                        useThousandsSeparator = false,
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f)
                     )
-                    presets.forEach { (presetKarat, karatVal, label) ->
-                        val isSelected = uiState.karatInput == karatVal
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
-                            border = if (isSelected) BorderStroke(0.8.dp, colors.goldPrimary) else BorderStroke(0.5.dp, colors.border.copy(alpha = 0.6f)),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    if (presetKarat != null) {
-                                        viewModel.onKaratSelected(presetKarat)
-                                    } else {
-                                        viewModel.onKaratInputChanged(karatVal)
-                                    }
-                                }
-                        ) {
-                            Text(
-                                text = label,
-                                fontFamily = VazirmatnFamily,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(vertical = 5.dp)
-                            )
-                        }
+                    GoldInputField(
+                        value = if (uiState.stoneWeightInput == "0") "" else uiState.stoneWeightInput,
+                        onValueChange = { viewModel.onStoneWeightChanged(it) },
+                        label = "کسر نگین/موم",
+                        trailingText = "گرم",
+                        isDecimal = true,
+                        useThousandsSeparator = false,
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // 3. Net Weight Badge
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.6.dp, colors.border),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "وزن خالص محاسبه‌شده:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceTicker(
+                            text = "${PersianNumberFormatter.formatWeight(netWeight)} گرم",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
                     }
                 }
             }
@@ -899,88 +938,6 @@ fun JewelryTab(
                                     modifier = Modifier.size(13.dp)
                                 )
                             }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ─── Card 5: Stone Deduction (کسر وزن سنگ و نگین) ──────────────
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = colors.surface,
-            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(colors.surfaceElevated),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = CalcDiamond,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "کسر وزن سنگ و نگین",
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                        Text(
-                            text = "کسر خودکار از وزن کل",
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 9.5.sp,
-                            color = colors.textMuted
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    val stoneVal = PersianNumberFormatter.parsePersianOrEnglish(uiState.stoneWeightInput) ?: 0.0
-                    AnimatedPriceTicker(
-                        text = "${PersianNumberFormatter.formatWeight(stoneVal)} گرم",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textMain
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(7.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.5.dp, colors.border),
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clickable { viewModel.setStoneWeightDialogVisible(true) }
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "ویرایش سنگ",
-                                tint = colors.textSecondary,
-                                modifier = Modifier.size(13.dp)
-                            )
                         }
                     }
                 }

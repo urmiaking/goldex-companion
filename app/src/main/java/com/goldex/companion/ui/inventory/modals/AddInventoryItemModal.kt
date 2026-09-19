@@ -1,25 +1,34 @@
 package com.goldex.companion.ui.inventory.modals
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -28,10 +37,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.goldex.companion.ui.theme.LuxuryMotion
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -66,6 +84,71 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import java.util.UUID
 
+// Reusable Inline Custom Karat Chip (styled exactly like preset chips)
+@Composable
+private fun InlineCustomKaratChip(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "عیار دلخواه"
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated,
+        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+        modifier = modifier
+            .height(36.dp)
+            .clickable { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() }
+                    onValueChange(filtered)
+                    onSelect()
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = TextStyle(
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 11.5.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                    textDirection = TextDirection.Ltr
+                ),
+                cursorBrush = SolidColor(colors.goldPrimary),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted,
+                                fontFamily = VazirmatnFamily,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddInventoryItemModal(
@@ -74,7 +157,31 @@ fun AddInventoryItemModal(
     onSaveItem: (InventoryItem) -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "scrimAlpha"
+    )
 
     var selectedCategory by remember { mutableStateOf(InventoryCategory.RINGS) }
 
@@ -173,95 +280,141 @@ fun AddInventoryItemModal(
 
     val isFormValid = titleInput.isNotBlank() && grossWeightDouble > 0.0
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = colors.surface,
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(top = 10.dp, bottom = 6.dp)
-                    .size(width = 44.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(colors.border)
-            )
-        }
+    Dialog(
+        onDismissRequest = handleDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = handleDismiss
+                    ),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                // Fixed Header
-                Row(
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .wrapContentHeight()
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.goldContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "💎",
-                                fontSize = 20.sp
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "ثبت محصول در ویترین و انبار",
-                                fontSize = 14.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                fontFamily = VazirmatnFamily
-                            )
-                            Text(
-                                text = "مشخصات طلا، وزن دیجیتال و بارکد کالا",
-                                fontSize = 10.5.sp,
-                                color = colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = onDismiss,
+                    Surface(
                         modifier = Modifier
-                            .size(34.dp)
-                            .clip(ButtonShape)
-                            .background(colors.surfaceVariant)
-                            .border(0.6.dp, colors.goldBorder, ButtonShape)
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            ),
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
                     ) {
-                        Icon(
-                            imageVector = InvoiceCloseVector,
-                            contentDescription = "بستن",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .heightIn(max = 680.dp)
+                                .navigationBarsPadding()
+                        ) {
+                            // Top Drag Handle
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 10.dp, bottom = 4.dp)
+                                    .size(width = 44.dp, height = 4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.border)
+                                    .align(Alignment.CenterHorizontally)
+                            )
 
-                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+                            // Fixed Header
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(colors.goldContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "💎",
+                                            fontSize = 20.sp
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "ثبت محصول در ویترین و انبار",
+                                            fontSize = 14.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textMain,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Text(
+                                            text = "مشخصات طلا، وزن دیجیتال و بارکد کالا",
+                                            fontSize = 10.5.sp,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                }
 
-                // Scrollable Body
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
+                                IconButton(
+                                    onClick = handleDismiss,
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(ButtonShape)
+                                        .background(colors.surfaceVariant)
+                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
+                                ) {
+                                    Icon(
+                                        imageVector = InvoiceCloseVector,
+                                        contentDescription = "بستن",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+                            // Scrollable Body
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f, fill = false)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
                     // Category Selector Chips
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -487,55 +640,33 @@ fun AddInventoryItemModal(
                                     ),
                                     modifier = Modifier
                                         .weight(1f)
+                                        .height(36.dp)
                                         .clickable {
                                             selectedKarat = karat
                                             isCustomKarat = false
                                             customKaratInput = fineness.toString()
                                         }
                                 ) {
-                                    Text(
-                                        text = label,
-                                        fontSize = 10.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) colors.goldPrimary else colors.textMain,
-                                        textAlign = TextAlign.Center,
-                                        fontFamily = VazirmatnFamily,
-                                        modifier = Modifier.padding(vertical = 7.dp)
-                                    )
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                            textAlign = TextAlign.Center,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
                                 }
                             }
 
-                            // Custom Karat Option
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isCustomKarat) colors.goldContainer else colors.surfaceElevated,
-                                border = BorderStroke(
-                                    width = if (isCustomKarat) 1.5.dp else 1.dp,
-                                    color = if (isCustomKarat) colors.goldPrimary else colors.border
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { isCustomKarat = true }
-                            ) {
-                                Text(
-                                    text = "سفارشی",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = if (isCustomKarat) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isCustomKarat) colors.goldPrimary else colors.textMain,
-                                    textAlign = TextAlign.Center,
-                                    fontFamily = VazirmatnFamily,
-                                    modifier = Modifier.padding(vertical = 7.dp)
-                                )
-                            }
-                        }
-
-                        if (isCustomKarat) {
-                            GoldInputField(
-                                value = customKaratInput,
+                            InlineCustomKaratChip(
+                                value = if (isCustomKarat) customKaratInput else "",
                                 onValueChange = { customKaratInput = it },
-                                label = "عیار دلخواه (بر مبنای ۱۰۰۰، مثال: ۷۰۵، ۷۴۰)",
-                                trailingText = "عیار",
-                                keyboardType = KeyboardType.Number
+                                isSelected = isCustomKarat,
+                                onSelect = { isCustomKarat = true },
+                                modifier = Modifier.weight(1.1f),
+                                placeholder = "عیار دلخواه"
                             )
                         }
                     }
@@ -754,7 +885,7 @@ fun AddInventoryItemModal(
                         // Right child (Secondary / Cancel)
                         GoldButton(
                             text = "انصراف",
-                            onClick = onDismiss,
+                            onClick = handleDismiss,
                             isSecondary = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -783,6 +914,7 @@ fun AddInventoryItemModal(
                                     quantity = quantityInt
                                 )
                                 onSaveItem(item)
+                                handleDismiss()
                             },
                             enabled = isFormValid,
                             isSecondary = false,
@@ -794,4 +926,7 @@ fun AddInventoryItemModal(
             }
         }
     }
+}
+}
+}
 }

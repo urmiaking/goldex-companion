@@ -32,11 +32,18 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Brush
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -148,120 +155,144 @@ fun InventoryScreen(
     val itemsList = uiState.filteredItems
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Box(
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colors.background)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item {
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // 1. Top Sub-Header Bar (Unified Back Arrow Button)
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = colors.surface,
-                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                        shadowElevation = 2.dp,
-                        modifier = Modifier.fillMaxWidth()
+                .background(colors.background),
+            containerColor = colors.background,
+            topBar = {
+                Surface(
+                    color = colors.surface,
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                    shadowElevation = 3.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.weight(1f)
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(ButtonShape)
+                                    .background(colors.surfaceElevated)
+                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
-                                IconButton(
-                                    onClick = onBack,
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(ButtonShape)
-                                        .background(colors.surfaceElevated)
-                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
-                                ) {
-                                    Icon(
-                                        imageVector = HubArrowRight,
-                                        contentDescription = "بازگشت",
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = HubArrowRight,
+                                    contentDescription = "بازگشت",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
 
-                                Column {
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFDFB35A))
+                                    )
                                     Text(
                                         text = "انبار و ویترین طلا",
-                                        fontSize = 14.5.sp,
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
                                         color = colors.textMain,
                                         fontFamily = VazirmatnFamily
                                     )
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.profitGreen)
-                                        )
-                                        Text(
-                                            text = "همگام‌سازی لحظه‌ای ترازو و تگ RFID",
-                                            fontSize = 10.sp,
-                                            color = colors.textSecondary,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                    }
                                 }
+                                Text(
+                                    text = "مدیریت موجودی، ارزش لحظه‌ای و اتیکت",
+                                    fontSize = 10.5.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
                             }
+                        }
 
-                            // Gold "+ محصول جدید" Button
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.goldPrimary,
-                                modifier = Modifier.clickable { onOpenAddModal() }
+                        // Gold "+ ثبت محصول" Button
+                        Button(
+                            onClick = onOpenAddModal,
+                            shape = ButtonShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colors.goldPrimary,
+                                contentColor = Color.White
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Text(
-                                        text = "محصول جدید",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "ثبت محصول",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontFamily = VazirmatnFamily
+                                )
                             }
                         }
                     }
                 }
-
-                // 2. Vault Master Valuation Card
+            }
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // 1. Vault Master Valuation Card (Dark Sovereign Obsidian Card)
                 item {
-                    LuxuryCard(
-                        modifier = Modifier.fillMaxWidth()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF141A29),
+                                        Color(0xFF1D263B),
+                                        Color(0xFF111622)
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 0.8.dp,
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        colors.goldPrimary.copy(alpha = 0.6f),
+                                        Color(0x33B8860B),
+                                        colors.goldPrimary.copy(alpha = 0.2f)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(16.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -275,27 +306,28 @@ fun InventoryScreen(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(colors.goldContainer),
+                                            .background(colors.goldPrimary.copy(alpha = 0.18f)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = HubShowcase,
                                             contentDescription = null,
-                                            tint = colors.goldPrimary,
+                                            tint = Color(0xFFFFE088),
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
                                     Column {
                                         Text(
                                             text = "ارزش کل موجودی ویترین و گاوصندوق",
-                                            fontSize = 11.5.sp,
-                                            color = colors.textSecondary,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFFCFD6E8),
                                             fontFamily = VazirmatnFamily
                                         )
                                         Text(
                                             text = "بر مبنای طلای ۱۸ عیار",
-                                            fontSize = 9.5.sp,
-                                            color = colors.textMuted,
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF8E9EB8),
                                             fontFamily = VazirmatnFamily
                                         )
                                     }
@@ -303,16 +335,16 @@ fun InventoryScreen(
 
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),
-                                    color = colors.surfaceElevated,
-                                    border = BorderStroke(0.6.dp, colors.border)
+                                    color = Color.White.copy(alpha = 0.1f),
+                                    border = BorderStroke(0.6.dp, Color(0x4DDFB35A))
                                 ) {
                                     Text(
                                         text = "${PersianNumberFormatter.toPersianDigits(uiState.totalItemCount.toString())} قلم کالا",
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.goldPrimary,
+                                        color = Color(0xFFFFDF88),
                                         fontFamily = VazirmatnFamily,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                     )
                                 }
                             }
@@ -325,15 +357,15 @@ fun InventoryScreen(
                                 Column {
                                     Text(
                                         text = "برآورد ارزش ریالی:",
-                                        fontSize = 10.sp,
-                                        color = colors.textMuted,
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFF8E9EB8),
                                         fontFamily = VazirmatnFamily
                                     )
                                     Text(
                                         text = "${PersianNumberFormatter.formatPrice(totalEstimatedValueMillion)} م ت",
-                                        fontSize = 19.sp,
+                                        fontSize = 20.sp,
                                         fontWeight = FontWeight.Black,
-                                        color = colors.goldPrimary,
+                                        color = Color(0xFFFFDF88),
                                         fontFamily = VazirmatnFamily
                                     )
                                 }
@@ -341,15 +373,15 @@ fun InventoryScreen(
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = "مجموع وزن خالص طلای ۱۸:",
-                                        fontSize = 10.sp,
-                                        color = colors.textMuted,
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFF8E9EB8),
                                         fontFamily = VazirmatnFamily
                                     )
                                     Text(
                                         text = "${PersianNumberFormatter.formatWeight(uiState.totalGoldWeight18k)} گرم",
-                                        fontSize = 15.sp,
+                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.textMain,
+                                        color = Color.White,
                                         fontFamily = VazirmatnFamily
                                     )
                                 }
@@ -812,7 +844,7 @@ private fun InventoryItemCard(
                 }
             }
 
-            // Action Buttons Toolbar: All aligned with uniform 38.dp height
+            // Action Buttons Toolbar: Aligned with uniform 38.dp height
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -836,37 +868,16 @@ private fun InventoryItemCard(
                     modifier = Modifier.weight(1.1f)
                 )
 
-                // Print Tag Button (Vector Icon, Uniform 38.dp height)
-                IconButton(
-                    onClick = onPrintTag,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(ButtonShape)
-                        .background(colors.surfaceElevated)
-                        .border(0.6.dp, colors.border, ButtonShape)
-                ) {
-                    Icon(
-                        imageVector = InventoryPrintVector,
-                        contentDescription = "چاپ اتیکت",
-                        tint = colors.goldPrimary,
-                        modifier = Modifier.size(17.dp)
-                    )
-                }
-
-                // Delete Button (Uniform 38.dp height)
+                // Delete Button: Clean transparent icon-only button without gray filled background
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(ButtonShape)
-                        .background(colors.surfaceElevated)
-                        .border(0.6.dp, colors.border, ButtonShape)
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "حذف",
-                        tint = colors.errorRed,
-                        modifier = Modifier.size(17.dp)
+                        tint = colors.errorRed.copy(alpha = 0.85f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

@@ -34,10 +34,13 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,119 +84,114 @@ fun CustomerLedgerScreen(
     val customers = uiState.filteredCustomers
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
+        Scaffold(
             modifier = modifier
                 .fillMaxSize()
-                .background(colors.background)
-                .padding(horizontal = 16.dp)
-        ) {
-            // 1. Secondary Sub-Header Bar
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = colors.surface,
-                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                .background(colors.background),
+            containerColor = colors.background,
+            topBar = {
+                Surface(
+                    color = colors.surface,
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                    shadowElevation = 3.dp
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(ButtonShape)
-                                .background(colors.surfaceElevated)
-                                .border(0.6.dp, colors.goldBorder, ButtonShape)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = HubArrowRight,
-                                contentDescription = "بازگشت",
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "دفتر حساب مشتریان",
-                                fontSize = 14.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                fontFamily = VazirmatnFamily
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            IconButton(
+                                onClick = onBack,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(ButtonShape)
+                                    .background(colors.surfaceElevated)
+                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(5.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.goldPrimary)
+                                Icon(
+                                    imageVector = HubArrowRight,
+                                    contentDescription = "بازگشت",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(20.dp)
                                 )
+                            }
+
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFFDFB35A))
+                                    )
+                                    Text(
+                                        text = "دفتر حساب مشتریان",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
                                 Text(
-                                    text = "مدیریت تراز طلایی و ریالی",
-                                    fontSize = 11.sp,
+                                    text = "مدیریت تراز طلایی و ریالی طرف‌حساب‌ها",
+                                    fontSize = 10.5.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
                         }
-                    }
 
-                    // "+ افزودن مشتری" Button (Compact Solid Gold Button - White Text)
-                    Button(
-                        onClick = onAddNewCustomer,
-                        shape = ButtonShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.goldPrimary,
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 0.dp,
-                            pressedElevation = 0.dp,
-                            focusedElevation = 0.dp,
-                            hoveredElevation = 0.dp
-                        ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        // "+ افزودن مشتری" Button
+                        Button(
+                            onClick = onAddNewCustomer,
+                            shape = ButtonShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = colors.goldPrimary,
+                                contentColor = Color.White
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "افزودن مشتری",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontFamily = VazirmatnFamily
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "مشتری جدید",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
                         }
                     }
                 }
             }
-
+        ) { innerPadding ->
             // Scrollable List of Elements
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Item A: Master Portfolio Ledger Summary Card (Obsidian)
@@ -452,7 +450,7 @@ fun CustomerLedgerScreen(
 
                 // Spacer for bottom dock clearance
                 item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    Spacer(modifier = Modifier.height(16.dp).navigationBarsPadding())
                 }
             }
         }
