@@ -209,4 +209,83 @@ class PersistenceJsonCodecsTest {
         assertEquals(27.180, decodedAdj.weightGrams, 0.001)
         assertEquals("دریافت از کارگاه ساخت", decodedAdj.reason)
     }
+
+    @Test
+    fun marketRatesSerializationAndDecodingRoundTrip() {
+        val rates = MarketRates(
+            gold18 = 4285000L,
+            gold24 = 5713000L,
+            goldMelt = 18560000L,
+            coinEmami = 51200000L,
+            coinBahar = 46500000L,
+            coinHalf = 26500000L,
+            coinQuarter = 16500000L,
+            coinGerami = 8000000L,
+            usd = 68500L,
+            ons = 2715.5,
+            source = PriceSource.ISIGNAL,
+            lastUpdated = "14:30:00",
+            isLive = true
+        )
+        val json = PersistenceJsonCodecs.encodeMarketRates(rates)
+        val decoded = PersistenceJsonCodecs.decodeMarketRates(json)
+
+        org.junit.Assert.assertNotNull(decoded)
+        assertEquals(rates.gold18, decoded!!.gold18)
+        assertEquals(rates.gold24, decoded.gold24)
+        assertEquals(rates.goldMelt, decoded.goldMelt)
+        assertEquals(rates.coinEmami, decoded.coinEmami)
+        assertEquals(rates.usd, decoded.usd)
+        assertEquals(rates.ons, decoded.ons, 0.001)
+        assertEquals(PriceSource.ISIGNAL, decoded.source)
+        assertEquals("14:30:00", decoded.lastUpdated)
+        assertEquals(true, decoded.isLive)
+    }
+
+    @Test
+    fun marketRateItemSummariesRoundTrip() {
+        val summaries = mapOf(
+            com.goldex.companion.model.MarketRateItemType.GOLD_18K to MarketRateItemSummary(
+                type = com.goldex.companion.model.MarketRateItemType.GOLD_18K,
+                currentPrice = 4285000L,
+                dayLow = 4250000L,
+                dayHigh = 4300000L,
+                openPrice = 4250000L,
+                changeAmount = 35000L,
+                changePercent = 0.82,
+                isPositive = true,
+                lastUpdated = 1700000000L
+            ),
+            com.goldex.companion.model.MarketRateItemType.USD to MarketRateItemSummary(
+                type = com.goldex.companion.model.MarketRateItemType.USD,
+                currentPrice = 68500L,
+                dayLow = 68000L,
+                dayHigh = 68900L,
+                openPrice = 68900L,
+                changeAmount = -400L,
+                changePercent = -0.58,
+                isPositive = false,
+                lastUpdated = 1700000000L
+            )
+        )
+        val json = PersistenceJsonCodecs.encodeMarketRateItemSummaries(summaries)
+        val decoded = PersistenceJsonCodecs.decodeMarketRateItemSummaries(json)
+
+        assertEquals(2, decoded.size)
+        val gold18 = decoded[com.goldex.companion.model.MarketRateItemType.GOLD_18K]
+        org.junit.Assert.assertNotNull(gold18)
+        assertEquals(4285000L, gold18!!.currentPrice)
+        assertEquals(4250000L, gold18.dayLow)
+        assertEquals(4300000L, gold18.dayHigh)
+        assertEquals(4250000L, gold18.openPrice)
+        assertEquals(35000L, gold18.changeAmount)
+        assertEquals(0.82, gold18.changePercent, 0.001)
+        assertTrue(gold18.isPositive)
+        assertEquals(1700000000L, gold18.lastUpdated)
+
+        val usd = decoded[com.goldex.companion.model.MarketRateItemType.USD]
+        org.junit.Assert.assertNotNull(usd)
+        assertEquals(68500L, usd!!.currentPrice)
+        org.junit.Assert.assertFalse(usd.isPositive)
+    }
 }

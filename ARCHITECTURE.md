@@ -46,7 +46,7 @@ Feature ViewModels & State Holders:
 
 model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
 domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, PortfolioValuation)
-data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketHistoryCache, and SharedPreferences/JSON persistence via PersistenceJsonCodecs
+data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), and SharedPreferences/JSON persistence via PersistenceJsonCodecs
 ```
 
 ### Current source of truth

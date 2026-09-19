@@ -140,6 +140,35 @@ class MarketHistoryCache(context: Context? = null) {
         }
     }
 
+    /**
+     * Synchronously retrieves all available cached horizons for a rate item.
+     * Hits memory first (<1ms), then disk (<2ms). Returns empty list for horizons without cache.
+     */
+    fun getAllCachedHorizons(type: MarketRateItemType): Map<TimeHorizon, List<MarketCandle>> {
+        return TimeHorizon.values().associateWith { horizon ->
+            get(type, horizon, allowStale = true) ?: emptyList()
+        }
+    }
+
+    /**
+     * Synchronously retrieves all available TODAY candles for the provided rate item types.
+     */
+    fun getCachedTodayCandles(types: Array<MarketRateItemType> = MarketRateItemType.values()): Map<MarketRateItemType, List<MarketCandle>> {
+        val result = mutableMapOf<MarketRateItemType, List<MarketCandle>>()
+        for (type in types) {
+            val candles = get(type, TimeHorizon.TODAY, allowStale = true)
+            if (!candles.isNullOrEmpty()) {
+                result[type] = candles
+            }
+        }
+        return result
+    }
+
+    fun clear() {
+        memoryCache.clear()
+        prefs?.edit()?.clear()?.apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "goldex_market_history_cache"
 
@@ -147,9 +176,22 @@ class MarketHistoryCache(context: Context? = null) {
         private var instance: MarketHistoryCache? = null
 
         fun getInstance(context: Context? = null): MarketHistoryCache {
-            return instance ?: synchronized(this) {
-                instance ?: MarketHistoryCache(context).also { instance = it }
+            val existing = instance
+            if (existing != null && (context == null || existing.prefs != null)) {
+                return existing
             }
+            return synchronized(this) {
+                val cur = instance
+                if (cur != null && (context == null || cur.prefs != null)) {
+                    cur
+                } else {
+                    MarketHistoryCache(context).also { instance = it }
+                }
+            }
+        }
+
+        fun init(context: Context): MarketHistoryCache {
+            return getInstance(context)
         }
     }
 }

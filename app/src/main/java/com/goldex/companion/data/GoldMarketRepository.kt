@@ -1,8 +1,11 @@
 package com.goldex.companion.data
 
+import android.content.Context
 import com.goldex.companion.model.MarketCandle
+import com.goldex.companion.model.MarketHistoryConverter
 import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.model.TimeHorizon
+import com.goldex.companion.model.TrendChartData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -23,13 +26,59 @@ import java.util.Locale
 import kotlin.math.abs
 
 object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
-    private val historyCache = MarketHistoryCache.getInstance()
+    private var historyCache = MarketHistoryCache.getInstance()
+    private var ratesCache: MarketRatesCache? = null
 
     private val _rates = MutableStateFlow(MarketRates())
     override val rates: StateFlow<MarketRates> = _rates.asStateFlow()
 
     private val _currentSource = MutableStateFlow(PriceSource.ISIGNAL)
     override val currentSource: StateFlow<PriceSource> = _currentSource.asStateFlow()
+
+    fun init(context: Context) {
+        val appContext = context.applicationContext
+        historyCache = MarketHistoryCache.getInstance(appContext)
+        ratesCache = MarketRatesCache.getInstance(appContext)
+
+        // Immediately populate cached rates if available
+        ratesCache?.getRates()?.let { cached ->
+            if (cached.gold18 > 0L) {
+                _rates.value = cached.copy(isLive = false)
+            }
+        }
+    }
+
+    fun getCachedRates(): MarketRates? {
+        return ratesCache?.getRates() ?: if (_rates.value.gold18 > 0L) _rates.value else null
+    }
+
+    fun getCachedAllHorizonsHistory(type: MarketRateItemType): Map<TimeHorizon, List<MarketCandle>> {
+        return historyCache.getAllCachedHorizons(type)
+    }
+
+    fun getCachedTodayCandlesForBoard(): Map<MarketRateItemType, List<MarketCandle>> {
+        return historyCache.getCachedTodayCandles()
+    }
+
+    fun getCachedDashboardGold18Charts(): Map<TimeHorizon, TrendChartData> {
+        val basePrice = _rates.value.gold18
+        val history = historyCache.getAllCachedHorizons(MarketRateItemType.GOLD_18K)
+        return history.mapValues { (horizon, candles) ->
+            MarketHistoryConverter.toTrendChartData(candles, horizon, basePrice)
+        }
+    }
+
+    fun getCachedItemSummaries(): Map<MarketRateItemType, MarketRateItemSummary> {
+        return ratesCache?.getItemSummaries() ?: emptyMap()
+    }
+
+    fun putCachedItemSummaries(summaries: Map<MarketRateItemType, MarketRateItemSummary>) {
+        ratesCache?.putItemSummaries(summaries)
+    }
+
+    fun setSourceSilently(source: PriceSource) {
+        _currentSource.value = source
+    }
 
     override suspend fun setSource(source: PriceSource) {
         _currentSource.value = source
@@ -59,6 +108,9 @@ object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
             isLive = false
         )
         _rates.value = finalRates
+        if (result != null) {
+            ratesCache?.putRates(finalRates)
+        }
         finalRates
     }
 

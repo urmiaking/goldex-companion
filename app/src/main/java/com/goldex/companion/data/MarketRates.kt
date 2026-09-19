@@ -1,4 +1,6 @@
-﻿package com.goldex.companion.data
+package com.goldex.companion.data
+
+import com.goldex.companion.model.MarketRateItemType
 
 enum class PriceSource(val labelFa: String) {
     ISIGNAL("آی‌سیگنال (isignal.ir)"),
@@ -20,4 +22,16 @@ data class MarketRates(
     val lastUpdated: String = "--:--:--",
     val source: PriceSource = PriceSource.ISIGNAL,
     val isLive: Boolean = true
+)
+
+data class MarketRateItemSummary(
+    val type: MarketRateItemType,
+    val currentPrice: Long = 0L,
+    val dayLow: Long = 0L,
+    val dayHigh: Long = 0L,
+    val openPrice: Long = 0L,
+    val changeAmount: Long = 0L,
+    val changePercent: Double = 0.0,
+    val isPositive: Boolean = true,
+    val lastUpdated: Long = 0L
 )

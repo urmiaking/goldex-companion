@@ -149,4 +149,42 @@ class MarketHistoryTest {
         assertEquals("1405/06/25 18:22", MarketHistoryConverter.formatFullShamsiDateTime("1405/06/25 18:22"))
         assertEquals("1405/06/25", MarketHistoryConverter.formatFullShamsiDateTime("14050625"))
     }
+
+    @Test
+    fun getAllCachedHorizonsReturnsAllHorizonsMap() {
+        val cache = MarketHistoryCache()
+        val candleToday = MarketCandle(open = 4280000L, high = 4320000L, low = 4270000L, close = 4300000L, dateShamsi = "14050623 10:00")
+        val candleWeek = MarketCandle(open = 4200000L, high = 4260000L, low = 4190000L, close = 4250000L, dateShamsi = "14050616")
+
+        cache.put(MarketRateItemType.GOLD_18K, TimeHorizon.TODAY, PriceSource.ISIGNAL, listOf(candleToday))
+        cache.put(MarketRateItemType.GOLD_18K, TimeHorizon.ONE_WEEK, PriceSource.ISIGNAL, listOf(candleWeek))
+
+        val map = cache.getAllCachedHorizons(MarketRateItemType.GOLD_18K)
+        assertEquals(TimeHorizon.values().size, map.size)
+        assertEquals(1, map[TimeHorizon.TODAY]?.size)
+        assertEquals(4300000L, map[TimeHorizon.TODAY]?.first()?.close)
+        assertEquals(1, map[TimeHorizon.ONE_WEEK]?.size)
+        assertEquals(4250000L, map[TimeHorizon.ONE_WEEK]?.first()?.close)
+        assertTrue(map[TimeHorizon.ONE_MONTH]?.isEmpty() == true)
+    }
+
+    @Test
+    fun getCachedTodayCandlesReturnsNonEmptyTodayMap() {
+        val cache = MarketHistoryCache()
+        val candle18 = MarketCandle(open = 4280000L, high = 4320000L, low = 4270000L, close = 4300000L, dateShamsi = "14050623 10:00")
+        val candleUsd = MarketCandle(open = 68200L, high = 68700L, low = 68100L, close = 68500L, dateShamsi = "14050623 10:00")
+
+        cache.put(MarketRateItemType.GOLD_18K, TimeHorizon.TODAY, PriceSource.ISIGNAL, listOf(candle18))
+        cache.put(MarketRateItemType.USD, TimeHorizon.TODAY, PriceSource.ISIGNAL, listOf(candleUsd))
+
+        val todayMap = cache.getCachedTodayCandles(arrayOf(MarketRateItemType.GOLD_18K, MarketRateItemType.USD, MarketRateItemType.ONS))
+        assertEquals(2, todayMap.size)
+        assertTrue(todayMap.containsKey(MarketRateItemType.GOLD_18K))
+        assertTrue(todayMap.containsKey(MarketRateItemType.USD))
+        assertFalse(todayMap.containsKey(MarketRateItemType.ONS))
+
+        cache.clear()
+        val clearedMap = cache.getCachedTodayCandles(arrayOf(MarketRateItemType.GOLD_18K, MarketRateItemType.USD))
+        assertTrue(clearedMap.isEmpty())
+    }
 }

@@ -9,6 +9,7 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.LedgerDirection
 import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.LedgerTransaction
+import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.model.StockAdjustment
 import com.goldex.companion.model.StockAdjustmentType
 import com.goldex.companion.model.WageType
@@ -440,6 +441,91 @@ internal object PersistenceJsonCodecs {
             })
         }
         return array.toString()
+    }
+
+    fun encodeMarketRates(rates: MarketRates): String {
+        val obj = JSONObject().apply {
+            put("gold18", rates.gold18)
+            put("gold24", rates.gold24)
+            put("goldMelt", rates.goldMelt)
+            put("coinEmami", rates.coinEmami)
+            put("coinBahar", rates.coinBahar)
+            put("coinHalf", rates.coinHalf)
+            put("coinQuarter", rates.coinQuarter)
+            put("coinGerami", rates.coinGerami)
+            put("usd", rates.usd)
+            put("ons", rates.ons)
+            put("lastUpdated", rates.lastUpdated)
+            put("source", rates.source.name)
+            put("isLive", rates.isLive)
+        }
+        return obj.toString()
+    }
+
+    fun decodeMarketRates(json: String?): MarketRates? {
+        if (json.isNullOrBlank()) return null
+        return runCatching {
+            val obj = JSONObject(json)
+            val source = enumOrDefault(obj.stringValue("source"), PriceSource.ISIGNAL)
+            MarketRates(
+                gold18 = obj.longValue("gold18", 23_360_000L),
+                gold24 = obj.longValue("gold24", 31_148_000L),
+                goldMelt = obj.longValue("goldMelt", 101_500_000L),
+                coinEmami = obj.longValue("coinEmami", 234_000_000L),
+                coinBahar = obj.longValue("coinBahar", 230_000_000L),
+                coinHalf = obj.longValue("coinHalf", 120_000_000L),
+                coinQuarter = obj.longValue("coinQuarter", 66_000_000L),
+                coinGerami = obj.longValue("coinGerami", 35_000_000L),
+                usd = obj.longValue("usd", 221_500L),
+                ons = obj.doubleValue("ons", 4435.0),
+                lastUpdated = obj.stringValue("lastUpdated", "--:--:--"),
+                source = source,
+                isLive = obj.optBoolean("isLive", false)
+            )
+        }.getOrNull()
+    }
+
+    fun encodeMarketRateItemSummaries(summaries: Map<MarketRateItemType, MarketRateItemSummary>): String {
+        val array = JSONArray()
+        summaries.values.forEach { item ->
+            array.put(JSONObject().apply {
+                put("type", item.type.name)
+                put("currentPrice", item.currentPrice)
+                put("dayLow", item.dayLow)
+                put("dayHigh", item.dayHigh)
+                put("openPrice", item.openPrice)
+                put("changeAmount", item.changeAmount)
+                put("changePercent", item.changePercent)
+                put("isPositive", item.isPositive)
+                put("lastUpdated", item.lastUpdated)
+            })
+        }
+        return array.toString()
+    }
+
+    fun decodeMarketRateItemSummaries(json: String?): Map<MarketRateItemType, MarketRateItemSummary> {
+        if (json.isNullOrBlank()) return emptyMap()
+        return runCatching {
+            val array = JSONArray(json)
+            val map = mutableMapOf<MarketRateItemType, MarketRateItemSummary>()
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                val typeStr = obj.stringValue("type")
+                val type = runCatching { MarketRateItemType.valueOf(typeStr) }.getOrNull() ?: continue
+                map[type] = MarketRateItemSummary(
+                    type = type,
+                    currentPrice = obj.longValue("currentPrice", 0L),
+                    dayLow = obj.longValue("dayLow", 0L),
+                    dayHigh = obj.longValue("dayHigh", 0L),
+                    openPrice = obj.longValue("openPrice", 0L),
+                    changeAmount = obj.longValue("changeAmount", 0L),
+                    changePercent = obj.doubleValue("changePercent", 0.0),
+                    isPositive = obj.optBoolean("isPositive", true),
+                    lastUpdated = obj.longValue("lastUpdated", 0L)
+                )
+            }
+            map
+        }.getOrDefault(emptyMap())
     }
 
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, default: T): T =

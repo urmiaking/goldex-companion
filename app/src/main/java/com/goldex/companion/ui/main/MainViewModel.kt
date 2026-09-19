@@ -123,27 +123,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     private var autoRefreshJob: Job? = null
 
     init {
-        loadInitialSettings()
+        GoldMarketRepository.init(application.applicationContext)
+        loadInitialState()
         observeNetwork()
-        loadInitialRates()
-        calculateAll()
-        startAutoRatesRefresh()
-        loadDashboardGold18History()
-        loadTodayCandlesForBoard()
     }
 
-    private fun loadInitialSettings() {
+    private fun loadInitialState() {
         val s = settingsRepository.loadSettings()
+        val cachedRates = GoldMarketRepository.getCachedRates()
+        val initialRates = cachedRates ?: MarketRates()
+        val cachedTodayCandles = GoldMarketRepository.getCachedTodayCandlesForBoard()
+        val cachedDashboardCharts = GoldMarketRepository.getCachedDashboardGold18Charts()
+
         _uiState.update {
             it.copy(
                 isDarkTheme = themePreference.load(),
                 profitPercentInput = s.defaultProfitPercent,
                 taxPercentInput = s.defaultTaxPercent,
-                wageType = s.defaultWageType
+                wageType = s.defaultWageType,
+                autoSyncPrice = s.autoSyncRates,
+                rates = initialRates,
+                spotPriceInput = if (initialRates.gold18 > 0L) initialRates.gold18.toString() else "23360000",
+                mesghalPriceInput = if (initialRates.goldMelt > 0L) initialRates.goldMelt.toString() else "101500000",
+                coinMarketPriceInput = if (initialRates.coinEmami > 0L) initialRates.coinEmami.toString() else "550000000",
+                todayCandlesByType = cachedTodayCandles,
+                dashboardGold18Charts = cachedDashboardCharts
             )
         }
-        viewModelScope.launch {
-            marketRatesRepository.setSource(s.priceSource)
+        GoldMarketRepository.setSourceSilently(s.priceSource)
+        calculateAll()
+
+        if (s.autoSyncRates || cachedRates == null) {
+            if (s.autoSyncRates) {
+                startAutoRatesRefresh()
+            }
+            refreshRatesSilently()
         }
     }
 
@@ -161,8 +175,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     fun updatePriceSource(source: PriceSource, autoSync: Boolean) {
         _uiState.update { it.copy(autoSyncPrice = autoSync) }
         viewModelScope.launch {
+            val s = settingsRepository.loadSettings()
+            settingsRepository.saveSettings(s.copy(priceSource = source, autoSyncRates = autoSync))
             marketRatesRepository.setSource(source)
-            refreshRates()
+            if (autoSync) {
+                startAutoRatesRefresh()
+                refreshRates()
+            } else {
+                autoRefreshJob?.cancel()
+            }
         }
     }
 
@@ -186,14 +207,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     private var historyLoadingJob: Job? = null
 
     fun openRateDetail(type: MarketRateItemType) {
+        val cached = GoldMarketRepository.getCachedAllHorizonsHistory(type)
+        val hasData = cached.values.any { it.isNotEmpty() }
         _uiState.update {
             it.copy(
                 selectedRateDetailType = type,
                 isRateDetailVisible = true,
-                isHistoryLoading = true
+                rateDetailHistory = cached,
+                isHistoryLoading = !hasData
             )
         }
-        loadRateHistory(type)
+        if (_uiState.value.autoSyncPrice || !hasData) {
+            loadRateHistory(type)
+        }
     }
 
     fun loadRateHistory(type: MarketRateItemType) {
@@ -358,7 +384,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         viewModelScope.launch {
             networkMonitor.status.collect { status ->
                 _uiState.update { it.copy(connectionStatus = status) }
-                if (status == ConnectionStatus.ONLINE) {
+                if (status == ConnectionStatus.ONLINE && _uiState.value.autoSyncPrice) {
                     refreshRatesSilently()
                 }
             }
@@ -385,17 +411,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                 loadDashboardGold18History()
                 loadTodayCandlesForBoard()
             } catch (_: Exception) { }
-        }
-    }
-
-    private fun loadInitialRates() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val newRates = marketRatesRepository.refreshRates()
-                applyFetchedRates(newRates)
-            } catch (_: Exception) {
-                // Sane default rates are preserved in MarketRates
-            }
         }
     }
 
@@ -459,6 +474,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun toggleAutoSyncPrice(enabled: Boolean) {
         _uiState.update { it.copy(autoSyncPrice = enabled) }
+        val s = settingsRepository.loadSettings()
+        settingsRepository.saveSettings(s.copy(autoSyncRates = enabled))
+        if (enabled) {
+            startAutoRatesRefresh()
+            refreshRatesSilently()
+        } else {
+            autoRefreshJob?.cancel()
+        }
     }
 
     // --- Jewelry Actions Implementation ---
