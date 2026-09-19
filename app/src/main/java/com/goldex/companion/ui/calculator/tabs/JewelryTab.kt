@@ -252,8 +252,7 @@ fun JewelryTab(
             }
         }
 
-        // ─── Card 2: Gold Weight (وزن طلای کارشده) ────────────────────
-        // ─── Card 2: Gold Weight (وزن طلای کارشده) ────────────────────
+        // ─── Card 2: Gold Weight & Karat (وزن و عیار طلای کارشده) ─────
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = colors.surface,
@@ -267,6 +266,7 @@ fun JewelryTab(
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Header Row: Title & Active Karat Badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -283,63 +283,186 @@ fun JewelryTab(
                             modifier = Modifier.size(19.dp)
                         )
                         Text(
-                            text = "وزن طلای کارشده",
+                            text = "وزن و عیار طلای کارشده",
                             fontFamily = VazirmatnFamily,
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                     }
-                    Text(
-                        text = "عیار ۷۵۰",
-                        fontFamily = VazirmatnFamily,
-                        fontSize = 11.5.sp,
-                        color = colors.textMuted
-                    )
+
+                    val currentKaratNum = PersianNumberFormatter.parseToCleanLong(uiState.karatInput)?.toInt() ?: 750
+                    val karatBadgeLabel = when (currentKaratNum) {
+                        750 -> "۱۸ عیار (۷۵۰)"
+                        875 -> "۲۱ عیار (۸۷۵)"
+                        999, 1000 -> "۲۴ عیار (۹۹۹)"
+                        705 -> "۱۷ عیار (۷۰۵)"
+                        else -> "عیار ${PersianNumberFormatter.toPersianDigits(currentKaratNum.toString())}"
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.goldContainer.copy(alpha = 0.25f),
+                        border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = karatBadgeLabel,
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
-                // Large Input Box with "گرم"
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.border),
-                    modifier = Modifier.fillMaxWidth()
+                // Two Inputs Side-by-Side: Weight (وزن) & Karat (عیار)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    // Box 1: وزن طلا
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.weight(1.15f)
                     ) {
-                        Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                BasicTextField(
-                                    value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
-                                    onValueChange = { viewModel.onGrossWeightChanged(it) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        fontFamily = VazirmatnFamily,
-                                        fontFeatureSettings = VazirmatnFeatureSettings,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMain,
-                                        textAlign = TextAlign.Right,
-                                        textDirection = TextDirection.Ltr
-                                    ),
-                                    cursorBrush = SolidColor(colors.goldPrimary),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    BasicTextField(
+                                        value = PersianNumberFormatter.toPersianDigits(uiState.grossWeightInput),
+                                        onValueChange = { viewModel.onGrossWeightChanged(it) },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontFamily = VazirmatnFamily,
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textMain,
+                                            textAlign = TextAlign.Right,
+                                            textDirection = TextDirection.Ltr
+                                        ),
+                                        cursorBrush = SolidColor(colors.goldPrimary),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
+                            Text(
+                                text = "گرم",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMuted
+                            )
                         }
-                        Text(
-                            text = "گرم",
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMuted
-                        )
+                    }
+
+                    // Box 2: عیار طلا (بر مبنای ۷۵۰)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    BasicTextField(
+                                        value = PersianNumberFormatter.toPersianDigits(uiState.karatInput),
+                                        onValueChange = { viewModel.onKaratInputChanged(it) },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontFamily = VazirmatnFamily,
+                                            fontFeatureSettings = VazirmatnFeatureSettings,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textMain,
+                                            textAlign = TextAlign.Right,
+                                            textDirection = TextDirection.Ltr
+                                        ),
+                                        cursorBrush = SolidColor(colors.goldPrimary),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        decorationBox = { innerTextField ->
+                                            if (uiState.karatInput.isEmpty()) {
+                                                Text(
+                                                    text = "۷۵۰",
+                                                    fontFamily = VazirmatnFamily,
+                                                    fontSize = 17.sp,
+                                                    color = colors.textMuted.copy(alpha = 0.5f),
+                                                    textAlign = TextAlign.Right,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                            innerTextField()
+                                        }
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "عیار",
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+                }
+
+                // Quick Preset Karat Chips Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val presets = listOf(
+                        Triple(Karat.K18, "750", "۱۸ (۷۵۰)"),
+                        Triple(Karat.K21, "875", "۲۱ (۸۷۵)"),
+                        Triple(Karat.K24, "999", "۲۴ (۹۹۹)"),
+                        Triple(null, "705", "۱۷ (۷۰۵)")
+                    )
+                    presets.forEach { (presetKarat, karatVal, label) ->
+                        val isSelected = uiState.karatInput == karatVal
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                            border = if (isSelected) BorderStroke(0.8.dp, colors.goldPrimary) else BorderStroke(0.5.dp, colors.border.copy(alpha = 0.6f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    if (presetKarat != null) {
+                                        viewModel.onKaratSelected(presetKarat)
+                                    } else {
+                                        viewModel.onKaratInputChanged(karatVal)
+                                    }
+                                }
+                        ) {
+                            Text(
+                                text = label,
+                                fontFamily = VazirmatnFamily,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 5.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1104,10 +1227,12 @@ fun JewelryTab(
                     .height(44.dp)
                     .clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val currentKaratNum = PersianNumberFormatter.parseToCleanLong(uiState.karatInput)?.toInt() ?: 750
                         val summary = buildString {
                             appendLine("📋 محاسبه طلا و جواهر (قیراط)")
                             appendLine("─────────────────────")
                             appendLine("وزن کارشده: ${PersianNumberFormatter.formatWeight(netWeight)} گرم")
+                            appendLine("عیار طلا: ${PersianNumberFormatter.toPersianDigits(currentKaratNum.toString())}")
                             appendLine("مبنای مظنه: ${PersianNumberFormatter.formatPrice(rawGoldValue)} ت")
                             appendLine("اجرت ساخت: ${PersianNumberFormatter.formatPrice(wageAmount)} ت")
                             appendLine("سود فروشنده: ${PersianNumberFormatter.formatPrice(profitAmount)} ت")

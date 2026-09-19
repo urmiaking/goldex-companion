@@ -43,6 +43,7 @@ data class MainUiState(
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
+    val karatInput: String = "750",
     val spotPriceInput: String = "23360000",
     val wageType: WageType = WageType.PERCENTAGE,
     val wageInput: String = "12",
@@ -63,10 +64,10 @@ data class MainUiState(
 
     // Coin Bubble State
     val selectedCoin: CoinType = CoinType.EMAMI,
-    val coinMarketPriceInput: String = "234000000",
+    val coinMarketPriceInput: String = "550000000",
     val coinBubbleResult: CoinBubbleResult? = null,
 
-    // Sub-Screen Overlays
+    // Sub-Screen Navigation State
     val isStandardFormulasVisible: Boolean = false,
     val isKaratConvertVisible: Boolean = false,
     val isCoinBubbleVisible: Boolean = false,
@@ -87,6 +88,7 @@ data class MainUiState(
         grossWeightInput = grossWeightInput,
         stoneWeightInput = stoneWeightInput,
         selectedKarat = selectedKarat,
+        karatInput = karatInput,
         spotPriceInput = spotPriceInput,
         wageType = wageType,
         wageInput = wageInput,
@@ -274,9 +276,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     override fun addItemToInvoice() {
         val state = _uiState.value
         val res = state.jewelryResult ?: return
+        val customKarat = PersianNumberFormatter.parseToCleanLong(state.karatInput)?.toInt() ?: 750
         val item = InvoiceItem(
             title = state.itemTitleInput.ifBlank { "قطعه طلا " },
             karat = state.selectedKarat,
+            customKaratValue = customKarat,
             grossWeight = res.grossWeight,
             stoneWeight = res.stoneWeight,
             netWeight = res.netWeight,
@@ -315,10 +319,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
             state.invoiceItems
         } else if (state.jewelryResult != null) {
             val res = state.jewelryResult
+            val customKarat = PersianNumberFormatter.parseToCleanLong(state.karatInput)?.toInt() ?: 750
             listOf(
                 InvoiceItem(
                     title = state.itemTitleInput.ifBlank { "قطعه طلا" },
                     karat = state.selectedKarat,
+                    customKaratValue = customKarat,
                     grossWeight = res.grossWeight,
                     stoneWeight = res.stoneWeight,
                     netWeight = res.netWeight,
@@ -479,7 +485,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     override fun onKaratSelected(karat: Karat) {
-        _uiState.update { it.copy(selectedKarat = karat) }
+        val karatVal = when (karat) {
+            Karat.K18 -> "750"
+            Karat.K21 -> "875"
+            Karat.K24 -> "999"
+        }
+        _uiState.update { it.copy(selectedKarat = karat, karatInput = karatVal) }
+        calculateJewelry()
+    }
+
+    override fun onKaratInputChanged(newKarat: String) {
+        val clean = PersianNumberFormatter.toEnglishDigits(newKarat).filter { it.isDigit() }.take(4)
+        val karatEnum = when (clean) {
+            "750" -> Karat.K18
+            "875" -> Karat.K21
+            "999", "1000" -> Karat.K24
+            else -> _uiState.value.selectedKarat
+        }
+        _uiState.update { it.copy(karatInput = clean, selectedKarat = karatEnum) }
         calculateJewelry()
     }
 
@@ -550,6 +573,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                 grossWeightInput = "10",
                 stoneWeightInput = "0",
                 selectedKarat = Karat.K18,
+                karatInput = "750",
                 wageType = WageType.PERCENTAGE,
                 wageInput = "12",
                 profitPercentInput = "7",
@@ -654,11 +678,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
         val wage = PersianNumberFormatter.parsePersianOrEnglish(state.wageInput) ?: 0.0
         val profit = PersianNumberFormatter.parsePersianOrEnglish(state.profitPercentInput) ?: 0.0
         val tax = PersianNumberFormatter.parsePersianOrEnglish(state.taxPercentInput) ?: 0.0
+        val customKarat = PersianNumberFormatter.parseToCleanLong(state.karatInput)?.toInt() ?: 750
 
         val result = GoldCalculationUseCases.calculateJewelry(
             grossWeight = gross,
             stoneWeight = stone,
             karat = state.selectedKarat,
+            customKaratValue = customKarat,
             spotPrice18k = spot18k,
             wageType = state.wageType,
             wageInput = wage,

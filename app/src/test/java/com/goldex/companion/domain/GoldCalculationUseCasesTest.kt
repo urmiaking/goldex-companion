@@ -168,4 +168,79 @@ class GoldCalculationUseCasesTest {
         assertEquals(res18k.totalPayable, res24k.totalPayable, 1.0)
         assertEquals(res18k.totalPayable, resMesghal.totalPayable, 1.0)
     }
+
+    @Test
+    fun customKaratCalculationFollows750BasisFormula() {
+        // Standard 750 Karat
+        val res750 = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            customKaratValue = 750,
+            spotPrice18k = 4_000_000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 0.0,
+            profitPercent = 0.0,
+            taxPercent = 0.0
+        )
+        assertNotNull(res750)
+        assertEquals(40_000_000.0, res750!!.rawGoldValue, 0.001)
+
+        // Custom 740 Karat: 40_000_000 * 740 / 750 = 39,466,666.667
+        val res740 = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            customKaratValue = 740,
+            spotPrice18k = 4_000_000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 0.0,
+            profitPercent = 0.0,
+            taxPercent = 0.0
+        )
+        assertNotNull(res740)
+        assertEquals(40_000_000.0 * (740.0 / 750.0), res740!!.rawGoldValue, 0.001)
+
+        // Custom 705 Karat (17k): 40_000_000 * 705 / 750 = 37,600_000
+        val res705 = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K18,
+            customKaratValue = 705,
+            spotPrice18k = 4_000_000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 0.0,
+            profitPercent = 0.0,
+            taxPercent = 0.0
+        )
+        assertNotNull(res705)
+        assertEquals(37_600_000.0, res705!!.rawGoldValue, 0.001)
+
+        // Input 21 (as 21 karat scale): maps to 875
+        val res21 = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K21,
+            customKaratValue = 21,
+            spotPrice18k = 4_000_000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 0.0,
+            profitPercent = 0.0,
+            taxPercent = 0.0
+        )
+        val res875 = GoldCalculationUseCases.calculateJewelry(
+            grossWeight = 10.0,
+            stoneWeight = 0.0,
+            karat = Karat.K21,
+            customKaratValue = 875,
+            spotPrice18k = 4_000_000L,
+            wageType = WageType.PERCENTAGE,
+            wageInput = 0.0,
+            profitPercent = 0.0,
+            taxPercent = 0.0
+        )
+        assertNotNull(res21)
+        assertNotNull(res875)
+        assertEquals(res875!!.rawGoldValue, res21!!.rawGoldValue, 0.001)
+    }
 }

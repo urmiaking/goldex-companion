@@ -9,6 +9,7 @@ data class InvoiceItem(
     val id: String = UUID.randomUUID().toString(),
     val title: String = "قطعه طلا",
     val karat: Karat = Karat.K18,
+    val customKaratValue: Int = 750,
     val grossWeight: Double,
     val stoneWeight: Double = 0.0,
     val netWeight: Double,
@@ -66,7 +67,12 @@ data class Invoice(
         sb.append("════════════════════════════════════════\n")
         sb.append("📋 اقلام فاکتور (${PersianNumberFormatter.toPersianDigits(items.size.toString())} قلم):\n")
         items.forEachIndexed { index, item ->
-            sb.append("${PersianNumberFormatter.toPersianDigits((index + 1).toString())}. ${item.title} (${item.karat.labelFa})\n")
+            val karatText = if (item.customKaratValue != 750 && item.customKaratValue > 0) {
+                "عیار ${PersianNumberFormatter.toPersianDigits(item.customKaratValue.toString())}"
+            } else {
+                item.karat.labelFa
+            }
+            sb.append("${PersianNumberFormatter.toPersianDigits((index + 1).toString())}. ${item.title} ($karatText)\n")
             sb.append("   • وزن ناخالص: ${PersianNumberFormatter.formatWeight(item.grossWeight)} گرم")
             if (item.stoneWeight > 0) {
                 sb.append(" | کسر نگین: ${PersianNumberFormatter.formatWeight(item.stoneWeight)} گرم")

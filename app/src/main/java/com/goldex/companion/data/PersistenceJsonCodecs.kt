@@ -182,6 +182,7 @@ internal object PersistenceJsonCodecs {
                 id = obj.stringValue("id"),
                 title = obj.stringValue("title", "قطعه طلا"),
                 karat = enumOrDefault(obj.stringValue("karat"), Karat.K18),
+                customKaratValue = obj.optInt("customKaratValue", 750),
                 grossWeight = obj.doubleValue("grossWeight", 0.0),
                 stoneWeight = obj.doubleValue("stoneWeight", 0.0),
                 netWeight = obj.doubleValue("netWeight", 0.0),
@@ -208,6 +209,7 @@ internal object PersistenceJsonCodecs {
                 put("id", item.id)
                 put("title", item.title)
                 put("karat", item.karat.name)
+                put("customKaratValue", item.customKaratValue)
                 put("grossWeight", item.grossWeight)
                 put("stoneWeight", item.stoneWeight)
                 put("netWeight", item.netWeight)

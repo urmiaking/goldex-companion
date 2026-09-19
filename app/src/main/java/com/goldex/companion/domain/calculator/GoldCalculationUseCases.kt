@@ -7,6 +7,7 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 import kotlin.math.round
+import kotlin.math.roundToInt
 
 object GoldCalculationUseCases {
     const val MESGHAL_TO_GRAM_18K_RATIO: Double = 4.33185
@@ -31,7 +32,8 @@ object GoldCalculationUseCases {
     fun calculateJewelry(
         grossWeight: Double,
         stoneWeight: Double,
-        karat: Karat,
+        karat: Karat = Karat.K18,
+        customKaratValue: Int = 750,
         spotPrice18k: Long,
         wageType: WageType,
         wageInput: Double,
@@ -41,8 +43,13 @@ object GoldCalculationUseCases {
         val netWeight = (grossWeight - stoneWeight).coerceAtLeast(0.0)
         if (netWeight <= 0.0 || spotPrice18k <= 0L) return null
 
-        val pureGramSpot = spotPrice18k.toDouble() / Karat.K18.purityRatio
-        val rawGoldValue = netWeight * karat.purityRatio * pureGramSpot
+        val effectiveKarat = when {
+            customKaratValue in 1..24 -> (customKaratValue * 1000.0 / 24.0).roundToInt()
+            customKaratValue > 24 -> customKaratValue
+            else -> (karat.karatNumber * 1000.0 / 24.0).roundToInt()
+        }
+        val karatRatio = effectiveKarat.toDouble() / 750.0
+        val rawGoldValue = netWeight * spotPrice18k * karatRatio
         val wageAmount = when (wageType) {
             WageType.PERCENTAGE -> rawGoldValue * (wageInput / 100.0)
             WageType.TOMAN_PER_GRAM -> netWeight * wageInput

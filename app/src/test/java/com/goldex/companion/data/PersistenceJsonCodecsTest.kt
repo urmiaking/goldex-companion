@@ -68,6 +68,7 @@ class PersistenceJsonCodecsTest {
         assertEquals("خریدار", invoice.customer?.name)
         assertEquals("item-1", item.id)
         assertEquals(Karat.K18, item.karat)
+        assertEquals(750, item.customKaratValue)
         assertEquals(WageType.PERCENTAGE, item.wageType)
         assertEquals(2.125, item.grossWeight, 0.0001)
         assertEquals(2_500_000.0, item.totalPayable, 0.001)
@@ -84,6 +85,7 @@ class PersistenceJsonCodecsTest {
                     id = "item-2",
                     title = "سکه",
                     karat = Karat.K24,
+                    customKaratValue = 999,
                     grossWeight = 1.001,
                     netWeight = 1.001,
                     spotPrice = 10_000_000L,
@@ -109,6 +111,7 @@ class PersistenceJsonCodecsTest {
         assertEquals(invoice.invoiceNumber, decoded.invoiceNumber)
         assertEquals(invoice.customer?.id, decoded.customer?.id)
         assertEquals(invoice.items.single().id, decoded.items.single().id)
+        assertEquals(999, decoded.items.single().customKaratValue)
         assertEquals(1.001, decoded.items.single().netWeight, 0.0001)
         assertEquals(CoinType.EMAMI, CoinType.valueOf("EMAMI"))
     }

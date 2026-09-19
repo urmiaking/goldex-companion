@@ -14,6 +14,7 @@ data class JewelryUiState(
     val grossWeightInput: String = "10",
     val stoneWeightInput: String = "0",
     val selectedKarat: Karat = Karat.K18,
+    val karatInput: String = "750",
     val spotPriceInput: String = "23360000",
     val wageType: WageType = WageType.PERCENTAGE,
     val wageInput: String = "12",
@@ -28,6 +29,7 @@ interface JewelryActions {
     fun setManualSpotDialogVisible(visible: Boolean)
     fun setPriceBasisTab(tab: PriceBasisTab)
     fun onGrossWeightChanged(newWeight: String)
+    fun onKaratInputChanged(newKarat: String)
     fun onWageTypeChanged(type: WageType)
     fun decrementWage()
     fun incrementWage()
