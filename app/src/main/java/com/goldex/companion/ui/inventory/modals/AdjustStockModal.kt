@@ -29,8 +29,14 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.rememberCoroutineScope
@@ -374,34 +380,38 @@ fun AdjustStockModal(
                         }
                     }
 
-                    // Adjustment Inputs: Polished Stepper + Weight Input
+                    // Adjustment Inputs: Polished Stepper + Weight Input (Aligned & Equal Height)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        // Polished Piece Count Stepper
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = colors.surfaceElevated,
-                            border = BorderStroke(1.dp, colors.border),
-                            modifier = Modifier.weight(1.1f)
+                        // Column 1: Polished Piece Count Stepper
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            Text(
+                                text = "تعداد تغییر (قطعه)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(1.dp, colors.border),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
                             ) {
-                                Text(
-                                    text = "تعداد تغییر (قطعه)",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textSecondary,
-                                    fontFamily = VazirmatnFamily
-                                )
                                 Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     // [-] button
                                     Surface(
@@ -409,7 +419,7 @@ fun AdjustStockModal(
                                         color = colors.surface,
                                         border = BorderStroke(0.6.dp, colors.border),
                                         modifier = Modifier
-                                            .size(32.dp)
+                                            .size(34.dp)
                                             .clickable { if (quantityChange > 1) quantityChange-- }
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -443,7 +453,7 @@ fun AdjustStockModal(
                                         color = colors.surface,
                                         border = BorderStroke(0.6.dp, colors.border),
                                         modifier = Modifier
-                                            .size(32.dp)
+                                            .size(34.dp)
                                             .clickable { quantityChange++ }
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -459,16 +469,92 @@ fun AdjustStockModal(
                             }
                         }
 
-                        // Weight Input (Gram)
-                        Box(modifier = Modifier.weight(1f)) {
-                            GoldInputField(
-                                value = weightInput,
-                                onValueChange = { weightInput = it },
-                                label = "وزن کل طلا",
-                                trailingText = "گرم",
-                                isDecimal = true,
-                                keyboardType = KeyboardType.Decimal
+                        // Column 2: Weight Input (Gram)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "وزن کل طلا",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                fontFamily = VazirmatnFamily
                             )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(1.dp, colors.border),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                            BasicTextField(
+                                                value = PersianNumberFormatter.toPersianDigits(weightInput),
+                                                onValueChange = {
+                                                    val filtered = it.filter { ch -> ch.isDigit() || ch == '.' || ch == '/' || ch in '\u06F0'..'\u06F9' }
+                                                    weightInput = PersianNumberFormatter.toEnglishDigits(filtered)
+                                                },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                                singleLine = true,
+                                                textStyle = TextStyle(
+                                                    fontFamily = VazirmatnFamily,
+                                                    fontFeatureSettings = VazirmatnFeatureSettings,
+                                                    fontSize = 15.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.textMain,
+                                                    textAlign = TextAlign.Right,
+                                                    textDirection = TextDirection.Ltr
+                                                ),
+                                                cursorBrush = SolidColor(colors.goldPrimary),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                decorationBox = { innerTextField ->
+                                                    Box(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        contentAlignment = Alignment.CenterEnd
+                                                    ) {
+                                                        if (weightInput.isEmpty()) {
+                                                            Text(
+                                                                text = PersianNumberFormatter.formatWeight(item.netGoldWeightGrams * quantityChange),
+                                                                fontSize = 13.5.sp,
+                                                                color = colors.textMuted.copy(alpha = 0.55f),
+                                                                fontFamily = VazirmatnFamily,
+                                                                textAlign = TextAlign.Right
+                                                            )
+                                                        }
+                                                        innerTextField()
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = colors.surface,
+                                        border = BorderStroke(0.5.dp, colors.border),
+                                        modifier = Modifier.padding(vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "گرم",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.textSecondary,
+                                            fontFamily = VazirmatnFamily,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

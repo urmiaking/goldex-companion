@@ -1,6 +1,10 @@
 package com.goldex.companion.ui.invoices.modals
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -8,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,27 +35,29 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -62,6 +69,8 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.domain.invoice.BarterCalculationUseCases
 import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterItem
@@ -81,9 +90,11 @@ import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddInvoiceItemModal(
     spotPrice18k: Long,
@@ -92,164 +103,246 @@ fun AddInvoiceItemModal(
     onDismiss: () -> Unit,
     onSaveItem: (BarterItem) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val colors = LocalGoldExColors.current
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "scrimAlpha"
+    )
 
     var selectedCategory by remember {
         mutableStateOf(existingItem?.category ?: defaultCategory)
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = colors.surfaceElevated,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        dragHandle = {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 10.dp)
-                    .width(44.dp)
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(colors.border.copy(alpha = 0.6f))
-            )
-        }
+    Dialog(
+        onDismissRequest = handleDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 12.dp)
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = handleDismiss
+                    ),
+                contentAlignment = Alignment.BottomCenter
             ) {
-                // Header Row
-                Row(
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxHeight(0.92f)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = if (existingItem != null) "ویرایش قلم فاکتور" else "افزودن قلم به فاکتور",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily
-                        )
-                        Text(
-                            text = "مظنه ۱۸ عیار مبنا: ${PersianNumberFormatter.formatPrice(spotPrice18k)} تومان",
-                            fontSize = 11.sp,
-                            color = colors.goldPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(ButtonShape)
-                            .background(colors.surfaceVariant)
-                            .border(0.6.dp, colors.goldBorder, ButtonShape)
-                    ) {
-                        Icon(
-                            imageVector = InvoiceCloseVector,
-                            contentDescription = "بستن",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                // Top Category Navigation Tabs (only selectable if adding new item)
-                if (existingItem == null) {
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = colors.surfaceVariant,
-                        border = BorderStroke(0.6.dp, colors.border),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            ),
+                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                .fillMaxSize()
+                                .navigationBarsPadding()
                         ) {
-                            InvoiceItemCategory.entries.forEach { category ->
-                                val isSelected = selectedCategory == category
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(38.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(
-                                            if (isSelected) colors.goldPrimary else Color.Transparent
-                                        )
-                                        .clickable { selectedCategory = category },
-                                    contentAlignment = Alignment.Center
-                                ) {
+                            // Top Drag Handle
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 10.dp, bottom = 4.dp)
+                                    .size(width = 44.dp, height = 4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.border)
+                                    .align(Alignment.CenterHorizontally)
+                            )
+
+                            // Fixed Header Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(
-                                        text = category.titleFa,
+                                        text = if (existingItem != null) "ویرایش قلم فاکتور" else "افزودن قلم به فاکتور",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "مظنه ۱۸ عیار مبنا: ${PersianNumberFormatter.formatPrice(spotPrice18k)} تومان",
                                         fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else colors.textSecondary,
-                                        fontFamily = VazirmatnFamily,
-                                        maxLines = 1
+                                        color = colors.goldPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = handleDismiss,
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(ButtonShape)
+                                        .background(colors.surfaceVariant)
+                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
+                                ) {
+                                    Icon(
+                                        imageVector = InvoiceCloseVector,
+                                        contentDescription = "بستن",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
+                            // Top Category Navigation Tabs (only selectable if adding new item)
+                            if (existingItem == null) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(3.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        InvoiceItemCategory.entries.forEach { category ->
+                                            val isSelected = selectedCategory == category
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(36.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(
+                                                        if (isSelected) colors.goldPrimary else Color.Transparent
+                                                    )
+                                                    .clickable { selectedCategory = category },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = category.titleFa,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) Color.White else colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
 
-                // Body based on category
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                ) {
-                    AnimatedContent(
-                        targetState = selectedCategory,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "categoryFormAnim"
-                    ) { category ->
-                        when (category) {
-                            InvoiceItemCategory.CRAFTED -> {
-                                CraftedGoldForm(
-                                    spotPrice18k = spotPrice18k,
-                                    existingItem = existingItem as? CraftedGoldItem,
-                                    onDismiss = onDismiss,
-                                    onConfirm = onSaveItem
-                                )
-                            }
-                            InvoiceItemCategory.SCRAP -> {
-                                ScrapGoldForm(
-                                    spotPrice18k = spotPrice18k,
-                                    existingItem = existingItem as? ScrapGoldItem,
-                                    onDismiss = onDismiss,
-                                    onConfirm = onSaveItem
-                                )
-                            }
-                            InvoiceItemCategory.MELT -> {
-                                MeltGoldForm(
-                                    spotPrice18k = spotPrice18k,
-                                    existingItem = existingItem as? MeltGoldItem,
-                                    onDismiss = onDismiss,
-                                    onConfirm = onSaveItem
-                                )
-                            }
-                            InvoiceItemCategory.COIN -> {
-                                BankCoinForm(
-                                    existingItem = existingItem as? BankCoinItem,
-                                    onDismiss = onDismiss,
-                                    onConfirm = onSaveItem
-                                )
+                            // Header bottom divider separating Header/Tabs from Body
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+                            // Body based on category
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                AnimatedContent(
+                                    targetState = selectedCategory,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "categoryFormAnim"
+                                ) { category ->
+                                    when (category) {
+                                        InvoiceItemCategory.CRAFTED -> {
+                                            CraftedGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? CraftedGoldItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.SCRAP -> {
+                                            ScrapGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? ScrapGoldItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.MELT -> {
+                                            MeltGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? MeltGoldItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.COIN -> {
+                                            BankCoinForm(
+                                                existingItem = existingItem as? BankCoinItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -394,8 +487,11 @@ private fun CraftedGoldForm(
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             GoldInputField(
@@ -653,28 +749,31 @@ private fun CraftedGoldForm(
             }
         }
 
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
         // Sticky Bottom Footer
         Surface(
-            color = colors.surfaceElevated,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 GoldButton(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(0.35f)
+                    modifier = Modifier.weight(1f)
                 )
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم به فاکتور",
                     onClick = { onConfirm(item) },
                     icon = InvoiceCheckVector,
-                    modifier = Modifier.weight(0.65f)
+                    modifier = Modifier.weight(1.8f)
                 )
             }
         }
@@ -739,8 +838,11 @@ private fun ScrapGoldForm(
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             GoldInputField(
@@ -986,28 +1088,31 @@ private fun ScrapGoldForm(
             }
         }
 
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
         // Sticky Bottom Footer
         Surface(
-            color = colors.surfaceElevated,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 GoldButton(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(0.35f)
+                    modifier = Modifier.weight(1f)
                 )
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم تهاتر",
                     onClick = { onConfirm(item) },
                     icon = InvoiceCheckVector,
-                    modifier = Modifier.weight(0.65f)
+                    modifier = Modifier.weight(1.8f)
                 )
             }
         }
@@ -1064,8 +1169,11 @@ private fun MeltGoldForm(
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1203,28 +1311,31 @@ private fun MeltGoldForm(
             }
         }
 
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
         // Sticky Bottom Footer
         Surface(
-            color = colors.surfaceElevated,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 GoldButton(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(0.35f)
+                    modifier = Modifier.weight(1f)
                 )
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن آبشده به فاکتور",
                     onClick = { onConfirm(item) },
                     icon = InvoiceCheckVector,
-                    modifier = Modifier.weight(0.65f)
+                    modifier = Modifier.weight(1.8f)
                 )
             }
         }
@@ -1278,8 +1389,11 @@ private fun BankCoinForm(
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Coin Type Chips
@@ -1472,28 +1586,31 @@ private fun BankCoinForm(
             }
         }
 
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
         // Sticky Bottom Footer
         Surface(
-            color = colors.surfaceElevated,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 GoldButton(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(0.35f)
+                    modifier = Modifier.weight(1f)
                 )
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن سکه به فاکتور",
                     onClick = { onConfirm(item) },
                     icon = InvoiceCheckVector,
-                    modifier = Modifier.weight(0.65f)
+                    modifier = Modifier.weight(1.8f)
                 )
             }
         }
