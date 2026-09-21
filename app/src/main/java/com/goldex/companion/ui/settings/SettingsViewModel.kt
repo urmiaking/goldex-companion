@@ -104,6 +104,13 @@ class SettingsViewModel(
         updateSettings(updated)
     }
 
+    fun dismissBiometricTip() {
+        val updated = _uiState.value.appSettings.copy(
+            isBiometricTipDismissed = true
+        )
+        updateSettings(updated)
+    }
+
     fun completeOnboarding() {
         val updated = _uiState.value.appSettings.copy(
             hasCompletedOnboarding = true

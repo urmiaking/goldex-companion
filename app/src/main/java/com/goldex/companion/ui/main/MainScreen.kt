@@ -521,6 +521,23 @@ fun MainScreen(
                                         },
                                         onOpenLicenseActivation = {
                                             licenseViewModel.setActivationDialogVisible(true)
+                                        },
+                                        onEnableBiometricLock = {
+                                            if (appLockViewModel != null) {
+                                                appLockViewModel.toggleBiometricLock(true) { success, message ->
+                                                    if (success) {
+                                                        settingsViewModel.loadSettings()
+                                                    }
+                                                    if (!message.isNullOrBlank()) {
+                                                        QiratoToast.show(context, message)
+                                                    }
+                                                }
+                                            } else {
+                                                settingsViewModel.toggleBiometricLock(true)
+                                            }
+                                        },
+                                        onDismissBiometricTip = {
+                                            settingsViewModel.dismissBiometricTip()
                                         }
                                     )
                                 }

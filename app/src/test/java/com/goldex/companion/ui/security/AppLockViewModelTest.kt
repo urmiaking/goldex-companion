@@ -47,6 +47,19 @@ class AppLockViewModelTest {
     }
 
     @Test
+    fun defaultAppSettings_hasBiometricLockAndTipDismissedDisabledByDefault() {
+        val defaultSettings = AppSettings()
+        assertFalse(defaultSettings.isBiometricLockEnabled)
+        assertFalse(defaultSettings.isBiometricTipDismissed)
+
+        val settingsStore = FakeSettingsStore(defaultSettings)
+        val authManager = FakeBiometricAuthManager(status = BiometricStatus.AVAILABLE)
+
+        val viewModel = AppLockViewModel(settingsStore, authManager)
+        assertFalse(viewModel.uiState.value.isLocked)
+    }
+
+    @Test
     fun initialState_whenBiometricEnabledAndAvailable_startsLocked() {
         val settingsStore = FakeSettingsStore(AppSettings(isBiometricLockEnabled = true))
         val authManager = FakeBiometricAuthManager(status = BiometricStatus.AVAILABLE)

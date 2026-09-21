@@ -21,7 +21,8 @@ data class AppSettings(
     val galleryLicense: String = "",
     val invoiceLogoUri: String = "",
     val invoiceStampUri: String = "",
-    val isBiometricLockEnabled: Boolean = true,
+    val isBiometricLockEnabled: Boolean = false,
+    val isBiometricTipDismissed: Boolean = false,
     val hasCompletedOnboarding: Boolean = false
 )
 
@@ -61,7 +62,8 @@ class SettingsRepository(context: Context) : SettingsStore {
             galleryLicense = prefs.getString("key_gallery_license", "") ?: "",
             invoiceLogoUri = prefs.getString("key_invoice_logo_uri", "") ?: "",
             invoiceStampUri = prefs.getString("key_invoice_stamp_uri", "") ?: "",
-            isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", true),
+            isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", false),
+            isBiometricTipDismissed = prefs.getBoolean("key_biometric_tip_dismissed", false),
             hasCompletedOnboarding = prefs.getBoolean("key_has_completed_onboarding", false)
         )
     }
@@ -82,6 +84,7 @@ class SettingsRepository(context: Context) : SettingsStore {
             .putString("key_invoice_logo_uri", newSettings.invoiceLogoUri)
             .putString("key_invoice_stamp_uri", newSettings.invoiceStampUri)
             .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
+            .putBoolean("key_biometric_tip_dismissed", newSettings.isBiometricTipDismissed)
             .putBoolean("key_has_completed_onboarding", newSettings.hasCompletedOnboarding)
             .apply()
 

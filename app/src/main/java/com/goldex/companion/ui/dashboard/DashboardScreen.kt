@@ -26,6 +26,9 @@ import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import com.goldex.companion.ui.hub.HubFingerprint
 import com.goldex.companion.ui.hub.HubShowcase
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +81,9 @@ fun DashboardScreen(
     onNavigateMelt: () -> Unit,
     onNavigateLedger: () -> Unit,
     onNavigateInventory: () -> Unit = {},
-    onOpenLicenseActivation: () -> Unit = {}
+    onOpenLicenseActivation: () -> Unit = {},
+    onEnableBiometricLock: () -> Unit = {},
+    onDismissBiometricTip: () -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
     var selectedTimeframe by remember { mutableStateOf(0) } // 0: امروز, 1: هفتگی, 2: ماهانه
@@ -194,6 +199,16 @@ fun DashboardScreen(
         DashboardLicenseAlertBanner(
             licenseInfo = uiState.licenseInfo,
             onOpenLicenseActivation = onOpenLicenseActivation
+        )
+
+        // ==========================================
+        // 1.6 Smart Biometric Security Tip Banner
+        // ==========================================
+        DashboardBiometricTipBanner(
+            isBiometricLockEnabled = uiState.appSettings.isBiometricLockEnabled,
+            isBiometricTipDismissed = uiState.appSettings.isBiometricTipDismissed,
+            onEnableBiometricLock = onEnableBiometricLock,
+            onDismissBiometricTip = onDismissBiometricTip
         )
 
         // ==========================================
@@ -1434,6 +1449,133 @@ private fun DashboardLicenseAlertBanner(
                             modifier = Modifier.size(12.dp)
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardBiometricTipBanner(
+    isBiometricLockEnabled: Boolean,
+    isBiometricTipDismissed: Boolean,
+    onEnableBiometricLock: () -> Unit,
+    onDismissBiometricTip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (isBiometricLockEnabled || isBiometricTipDismissed) return
+
+    val colors = LocalGoldExColors.current
+    val isDark = colors.isDark
+
+    val bg = if (isDark) {
+        listOf(Color(0xFF1B202E), Color(0xFF131722))
+    } else {
+        listOf(Color(0xFFFFFBEB), Color(0xFFFEF3C7))
+    }
+    val border = if (isDark) colors.goldBorder.copy(alpha = 0.55f) else colors.goldBorder
+    val accent = if (isDark) colors.goldPrimary else colors.goldSecondary
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, border),
+        shadowElevation = if (isDark) 0.dp else 1.5.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Brush.horizontalGradient(bg))
+                .padding(horizontal = 12.dp, vertical = 9.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                // Icon Badge
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(accent.copy(alpha = if (isDark) 0.18f else 0.22f))
+                        .border(0.8.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = HubFingerprint,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Text Details
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "ارتقای امنیت با قفل اثر انگشت",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isDark) Color.White else Color(0xFF1F2937)
+                    )
+                    Text(
+                        text = "محافظت از دفاتر مالی و فاکتورها هنگام خروج",
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isDark) Color(0xFFD1D5DB) else Color(0xFF4B5563),
+                        lineHeight = 14.sp
+                    )
+                }
+
+                // Call to Action Chip
+                Surface(
+                    modifier = Modifier.clickable { onEnableBiometricLock() },
+                    shape = RoundedCornerShape(8.dp),
+                    color = accent.copy(alpha = if (isDark) 0.18f else 0.25f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "فعال‌سازی",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = accent,
+                            maxLines = 1
+                        )
+                        Icon(
+                            imageVector = DashChevronLeft,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+
+                // Dismiss Button
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .clickable { onDismissBiometricTip() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "رد کردن پیام",
+                        tint = colors.textMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
         }
