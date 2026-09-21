@@ -2,6 +2,7 @@ package com.goldex.companion.ui.customers
 
 import android.content.Intent
 import android.net.Uri
+import kotlin.math.abs
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -167,7 +168,7 @@ fun CustomerStatementScreen(
 
                         // Right action buttons (Call & Share) with proper spacing
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (customer.phone.isNotBlank()) {
@@ -317,17 +318,39 @@ fun CustomerStatementScreen(
                                                 fontFamily = VazirmatnFamily
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = when {
-                                                    customer.goldDebtGrams > 0.0001 -> Color(0xFFFB7185)
-                                                    customer.goldDebtGrams < -0.0001 -> Color(0xFF34D399)
-                                                    else -> Color(0xFFFFE088)
-                                                },
-                                                fontFamily = VazirmatnFamily
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${PersianNumberFormatter.formatWeight(abs(customer.goldDebtGrams))} گرم",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = when {
+                                                        customer.goldDebtGrams > 0.0001 -> Color(0xFFFB7185)
+                                                        customer.goldDebtGrams < -0.0001 -> Color(0xFF34D399)
+                                                        else -> Color(0xFFFFE088)
+                                                    },
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                if (customer.goldDebtGrams > 0.0001 || customer.goldDebtGrams < -0.0001) {
+                                                    val goldStatusText = if (customer.goldDebtGrams > 0.0001) "بدهکار" else "بستانکار"
+                                                    val goldStatusColor = if (customer.goldDebtGrams > 0.0001) Color(0xFFFB7185) else Color(0xFF34D399)
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = goldStatusColor.copy(alpha = 0.15f)
+                                                    ) {
+                                                        Text(
+                                                            text = goldStatusText,
+                                                            fontSize = 8.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = goldStatusColor,
+                                                            fontFamily = VazirmatnFamily,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             Text(
                                                 text = "معادل طلای ۷۵۰ (۱۸ عیار)",
                                                 fontSize = 9.sp,
@@ -352,17 +375,39 @@ fun CustomerStatementScreen(
                                                 fontFamily = VazirmatnFamily
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)}",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = when {
-                                                    customer.cashDebtTomans > 0L -> Color(0xFFFB7185)
-                                                    customer.cashDebtTomans < 0L -> Color(0xFF34D399)
-                                                    else -> Color.White
-                                                },
-                                                fontFamily = VazirmatnFamily
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = PersianNumberFormatter.formatPrice(abs(customer.cashDebtTomans)),
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = when {
+                                                        customer.cashDebtTomans > 0L -> Color(0xFFFB7185)
+                                                        customer.cashDebtTomans < 0L -> Color(0xFF34D399)
+                                                        else -> Color.White
+                                                    },
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                if (customer.cashDebtTomans != 0L) {
+                                                    val cashStatusText = if (customer.cashDebtTomans > 0L) "بدهکار" else "بستانکار"
+                                                    val cashStatusColor = if (customer.cashDebtTomans > 0L) Color(0xFFFB7185) else Color(0xFF34D399)
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = cashStatusColor.copy(alpha = 0.15f)
+                                                    ) {
+                                                        Text(
+                                                            text = cashStatusText,
+                                                            fontSize = 8.5.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = cashStatusColor,
+                                                            fontFamily = VazirmatnFamily,
+                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             Text(
                                                 text = "تومان ایران",
                                                 fontSize = 9.sp,
@@ -674,6 +719,46 @@ private fun StatementFilterCapsuleItem(
 }
 
 @Composable
+private fun MethodChip(
+    text: String,
+    isGold: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val (chipBg, chipText, chipBorder) = when {
+        isGold -> when {
+            text.contains("آبشده") -> Triple(Color(0x26F59E0B), Color(0xFFF59E0B), Color(0x4DF59E0B))
+            text.contains("مصنوعات") -> Triple(Color(0x26EC4899), Color(0xFFF472B6), Color(0x4DEC4899))
+            text.contains("سکه") || text.contains("شمش") -> Triple(Color(0x2606B6D4), Color(0xFF22D3EE), Color(0x4D06B6D4))
+            else -> Triple(colors.goldContainer.copy(alpha = 0.5f), colors.goldPrimary, colors.goldBorder)
+        }
+        else -> when {
+            text.contains("حواله") || text.contains("پایا") -> Triple(Color(0x263B82F6), Color(0xFF60A5FA), Color(0x4D3B82F6))
+            text.contains("چک") -> Triple(Color(0x268B5CF6), Color(0xFFA78BFA), Color(0x4D8B5CF6))
+            text.contains("کارتخوان") || text.contains("POS") -> Triple(Color(0x266366F1), Color(0xFF818CF8), Color(0x4D6366F1))
+            text.contains("نقد") || text.contains("اسکناس") -> Triple(Color(0x2610B981), Color(0xFF34D399), Color(0x4D10B981))
+            else -> Triple(Color(0x2664748B), Color(0xFF94A3B8), Color(0x4D64748B))
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(6.dp),
+        color = chipBg,
+        border = BorderStroke(0.6.dp, chipBorder),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.Bold,
+            color = chipText,
+            fontFamily = VazirmatnFamily,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+@Composable
 private fun StatementTransactionCard(
     transaction: LedgerTransaction,
     onEditClick: () -> Unit = {},
@@ -684,7 +769,7 @@ private fun StatementTransactionCard(
     val isReceive = transaction.direction == LedgerDirection.RECEIVE
 
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(13.dp),
         color = colors.surface,
         border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.35f)),
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,
@@ -693,8 +778,8 @@ private fun StatementTransactionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(11.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             // Row 1: Header - Icon + Title & Doc/Date + Direction Badge + Edit/Delete
             Row(
@@ -708,8 +793,8 @@ private fun StatementTransactionCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(30.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp))
                             .background(
                                 if (isGold) colors.goldContainer.copy(alpha = 0.6f) else colors.surfaceElevated
                             ),
@@ -719,7 +804,7 @@ private fun StatementTransactionCard(
                             imageVector = if (isGold) LedgerScaleVector else LedgerAccountBalanceVector,
                             contentDescription = null,
                             tint = colors.goldPrimary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                     }
 
@@ -730,7 +815,7 @@ private fun StatementTransactionCard(
                         ) {
                             Text(
                                 text = transaction.title,
-                                fontSize = 12.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textMain,
                                 maxLines = 1,
@@ -740,7 +825,7 @@ private fun StatementTransactionCard(
                             if (transaction.tagBadge.isNotBlank()) {
                                 Text(
                                     text = transaction.tagBadge,
-                                    fontSize = 9.sp,
+                                    fontSize = 8.5.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colors.goldPrimary,
                                     fontFamily = VazirmatnFamily,
@@ -753,7 +838,7 @@ private fun StatementTransactionCard(
                         }
                         Text(
                             text = "سند #${PersianNumberFormatter.toPersianDigits(transaction.documentNumber)} • ${transaction.dateTime}",
-                            fontSize = 10.sp,
+                            fontSize = 9.5.sp,
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
@@ -762,7 +847,7 @@ private fun StatementTransactionCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     // Direction badge
                     val dirColor = if (isReceive) colors.profitGreen else colors.errorRed
@@ -774,7 +859,7 @@ private fun StatementTransactionCard(
                     ) {
                         Text(
                             text = dirText,
-                            fontSize = 9.5.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = dirColor,
                             fontFamily = VazirmatnFamily,
@@ -784,7 +869,7 @@ private fun StatementTransactionCard(
 
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(24.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(colors.surfaceElevated)
                             .clickable(onClick = onEditClick),
@@ -794,13 +879,13 @@ private fun StatementTransactionCard(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "ویرایش سند",
                             tint = colors.goldPrimary,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
 
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(24.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(colors.surfaceElevated)
                             .clickable(onClick = onDeleteClick),
@@ -810,20 +895,20 @@ private fun StatementTransactionCard(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "حذف سند",
                             tint = colors.errorRed,
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(12.dp)
                         )
                     }
                 }
             }
 
-            // Row 2: Movement Strip with Clear Labels (تفسیر و برچسب کاملاً واضح)
+            // Row 2: Movement Strip - Method Chip + Details & Prominent Amount
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = colors.surfaceElevated,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
                     Row(
@@ -831,61 +916,71 @@ private fun StatementTransactionCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = if (isGold) "وزن معادل ۷۵۰:" else "مبلغ تراکنش:",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textMuted,
-                                fontFamily = VazirmatnFamily
-                            )
-                            if (isGold && transaction.scaleWeightGrams > 0.0) {
-                                val detailsText = buildString {
-                                    append("ترازو: ${PersianNumberFormatter.formatWeight(transaction.scaleWeightGrams)} گرم")
-                                    append(" • عیار ${PersianNumberFormatter.toPersianDigits(transaction.karat.toString())}")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            val methodLabel = if (isGold) {
+                                if (transaction.goldCategory.isNotBlank()) transaction.goldCategory else "طلا ۷۵۰"
+                            } else {
+                                if (transaction.paymentMethod.isNotBlank()) transaction.paymentMethod else "نقدی"
+                            }
+                            MethodChip(text = methodLabel, isGold = isGold)
+
+                            val detailsText = if (isGold && transaction.scaleWeightGrams > 0.0) {
+                                buildString {
+                                    append("ترازو: ${PersianNumberFormatter.formatWeight(transaction.scaleWeightGrams)}")
+                                    if (transaction.karat != 750) {
+                                        append(" (ع ${PersianNumberFormatter.toPersianDigits(transaction.karat.toString())})")
+                                    }
                                     if (transaction.angNumber.isNotBlank()) {
                                         append(" • اَنگ: ${PersianNumberFormatter.toPersianDigits(transaction.angNumber)}")
                                     }
                                 }
-                                Text(
-                                    text = detailsText,
-                                    fontSize = 9.5.sp,
-                                    color = colors.textSecondary,
-                                    fontFamily = VazirmatnFamily
-                                )
-                            } else if (!isGold && transaction.paymentMethod.isNotBlank()) {
-                                val detailsText = buildString {
-                                    append("روش: ${transaction.paymentMethod}")
+                            } else if (!isGold && (transaction.destinationBank.isNotBlank() || transaction.trackingCode.isNotBlank())) {
+                                buildString {
+                                    if (transaction.destinationBank.isNotBlank()) {
+                                        append(transaction.destinationBank)
+                                    }
                                     if (transaction.trackingCode.isNotBlank()) {
-                                        append(" • پیگیری: ${PersianNumberFormatter.toPersianDigits(transaction.trackingCode)}")
+                                        if (isNotEmpty()) append(" • ")
+                                        append("پیگیری: ${PersianNumberFormatter.toPersianDigits(transaction.trackingCode)}")
                                     }
                                 }
+                            } else ""
+
+                            if (detailsText.isNotBlank()) {
                                 Text(
                                     text = detailsText,
                                     fontSize = 9.5.sp,
                                     color = colors.textSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
                         }
 
+                        // Prominent eye-catching amount (NO negative sign, direction indicated by color & badge)
                         Text(
                             text = if (isGold) {
-                                "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatWeight(transaction.equivalent750WeightGrams)} گرم"
+                                "${PersianNumberFormatter.formatWeight(transaction.equivalent750WeightGrams)} گرم"
                             } else {
-                                "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatPrice(transaction.amountTomans)} تومان"
+                                "${PersianNumberFormatter.formatPrice(transaction.amountTomans)} تومان"
                             },
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Black,
                             color = if (isReceive) colors.profitGreen else colors.errorRed,
                             fontFamily = VazirmatnFamily
                         )
                     }
 
+                    // Note: Render ONLY when note is not blank
                     if (transaction.note.isNotBlank()) {
                         Text(
                             text = "یادداشت: ${transaction.note}",
-                            fontSize = 9.5.sp,
+                            fontSize = 9.sp,
                             color = colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -895,7 +990,7 @@ private fun StatementTransactionCard(
                 }
             }
 
-            // Row 3: Resulting Balance with Clear Interpretation (مانده معین با تفکیک بدهکار/بستانکار)
+            // Row 3: Resulting Balance with Clear Interpretation (مانده معین با تفکیک بدهکار/بستانکار و بدون منفی)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -903,7 +998,7 @@ private fun StatementTransactionCard(
             ) {
                 Text(
                     text = "مانده معین پس از ثبت:",
-                    fontSize = 10.sp,
+                    fontSize = 9.5.sp,
                     color = colors.textMuted,
                     fontFamily = VazirmatnFamily
                 )
@@ -925,19 +1020,20 @@ private fun StatementTransactionCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "${PersianNumberFormatter.formatWeight(bal)} گرم",
-                            fontSize = 11.5.sp,
+                            text = "${PersianNumberFormatter.formatWeight(abs(bal))} گرم",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
+                            color = statusColor,
                             fontFamily = VazirmatnFamily
                         )
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = statusColor.copy(alpha = 0.12f)
+                            color = statusColor.copy(alpha = 0.12f),
+                            border = BorderStroke(0.5.dp, statusColor.copy(alpha = 0.3f))
                         ) {
                             Text(
                                 text = statusText,
-                                fontSize = 9.sp,
+                                fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = statusColor,
                                 fontFamily = VazirmatnFamily,
@@ -962,19 +1058,20 @@ private fun StatementTransactionCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "${PersianNumberFormatter.formatPrice(bal)} تومان",
-                            fontSize = 11.5.sp,
+                            text = "${PersianNumberFormatter.formatPrice(abs(bal))} تومان",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
+                            color = statusColor,
                             fontFamily = VazirmatnFamily
                         )
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = statusColor.copy(alpha = 0.12f)
+                            color = statusColor.copy(alpha = 0.12f),
+                            border = BorderStroke(0.5.dp, statusColor.copy(alpha = 0.3f))
                         ) {
                             Text(
                                 text = statusText,
-                                fontSize = 9.sp,
+                                fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = statusColor,
                                 fontFamily = VazirmatnFamily,

@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.customers
 
+import kotlin.math.abs
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -840,15 +841,22 @@ private fun CustomerLedgerCard(
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
+                        val goldBal = customer.goldDebtGrams
+                        val goldColor = when {
+                            goldBal > 0.0001 -> colors.errorRed
+                            goldBal < -0.0001 -> colors.profitGreen
+                            else -> colors.textMain
+                        }
+                        val goldStatus = when {
+                            goldBal > 0.0001 -> " (بدهکار)"
+                            goldBal < -0.0001 -> " (بستانکار)"
+                            else -> ""
+                        }
                         Text(
-                            text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم",
-                            fontSize = 12.5.sp,
+                            text = "${PersianNumberFormatter.formatWeight(abs(goldBal))} گرم$goldStatus",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = when {
-                                customer.goldDebtGrams > 0.0001 -> colors.errorRed
-                                customer.goldDebtGrams < -0.0001 -> colors.profitGreen
-                                else -> colors.textMain
-                            },
+                            color = goldColor,
                             fontFamily = VazirmatnFamily
                         )
                     }
@@ -860,15 +868,22 @@ private fun CustomerLedgerCard(
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
+                        val cashBal = customer.cashDebtTomans
+                        val cashColor = when {
+                            cashBal > 0L -> colors.errorRed
+                            cashBal < 0L -> colors.profitGreen
+                            else -> colors.textMain
+                        }
+                        val cashStatus = when {
+                            cashBal > 0L -> " (بدهکار)"
+                            cashBal < 0L -> " (بستانکار)"
+                            else -> ""
+                        }
                         Text(
-                            text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)} تومان",
-                            fontSize = 12.5.sp,
+                            text = "${PersianNumberFormatter.formatPrice(abs(cashBal))} تومان$cashStatus",
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = when {
-                                customer.cashDebtTomans > 0L -> colors.errorRed
-                                customer.cashDebtTomans < 0L -> colors.profitGreen
-                                else -> colors.textMain
-                            },
+                            color = cashColor,
                             fontFamily = VazirmatnFamily
                         )
                     }

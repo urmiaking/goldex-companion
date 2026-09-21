@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.customers.modals
 
+import kotlin.math.abs
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -576,26 +577,40 @@ fun AddLedgerEntryModal(
                                 color = colors.textMuted,
                                 fontFamily = VazirmatnFamily
                             )
+                            val goldBal = customer.goldDebtGrams
+                            val goldColor = when {
+                                goldBal > 0.0001 -> colors.errorRed
+                                goldBal < -0.0001 -> colors.profitGreen
+                                else -> colors.textMain
+                            }
+                            val goldStatus = when {
+                                goldBal > 0.0001 -> " (بدهکار)"
+                                goldBal < -0.0001 -> " (بستانکار)"
+                                else -> ""
+                            }
                             Text(
-                                text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم طلا",
-                                fontSize = 11.5.sp,
+                                text = "${PersianNumberFormatter.formatWeight(abs(goldBal))} گرم طلا$goldStatus",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = when {
-                                    customer.goldDebtGrams > 0.0001 -> colors.errorRed
-                                    customer.goldDebtGrams < -0.0001 -> colors.profitGreen
-                                    else -> colors.textMain
-                                },
+                                color = goldColor,
                                 fontFamily = VazirmatnFamily
                             )
+                            val cashBal = customer.cashDebtTomans
+                            val cashColor = when {
+                                cashBal > 0L -> colors.errorRed
+                                cashBal < 0L -> colors.profitGreen
+                                else -> colors.textSecondary
+                            }
+                            val cashStatus = when {
+                                cashBal > 0L -> " (بدهکار)"
+                                cashBal < 0L -> " (بستانکار)"
+                                else -> ""
+                            }
                             Text(
-                                text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)} تومان",
+                                text = "${PersianNumberFormatter.formatPrice(abs(cashBal))} تومان$cashStatus",
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = when {
-                                    customer.cashDebtTomans > 0L -> colors.errorRed
-                                    customer.cashDebtTomans < 0L -> colors.profitGreen
-                                    else -> colors.textSecondary
-                                },
+                                color = cashColor,
                                 fontFamily = VazirmatnFamily
                             )
                         }
@@ -1479,10 +1494,22 @@ fun AddLedgerEntryModal(
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
                                 )
+                                val prevGold = customer.goldDebtGrams
+                                val prevStatus = when {
+                                    prevGold > 0.0001 -> " (بدهکار)"
+                                    prevGold < -0.0001 -> " (بستانکار)"
+                                    else -> " (بی‌حساب)"
+                                }
+                                val prevGoldColor = when {
+                                    prevGold > 0.0001 -> colors.errorRed
+                                    prevGold < -0.0001 -> colors.profitGreen
+                                    else -> colors.textMain
+                                }
                                 Text(
-                                    text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم ۷۵۰",
+                                    text = "${PersianNumberFormatter.formatWeight(abs(prevGold))} گرم ۷۵۰$prevStatus",
                                     fontSize = 11.5.sp,
-                                    color = colors.textMain,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = prevGoldColor,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
@@ -1498,7 +1525,7 @@ fun AddLedgerEntryModal(
                                     fontFamily = VazirmatnFamily
                                 )
                                 AnimatedNumberText(
-                                    text = "${if (isReceive) "- " else "+ "}${PersianNumberFormatter.formatWeight(equivalent750Grams)}",
+                                    text = PersianNumberFormatter.formatWeight(equivalent750Grams),
                                     unit = "گرم ۷۵۰",
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontSize = 11.5.sp,
@@ -1523,13 +1550,42 @@ fun AddLedgerEntryModal(
                                     color = colors.textMain,
                                     fontFamily = VazirmatnFamily
                                 )
-                                AnimatedNumberText(
-                                    text = PersianNumberFormatter.formatWeight(newProjectedGoldBalance),
-                                    unit = "گرم ۷۵۰",
-                                    color = colors.goldPrimary,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
+                                val projGold = newProjectedGoldBalance
+                                val projStatus = when {
+                                    projGold > 0.0001 -> "بدهکار"
+                                    projGold < -0.0001 -> "بستانکار"
+                                    else -> "تسویه‌شده"
+                                }
+                                val projColor = when {
+                                    projGold > 0.0001 -> colors.errorRed
+                                    projGold < -0.0001 -> colors.profitGreen
+                                    else -> colors.goldPrimary
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    AnimatedNumberText(
+                                        text = PersianNumberFormatter.formatWeight(abs(projGold)),
+                                        unit = "گرم ۷۵۰",
+                                        color = projColor,
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = projColor.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = projStatus,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = projColor,
+                                            fontFamily = VazirmatnFamily,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
                             }
                         } else {
                             Row(
@@ -1543,10 +1599,22 @@ fun AddLedgerEntryModal(
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily
                                 )
+                                val prevCash = customer.cashDebtTomans
+                                val prevStatus = when {
+                                    prevCash > 0L -> " (بدهکار)"
+                                    prevCash < 0L -> " (بستانکار)"
+                                    else -> " (بی‌حساب)"
+                                }
+                                val prevCashColor = when {
+                                    prevCash > 0L -> colors.errorRed
+                                    prevCash < 0L -> colors.profitGreen
+                                    else -> colors.textMain
+                                }
                                 Text(
-                                    text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)} تومان",
+                                    text = "${PersianNumberFormatter.formatPrice(abs(prevCash))} تومان$prevStatus",
                                     fontSize = 11.5.sp,
-                                    color = colors.textMain,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = prevCashColor,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
@@ -1561,22 +1629,13 @@ fun AddLedgerEntryModal(
                                     color = if (isReceive) colors.profitGreen else colors.errorRed,
                                     fontFamily = VazirmatnFamily
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = if (isReceive) "- " else "+ ",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isReceive) colors.profitGreen else colors.errorRed,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                    AnimatedPriceText(
-                                        amount = cashAmountLong,
-                                        unit = "تومان",
-                                        color = if (isReceive) colors.profitGreen else colors.errorRed,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                AnimatedPriceText(
+                                    amount = cashAmountLong,
+                                    unit = "تومان",
+                                    color = if (isReceive) colors.profitGreen else colors.errorRed,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                             Box(
                                 modifier = Modifier
@@ -1596,13 +1655,42 @@ fun AddLedgerEntryModal(
                                     color = colors.textMain,
                                     fontFamily = VazirmatnFamily
                                 )
-                                AnimatedPriceText(
-                                    amount = newProjectedCashBalance,
-                                    unit = "تومان",
-                                    color = colors.goldPrimary,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
+                                val projCash = newProjectedCashBalance
+                                val projStatus = when {
+                                    projCash > 0L -> "بدهکار"
+                                    projCash < 0L -> "بستانکار"
+                                    else -> "تسویه‌شده"
+                                }
+                                val projColor = when {
+                                    projCash > 0L -> colors.errorRed
+                                    projCash < 0L -> colors.profitGreen
+                                    else -> colors.goldPrimary
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    AnimatedPriceText(
+                                        amount = abs(projCash),
+                                        unit = "تومان",
+                                        color = projColor,
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = projColor.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = projStatus,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = projColor,
+                                            fontFamily = VazirmatnFamily,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

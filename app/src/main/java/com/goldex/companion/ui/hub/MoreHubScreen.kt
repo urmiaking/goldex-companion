@@ -639,7 +639,7 @@ fun MoreHubScreen(
                                 color = colors.textMain
                             )
                             Text(
-                                text = "نرخ سود و مالیات قابل تنظیم برای محاسبات فاکتور",
+                                text = "نرخ سود و مالیات در محاسبات فاکتور",
                                 fontSize = 10.5.sp,
                                 color = colors.textMuted
                             )
