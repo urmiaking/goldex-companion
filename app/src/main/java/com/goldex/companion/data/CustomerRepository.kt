@@ -63,6 +63,22 @@ class CustomerRepository(context: Context) : CustomerStore {
         txPrefs.edit().putString("transactions_json", PersistenceJsonCodecs.encodeLedgerTransactions(all)).apply()
     }
 
+    override fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransaction> {
+        val json = txPrefs.getString("transactions_json", null)
+        if (json.isNullOrBlank()) {
+            return emptyList()
+        }
+        val all = PersistenceJsonCodecs.decodeLedgerTransactions(json)
+        return all.filter { it.invoiceId == invoiceId }
+    }
+
+    override fun deleteTransactionsByInvoiceId(invoiceId: String) {
+        val json = txPrefs.getString("transactions_json", null)
+        if (json.isNullOrBlank()) return
+        val all = PersistenceJsonCodecs.decodeLedgerTransactions(json).filter { it.invoiceId != invoiceId }
+        txPrefs.edit().putString("transactions_json", PersistenceJsonCodecs.encodeLedgerTransactions(all)).apply()
+    }
+
     private fun saveCustomers(customers: List<Customer>) {
         prefs.edit().putString("customers_json", PersistenceJsonCodecs.encodeCustomers(customers)).apply()
     }

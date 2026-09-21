@@ -148,7 +148,8 @@ data class BarterInvoice(
     val thirdPartyTransferAmount: Long = 0L,
     val thirdPartyTrackingCode: String = "",
     val note: String = "",
-    val payments: List<SettlementPaymentItem> = emptyList()
+    val payments: List<SettlementPaymentItem> = emptyList(),
+    val syncWithLedger: Boolean = true
 ) {
     val balance: BarterBalance
         get() = BarterCalculationUseCases.calculateBalance(salesItems, receivedItems)

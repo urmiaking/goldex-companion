@@ -1,5 +1,6 @@
 package com.goldex.companion.data
 
+import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Invoice
@@ -19,6 +20,8 @@ interface CustomerStore {
     fun addTransaction(transaction: LedgerTransaction)
     fun updateTransaction(transaction: LedgerTransaction) {}
     fun deleteTransaction(id: String) {}
+    fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransaction> = emptyList()
+    fun deleteTransactionsByInvoiceId(invoiceId: String) {}
 }
 
 interface InventoryStore {
@@ -40,6 +43,9 @@ interface InvoiceStore {
     fun getInvoices(): List<Invoice>
     fun saveInvoice(invoice: Invoice)
     fun deleteInvoice(id: String)
+    fun getBarterInvoices(): List<BarterInvoice> = emptyList()
+    fun saveBarterInvoice(invoice: BarterInvoice) {}
+    fun deleteBarterInvoice(id: String) {}
 }
 
 interface SettingsStore {

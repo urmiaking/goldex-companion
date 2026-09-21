@@ -47,8 +47,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.goldex.companion.ui.theme.VazirmatnFamily
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -121,6 +124,7 @@ fun BarterInvoiceScreen(
     onSetBullionSettlement: (Double, Int, String) -> Unit = { _, _, _ -> },
     onSetThirdPartyTransfer: (Customer?, String, String, Double, Long, String) -> Unit = { _, _, _, _, _, _ -> },
     onSetSettlementPayments: (List<SettlementPaymentItem>) -> Unit = {},
+    onSetSyncWithLedger: (Boolean) -> Unit = {},
     onSetNote: (String) -> Unit,
     onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
     onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
@@ -351,6 +355,8 @@ fun BarterInvoiceScreen(
                     onBullionSettlementChange = onSetBullionSettlement,
                     onThirdPartyTransferChange = onSetThirdPartyTransfer,
                     onSettlementPaymentsChange = onSetSettlementPayments,
+                    syncWithLedger = invoice.syncWithLedger,
+                    onSyncWithLedgerChange = onSetSyncWithLedger,
                     note = invoice.note,
                     onNoteChange = onSetNote,
                     onDismiss = { isSettlementModalVisible = false }
@@ -1432,6 +1438,8 @@ private fun SettlementModal(
     onBullionSettlementChange: (Double, Int, String) -> Unit,
     onThirdPartyTransferChange: (Customer?, String, String, Double, Long, String) -> Unit,
     onSettlementPaymentsChange: (List<SettlementPaymentItem>) -> Unit = {},
+    syncWithLedger: Boolean = true,
+    onSyncWithLedgerChange: (Boolean) -> Unit = {},
     note: String,
     onNoteChange: (String) -> Unit,
     onDismiss: () -> Unit
@@ -2821,6 +2829,54 @@ private fun SettlementModal(
                 keyboardType = KeyboardType.Text,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // Auto Sync with Customer Ledger Card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.surfaceElevated,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text(
+                            text = "ثبت خودکار در دفتر معین و صورت‌حساب مشتری",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        val hint = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                            "مانده وزنی طلای ۱۸ عیار این فاکتور به تراز دفتری همکار اضافه خواهد شد"
+                        } else {
+                            "مانده ریالی پرداخت‌نشده این فاکتور به بدهکاری مشتری منظور خواهد شد"
+                        }
+                        Text(
+                            text = hint,
+                            fontSize = 10.5.sp,
+                            color = colors.textMuted,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                    Switch(
+                        checked = syncWithLedger,
+                        onCheckedChange = onSyncWithLedgerChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colors.goldPrimary,
+                            checkedTrackColor = colors.goldContainer,
+                            uncheckedThumbColor = colors.textMuted,
+                            uncheckedTrackColor = colors.surface
+                        )
+                    )
+                }
+            }
         }
 
         // Sticky Footer per dialog button layout invariant

@@ -66,6 +66,7 @@ import com.goldex.companion.ui.inventory.InventoryViewModel
 import com.goldex.companion.ui.inventory.InventoryViewModelFactory
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
+import com.goldex.companion.ui.invoices.BarterInvoiceViewModelFactory
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
 import com.goldex.companion.ui.invoices.FloatingNewInvoiceButton
@@ -113,7 +114,7 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(app))
     val updateViewModel: UpdateViewModel = viewModel()
     val karatConvertViewModel: KaratConvertViewModel = viewModel()
-    val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel()
+    val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel(factory = BarterInvoiceViewModelFactory(app))
     val licenseViewModel: LicenseViewModel = viewModel(factory = LicenseViewModelFactory(app))
     val inventoryViewModel: InventoryViewModel = viewModel(factory = InventoryViewModelFactory(app))
 
@@ -853,6 +854,7 @@ fun MainScreen(
                     onSetBullionSettlement = barterInvoiceViewModel::setBullionSettlement,
                     onSetThirdPartyTransfer = barterInvoiceViewModel::setThirdPartyTransfer,
                     onSetSettlementPayments = barterInvoiceViewModel::setSettlementPayments,
+                    onSetSyncWithLedger = barterInvoiceViewModel::setSyncWithLedger,
                     onSetNote = barterInvoiceViewModel::setNote,
                     onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
                     onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
@@ -877,6 +879,7 @@ fun MainScreen(
                     },
                     onFinalSubmit = {
                         barterInvoiceViewModel.submitAndSaveCurrentInvoice()
+                        customerViewModel.loadCustomers()
                         QiratoToast.show(context, "فاکتور تهاتر با موفقیت در سیستم ثبت شد.")
                     },
                     onNavigateBack = {

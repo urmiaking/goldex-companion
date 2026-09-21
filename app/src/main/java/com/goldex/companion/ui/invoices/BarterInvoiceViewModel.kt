@@ -1,6 +1,13 @@
 package com.goldex.companion.ui.invoices
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.goldex.companion.data.CustomerRepository
+import com.goldex.companion.data.CustomerStore
+import com.goldex.companion.data.InvoiceRepository
+import com.goldex.companion.data.InvoiceStore
+import com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase
 import com.goldex.companion.model.BarterBalance
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
@@ -59,17 +66,22 @@ data class BarterInvoiceUiState(
     }
 }
 
-class BarterInvoiceViewModel : ViewModel() {
+class BarterInvoiceViewModel(
+    private val invoiceStore: InvoiceStore? = null,
+    private val customerStore: CustomerStore? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BarterInvoiceUiState())
     val uiState: StateFlow<BarterInvoiceUiState> = _uiState.asStateFlow()
 
     init {
         val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 0L
+        val savedBarterInvoices = invoiceStore?.getBarterInvoices() ?: emptyList()
+        val initialItems = savedBarterInvoices.map { createInvoiceListItem(it) }
         _uiState.update { current ->
             current.copy(
                 invoice = BarterInvoice(spotPrice18k = defaultSpot),
-                invoicesList = emptyList()
+                invoicesList = initialItems
             )
         }
     }
@@ -120,8 +132,7 @@ class BarterInvoiceViewModel : ViewModel() {
         _uiState.update { it.copy(subScreen = InvoicesSubScreen.LIST) }
     }
 
-    fun submitAndSaveCurrentInvoice() {
-        val currentInv = _uiState.value.invoice
+    private fun createInvoiceListItem(currentInv: BarterInvoice): InvoiceListItem {
         val netAmount = currentInv.balance.totalSalesAmount.toLong().coerceAtLeast(0L)
         val customerName = currentInv.customer?.name?.ifBlank { "مشتری جدید" } ?: "مشتری جدید"
         val initials = customerName.split(" ").take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").ifBlank { "مش" }
@@ -153,7 +164,7 @@ class BarterInvoiceViewModel : ViewModel() {
             }
         }
 
-        val newCard = InvoiceListItem(
+        return InvoiceListItem(
             id = currentInv.id,
             invoiceNumber = currentInv.invoiceNumber,
             customerName = customerName,
@@ -178,6 +189,40 @@ class BarterInvoiceViewModel : ViewModel() {
             actionType = InvoiceCardAction.VIEW_DETAILS,
             barterInvoice = currentInv
         )
+    }
+
+    fun submitAndSaveCurrentInvoice() {
+        val currentInv = _uiState.value.invoice
+
+        // 1. Persist invoice to store
+        invoiceStore?.saveBarterInvoice(currentInv)
+
+        // 2. Synchronize with Customer Ledger
+        val targetCustomer = currentInv.customer
+        if (targetCustomer != null && customerStore != null) {
+            val allCustomers = customerStore.getCustomers()
+            val matchedCustomer = allCustomers.firstOrNull { it.id == targetCustomer.id } ?: targetCustomer
+
+            val existingTxs = customerStore.getTransactionsByInvoiceId(currentInv.id)
+            val customerAfterReversal = if (existingTxs.isNotEmpty()) {
+                customerStore.deleteTransactionsByInvoiceId(currentInv.id)
+                InvoiceLedgerSyncUseCase.reverseLedgerSync(existingTxs, matchedCustomer)
+            } else {
+                matchedCustomer
+            }
+
+            if (currentInv.syncWithLedger) {
+                val syncResult = InvoiceLedgerSyncUseCase.generateLedgerSync(currentInv, customerAfterReversal)
+                syncResult.transactionsToCreate.forEach { tx ->
+                    customerStore.addTransaction(tx)
+                }
+                customerStore.updateCustomer(syncResult.updatedCustomer)
+            } else if (existingTxs.isNotEmpty()) {
+                customerStore.updateCustomer(customerAfterReversal)
+            }
+        }
+
+        val newCard = createInvoiceListItem(currentInv)
 
         _uiState.update { state ->
             val updatedInvoices = state.invoicesList.map { invoiceItem ->
@@ -384,6 +429,27 @@ class BarterInvoiceViewModel : ViewModel() {
         }
     }
 
+    fun setSyncWithLedger(sync: Boolean) {
+        _uiState.update { it.copy(invoice = it.invoice.copy(syncWithLedger = sync)) }
+    }
+
+    fun deleteInvoice(invoiceId: String) {
+        val invoice = _uiState.value.invoicesList.firstOrNull { it.id == invoiceId }?.barterInvoice
+        invoiceStore?.deleteBarterInvoice(invoiceId)
+        if (invoice?.customer != null && customerStore != null) {
+            val customer = customerStore.getCustomers().firstOrNull { it.id == invoice.customer.id }
+            val existingTxs = customerStore.getTransactionsByInvoiceId(invoiceId)
+            if (customer != null && existingTxs.isNotEmpty()) {
+                val updatedCustomer = InvoiceLedgerSyncUseCase.reverseLedgerSync(existingTxs, customer)
+                customerStore.deleteTransactionsByInvoiceId(invoiceId)
+                customerStore.updateCustomer(updatedCustomer)
+            }
+        }
+        _uiState.update { state ->
+            state.copy(invoicesList = state.invoicesList.filterNot { it.id == invoiceId })
+        }
+    }
+
     fun resetNewInvoice() {
         _uiState.update {
             it.copy(
@@ -394,3 +460,15 @@ class BarterInvoiceViewModel : ViewModel() {
         }
     }
 }
+
+class BarterInvoiceViewModelFactory(
+    private val application: Application
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        val invoiceStore = InvoiceRepository(application.applicationContext)
+        val customerStore = CustomerRepository(application.applicationContext)
+        return BarterInvoiceViewModel(invoiceStore, customerStore) as T
+    }
+}
+
