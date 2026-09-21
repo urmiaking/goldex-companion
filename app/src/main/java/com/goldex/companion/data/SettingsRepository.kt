@@ -6,6 +6,7 @@ import com.goldex.companion.model.WageType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 data class AppSettings(
     val priceSource: PriceSource = PriceSource.TGJU,
@@ -28,12 +29,12 @@ data class AppSettings(
 
 class SettingsRepository(context: Context) : SettingsStore {
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("qirat_settings_prefs", Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences("qirat_settings_prefs", Context.MODE_PRIVATE)
 
-    private val _settings = MutableStateFlow(loadSettings())
+    private val _settings = MutableStateFlow(loadSettingsInternal())
     override val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
-    override fun loadSettings(): AppSettings {
+    private fun loadSettingsInternal(): AppSettings {
         val sourceStr = prefs.getString("key_price_source", PriceSource.TGJU.name) ?: PriceSource.TGJU.name
         val priceSource = try {
             PriceSource.valueOf(sourceStr)
@@ -68,32 +69,72 @@ class SettingsRepository(context: Context) : SettingsStore {
         )
     }
 
-    override fun saveSettings(newSettings: AppSettings) {
-        prefs.edit()
-            .putString("key_price_source", newSettings.priceSource.name)
-            .putString("key_profit_pct", newSettings.defaultProfitPercent)
-            .putString("key_tax_pct", newSettings.defaultTaxPercent)
-            .putString("key_default_wage_type", newSettings.defaultWageType.name)
-            .putBoolean("key_auto_sync", newSettings.autoSyncRates)
-            .putString("key_gallery_name", newSettings.galleryName)
-            .putString("key_manager_name", newSettings.managerName)
-            .putString("key_union_code", newSettings.unionCode)
-            .putString("key_gallery_phone", newSettings.galleryPhone)
-            .putString("key_gallery_address", newSettings.galleryAddress)
-            .putString("key_gallery_license", newSettings.galleryLicense)
-            .putString("key_invoice_logo_uri", newSettings.invoiceLogoUri)
-            .putString("key_invoice_stamp_uri", newSettings.invoiceStampUri)
-            .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
-            .putBoolean("key_biometric_tip_dismissed", newSettings.isBiometricTipDismissed)
-            .putBoolean("key_has_completed_onboarding", newSettings.hasCompletedOnboarding)
-            .apply()
+    override fun loadSettings(): AppSettings {
+        val loaded = loadSettingsInternal()
+        _settings.value = loaded
+        return loaded
+    }
 
-        _settings.value = newSettings
+    override fun saveSettings(newSettings: AppSettings) {
+        synchronized(this) {
+            prefs.edit()
+                .putString("key_price_source", newSettings.priceSource.name)
+                .putString("key_profit_pct", newSettings.defaultProfitPercent)
+                .putString("key_tax_pct", newSettings.defaultTaxPercent)
+                .putString("key_default_wage_type", newSettings.defaultWageType.name)
+                .putBoolean("key_auto_sync", newSettings.autoSyncRates)
+                .putString("key_gallery_name", newSettings.galleryName)
+                .putString("key_manager_name", newSettings.managerName)
+                .putString("key_union_code", newSettings.unionCode)
+                .putString("key_gallery_phone", newSettings.galleryPhone)
+                .putString("key_gallery_address", newSettings.galleryAddress)
+                .putString("key_gallery_license", newSettings.galleryLicense)
+                .putString("key_invoice_logo_uri", newSettings.invoiceLogoUri)
+                .putString("key_invoice_stamp_uri", newSettings.invoiceStampUri)
+                .putBoolean("key_biometric_lock", newSettings.isBiometricLockEnabled)
+                .putBoolean("key_biometric_tip_dismissed", newSettings.isBiometricTipDismissed)
+                .putBoolean("key_has_completed_onboarding", newSettings.hasCompletedOnboarding)
+                .apply()
+
+            _settings.value = newSettings
+        }
+    }
+
+    override fun setBiometricLockEnabled(enabled: Boolean) {
+        synchronized(this) {
+            prefs.edit().putBoolean("key_biometric_lock", enabled).apply()
+            _settings.update { it.copy(isBiometricLockEnabled = enabled) }
+        }
+    }
+
+    override fun setBiometricTipDismissed(dismissed: Boolean) {
+        synchronized(this) {
+            prefs.edit().putBoolean("key_biometric_tip_dismissed", dismissed).apply()
+            _settings.update { it.copy(isBiometricTipDismissed = dismissed) }
+        }
+    }
+
+    override fun setHasCompletedOnboarding(completed: Boolean) {
+        synchronized(this) {
+            prefs.edit().putBoolean("key_has_completed_onboarding", completed).apply()
+            _settings.update { it.copy(hasCompletedOnboarding = completed) }
+        }
     }
 
     override fun loadDarkTheme(): Boolean = prefs.getBoolean("key_dark_theme", false)
 
     override fun saveDarkTheme(enabled: Boolean) {
         prefs.edit().putBoolean("key_dark_theme", enabled).apply()
+    }
+
+    companion object {
+        @Volatile
+        private var instance: SettingsRepository? = null
+
+        fun getInstance(context: Context): SettingsRepository {
+            return instance ?: synchronized(this) {
+                instance ?: SettingsRepository(context.applicationContext).also { instance = it }
+            }
+        }
     }
 }

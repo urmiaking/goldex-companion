@@ -54,6 +54,9 @@ interface SettingsStore {
     fun saveSettings(newSettings: AppSettings)
     fun loadDarkTheme(): Boolean = false
     fun saveDarkTheme(enabled: Boolean) = Unit
+    fun setBiometricLockEnabled(enabled: Boolean) = Unit
+    fun setBiometricTipDismissed(dismissed: Boolean) = Unit
+    fun setHasCompletedOnboarding(completed: Boolean) = Unit
 }
 
 interface MarketRatesStore {

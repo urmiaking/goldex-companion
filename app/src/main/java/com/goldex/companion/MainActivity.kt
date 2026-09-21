@@ -24,7 +24,7 @@ class MainActivity : FragmentActivity() {
 
     private val appLockViewModel: AppLockViewModel by viewModels {
         AppLockViewModelFactory(
-            SettingsRepository(applicationContext),
+            SettingsRepository.getInstance(applicationContext),
             AndroidBiometricAuthManager(applicationContext) { this }
         )
     }

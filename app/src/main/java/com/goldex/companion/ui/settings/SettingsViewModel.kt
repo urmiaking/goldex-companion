@@ -3,6 +3,7 @@ package com.goldex.companion.ui.settings
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.data.PriceSource
 import com.goldex.companion.data.SettingsRepository
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val appSettings: AppSettings = AppSettings(),
@@ -29,6 +31,11 @@ class SettingsViewModel(
 
     init {
         loadSettings()
+        viewModelScope.launch {
+            repository.settings.collect { latestSettings ->
+                _uiState.update { it.copy(appSettings = latestSettings) }
+            }
+        }
     }
 
     fun loadSettings() {
@@ -98,31 +105,28 @@ class SettingsViewModel(
     }
 
     fun toggleBiometricLock(enabled: Boolean) {
-        val updated = _uiState.value.appSettings.copy(
-            isBiometricLockEnabled = enabled
-        )
-        updateSettings(updated)
+        repository.setBiometricLockEnabled(enabled)
+        _uiState.update {
+            it.copy(appSettings = it.appSettings.copy(isBiometricLockEnabled = enabled))
+        }
     }
 
     fun dismissBiometricTip() {
-        val updated = _uiState.value.appSettings.copy(
-            isBiometricTipDismissed = true
-        )
-        updateSettings(updated)
+        repository.setBiometricTipDismissed(true)
+        _uiState.update {
+            it.copy(appSettings = it.appSettings.copy(isBiometricTipDismissed = true))
+        }
     }
 
     fun completeOnboarding() {
-        val updated = _uiState.value.appSettings.copy(
-            hasCompletedOnboarding = true
-        )
-        updateSettings(updated)
+        setHasCompletedOnboarding(true)
     }
 
     fun setHasCompletedOnboarding(completed: Boolean) {
-        val updated = _uiState.value.appSettings.copy(
-            hasCompletedOnboarding = completed
-        )
-        updateSettings(updated)
+        repository.setHasCompletedOnboarding(completed)
+        _uiState.update {
+            it.copy(appSettings = it.appSettings.copy(hasCompletedOnboarding = completed))
+        }
     }
 }
 
@@ -131,7 +135,7 @@ class SettingsViewModelFactory(
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = SettingsRepository(application.applicationContext)
+        val repository = SettingsRepository.getInstance(application.applicationContext)
         return SettingsViewModel(repository) as T
     }
 }

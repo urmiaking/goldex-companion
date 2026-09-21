@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -24,6 +24,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -437,6 +438,7 @@ fun WizardFinancialStep(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
 
     Column(modifier = modifier.fillMaxSize()) {
         WizardStepHeader(
@@ -482,7 +484,15 @@ fun WizardFinancialStep(
                 GoldButton(
                     text = "تأیید و گام بعدی",
                     trailingIcon = WizardArrowLeft,
-                    onClick = onNext,
+                    onClick = {
+                        val errors = validateWizardFinancial(financialState)
+                        if (errors.hasErrors) {
+                            val msg = errors.firstErrorMessage ?: "لطفاً مقادیر مالی معتبر وارد کنید."
+                            QiratoToast.show(context, msg)
+                        } else {
+                            onNext()
+                        }
+                    },
                     modifier = Modifier.weight(2f)
                 )
             }

@@ -10,12 +10,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.calculator.AppTab
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 @Composable
@@ -28,8 +30,11 @@ fun OnboardingWizardScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
 
     var currentStep by remember { mutableStateOf(WizardStep.INTRO) }
+    var profileErrors by remember { mutableStateOf(WizardProfileErrors()) }
+    var showProfileErrors by remember { mutableStateOf(false) }
     var profileState by remember {
         mutableStateOf(
             WizardProfileState(
@@ -174,7 +179,13 @@ fun OnboardingWizardScreen(
                         WizardStep.PROFILE -> {
                             WizardProfileContent(
                                 profileState = profileState,
-                                onProfileChange = { profileState = it }
+                                onProfileChange = { updated ->
+                                    profileState = updated
+                                    if (showProfileErrors) {
+                                        profileErrors = validateWizardProfile(updated)
+                                    }
+                                },
+                                profileErrors = if (showProfileErrors) profileErrors else WizardProfileErrors()
                             )
                         }
 
@@ -256,7 +267,19 @@ fun OnboardingWizardScreen(
                             GoldButton(
                                 text = "تأیید و گام بعدی",
                                 trailingIcon = WizardArrowLeft,
-                                onClick = { currentStep = WizardStep.FINANCIAL_DEFAULTS },
+                                onClick = {
+                                    val errors = validateWizardProfile(profileState)
+                                    if (errors.hasErrors) {
+                                        profileErrors = errors
+                                        showProfileErrors = true
+                                        val msg = errors.firstErrorMessage ?: "لطفاً تمام فیلدهای ستاره‌دار را تکمیل نمایید."
+                                        QiratoToast.show(context, msg)
+                                    } else {
+                                        profileErrors = WizardProfileErrors()
+                                        showProfileErrors = false
+                                        currentStep = WizardStep.FINANCIAL_DEFAULTS
+                                    }
+                                },
                                 modifier = Modifier.weight(2f)
                             )
                         }
@@ -273,7 +296,15 @@ fun OnboardingWizardScreen(
                             GoldButton(
                                 text = "تأیید و گام بعدی",
                                 trailingIcon = WizardArrowLeft,
-                                onClick = { currentStep = WizardStep.INVENTORY },
+                                onClick = {
+                                    val errors = validateWizardFinancial(financialState)
+                                    if (errors.hasErrors) {
+                                        val msg = errors.firstErrorMessage ?: "لطفاً مقادیر مالی معتبر وارد کنید."
+                                        QiratoToast.show(context, msg)
+                                    } else {
+                                        currentStep = WizardStep.INVENTORY
+                                    }
+                                },
                                 modifier = Modifier.weight(2f)
                             )
                         }

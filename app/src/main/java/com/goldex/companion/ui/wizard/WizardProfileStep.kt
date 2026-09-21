@@ -13,9 +13,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -23,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -32,7 +38,8 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 fun WizardProfileContent(
     profileState: WizardProfileState,
     onProfileChange: (WizardProfileState) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    profileErrors: WizardProfileErrors = WizardProfileErrors()
 ) {
     val colors = LocalGoldExColors.current
 
@@ -152,10 +159,12 @@ fun WizardProfileContent(
                     Icon(
                         imageVector = WizardDomain,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (profileErrors.galleryNameError != null) colors.errorRed else colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 },
+                isError = profileErrors.galleryNameError != null,
+                errorMessage = profileErrors.galleryNameError,
                 keyboardType = KeyboardType.Text,
                 useThousandsSeparator = false,
                 modifier = Modifier.fillMaxWidth()
@@ -170,10 +179,12 @@ fun WizardProfileContent(
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (profileErrors.managerNameError != null) colors.errorRed else colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 },
+                isError = profileErrors.managerNameError != null,
+                errorMessage = profileErrors.managerNameError,
                 keyboardType = KeyboardType.Text,
                 useThousandsSeparator = false,
                 modifier = Modifier.fillMaxWidth()
@@ -188,11 +199,13 @@ fun WizardProfileContent(
                     Icon(
                         imageVector = WizardSecurity,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (profileErrors.unionCodeError != null) colors.errorRed else colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 },
                 trailingText = "اتحادیه",
+                isError = profileErrors.unionCodeError != null,
+                errorMessage = profileErrors.unionCodeError,
                 keyboardType = KeyboardType.Text,
                 useThousandsSeparator = false,
                 modifier = Modifier.fillMaxWidth()
@@ -207,10 +220,12 @@ fun WizardProfileContent(
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (profileErrors.phoneError != null) colors.errorRed else colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 },
+                isError = profileErrors.phoneError != null,
+                errorMessage = profileErrors.phoneError,
                 keyboardType = KeyboardType.Phone,
                 useThousandsSeparator = false,
                 modifier = Modifier.fillMaxWidth()
@@ -225,10 +240,12 @@ fun WizardProfileContent(
                     Icon(
                         imageVector = WizardApartment,
                         contentDescription = null,
-                        tint = colors.goldPrimary,
+                        tint = if (profileErrors.addressError != null) colors.errorRed else colors.goldPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 },
+                isError = profileErrors.addressError != null,
+                errorMessage = profileErrors.addressError,
                 keyboardType = KeyboardType.Text,
                 useThousandsSeparator = false,
                 modifier = Modifier.fillMaxWidth()
@@ -251,6 +268,9 @@ fun WizardProfileStep(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
+    var profileErrors by remember { mutableStateOf(WizardProfileErrors()) }
+    var showProfileErrors by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
         WizardStepHeader(
@@ -265,7 +285,13 @@ fun WizardProfileStep(
         ) {
             WizardProfileContent(
                 profileState = profileState,
-                onProfileChange = onProfileChange
+                onProfileChange = { updated ->
+                    onProfileChange(updated)
+                    if (showProfileErrors) {
+                        profileErrors = validateWizardProfile(updated)
+                    }
+                },
+                profileErrors = if (showProfileErrors) profileErrors else WizardProfileErrors()
             )
         }
 
@@ -296,7 +322,19 @@ fun WizardProfileStep(
                 GoldButton(
                     text = "تأیید و گام بعدی",
                     trailingIcon = WizardArrowLeft,
-                    onClick = onNext,
+                    onClick = {
+                        val errors = validateWizardProfile(profileState)
+                        if (errors.hasErrors) {
+                            profileErrors = errors
+                            showProfileErrors = true
+                            val msg = errors.firstErrorMessage ?: "لطفاً تمام فیلدهای ستاره‌دار را تکمیل نمایید."
+                            QiratoToast.show(context, msg)
+                        } else {
+                            profileErrors = WizardProfileErrors()
+                            showProfileErrors = false
+                            onNext()
+                        }
+                    },
                     modifier = Modifier.weight(2f)
                 )
             }

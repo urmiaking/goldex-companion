@@ -30,7 +30,9 @@ fun GoldInputField(
     isDecimal: Boolean = false,
     useThousandsSeparator: Boolean = true,
     keyboardType: KeyboardType? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     val colors = LocalGoldExColors.current
     val effectiveKeyboardType = keyboardType ?: if (isDecimal) KeyboardType.Decimal else KeyboardType.Number
@@ -40,6 +42,7 @@ fun GoldInputField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
+            isError = isError,
             label = {
                 Text(
                     text = label,
@@ -92,19 +95,32 @@ fun GoldInputField(
                 focusedContainerColor = colors.surfaceElevated,
                 unfocusedContainerColor = colors.surface,
                 disabledContainerColor = colors.surfaceVariant,
+                errorContainerColor = colors.surface,
                 focusedBorderColor = colors.goldPrimary,
                 unfocusedBorderColor = colors.border,
+                errorBorderColor = colors.errorRed,
                 focusedLabelColor = colors.goldPrimary,
                 unfocusedLabelColor = colors.textSecondary,
+                errorLabelColor = colors.errorRed,
                 focusedTextColor = colors.textMain,
                 unfocusedTextColor = colors.textMain,
+                errorTextColor = colors.textMain,
                 cursorColor = colors.goldPrimary,
+                errorCursorColor = colors.errorRed,
                 disabledTextColor = colors.textMuted,
                 disabledBorderColor = colors.border
             )
         )
 
-        if (!subLabel.isNullOrBlank()) {
+        if (isError && !errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = colors.errorRed,
+                modifier = Modifier.padding(start = 6.dp, top = 4.dp)
+            )
+        } else if (!subLabel.isNullOrBlank()) {
             Text(
                 text = subLabel,
                 fontSize = 11.sp,

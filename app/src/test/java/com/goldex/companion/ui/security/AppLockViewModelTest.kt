@@ -25,6 +25,15 @@ class AppLockViewModelTest {
         }
         override fun loadDarkTheme(): Boolean = false
         override fun saveDarkTheme(enabled: Boolean) = Unit
+        override fun setBiometricLockEnabled(enabled: Boolean) {
+            _settings.value = _settings.value.copy(isBiometricLockEnabled = enabled)
+        }
+        override fun setBiometricTipDismissed(dismissed: Boolean) {
+            _settings.value = _settings.value.copy(isBiometricTipDismissed = dismissed)
+        }
+        override fun setHasCompletedOnboarding(completed: Boolean) {
+            _settings.value = _settings.value.copy(hasCompletedOnboarding = completed)
+        }
     }
 
     private class FakeBiometricAuthManager(
@@ -253,5 +262,35 @@ class AppLockViewModelTest {
 
         assertEquals(false, callbackSuccess)
         assertTrue(settingsStore.settings.value.isBiometricLockEnabled)
+    }
+
+    @Test
+    fun toggleBiometricLock_whenEnabling_doesNotMutateOnboardingOrOtherSettings() {
+        val initialSettings = AppSettings(
+            hasCompletedOnboarding = true,
+            galleryName = "گالری زرین",
+            managerName = "علی محمدی",
+            unionCode = "12345",
+            isBiometricLockEnabled = false
+        )
+        val settingsStore = FakeSettingsStore(initialSettings)
+        val authManager = FakeBiometricAuthManager(
+            status = BiometricStatus.AVAILABLE,
+            nextAuthResult = BiometricAuthResult.Success
+        )
+        val viewModel = AppLockViewModel(settingsStore, authManager)
+
+        var toggleSuccess = false
+        viewModel.toggleBiometricLock(true) { success, _ ->
+            toggleSuccess = success
+        }
+
+        assertTrue(toggleSuccess)
+        val finalSettings = settingsStore.settings.value
+        assertTrue(finalSettings.isBiometricLockEnabled)
+        assertTrue(finalSettings.hasCompletedOnboarding)
+        assertEquals("گالری زرین", finalSettings.galleryName)
+        assertEquals("علی محمدی", finalSettings.managerName)
+        assertEquals("12345", finalSettings.unionCode)
     }
 }

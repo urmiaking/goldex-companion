@@ -109,8 +109,7 @@ class AppLockViewModel(
                         cancelButtonText = "انصراف"
                     ) { result ->
                         if (result is BiometricAuthResult.Success) {
-                            val current = settingsStore.settings.value
-                            settingsStore.saveSettings(current.copy(isBiometricLockEnabled = true))
+                            settingsStore.setBiometricLockEnabled(true)
                             onResult(true, "قفل امنیتی با اثر انگشت فعال شد.")
                         } else {
                             onResult(false, "تأیید اثر انگشت انجام نشد.")
@@ -126,8 +125,7 @@ class AppLockViewModel(
                     cancelButtonText = "انصراف"
                 ) { result ->
                     if (result is BiometricAuthResult.Success) {
-                        val current = settingsStore.settings.value
-                        settingsStore.saveSettings(current.copy(isBiometricLockEnabled = false))
+                        settingsStore.setBiometricLockEnabled(false)
                         _uiState.update { it.copy(isLocked = false, authErrorMessage = null) }
                         onResult(true, "قفل امنیتی غیرفعال شد.")
                     } else {
@@ -135,8 +133,7 @@ class AppLockViewModel(
                     }
                 }
             } else {
-                val current = settingsStore.settings.value
-                settingsStore.saveSettings(current.copy(isBiometricLockEnabled = false))
+                settingsStore.setBiometricLockEnabled(false)
                 _uiState.update { it.copy(isLocked = false, authErrorMessage = null) }
                 onResult(true, "قفل امنیتی غیرفعال شد.")
             }

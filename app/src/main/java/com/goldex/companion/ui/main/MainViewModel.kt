@@ -112,7 +112,7 @@ typealias CalculatorUiState = MainUiState
 
 class MainViewModel(application: Application) : AndroidViewModel(application), JewelryActions {
 
-    private val settingsRepository: SettingsStore = SettingsRepository(application.applicationContext)
+    private val settingsRepository: SettingsStore = SettingsRepository.getInstance(application.applicationContext)
     private val themePreference = ThemePreference(settingsRepository)
     private val marketRatesRepository: MarketRatesStore = GoldMarketRepository
     private val networkMonitor = NetworkMonitor(application.applicationContext)
