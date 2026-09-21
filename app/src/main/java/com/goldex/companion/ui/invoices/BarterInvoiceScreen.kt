@@ -1167,9 +1167,9 @@ private fun ItemRowCard(
                             fontFamily = VazirmatnFamily
                         )
                         val subtitle = when (item) {
-                            is CraftedGoldItem -> "عیار ${item.karat.labelFa} • ناخالص: ${PersianNumberFormatter.formatWeight(item.grossWeight)}g • خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)}g"
-                            is ScrapGoldItem -> "عیار مبنا: ${item.baseKarat} ← خالص: ${item.payableKarat} • وزن: ${PersianNumberFormatter.formatWeight(item.netWeight)}g"
-                            is MeltGoldItem -> "عیار خطی: ${item.labKarat} • انگ: ${item.angNumber.ifBlank { "-" }} • وزن: ${PersianNumberFormatter.formatWeight(item.weight)}g"
+                            is CraftedGoldItem -> "عیار ${item.karat.labelFa} • ناخالص: ${PersianNumberFormatter.formatWeight(item.grossWeight)} گرم • خالص: ${PersianNumberFormatter.formatWeight(item.netWeight)} گرم"
+                            is ScrapGoldItem -> "عیار مبنا: ${item.baseKarat} ← خالص: ${item.payableKarat} • وزن: ${PersianNumberFormatter.formatWeight(item.netWeight)} گرم"
+                            is MeltGoldItem -> "عیار خطی: ${item.labKarat} • انگ: ${item.angNumber.ifBlank { "-" }} • وزن: ${PersianNumberFormatter.formatWeight(item.weight)} گرم"
                             is BankCoinItem -> "${PersianNumberFormatter.toPersianDigits(item.count.toString())} عدد • عیار ۹۰۰ • ${if (item.hasHologram) "هولوگرام‌دار" else "ساده"}"
                         }
                         Text(
@@ -1665,7 +1665,7 @@ private fun SettlementSection(
                                     onValueChange = { input ->
                                         posStr = input.filter { it.isDigit() }
                                     },
-                                    label = "مبلغ پرداختی کارتخوان",
+                                    label = "مبلغ پرداختی",
                                     trailingText = "تومان",
                                     useThousandsSeparator = true,
                                     modifier = Modifier.weight(1f)
@@ -1673,7 +1673,7 @@ private fun SettlementSection(
                                 GoldInputField(
                                     value = trackingCode,
                                     onValueChange = { trackingCode = it },
-                                    label = "کد پیگیری پوز",
+                                    label = "کد پیگیری",
                                     trailingText = "اختیاری",
                                     keyboardType = KeyboardType.Number,
                                     modifier = Modifier.weight(1f)
@@ -1688,7 +1688,7 @@ private fun SettlementSection(
                                 onValueChange = { input ->
                                     ledgerStr = input.filter { it.isDigit() }
                                 },
-                                label = "مبلغ تعهد دفتری",
+                                label = "مبلغ تعهد",
                                 trailingText = "تومان",
                                 useThousandsSeparator = true,
                                 modifier = Modifier.fillMaxWidth()
@@ -1735,7 +1735,7 @@ private fun SettlementSection(
                                 GoldInputField(
                                     value = bullionWeightStr,
                                     onValueChange = { bullionWeightStr = it },
-                                    label = "وزن شمش/آبشده",
+                                    label = "وزن شمش",
                                     trailingText = "گرم",
                                     keyboardType = KeyboardType.Decimal,
                                     modifier = Modifier.weight(1f)
@@ -1743,7 +1743,7 @@ private fun SettlementSection(
                                 GoldInputField(
                                     value = bullionAngNumber,
                                     onValueChange = { bullionAngNumber = it },
-                                    label = "شماره انگ / آزمایشگاه",
+                                    label = "شماره انگ",
                                     trailingText = "اختیاری",
                                     modifier = Modifier.weight(1f)
                                 )
@@ -1808,7 +1808,7 @@ private fun SettlementSection(
                                 GoldInputField(
                                     value = transferWeightStr,
                                     onValueChange = { transferWeightStr = it },
-                                    label = "وزن حواله (۱۸ عیار)",
+                                    label = "وزن حواله",
                                     trailingText = "گرم",
                                     keyboardType = KeyboardType.Decimal,
                                     modifier = Modifier.weight(1f)
@@ -1816,7 +1816,7 @@ private fun SettlementSection(
                                 GoldInputField(
                                     value = transferAmountStr,
                                     onValueChange = { input -> transferAmountStr = input.filter { it.isDigit() } },
-                                    label = "مبلغ حواله نقدی",
+                                    label = "مبلغ حواله",
                                     trailingText = "تومان",
                                     useThousandsSeparator = true,
                                     modifier = Modifier.weight(1f)
@@ -1984,7 +1984,7 @@ private fun SettlementSection(
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
                         Text(
-                            text = "ثبت خودکار در دفتر معین و صورت‌حساب مشتری",
+                            text = "ثبت خودکار در دفتر معین",
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain,
@@ -1992,9 +1992,9 @@ private fun SettlementSection(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         val hint = if (invoice.customerRole == CustomerRole.WHOLESALER) {
-                            "مانده وزنی طلای ۱۸ عیار این فاکتور به تراز دفتری همکار اضافه خواهد شد"
+                            "ثبت مانده وزنی در تراز دفتری همکار"
                         } else {
-                            "مانده ریالی پرداخت‌نشده این فاکتور به بدهکاری مشتری منظور خواهد شد"
+                            "ثبت مانده پرداخت‌نشده در حساب مشتری"
                         }
                         Text(
                             text = hint,

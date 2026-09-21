@@ -1048,7 +1048,7 @@ fun AddLedgerEntryModal(
                                                 ) {
                                                     Column {
                                                         Text(
-                                                            text = "${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد ${selectedCoinOrBar} (هر واحد ${PersianNumberFormatter.formatWeight(coinUnitWeight)}g)",
+                                                            text = "${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد ${selectedCoinOrBar} (هر واحد ${PersianNumberFormatter.formatWeight(coinUnitWeight)} گرم)",
                                                             fontSize = 10.5.sp,
                                                             color = Color(0xFF94A3B8),
                                                             fontFamily = VazirmatnFamily
@@ -1146,7 +1146,7 @@ fun AddLedgerEntryModal(
                                                 ) {
                                                     Column {
                                                         Text(
-                                                            text = "شمش ${barBrandInput.ifBlank { "استاندارد" }} • فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)}g",
+                                                            text = "شمش ${barBrandInput.ifBlank { "استاندارد" }} • فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)} گرم",
                                                             fontSize = 10.5.sp,
                                                             color = Color(0xFF94A3B8),
                                                             fontFamily = VazirmatnFamily
@@ -1769,8 +1769,8 @@ fun AddLedgerEntryModal(
                                         angNumber = craftedWorkshopInput,
                                         labName = craftedTitleInput,
                                         note = buildString {
-                                            append("مصنوعات: ${craftedTitleInput.ifBlank { "طلا" }} - ناخالص: ${PersianNumberFormatter.formatWeight(craftedGrossDouble)}g")
-                                            if (craftedStoneDouble > 0) append(" (کسر نگین: ${PersianNumberFormatter.formatWeight(craftedStoneDouble)}g)")
+                                            append("مصنوعات: ${craftedTitleInput.ifBlank { "طلا" }} - ناخالص: ${PersianNumberFormatter.formatWeight(craftedGrossDouble)} گرم")
+                                            if (craftedStoneDouble > 0) append(" (کسر نگین: ${PersianNumberFormatter.formatWeight(craftedStoneDouble)} گرم)")
                                             if (craftedWorkshopInput.isNotBlank()) append(" - کد کارگاه: $craftedWorkshopInput")
                                             if (noteInput.isNotBlank()) append(" - $noteInput")
                                         },
@@ -1795,7 +1795,7 @@ fun AddLedgerEntryModal(
                                                 angNumber = coinSerialInput,
                                                 labName = selectedCoinOrBar,
                                                 note = buildString {
-                                                    append("$selectedCoinOrBar به تعداد ${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(coinTotalWeight)}g)")
+                                                    append("$selectedCoinOrBar به تعداد ${PersianNumberFormatter.toPersianDigits(coinCountInt.toString())} عدد (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(coinTotalWeight)} گرم)")
                                                     if (coinSerialInput.isNotBlank()) append(" - پلمپ: $coinSerialInput")
                                                     if (noteInput.isNotBlank()) append(" - $noteInput")
                                                 },
@@ -1819,7 +1819,7 @@ fun AddLedgerEntryModal(
                                                 angNumber = barSerialInput,
                                                 labName = barBrandInput,
                                                 note = buildString {
-                                                    append("شمش طلا ${barBrandInput.ifBlank { "استاندارد" }} عیار $barKaratInt (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)}g)")
+                                                    append("شمش طلا ${barBrandInput.ifBlank { "استاندارد" }} عیار $barKaratInt (وزن فیزیکی: ${PersianNumberFormatter.formatWeight(barWeightDouble)} گرم)")
                                                     if (barSerialInput.isNotBlank()) append(" - پلمپ: $barSerialInput")
                                                     if (noteInput.isNotBlank()) append(" - $noteInput")
                                                 },

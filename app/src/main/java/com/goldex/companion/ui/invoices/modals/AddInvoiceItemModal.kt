@@ -92,6 +92,7 @@ import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.heroCardGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -818,10 +819,10 @@ private fun ScrapGoldForm(
         mutableStateOf(if (initialIsCustom) (existingItem?.baseKarat?.toString() ?: "") else "")
     }
 
-    var deficitStr by remember { mutableStateOf(existingItem?.karatDeficit?.toString() ?: "") }
+    var deficitStr by remember { mutableStateOf(existingItem?.karatDeficit?.toString() ?: "15") }
     var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "") }
     var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
-    var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "") }
+    var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "150000") }
     var commissionStr by remember { mutableStateOf(existingItem?.exchangeCommissionPercent?.toString() ?: "") }
 
     val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
@@ -955,7 +956,7 @@ private fun ScrapGoldForm(
                 GoldInputField(
                     value = deductionPerGramStr,
                     onValueChange = { deductionPerGramStr = it },
-                    label = "کسر مظنه",
+                    label = "کسری مظنه",
                     trailingText = "تومان",
                     isDecimal = false,
                     useThousandsSeparator = true,
@@ -965,7 +966,7 @@ private fun ScrapGoldForm(
                 GoldInputField(
                     value = commissionStr,
                     onValueChange = { commissionStr = it },
-                    label = "کارمزد تعویض",
+                    label = "کارمزد",
                     trailingText = "٪",
                     isDecimal = true,
                     useThousandsSeparator = false,
@@ -989,7 +990,7 @@ private fun ScrapGoldForm(
                 GoldInputField(
                     value = stoneWeightStr,
                     onValueChange = { stoneWeightStr = it },
-                    label = "کسر نگین/موم",
+                    label = "کسر نگین",
                     trailingText = "گرم",
                     isDecimal = true,
                     useThousandsSeparator = false,
@@ -998,11 +999,11 @@ private fun ScrapGoldForm(
                 )
             }
 
-            // Net Weight Badge
+            // Net Weight Highlight Card
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = colors.surfaceVariant,
-                border = BorderStroke(0.6.dp, colors.border),
+                color = colors.goldContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, colors.goldPrimary.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1012,33 +1013,48 @@ private fun ScrapGoldForm(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "خالص طلا:",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary,
-                        fontFamily = VazirmatnFamily
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(colors.goldPrimary)
+                        )
+                        Text(
+                            text = "وزن خالص طلا:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
                     AnimatedNumberText(
                         text = PersianNumberFormatter.formatWeight(item.netWeight),
                         unit = "گرم",
                         color = colors.goldPrimary,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
 
-            // Live Summary Card with AnimatedPriceText & AnimatedNumberText
+            // Live Summary Card with Obsidian Luxury Dark gradient
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = colors.surfaceVariant,
-                border = BorderStroke(0.8.dp, colors.goldBorder),
+                color = Color.Transparent,
+                border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                shadowElevation = if (colors.isDark) 0.dp else 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.heroCardGradient)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1049,7 +1065,7 @@ private fun ScrapGoldForm(
                             text = "مبلغ خرید متفرقه:",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
+                            color = Color(0xFFF1F5F9),
                             fontFamily = VazirmatnFamily
                         )
                         AnimatedPriceText(
@@ -1068,13 +1084,13 @@ private fun ScrapGoldForm(
                         Text(
                             text = "معادل وزنی ۱۸ عیار:",
                             fontSize = 11.sp,
-                            color = colors.textSecondary,
+                            color = Color(0xFF94A3B8),
                             fontFamily = VazirmatnFamily
                         )
                         AnimatedNumberText(
                             text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
                             unit = "گرم",
-                            color = colors.textMain,
+                            color = Color(0xFFF1F5F9),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -1087,13 +1103,13 @@ private fun ScrapGoldForm(
                         Text(
                             text = "قیمت موثر هر گرم:",
                             fontSize = 11.sp,
-                            color = colors.textSecondary,
+                            color = Color(0xFF94A3B8),
                             fontFamily = VazirmatnFamily
                         )
                         AnimatedPriceText(
                             amount = item.effectiveGramPrice,
                             unit = "تومان",
-                            color = colors.textSecondary,
+                            color = colors.goldSecondary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -1382,7 +1398,22 @@ private fun BankCoinForm(
     var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "") }
     var hasHologram by remember { mutableStateOf(existingItem?.hasHologram ?: true) }
 
-    var unitPriceStr by remember { mutableStateOf(existingItem?.unitPrice?.toString() ?: "") }
+    val initialCoinPrice = if (existingItem != null) {
+        existingItem.unitPrice.toString()
+    } else {
+        val p = getCoinMarketPrice(rates, selectedCoin)
+        if (p > 0L) p.toString() else ""
+    }
+    var unitPriceStr by remember { mutableStateOf(initialCoinPrice) }
+
+    LaunchedEffect(rates) {
+        if (existingItem == null && unitPriceStr.isEmpty()) {
+            val liveRate = getCoinMarketPrice(rates, selectedCoin)
+            if (liveRate > 0L) {
+                unitPriceStr = liveRate.toString()
+            }
+        }
+    }
 
     val count = countStr.toIntOrNull() ?: 1
     val unitPrice = unitPriceStr.toLongOrNull() ?: 0L

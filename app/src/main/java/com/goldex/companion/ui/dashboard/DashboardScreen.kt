@@ -60,6 +60,7 @@ import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFamily
 
 /**
  * DashboardScreen: The Sovereign Goldsmith Executive Dashboard.
@@ -772,12 +773,32 @@ fun DashboardScreen(
                     uiState.recentInvoices.forEach { invoice ->
                         val isSettled = invoice.status == InvoiceStatus.SETTLED
                         val statusColor = if (isSettled) Color(0xFF10B981) else Color(0xFFD97706)
+
+                        val compactStatus = when {
+                            isSettled -> "تسویه کامل"
+                            invoice.statusDetail.contains("تهاتر") -> "تهاتر"
+                            invoice.statusDetail.contains("مانده") -> "مانده‌دار"
+                            invoice.statusDetail.contains("نسیه") -> "نسیه"
+                            else -> "در انتظار پرداخت"
+                        }
+
+                        val itemsSummaryShort = if (invoice.itemsSummary.isBlank()) {
+                            "اقلام طلا"
+                        } else {
+                            val parts = invoice.itemsSummary.split("+").map { it.trim() }
+                            if (parts.size > 1) {
+                                "${parts[0]} (+${PersianNumberFormatter.toPersianDigits((parts.size - 1).toString())} قلم)"
+                            } else {
+                                parts[0]
+                            }
+                        }
+
                         TransactionRowItem(
-                            title = invoice.itemsSummary.ifBlank { "فاکتور #${invoice.invoiceNumber}" },
-                            subtitle = "${invoice.customerName} • ${invoice.invoiceNumber}",
+                            title = invoice.customerName.ifBlank { "فاکتور #${invoice.invoiceNumber}" },
+                            subtitle = "فاکتور #${invoice.invoiceNumber} • $itemsSummaryShort",
                             amount = PersianNumberFormatter.formatPrice(invoice.finalAmount.toDouble()),
                             unit = "تومان",
-                            statusLabel = invoice.statusDetail,
+                            statusLabel = compactStatus,
                             statusColor = statusColor,
                             icon = DashInvoiceVector,
                             colors = colors,
@@ -942,10 +963,11 @@ private fun TransactionRowItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 11.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Left: Icon + Title & Subtitle (fills available middle space)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -953,7 +975,7 @@ private fun TransactionRowItem(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(colors.surfaceElevated),
                     contentAlignment = Alignment.Center
@@ -966,54 +988,72 @@ private fun TransactionRowItem(
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = title,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = statusColor.copy(alpha = 0.12f)
-                        ) {
-                            Text(
-                                text = statusLabel,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = statusColor,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp)
-                            )
-                        }
-                    }
-
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = VazirmatnFamily
+                    )
                     Text(
                         text = subtitle,
-                        fontSize = 10.sp,
-                        color = colors.textMuted
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontFamily = VazirmatnFamily
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // Right: Amount + Status Chip
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(1.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Text(
-                    text = amount,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
-                Text(
-                    text = unit,
-                    fontSize = 9.5.sp,
-                    color = colors.textMuted
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = amount,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        maxLines = 1,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Text(
+                        text = unit,
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = statusColor.copy(alpha = 0.12f),
+                    border = BorderStroke(0.5.dp, statusColor.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        text = statusLabel,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
         }
     }
