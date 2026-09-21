@@ -54,9 +54,18 @@ interface SettingsStore {
     fun saveSettings(newSettings: AppSettings)
     fun loadDarkTheme(): Boolean = false
     fun saveDarkTheme(enabled: Boolean) = Unit
-    fun setBiometricLockEnabled(enabled: Boolean) = Unit
-    fun setBiometricTipDismissed(dismissed: Boolean) = Unit
-    fun setHasCompletedOnboarding(completed: Boolean) = Unit
+    fun setBiometricLockEnabled(enabled: Boolean) {
+        val current = loadSettings()
+        saveSettings(current.copy(isBiometricLockEnabled = enabled))
+    }
+    fun setBiometricTipDismissed(dismissed: Boolean) {
+        val current = loadSettings()
+        saveSettings(current.copy(isBiometricTipDismissed = dismissed))
+    }
+    fun setHasCompletedOnboarding(completed: Boolean) {
+        val current = loadSettings()
+        saveSettings(current.copy(hasCompletedOnboarding = completed))
+    }
 }
 
 interface MarketRatesStore {

@@ -3,7 +3,6 @@ package com.goldex.companion.ui.settings
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.data.PriceSource
 import com.goldex.companion.data.SettingsRepository
@@ -13,7 +12,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val appSettings: AppSettings = AppSettings(),
@@ -31,11 +29,6 @@ class SettingsViewModel(
 
     init {
         loadSettings()
-        viewModelScope.launch {
-            repository.settings.collect { latestSettings ->
-                _uiState.update { it.copy(appSettings = latestSettings) }
-            }
-        }
     }
 
     fun loadSettings() {
