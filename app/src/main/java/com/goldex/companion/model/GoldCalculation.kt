@@ -142,11 +142,14 @@ object PersianNumberFormatter {
     }
 
     fun formatPrice(amount: Double): String {
+        val isNegative = amount < 0.0
+        val absAmount = kotlin.math.abs(amount).toLong()
         val symbols = DecimalFormatSymbols(Locale.US).apply {
             groupingSeparator = ','
         }
         val df = DecimalFormat("#,###", symbols)
-        return toPersianDigits(df.format(amount.toLong()))
+        val formatted = toPersianDigits(df.format(absAmount))
+        return if (isNegative) "$formatted-" else formatted
     }
 
     fun formatPrice(amount: Long): String = formatPrice(amount.toDouble())
@@ -158,11 +161,14 @@ object PersianNumberFormatter {
     fun formatWithSeparators(amount: Long): String = formatPrice(amount.toDouble())
 
     fun formatWeight(weight: Double): String {
+        val isNegative = weight < 0.0
+        val absWeight = kotlin.math.abs(weight)
         val symbols = DecimalFormatSymbols(Locale.US).apply {
             decimalSeparator = '.'
         }
         val df = DecimalFormat("#,##0.000", symbols)
-        return toPersianDigits(df.format(weight))
+        val formatted = toPersianDigits(df.format(absWeight))
+        return if (isNegative) "$formatted-" else formatted
     }
 
     /**
@@ -198,7 +204,10 @@ object PersianNumberFormatter {
     }
 
     fun formatDouble(value: Double, decimals: Int = 2): String {
-        return toPersianDigits("%.${decimals}f".format(Locale.US, value))
+        val isNegative = value < 0.0
+        val absValue = kotlin.math.abs(value)
+        val formatted = toPersianDigits("%.${decimals}f".format(Locale.US, absValue))
+        return if (isNegative) "$formatted-" else formatted
     }
 
     fun formatDelta(amount: Long, percent: Double): String {

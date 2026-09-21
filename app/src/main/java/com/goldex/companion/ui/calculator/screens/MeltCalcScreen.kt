@@ -252,7 +252,7 @@ fun MeltCalcScreen(
                             Spacer(modifier = Modifier.height(3.dp))
 
                             Text(
-                                text = if (meltResult.totalPrice > 0) PersianWordsFormatter.toWords(meltResult.totalPrice.toLong()) + " تومان" else "صفر تومان",
+                                text = if (meltResult.totalPrice > 0) PersianWordsFormatter.toWords(meltResult.totalPrice.toLong()) else "صفر تومان",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color.White.copy(alpha = 0.75f),

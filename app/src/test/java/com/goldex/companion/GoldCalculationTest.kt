@@ -42,6 +42,9 @@ class GoldCalculationTest {
         assertEquals("۱.۲۵۰+", PersianNumberFormatter.formatSignedWeight(1.25))
         assertEquals("۰.۰۰۰", PersianNumberFormatter.formatSignedWeight(0.0))
         assertEquals("۱۲-", PersianNumberFormatter.formatSignedInteger(-12))
+        assertEquals("۱.۲۵۰-", PersianNumberFormatter.formatWeight(-1.25))
+        assertEquals("۵,۰۰۰,۰۰۰-", PersianNumberFormatter.formatPrice(-5000000L))
+        assertEquals("۱۲.۵۰-", PersianNumberFormatter.formatDouble(-12.5))
     }
 
     @Test

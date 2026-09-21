@@ -917,6 +917,7 @@ fun MainScreen(
                     CustomerStatementScreen(
                         customer = statementCustomer,
                         transactions = customerState.filteredStatementTransactions,
+                        allTransactions = customerState.activeCustomerTransactions,
                         selectedFilter = customerState.selectedStatementFilter,
                         onFilterSelect = { customerViewModel.setStatementFilter(it) },
                         onOpenAddEntry = { customerViewModel.openAddLedgerEntry(statementCustomer) },

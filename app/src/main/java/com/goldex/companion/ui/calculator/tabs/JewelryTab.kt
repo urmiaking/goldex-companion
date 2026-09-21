@@ -1043,7 +1043,7 @@ fun JewelryTab(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = if (totalPayable > 0) PersianWordsFormatter.toWords(totalPayable.toLong()) + " تومان" else "صفر تومان",
+                        text = if (totalPayable > 0) PersianWordsFormatter.toWords(totalPayable.toLong()) else "صفر تومان",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White.copy(alpha = 0.7f),

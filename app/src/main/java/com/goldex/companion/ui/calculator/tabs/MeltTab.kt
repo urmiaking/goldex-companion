@@ -174,7 +174,7 @@ fun MeltTab(
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong()) + " تومان",
+                        text = PersianWordsFormatter.toWords(uiState.meltTotalValue.toLong()),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.White.copy(alpha = 0.75f),

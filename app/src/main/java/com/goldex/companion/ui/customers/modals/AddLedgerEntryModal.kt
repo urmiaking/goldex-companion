@@ -18,10 +18,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -389,21 +391,24 @@ fun AddLedgerEntryModal(
         ModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             containerColor = colors.surface,
+            scrimColor = Color.Black.copy(alpha = 0.65f),
             dragHandle = {
                 Surface(
-                    modifier = Modifier.padding(vertical = 10.dp),
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
                     color = colors.border,
-                    shape = RoundedCornerShape(2.dp)
+                    shape = CircleShape
                 ) {
-                    Box(modifier = Modifier.size(width = 38.dp, height = 4.dp))
+                    Box(modifier = Modifier.size(width = 44.dp, height = 4.dp))
                 }
             }
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
+                    .wrapContentHeight()
+                    .heightIn(max = 680.dp)
             ) {
                 // 1. Fixed Header Bar (Fix 5: Stays docked at top)
                 Row(
@@ -489,7 +494,7 @@ fun AddLedgerEntryModal(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -575,14 +580,22 @@ fun AddLedgerEntryModal(
                                 text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم طلا",
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (customer.goldDebtGrams >= 0) colors.profitGreen else colors.errorRed,
+                                color = when {
+                                    customer.goldDebtGrams > 0.0001 -> colors.errorRed
+                                    customer.goldDebtGrams < -0.0001 -> colors.profitGreen
+                                    else -> colors.textMain
+                                },
                                 fontFamily = VazirmatnFamily
                             )
                             Text(
                                 text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)} تومان",
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = colors.textSecondary,
+                                color = when {
+                                    customer.cashDebtTomans > 0L -> colors.errorRed
+                                    customer.cashDebtTomans < 0L -> colors.profitGreen
+                                    else -> colors.textSecondary
+                                },
                                 fontFamily = VazirmatnFamily
                             )
                         }
@@ -855,10 +868,10 @@ fun AddLedgerEntryModal(
                                                 modifier = Modifier.weight(1f)
                                             )
 
-                                            GoldInputField(
+                                             GoldInputField(
                                                 value = craftedStoneWeightInput,
                                                 onValueChange = { craftedStoneWeightInput = it },
-                                                label = "کسر نگین و متعلقات",
+                                                label = "کسر نگین",
                                                 trailingText = "گرم",
                                                 isDecimal = true,
                                                 useThousandsSeparator = false,
@@ -874,7 +887,7 @@ fun AddLedgerEntryModal(
                                             GoldInputField(
                                                 value = craftedKaratInput,
                                                 onValueChange = { craftedKaratInput = it },
-                                                label = "عیار مصنوع طلا",
+                                                label = "عیار",
                                                 trailingText = "عیار",
                                                 isDecimal = false,
                                                 useThousandsSeparator = false,
@@ -1200,7 +1213,7 @@ fun AddLedgerEntryModal(
                                                 fontFamily = VazirmatnFamily
                                             )
                                             Text(
-                                                text = "$cashInWords تومان",
+                                                text = cashInWords,
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary,

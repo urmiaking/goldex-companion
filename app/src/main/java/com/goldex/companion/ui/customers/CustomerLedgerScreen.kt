@@ -372,13 +372,13 @@ fun CustomerLedgerScreen(
                                 )
                                 CustomerLedgerFilterTab.DEBTORS -> Triple(
                                     uiState.debtorsCount,
-                                    Color(0x2610B981),
-                                    Color(0xFF10B981)
+                                    Color(0x26EF4444),
+                                    Color(0xFFEF4444)
                                 )
                                 CustomerLedgerFilterTab.CREDITORS -> Triple(
                                     uiState.creditorsCount,
-                                    Color(0x26EF4444),
-                                    Color(0xFFEF4444)
+                                    Color(0x2610B981),
+                                    Color(0xFF10B981)
                                 )
                                 CustomerLedgerFilterTab.SETTLED -> Triple(
                                     uiState.settledCount,
@@ -788,12 +788,12 @@ private fun CustomerLedgerCard(
 
                 // Status & Last Activity
                 Column(horizontalAlignment = Alignment.End) {
-                    val statusText = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) "بدهکار به ما"
+                    val statusText = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) "بدهکار"
                     else if (customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L) "بستانکار"
                     else "تسویه‌شده"
 
-                    val statusColor = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) colors.profitGreen
-                    else if (customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L) colors.errorRed
+                    val statusColor = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) colors.errorRed
+                    else if (customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L) colors.profitGreen
                     else colors.textMuted
 
                     Surface(
@@ -841,10 +841,14 @@ private fun CustomerLedgerCard(
                             fontFamily = VazirmatnFamily
                         )
                         Text(
-                            text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم ۱۸",
+                            text = "${PersianNumberFormatter.formatWeight(customer.goldDebtGrams)} گرم",
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (customer.goldDebtGrams >= 0) colors.goldPrimary else colors.errorRed,
+                            color = when {
+                                customer.goldDebtGrams > 0.0001 -> colors.errorRed
+                                customer.goldDebtGrams < -0.0001 -> colors.profitGreen
+                                else -> colors.textMain
+                            },
                             fontFamily = VazirmatnFamily
                         )
                     }
@@ -860,7 +864,11 @@ private fun CustomerLedgerCard(
                             text = "${PersianNumberFormatter.formatPrice(customer.cashDebtTomans)} تومان",
                             fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = colors.textMain,
+                            color = when {
+                                customer.cashDebtTomans > 0L -> colors.errorRed
+                                customer.cashDebtTomans < 0L -> colors.profitGreen
+                                else -> colors.textMain
+                            },
                             fontFamily = VazirmatnFamily
                         )
                     }
