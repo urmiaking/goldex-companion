@@ -36,19 +36,19 @@ data class MainUiState(
     val autoSyncPrice: Boolean = true,
 
     // Jewelry Calculator State
-    val itemTitleInput: String = "قطعه طلا ۱",
+    val itemTitleInput: String = "",
     val priceBasisTab: PriceBasisTab = PriceBasisTab.K18,
     val isManualSpotDialogVisible: Boolean = false,
     val isStoneWeightDialogVisible: Boolean = false,
-    val grossWeightInput: String = "10",
-    val stoneWeightInput: String = "0",
+    val grossWeightInput: String = "",
+    val stoneWeightInput: String = "",
     val selectedKarat: Karat = Karat.K18,
-    val karatInput: String = "750",
-    val spotPriceInput: String = "23360000",
+    val karatInput: String = "",
+    val spotPriceInput: String = "",
     val wageType: WageType = WageType.PERCENTAGE,
-    val wageInput: String = "12",
-    val profitPercentInput: String = "7",
-    val taxPercentInput: String = "9",
+    val wageInput: String = "",
+    val profitPercentInput: String = "",
+    val taxPercentInput: String = "",
     val jewelryResult: DetailedJewelryResult? = null,
     val priceInWords: String = "",
 
@@ -57,14 +57,14 @@ data class MainUiState(
     val selectedCustomer: Customer? = null,
 
     // Melt Calculator State
-    val mesghalPriceInput: String = "101500000",
-    val meltWeightInput: String = "10",
-    val meltGram18kPrice: Long = 23431000L,
+    val mesghalPriceInput: String = "",
+    val meltWeightInput: String = "",
+    val meltGram18kPrice: Long = 0L,
     val meltTotalValue: Double = 0.0,
 
     // Coin Bubble State
     val selectedCoin: CoinType = CoinType.EMAMI,
-    val coinMarketPriceInput: String = "550000000",
+    val coinMarketPriceInput: String = "",
     val coinBubbleResult: CoinBubbleResult? = null,
 
     // Sub-Screen Navigation State
@@ -143,9 +143,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                 wageType = s.defaultWageType,
                 autoSyncPrice = s.autoSyncRates,
                 rates = initialRates,
-                spotPriceInput = if (initialRates.gold18 > 0L) initialRates.gold18.toString() else "23360000",
-                mesghalPriceInput = if (initialRates.goldMelt > 0L) initialRates.goldMelt.toString() else "101500000",
-                coinMarketPriceInput = if (initialRates.coinEmami > 0L) initialRates.coinEmami.toString() else "550000000",
+                spotPriceInput = if (initialRates.gold18 > 0L) initialRates.gold18.toString() else "",
+                mesghalPriceInput = if (initialRates.goldMelt > 0L) initialRates.goldMelt.toString() else "",
+                coinMarketPriceInput = if (initialRates.coinEmami > 0L) initialRates.coinEmami.toString() else "",
                 todayCandlesByType = cachedTodayCandles,
                 dashboardGold18Charts = cachedDashboardCharts
             )
@@ -592,15 +592,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     override fun resetJewelry() {
         _uiState.update {
             it.copy(
-                itemTitleInput = "قطعه طلا ۱",
-                grossWeightInput = "10",
-                stoneWeightInput = "0",
+                itemTitleInput = "",
+                grossWeightInput = "",
+                stoneWeightInput = "",
                 selectedKarat = Karat.K18,
-                karatInput = "750",
+                karatInput = "",
                 wageType = WageType.PERCENTAGE,
-                wageInput = "12",
-                profitPercentInput = "7",
-                taxPercentInput = "9"
+                wageInput = "",
+                profitPercentInput = "",
+                taxPercentInput = ""
             )
         }
         calculateJewelry()

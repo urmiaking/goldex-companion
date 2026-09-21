@@ -431,7 +431,7 @@ private fun CraftedGoldForm(
 ) {
     val colors = LocalGoldExColors.current
 
-    var title by remember { mutableStateOf(existingItem?.title ?: "دستبند کارتیه ۱۸ عیار") }
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
 
     val initialIsCustom = existingItem?.let {
         it.customKaratValue !in listOf(750, 705, 999) && it.customKaratValue > 0
@@ -441,15 +441,15 @@ private fun CraftedGoldForm(
         mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.customKaratValue ?: 750))
     }
     var customKaratStr by remember {
-        mutableStateOf(if (initialIsCustom) (existingItem?.customKaratValue?.toString() ?: "750") else "750")
+        mutableStateOf(if (initialIsCustom) (existingItem?.customKaratValue?.toString() ?: "") else "")
     }
 
-    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "12.80") }
-    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "0.30") }
+    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "") }
+    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
     var wageType by remember { mutableStateOf(existingItem?.wageType ?: WageType.PERCENTAGE) }
-    var wageInputStr by remember { mutableStateOf(existingItem?.wageInput?.toString() ?: "7.5") }
-    var profitStr by remember { mutableStateOf(existingItem?.profitPercent?.toString() ?: "7.0") }
-    var taxStr by remember { mutableStateOf(existingItem?.taxPercent?.toString() ?: "9.0") }
+    var wageInputStr by remember { mutableStateOf(existingItem?.wageInput?.toString() ?: "") }
+    var profitStr by remember { mutableStateOf(existingItem?.profitPercent?.toString() ?: "") }
+    var taxStr by remember { mutableStateOf(existingItem?.taxPercent?.toString() ?: "") }
 
     val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
     val stoneWeight = stoneWeightStr.toDoubleOrNull() ?: 0.0
@@ -792,7 +792,7 @@ private fun ScrapGoldForm(
 ) {
     val colors = LocalGoldExColors.current
 
-    var title by remember { mutableStateOf(existingItem?.title ?: "طلای متفرقه و دست‌دوم") }
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
     val initialIsCustom = existingItem?.let {
         it.baseKarat !in listOf(750, 740, 705) && it.baseKarat > 0
     } ?: false
@@ -801,14 +801,14 @@ private fun ScrapGoldForm(
         mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.baseKarat ?: 750))
     }
     var customBaseKaratStr by remember {
-        mutableStateOf(if (initialIsCustom) (existingItem?.baseKarat?.toString() ?: "750") else "750")
+        mutableStateOf(if (initialIsCustom) (existingItem?.baseKarat?.toString() ?: "") else "")
     }
 
-    var deficitStr by remember { mutableStateOf(existingItem?.karatDeficit?.toString() ?: "15") }
-    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "14.80") }
-    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "0.30") }
-    var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "15000") }
-    var commissionStr by remember { mutableStateOf(existingItem?.exchangeCommissionPercent?.toString() ?: "0.0") }
+    var deficitStr by remember { mutableStateOf(existingItem?.karatDeficit?.toString() ?: "") }
+    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "") }
+    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
+    var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "") }
+    var commissionStr by remember { mutableStateOf(existingItem?.exchangeCommissionPercent?.toString() ?: "") }
 
     val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
     val stoneWeight = stoneWeightStr.toDoubleOrNull() ?: 0.0
@@ -1131,8 +1131,8 @@ private fun MeltGoldForm(
 ) {
     val colors = LocalGoldExColors.current
 
-    var title by remember { mutableStateOf(existingItem?.title ?: "طلای آبشده سنتی") }
-    var weightStr by remember { mutableStateOf(existingItem?.weight?.toString() ?: "10.0") }
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+    var weightStr by remember { mutableStateOf(existingItem?.weight?.toString() ?: "") }
 
     val initialIsCustom = existingItem?.let {
         it.labKarat !in listOf(750, 735, 705) && it.labKarat > 0
@@ -1142,11 +1142,11 @@ private fun MeltGoldForm(
         mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.labKarat ?: 735))
     }
     var customKaratStr by remember {
-        mutableStateOf(if (initialIsCustom) (existingItem?.labKarat?.toString() ?: "735") else "735")
+        mutableStateOf(if (initialIsCustom) (existingItem?.labKarat?.toString() ?: "") else "")
     }
 
-    var angNumber by remember { mutableStateOf(existingItem?.angNumber ?: "1248") }
-    var labName by remember { mutableStateOf(existingItem?.labName ?: "ری‌گیری مشهد") }
+    var angNumber by remember { mutableStateOf(existingItem?.angNumber ?: "") }
+    var labName by remember { mutableStateOf(existingItem?.labName ?: "") }
 
     val weight = weightStr.toDoubleOrNull() ?: 0.0
     val labKarat = if (isCustomKarat) {
@@ -1365,14 +1365,10 @@ private fun BankCoinForm(
     val rates by GoldMarketRepository.rates.collectAsState()
 
     var selectedCoin by remember { mutableStateOf(existingItem?.coinType ?: CoinType.EMAMI) }
-    var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "1") }
+    var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "") }
     var hasHologram by remember { mutableStateOf(existingItem?.hasHologram ?: true) }
 
-    val initialCoinPrice = existingItem?.unitPrice
-        ?: getCoinMarketPrice(rates, selectedCoin).takeIf { it > 0L }
-        ?: 42_500_000L
-
-    var unitPriceStr by remember { mutableStateOf(initialCoinPrice.toString()) }
+    var unitPriceStr by remember { mutableStateOf(existingItem?.unitPrice?.toString() ?: "") }
 
     val count = countStr.toIntOrNull() ?: 1
     val unitPrice = unitPriceStr.toLongOrNull() ?: 0L

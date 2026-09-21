@@ -478,13 +478,21 @@ fun MainScreen(
                         ) { destination ->
                             when (destination) {
                                 AppTab.HOME -> {
+                                    val inventoryWeight = inventoryState.totalGoldWeight18k
+                                    val inventoryValuation = if (mainUiState.rates.gold18 > 0) {
+                                        (inventoryWeight * mainUiState.rates.gold18).toLong()
+                                    } else 0L
+
                                     DashboardScreen(
                                         uiState = DashboardUiState(
                                             appSettings = settingsState.appSettings,
                                             rates = mainUiState.rates,
-                                            savedInvoiceCount = invoiceState.savedInvoices.size,
+                                            savedInvoiceCount = barterUiState.invoicesList.size,
                                             gold18Charts = mainUiState.dashboardGold18Charts,
-                                            licenseInfo = licenseInfo
+                                            licenseInfo = licenseInfo,
+                                            totalInventoryWeight18k = inventoryWeight,
+                                            totalInventoryValuationTomans = inventoryValuation,
+                                            recentInvoices = barterUiState.invoicesList.take(5)
                                         ),
                                         onNavigateCalculator = {
                                             mainViewModel.selectTab(AppTab.CALCULATOR)

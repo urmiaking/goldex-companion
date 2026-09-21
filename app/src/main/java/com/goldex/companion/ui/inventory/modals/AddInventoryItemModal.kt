@@ -201,20 +201,20 @@ fun AddInventoryItemModal(
 
     var codeInput by remember { mutableStateOf(generateCode(InventoryCategory.RINGS)) }
     var titleInput by remember { mutableStateOf("") }
-    var rfidInput by remember { mutableStateOf("RF-${(1000..9999).random()}-GL") }
-    var locationInput by remember { mutableStateOf("سینی شماره ۱ ویترین اصلی") }
+    var rfidInput by remember { mutableStateOf("") }
+    var locationInput by remember { mutableStateOf("") }
 
     var grossWeightInput by remember { mutableStateOf("") }
     var stoneWeightInput by remember { mutableStateOf("") }
 
     var selectedKarat by remember { mutableStateOf(Karat.K18) }
     var isCustomKarat by remember { mutableStateOf(false) }
-    var customKaratInput by remember { mutableStateOf("750") }
+    var customKaratInput by remember { mutableStateOf("") }
 
-    var workshopInput by remember { mutableStateOf("کارگاه زرین تهران") }
+    var workshopInput by remember { mutableStateOf("") }
     var wageType by remember { mutableStateOf(WageType.PERCENTAGE) }
-    var wageInput by remember { mutableStateOf("12") }
-    var quantityInput by remember { mutableStateOf("1") }
+    var wageInput by remember { mutableStateOf("") }
+    var quantityInput by remember { mutableStateOf("") }
 
     val grossWeightDouble by remember(grossWeightInput) {
         derivedStateOf { PersianNumberFormatter.parseToCleanDouble(grossWeightInput) ?: 0.0 }
@@ -257,7 +257,7 @@ fun AddInventoryItemModal(
     }
 
     // Live Estimation Calculation
-    val spotPrice = remember(rates.gold18) { if (rates.gold18 > 0L) rates.gold18 else 23_360_000L }
+    val spotPrice = remember(rates.gold18) { if (rates.gold18 > 0L) rates.gold18 else 0L }
     val estimatedValues by remember(netGoldWeightDouble, spotPrice, effectiveKaratNum, wageType, wageDouble, profitPercent) {
         derivedStateOf {
             val karatRatio = effectiveKaratNum.toDouble() / 750.0
@@ -899,12 +899,12 @@ fun AddInventoryItemModal(
                                     code = codeInput.ifBlank { generateCode(selectedCategory) },
                                     title = titleInput.trim(),
                                     category = selectedCategory,
-                                    location = locationInput.ifBlank { "سینی شماره ۱ ویترین اصلی" },
+                                    location = locationInput.ifBlank { "ویترین اصلی" },
                                     grossWeightGrams = grossWeightDouble,
                                     stoneWeightGrams = stoneWeightDouble,
                                     karat = selectedKarat,
                                     customKaratValue = effectiveKaratNum,
-                                    workshop = workshopInput.ifBlank { "کارگاه زرین تهران" },
+                                    workshop = workshopInput.ifBlank { "کارگاه عمومی" },
                                     wageType = wageType,
                                     wageValue = wageDouble,
                                     wagePercent = if (wageType == WageType.PERCENTAGE) wageDouble else 0.0,

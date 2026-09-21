@@ -132,36 +132,36 @@ fun AddLedgerEntryModal(
             if (editingTransaction != null && editingTransaction.type == LedgerEntryType.GOLD_WEIGHT) {
                 if (editingTransaction.scaleWeightGrams > 0.0) editingTransaction.scaleWeightGrams.toString()
                 else editingTransaction.equivalent750WeightGrams.toString()
-            } else "50.410"
+            } else ""
         )
     }
     var karatInput by remember(editingTransaction) {
         mutableStateOf(
-            if (editingTransaction != null && editingTransaction.karat > 0) editingTransaction.karat.toString() else "750"
+            if (editingTransaction != null && editingTransaction.karat > 0) editingTransaction.karat.toString() else ""
         )
     }
     var angNumberInput by remember(editingTransaction) {
         mutableStateOf(editingTransaction?.angNumber ?: "")
     }
     var labNameInput by remember(editingTransaction) {
-        mutableStateOf(editingTransaction?.labName?.ifBlank { "ری‌گیری تهران" } ?: "ری‌گیری تهران")
+        mutableStateOf(editingTransaction?.labName ?: "")
     }
 
     // 2. مصنوعات
-    var craftedTitleInput by remember { mutableStateOf("النگو") }
-    var craftedGrossWeightInput by remember { mutableStateOf("15.250") }
-    var craftedStoneWeightInput by remember { mutableStateOf("0.000") }
-    var craftedKaratInput by remember { mutableStateOf("750") }
+    var craftedTitleInput by remember { mutableStateOf("") }
+    var craftedGrossWeightInput by remember { mutableStateOf("") }
+    var craftedStoneWeightInput by remember { mutableStateOf("") }
+    var craftedKaratInput by remember { mutableStateOf("") }
     var craftedWorkshopInput by remember { mutableStateOf("") }
 
     // 3. سکه و شمش
     var selectedCoinOrBar by remember { mutableStateOf("سکه تمام") } // سکه تمام, نیم سکه, ربع سکه, سکه گرمی, شمش طلا
-    var coinCountInput by remember { mutableStateOf("1") }
+    var coinCountInput by remember { mutableStateOf("") }
     var coinSerialInput by remember { mutableStateOf("") }
     // شمش
-    var barWeightInput by remember { mutableStateOf("10.000") }
-    var barKaratInput by remember { mutableStateOf("995") }
-    var barBrandInput by remember { mutableStateOf("پارس شمش") }
+    var barWeightInput by remember { mutableStateOf("") }
+    var barKaratInput by remember { mutableStateOf("") }
+    var barBrandInput by remember { mutableStateOf("") }
     var barSerialInput by remember { mutableStateOf("") }
 
     // =========================================================================
@@ -171,7 +171,7 @@ fun AddLedgerEntryModal(
         mutableStateOf(
             if (editingTransaction != null && editingTransaction.type == LedgerEntryType.CASH_RIAL) {
                 editingTransaction.amountTomans.toString()
-            } else "25000000"
+            } else ""
         )
     }
     var paymentMethod by remember(editingTransaction) {
@@ -180,7 +180,7 @@ fun AddLedgerEntryModal(
 
     // 1. حواله بانکی / پایا
     var destinationBank by remember(editingTransaction) {
-        mutableStateOf(editingTransaction?.destinationBank?.ifBlank { "بانک ملت - جاری طلافروشی" } ?: "بانک ملت - جاری طلافروشی")
+        mutableStateOf(editingTransaction?.destinationBank ?: "")
     }
     var trackingCodeInput by remember(editingTransaction) {
         mutableStateOf(editingTransaction?.trackingCode ?: "")
@@ -190,18 +190,18 @@ fun AddLedgerEntryModal(
     // 2. چک صیادی
     var sayadIdInput by remember { mutableStateOf("") }
     var chequeSerialInput by remember { mutableStateOf("") }
-    var chequeDueDateInput by remember { mutableStateOf("۱۴۰۳/۰۸/۱۵") }
-    var chequeBankInput by remember { mutableStateOf("بانک ملی") }
+    var chequeDueDateInput by remember { mutableStateOf("") }
+    var chequeBankInput by remember { mutableStateOf("") }
     var chequeIssuerInput by remember { mutableStateOf(customer.name) }
 
     // 3. کارتخوان (POS)
-    var posTerminalInput by remember { mutableStateOf("کارتخوان ملت فروشگاه") }
+    var posTerminalInput by remember { mutableStateOf("") }
     var cardLast4Input by remember { mutableStateOf("") }
     var posRrnInput by remember { mutableStateOf("") }
 
     // 4. اسکناس نقد
     var cashPersonInput by remember { mutableStateOf(customer.name) }
-    var cashierReceiptInput by remember { mutableStateOf("صندوق اصلی فروشگاه") }
+    var cashierReceiptInput by remember { mutableStateOf("") }
     var cashNoteDetailsInput by remember { mutableStateOf("") }
 
     // =========================================================================

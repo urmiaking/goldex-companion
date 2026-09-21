@@ -123,7 +123,7 @@ fun AdjustStockModal(
         StockAdjustmentType.DEDUCT -> (currentGross - effectiveWeight).coerceAtLeast(0.0)
     }
 
-    val spotPrice = remember(rates.gold18) { if (rates.gold18 > 0L) rates.gold18 else 23_360_000L }
+    val spotPrice = remember(rates.gold18) { if (rates.gold18 > 0L) rates.gold18 else 0L }
     val deltaMonetaryValue = remember(effectiveWeight, spotPrice) {
         (effectiveWeight * spotPrice).toLong()
     }

@@ -16,12 +16,12 @@ enum class KaratConvertMode(val labelFa: String) {
 
 data class KaratConvertUiState(
     val convertMode: KaratConvertMode = KaratConvertMode.DIRECT,
-    val convertWeightInput: String = "10",
+    val convertWeightInput: String = "",
     val convertFromKarat: Karat = Karat.K18,
     val convertToKarat: Karat = Karat.K24,
-    val convertedWeight: Double = 7.5,
-    val assayKaratInput: String = "742",
-    val agreedKaratInput: String = "750"
+    val convertedWeight: Double = 0.0,
+    val assayKaratInput: String = "",
+    val agreedKaratInput: String = ""
 )
 
 class KaratConvertViewModel : ViewModel() {

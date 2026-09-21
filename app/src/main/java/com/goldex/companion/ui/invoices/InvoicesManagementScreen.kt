@@ -80,6 +80,14 @@ fun InvoicesManagementScreen(
     val settledCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.SETTLED } }
     val pendingCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.PARTIALLY_PAID } }
     val workshopCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.WORKSHOP } }
+    val totalGoldWeightGrams = remember(allInvoices) {
+        allInvoices.sumOf { item ->
+            item.barterInvoice?.balance?.totalSales18kWeight ?: 0.0
+        }
+    }
+    val totalTurnoverMillionTomans = remember(allInvoices) {
+        allInvoices.sumOf { it.finalAmount } / 1_000_000L
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
@@ -90,9 +98,9 @@ fun InvoicesManagementScreen(
         ) {
             // 1. KPI Overview Banner (Screen 6 Hero Section)
             InvoicesKpiOverviewBanner(
-                totalInvoicesCount = allInvoices.size.coerceAtLeast(48),
-                totalGoldWeightGrams = 342.5,
-                totalTurnoverMillionTomans = 2450L
+                totalInvoicesCount = allInvoices.size,
+                totalGoldWeightGrams = totalGoldWeightGrams,
+                totalTurnoverMillionTomans = totalTurnoverMillionTomans
             )
 
             // 2. Search & Filter Bar
@@ -104,10 +112,10 @@ fun InvoicesManagementScreen(
             // 3. Filter Capsules
             FilterCapsulesRow(
                 selectedFilter = uiState.selectedFilter,
-                allCount = allInvoices.size.coerceAtLeast(48),
-                settledCount = settledCount.coerceAtLeast(42),
-                pendingCount = pendingCount.coerceAtLeast(4),
-                workshopCount = workshopCount.coerceAtLeast(2),
+                allCount = allInvoices.size,
+                settledCount = settledCount,
+                pendingCount = pendingCount,
+                workshopCount = workshopCount,
                 onSelectFilter = onFilterSelect
             )
 
@@ -210,7 +218,7 @@ private fun InvoicesKpiOverviewBanner(
                             )
                         }
                         Text(
-                            text = "عملکرد زرگری در شهریور ۱۴۰۳",
+                            text = "عملکرد کلی فاکتورها",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFDE68A),
@@ -218,25 +226,17 @@ private fun InvoicesKpiOverviewBanner(
                         )
                     }
 
-                    // Growth pill badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color(0x33059669))
-                            .border(0.8.dp, Color(0x4D10B981), RoundedCornerShape(50))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    // Count pill badge (shown when invoices exist)
+                    if (totalInvoicesCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(0x33059669))
+                                .border(0.8.dp, Color(0x4D10B981), RoundedCornerShape(50))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = "▲",
-                                fontSize = 9.sp,
-                                color = Color(0xFF34D399)
-                            )
-                            Text(
-                                text = "+۱۲.۴٪ رشد",
+                                text = "${PersianNumberFormatter.toPersianDigits(totalInvoicesCount.toString())} فاکتور فعال",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF34D399),

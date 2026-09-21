@@ -7,19 +7,19 @@ import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.model.WageType
 
 data class JewelryUiState(
-    val itemTitleInput: String = "قطعه طلا ۱",
+    val itemTitleInput: String = "",
     val priceBasisTab: PriceBasisTab = PriceBasisTab.K18,
     val isManualSpotDialogVisible: Boolean = false,
     val isStoneWeightDialogVisible: Boolean = false,
-    val grossWeightInput: String = "10",
-    val stoneWeightInput: String = "0",
+    val grossWeightInput: String = "",
+    val stoneWeightInput: String = "",
     val selectedKarat: Karat = Karat.K18,
-    val karatInput: String = "750",
-    val spotPriceInput: String = "23360000",
+    val karatInput: String = "",
+    val spotPriceInput: String = "",
     val wageType: WageType = WageType.PERCENTAGE,
-    val wageInput: String = "12",
-    val profitPercentInput: String = "7",
-    val taxPercentInput: String = "9",
+    val wageInput: String = "",
+    val profitPercentInput: String = "",
+    val taxPercentInput: String = "",
     val jewelryResult: DetailedJewelryResult? = null,
     val priceInWords: String = "",
     val rates: MarketRates = MarketRates()

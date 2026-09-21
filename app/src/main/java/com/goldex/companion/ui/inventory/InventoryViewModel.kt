@@ -46,10 +46,10 @@ data class InventoryUiState(
         get() = items.size
 
     val activeTraysCount: Int
-        get() = items.map { it.location }.filter { it.contains("سینی") || it.contains("ویترین") }.distinct().size.coerceAtLeast(1)
+        get() = items.map { it.location }.filter { it.contains("سینی") || it.contains("ویترین") }.distinct().size
 
     val activeSafesCount: Int
-        get() = items.map { it.location }.filter { it.contains("گاوصندوق") || it.contains("انبار") }.distinct().size.coerceAtLeast(1)
+        get() = items.map { it.location }.filter { it.contains("گاوصندوق") || it.contains("انبار") }.distinct().size
 
     fun categoryCount(category: InventoryCategory): Int {
         return if (category == InventoryCategory.ALL) {

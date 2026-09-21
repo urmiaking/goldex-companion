@@ -1,4 +1,4 @@
-﻿package com.goldex.companion.data
+package com.goldex.companion.data
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -61,28 +61,7 @@ class PortfolioRepository(context: Context) : PortfolioStore {
     override fun getItems(): List<PortfolioItem> {
         val jsonString = prefs.getString("items_json", null)
         if (jsonString.isNullOrBlank()) {
-            val defaults = listOf(
-                PortfolioItem(
-                    id = "default_gold_1",
-                    title = "دستبند زنجیری کارتیه",
-                    category = PortfolioCategory.GOLD,
-                    weightGrams = 8.5,
-                    karat = Karat.K18,
-                    purchasePriceTotal = 175_000_000L,
-                    purchaseDate = "۱۴۰۳/۰۵/۱۰"
-                ),
-                PortfolioItem(
-                    id = "default_coin_1",
-                    title = "سکه تمام طرح جدید (امامی)",
-                    category = PortfolioCategory.COIN,
-                    quantity = 2,
-                    coinType = CoinType.EMAMI,
-                    purchasePriceTotal = 430_000_000L,
-                    purchaseDate = "۱۴۰۳/۰۳/۱۵"
-                )
-            )
-            saveItems(defaults)
-            return defaults
+            return emptyList()
         }
 
         return PersistenceJsonCodecs.decodePortfolioItems(jsonString)

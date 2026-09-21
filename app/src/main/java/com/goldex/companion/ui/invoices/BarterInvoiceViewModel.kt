@@ -1,21 +1,14 @@
 package com.goldex.companion.ui.invoices
 
 import androidx.lifecycle.ViewModel
-import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterBalance
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
-import com.goldex.companion.model.CoinType
-import com.goldex.companion.model.CraftedGoldItem
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceItemCategory
-import com.goldex.companion.model.Karat
-import com.goldex.companion.model.MeltGoldItem
-import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.model.SettlementPaymentItem
-import com.goldex.companion.model.WageType
 import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem
@@ -72,199 +65,11 @@ class BarterInvoiceViewModel : ViewModel() {
     val uiState: StateFlow<BarterInvoiceUiState> = _uiState.asStateFlow()
 
     init {
-        val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
-
-        // Seed realistic default sample items matching Stitch design b4183cc19232433ab7200ba9a9074680
-        val sampleSale1 = CraftedGoldItem(
-            title = "دستبند کارتیه ۱۸ عیار لوکس",
-            karat = Karat.K18,
-            grossWeight = 12.80,
-            stoneWeight = 0.30,
-            netWeight = 12.50,
-            spotPrice = defaultSpot,
-            wageType = WageType.PERCENTAGE,
-            wageInput = 7.5,
-            wageAmount = 12.50 * defaultSpot * (7.5 / 100.0),
-            profitPercent = 7.0,
-            profitAmount = (12.50 * defaultSpot * 1.075) * (7.0 / 100.0),
-            taxPercent = 9.0,
-            taxAmount = ((12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0))) * 0.09,
-            rawGoldValue = 12.50 * defaultSpot,
-            totalPayable = (12.50 * defaultSpot) + (12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0)) + (((12.50 * defaultSpot * (7.5 / 100.0)) + ((12.50 * defaultSpot * 1.075) * (7.0 / 100.0))) * 0.09),
-            equivalent18kWeight = 12.50
-        )
-        val sampleSale2 = BankCoinItem(
-            title = "تمام سکه بهار آزادی طرح جدید",
-            coinType = CoinType.EMAMI,
-            count = 1,
-            hasHologram = true,
-            unitPrice = 42500000L,
-            totalPayable = 42500000.0,
-            equivalent18kWeight = 8.13598 * 1.2
-        )
-
-        val sampleReceived1 = ScrapGoldItem(
-            title = "طلای متفرقه و کهنه ۱۸ عیار",
-            baseKarat = 750,
-            karatDeficit = 15,
-            payableKarat = 735,
-            grossWeight = 8.35,
-            stoneWeight = 0.15,
-            netWeight = 8.20,
-            spotPrice = defaultSpot,
-            deductionPerGram = 15000L,
-            exchangeCommissionPercent = 0.0,
-            effectiveGramPrice = defaultSpot - 15000L,
-            totalPayable = 8.20 * (defaultSpot - 15000L) * (735.0 / 750.0),
-            equivalent18kWeight = 8.20 * (735.0 / 750.0)
-        )
-        val sampleReceived2 = MeltGoldItem(
-            title = "طلای آبشده سنتی (انگ ۱۲۴۸)",
-            weight = 5.24,
-            labKarat = 735,
-            angNumber = "1248",
-            labName = "ری‌گیری مشهد",
-            spotPrice = defaultSpot,
-            totalPayable = 5.24 * defaultSpot * (735.0 / 750.0),
-            equivalent18kWeight = 5.24 * (735.0 / 750.0)
-        )
-
-        val sampleInvoice1 = BarterInvoice(
-            invoiceNumber = "IR-1403-089",
-            customer = Customer(
-                name = "حاج محمد کاظمی",
-                phone = "09123456789",
-                note = "بنکداری تهران • مانده قبلی: ۵.۲۰۰ گرم بستانکار"
-            ),
-            customerRole = CustomerRole.WHOLESALER,
-            spotPrice18k = defaultSpot,
-            salesItems = listOf(sampleSale1, sampleSale2),
-            receivedItems = listOf(sampleReceived1, sampleReceived2),
-            cashPosAmount = 30000000L,
-            note = "تهاتر شده با طلای کهنه و آبشده انگ ۱۲۴۸. مانده دفتری در صورتحساب ماهانه."
-        )
-
-        val card1 = InvoiceListItem(
-            id = "sample-1",
-            invoiceNumber = "IR-1403-089",
-            customerName = "حاج محمد کاظمی",
-            customerInitials = "مک",
-            isVerified = true,
-            createdAtText = "کد فاکتور: IR-1403-089 • امروز، ۱۱:۴۵",
-            status = InvoiceStatus.SETTLED,
-            statusDetail = "تسویه نقدی کامل",
-            itemsSummary = "دستبند کارتیه ۱۸ عیار + نیم‌ست برلیان",
-            itemsCountText = "اقلام فاکتور (۲ قلم):",
-            line1Detail = "وزن خالص طلا: ۱۲.۵۰ گرم",
-            line2Detail = "اجرت ساخت: ۷.۵٪",
-            finalAmount = 241500000L,
-            amountLabel = "مبلغ نهایی پرداختی:",
-            actionButtonText = "مشاهده جزییات",
-            actionType = InvoiceCardAction.VIEW_DETAILS,
-            barterInvoice = sampleInvoice1
-        )
-
-        val sampleSaleCoin = BankCoinItem(
-            title = "سکه تمام بهار طرح جدید امامی هولوگرام‌دار",
-            coinType = CoinType.EMAMI,
-            count = 1,
-            hasHologram = true,
-            unitPrice = 42300000L,
-            totalPayable = 42300000.0,
-            equivalent18kWeight = 8.13598 * 1.2
-        )
-        val sampleInvoice2 = BarterInvoice(
-            invoiceNumber = "IR-1403-088",
-            customer = Customer(
-                name = "خانم سارا رادمنش",
-                phone = "09129876543",
-                note = "تسویه بیعانه کارتخوان"
-            ),
-            customerRole = CustomerRole.RETAIL,
-            spotPrice18k = defaultSpot,
-            salesItems = listOf(sampleSaleCoin),
-            receivedItems = emptyList(),
-            cashPosAmount = 33840000L,
-            note = "پرداخت بیعانه ۳۳،۸۴۰،۰۰۰ ت. مانده قابل تسویه هنگام تحویل: ۸،۴۶۰،۰۰۰ ت."
-        )
-
-        val card2 = InvoiceListItem(
-            id = "sample-2",
-            invoiceNumber = "IR-1403-088",
-            customerName = "خانم سارا رادمنش",
-            customerInitials = "سر",
-            isVerified = false,
-            createdAtText = "کد فاکتور: IR-1403-088 • دیروز، ۱۷:۲۰",
-            status = InvoiceStatus.PARTIALLY_PAID,
-            statusDetail = "۲۰٪ مانده حساب",
-            itemsSummary = "سکه تمام بهار طرح جدید امامی هولوگرام‌دار",
-            itemsCountText = "اقلام (۱ قطعه بانکی):",
-            line1Detail = "پرداخت بیعانه: ۳۳,۸۴۰,۰۰۰ ت",
-            line2Detail = "مانده قابل تسویه: ۸,۴۶۰,۰۰۰ ت",
-            finalAmount = 42300000L,
-            amountLabel = "ارزش فاکتور:",
-            actionButtonText = "تسویه حساب مانده",
-            actionType = InvoiceCardAction.SETTLE_BALANCE,
-            barterInvoice = sampleInvoice2
-        )
-
-        val sampleWorkshopCrafted = CraftedGoldItem(
-            title = "سرویس گردنبند برلیان مارکیز سفارشی",
-            karat = Karat.K18,
-            grossWeight = 38.5,
-            stoneWeight = 2.1,
-            netWeight = 36.4,
-            spotPrice = defaultSpot,
-            wageType = WageType.PERCENTAGE,
-            wageInput = 18.0,
-            wageAmount = 36.4 * defaultSpot * 0.18,
-            profitPercent = 7.0,
-            profitAmount = (36.4 * defaultSpot * 1.18) * 0.07,
-            taxPercent = 9.0,
-            taxAmount = ((36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07)) * 0.09,
-            rawGoldValue = 36.4 * defaultSpot,
-            totalPayable = (36.4 * defaultSpot) + (36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07) + (((36.4 * defaultSpot * 0.18) + ((36.4 * defaultSpot * 1.18) * 0.07)) * 0.09),
-            equivalent18kWeight = 36.4
-        )
-        val sampleInvoice3 = BarterInvoice(
-            invoiceNumber = "IR-1403-087",
-            customer = Customer(
-                name = "جناب آقای دکتر افشار",
-                phone = "09121112233",
-                note = "سفارش ویژه کارگاه ساخت"
-            ),
-            customerRole = CustomerRole.RETAIL,
-            spotPrice18k = defaultSpot,
-            salesItems = listOf(sampleWorkshopCrafted),
-            receivedItems = emptyList(),
-            cashPosAmount = 50000000L,
-            note = "مرحله مخراج‌کاری و آبکاری. زمان تحویل: ۳ روز آینده."
-        )
-
-        val card3 = InvoiceListItem(
-            id = "sample-3",
-            invoiceNumber = "IR-1403-087",
-            customerName = "جناب آقای دکتر افشار",
-            customerInitials = "دا",
-            isVerified = false,
-            createdAtText = "کد فاکتور: IR-1403-087 • تحویل: ۲۲ شهریور",
-            status = InvoiceStatus.WORKSHOP,
-            statusDetail = "در کارگاه ساخت",
-            itemsSummary = "سرویس گردنبند برلیان مارکیز سفارشی",
-            itemsCountText = "سفارش ساخت ویژه:",
-            line1Detail = "مرحله: مخراج‌کاری و آبکاری",
-            line2Detail = "زمان تحویل: ۳ روز آینده",
-            finalAmount = 185000000L,
-            amountLabel = "برآورد مظنه نهایی:",
-            actionButtonText = "ویرایش و تکمیل فاکتور",
-            actionType = InvoiceCardAction.EDIT_WORKSHOP,
-            barterInvoice = sampleInvoice3
-        )
-
+        val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 0L
         _uiState.update { current ->
             current.copy(
-                invoice = sampleInvoice1,
-                invoicesList = listOf(card1, card2, card3)
+                invoice = BarterInvoice(spotPrice18k = defaultSpot),
+                invoicesList = emptyList()
             )
         }
     }

@@ -324,9 +324,9 @@ fun AddAssetDialog(
     val colors = LocalGoldExColors.current
     var selectedCategory by remember { mutableStateOf(PortfolioCategory.GOLD) }
     var title by remember { mutableStateOf("") }
-    var weightInput by remember { mutableStateOf("5.0") }
+    var weightInput by remember { mutableStateOf("") }
     var selectedKarat by remember { mutableStateOf(Karat.K18) }
-    var coinQuantity by remember { mutableStateOf("1") }
+    var coinQuantity by remember { mutableStateOf("") }
     var selectedCoinType by remember { mutableStateOf(CoinType.EMAMI) }
     var purchasePriceInput by remember { mutableStateOf("") }
 
@@ -366,9 +366,6 @@ fun AddAssetDialog(
                                 .background(if (isSel) colors.goldContainer else Color.Transparent)
                                 .clickable {
                                     selectedCategory = cat
-                                    if (title.isBlank()) {
-                                        title = if (cat == PortfolioCategory.GOLD) "قطعه طلای ۱۸ عیار" else "سکه تمام بهار امامی"
-                                    }
                                 }
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center

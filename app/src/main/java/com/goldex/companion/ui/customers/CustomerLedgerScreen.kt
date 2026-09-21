@@ -199,59 +199,61 @@ fun CustomerLedgerScreen(
                     MasterPortfolioLedgerSummaryCard(uiState = uiState)
                 }
 
-                // Item B: Settlement Alert Notification Pill
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.goldContainer.copy(alpha = 0.4f),
-                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                // Item B: Settlement Alert Notification Pill (shown only if there are debtors)
+                if (uiState.debtorsCount > 0) {
+                    item {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.goldContainer.copy(alpha = 0.4f),
+                            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.goldPrimary),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(colors.goldPrimary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "!",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF554300)
+                                        )
+                                    }
                                     Text(
-                                        text = "!",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Color(0xFF554300)
+                                        text = "${PersianNumberFormatter.toPersianDigits(uiState.debtorsCount.toString())} حساب با مانده بدهکاری نیازمند تسویه‌اند",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
                                     )
                                 }
+
                                 Text(
-                                    text = "۴ حساب با سررسید چک یا تعهد وزنی امروز نیازمند تسویه‌اند",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.textMain,
-                                    fontFamily = VazirmatnFamily
+                                    text = "بررسی فوری",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily,
+                                    modifier = Modifier
+                                        .clickable { onFilterSelect(CustomerLedgerFilterTab.DEBTORS) }
+                                        .padding(start = 6.dp)
                                 )
                             }
-
-                            Text(
-                                text = "بررسی فوری",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary,
-                                fontFamily = VazirmatnFamily,
-                                modifier = Modifier
-                                    .clickable { onFilterSelect(CustomerLedgerFilterTab.DEBTORS) }
-                                    .padding(start = 6.dp)
-                            )
                         }
                     }
                 }

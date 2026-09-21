@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.license.LicenseInfo
 import com.goldex.companion.data.license.LicenseStatus
+import com.goldex.companion.model.InvoiceListItem
+import com.goldex.companion.model.InvoiceStatus
 import com.goldex.companion.model.MarketCandle
 import com.goldex.companion.model.MarketHistoryConverter
 import com.goldex.companion.model.PersianNumberFormatter
@@ -256,35 +258,37 @@ fun DashboardScreen(
                         )
                     }
 
-                    // Delta Pill
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFF10B981).copy(alpha = 0.2f),
-                        border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.4f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    // Status Pill
+                    if (uiState.totalInventoryWeight18k > 0.0) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF10B981).copy(alpha = 0.2f),
+                            border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.4f))
                         ) {
-                            Icon(
-                                imageVector = DashTrendingUpVector,
-                                contentDescription = null,
-                                tint = Color(0xFF4EDEA3),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = "+۱.۲٪ (۴.۱+ گرم)",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6FFBBE)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                                Text(
+                                    text = "موجودی انبار فعال",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF6FFBBE)
+                                )
+                            }
                         }
                     }
                 }
 
                 // Main Weight Balance
-                val weightFormatted = PersianNumberFormatter.formatWeight(342.500)
+                val weightFormatted = PersianNumberFormatter.formatWeight(uiState.totalInventoryWeight18k)
                 val weightFontSize = when {
                     weightFormatted.length > 11 -> 22.sp
                     weightFormatted.length > 8 -> 26.sp
@@ -327,7 +331,7 @@ fun DashboardScreen(
                             softWrap = false
                         )
                         Text(
-                            text = PersianNumberFormatter.format(1468500000),
+                            text = PersianNumberFormatter.format(uiState.totalInventoryValuationTomans),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary,
@@ -402,8 +406,8 @@ fun DashboardScreen(
                 // Pill 1: مظنه آبشده ۱۷
                 QuickRatePill(
                     title = "مظنه آبشده (مثقال)",
-                    price = if (uiState.rates.goldMelt > 0) PersianNumberFormatter.format(uiState.rates.goldMelt) else "۱۸,۵۶۰,۰۰۰",
-                    delta = "+۰.۴٪",
+                    price = if (uiState.rates.goldMelt > 0) PersianNumberFormatter.format(uiState.rates.goldMelt) else "—",
+                    delta = "",
                     isPositive = true,
                     unit = "تومان",
                     icon = DashLayersVector,
@@ -413,8 +417,8 @@ fun DashboardScreen(
                 // Pill 2: طلای ۱۸ عیار
                 QuickRatePill(
                     title = "طلای ۱۸ عیار (گرم)",
-                    price = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "۴,۲۸۵,۰۰۰",
-                    delta = "+۰.۸٪",
+                    price = if (uiState.rates.gold18 > 0) PersianNumberFormatter.format(uiState.rates.gold18) else "—",
+                    delta = "",
                     isPositive = true,
                     unit = "تومان",
                     icon = DashTollVector,
@@ -424,8 +428,8 @@ fun DashboardScreen(
                 // Pill 3: سکه تمام امامی
                 QuickRatePill(
                     title = "سکه تمام بهار آزادی",
-                    price = if (uiState.rates.coinEmami > 0) PersianNumberFormatter.format(uiState.rates.coinEmami) else "۴۹,۱۰۰,۰۰۰",
-                    delta = "+۰.۶٪",
+                    price = if (uiState.rates.coinEmami > 0) PersianNumberFormatter.format(uiState.rates.coinEmami) else "—",
+                    delta = "",
                     isPositive = true,
                     unit = "تومان",
                     icon = DashCoinVector,
@@ -435,8 +439,8 @@ fun DashboardScreen(
                 // Pill 4: نیم سکه بهار آزادی
                 QuickRatePill(
                     title = "نیم سکه بهار آزادی",
-                    price = if (uiState.rates.coinHalf > 0) PersianNumberFormatter.format(uiState.rates.coinHalf) else "۲۵,۴۰۰,۰۰۰",
-                    delta = "+۰.۳٪",
+                    price = if (uiState.rates.coinHalf > 0) PersianNumberFormatter.format(uiState.rates.coinHalf) else "—",
+                    delta = "",
                     isPositive = true,
                     unit = "تومان",
                     icon = DashCoinVector,
@@ -446,8 +450,8 @@ fun DashboardScreen(
                 // Pill 5: انس جهانی طلا
                 QuickRatePill(
                     title = "انس جهانی طلا",
-                    price = if (uiState.rates.ons > 0) PersianNumberFormatter.formatWithCommas(uiState.rates.ons.toLong()) else "۲,۶۸۴.۲۰",
-                    delta = "+۱.۱٪",
+                    price = if (uiState.rates.ons > 0) PersianNumberFormatter.formatWithCommas(uiState.rates.ons.toLong()) else "—",
+                    delta = "",
                     isPositive = true,
                     unit = "دلار / اونس",
                     icon = DashGlobeVector,
@@ -727,7 +731,7 @@ fun DashboardScreen(
                 }
 
                 Text(
-                    text = "مشاهده همه (${uiState.savedInvoiceCount.coerceAtLeast(3)})",
+                    text = "مشاهده همه (${PersianNumberFormatter.toPersianDigits(uiState.savedInvoiceCount.toString())})",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.goldPrimary,
@@ -735,45 +739,52 @@ fun DashboardScreen(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Item 1: Cartier Bracelet
-                TransactionRowItem(
-                    title = "دستبند کارتیه ۱۸ عیار",
-                    subtitle = "حاج محمد کاظمی • ۱۲.۵۰۰ گرم",
-                    amount = "۲۴۱,۵۰۰,۰۰۰",
-                    unit = "تومان",
-                    statusLabel = "تسویه کامل",
-                    statusColor = Color(0xFF10B981),
-                    icon = DashDiamondVector,
-                    colors = colors,
-                    onClick = onNavigateInvoices
-                )
-
-                // Item 2: Coin Purchase with Balance
-                TransactionRowItem(
-                    title = "سکه تمام بهار آزادی",
-                    subtitle = "خانم سارا رادمنش • فاکتور #۱۴۰۳۹",
-                    amount = "۴۲,۳۰۰,۰۰۰",
-                    unit = "تومان",
-                    statusLabel = "مانده ۸.۴ م",
-                    statusColor = Color(0xFFD97706),
-                    icon = DashCoinVector,
-                    colors = colors,
-                    onClick = onNavigateInvoices
-                )
-
-                // Item 3: Workshop Bullion Ingot Receipt
-                TransactionRowItem(
-                    title = "تحویل شمش آبشده",
-                    subtitle = "کارگاه زرگری کمالی • رسید انبار #۷۳",
-                    amount = "۵۰.۰۰۰",
-                    unit = "گرم ۷۵۰",
-                    statusLabel = "ورود به گاوصندوق",
-                    statusColor = colors.goldPrimary,
-                    icon = DashIngotVector,
-                    colors = colors,
-                    onClick = onNavigateInvoices
-                )
+            if (uiState.recentInvoices.isEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "هنوز فاکتوری صادر نشده است",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMuted
+                        )
+                        Text(
+                            text = "با ثبت فاکتور تهاتری جدید، گزارش تراکنش‌ها در اینجا نمایش داده می‌شود.",
+                            fontSize = 10.5.sp,
+                            color = colors.textMuted.copy(alpha = 0.8f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.recentInvoices.forEach { invoice ->
+                        val isSettled = invoice.status == InvoiceStatus.SETTLED
+                        val statusColor = if (isSettled) Color(0xFF10B981) else Color(0xFFD97706)
+                        TransactionRowItem(
+                            title = invoice.itemsSummary.ifBlank { "فاکتور #${invoice.invoiceNumber}" },
+                            subtitle = "${invoice.customerName} • ${invoice.invoiceNumber}",
+                            amount = PersianNumberFormatter.formatPrice(invoice.finalAmount.toDouble()),
+                            unit = "تومان",
+                            statusLabel = invoice.statusDetail,
+                            statusColor = statusColor,
+                            icon = DashInvoiceVector,
+                            colors = colors,
+                            onClick = onNavigateInvoices
+                        )
+                    }
+                }
             }
         }
 
@@ -847,12 +858,14 @@ private fun QuickRatePill(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = unit, fontSize = 9.5.sp, color = colors.textMuted)
-                    Text(
-                        text = delta,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isPositive) Color(0xFF10B981) else Color(0xFFEF4444)
-                    )
+                    if (delta.isNotBlank()) {
+                        Text(
+                            text = delta,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isPositive) Color(0xFF10B981) else Color(0xFFEF4444)
+                        )
+                    }
                 }
             }
         }
