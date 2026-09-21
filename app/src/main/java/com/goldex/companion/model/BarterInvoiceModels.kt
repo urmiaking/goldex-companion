@@ -126,7 +126,7 @@ data class SettlementPaymentItem(
 
 data class BarterInvoice(
     val id: String = UUID.randomUUID().toString(),
-    val invoiceNumber: String = "IR-${(1403..1405).random()}-${(100..999).random()}",
+    val invoiceNumber: String = "${(1403..1404).random()}-${(100..999).random()}",
     val createdAt: Long = System.currentTimeMillis(),
     val customer: Customer? = null,
     val customerRole: CustomerRole = CustomerRole.WHOLESALER,
@@ -151,6 +151,9 @@ data class BarterInvoice(
     val payments: List<SettlementPaymentItem> = emptyList(),
     val syncWithLedger: Boolean = true
 ) {
+    val cleanInvoiceNumber: String
+        get() = invoiceNumber.removePrefix("IR-").removePrefix("IR").trim()
+
     val balance: BarterBalance
         get() = BarterCalculationUseCases.calculateBalance(salesItems, receivedItems)
 
@@ -224,5 +227,8 @@ data class InvoiceListItem(
     val actionButtonText: String = "مشاهده جزییات",
     val actionType: InvoiceCardAction = InvoiceCardAction.VIEW_DETAILS,
     val barterInvoice: BarterInvoice? = null
-)
+) {
+    val cleanInvoiceNumber: String
+        get() = invoiceNumber.removePrefix("IR-").removePrefix("IR").trim()
+}
 

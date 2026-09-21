@@ -110,7 +110,7 @@ fun AddLedgerEntryModal(
 
     // Common Document Info
     val documentNumber = remember(editingTransaction) {
-        editingTransaction?.documentNumber ?: ("۸" + (100..999).random().toString())
+        editingTransaction?.cleanDocumentNumber ?: (1000..9999).random().toString()
     }
     val currentDateStr = remember(editingTransaction) {
         editingTransaction?.dateTime ?: run {

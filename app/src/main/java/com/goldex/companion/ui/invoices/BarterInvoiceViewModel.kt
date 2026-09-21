@@ -137,14 +137,22 @@ class BarterInvoiceViewModel(
         val customerName = currentInv.customer?.name?.ifBlank { "مشتری جدید" } ?: "مشتری جدید"
         val initials = customerName.split(" ").take(2).mapNotNull { it.firstOrNull()?.toString() }.joinToString("").ifBlank { "مش" }
 
-        val isSettled = if (currentInv.payments.isNotEmpty()) {
+        val hasAnyPayment = currentInv.payments.isNotEmpty() ||
+                currentInv.cashPosAmount > 0L ||
+                currentInv.bullionWeight > 0.0 ||
+                currentInv.thirdPartyTransferAmount > 0L ||
+                currentInv.thirdPartyTransferWeight18k > 0.0
+
+        val isSettled = if (currentInv.balance.isSettled) {
+            true
+        } else if (currentInv.payments.isNotEmpty()) {
             currentInv.isFullySettled
         } else {
             when (currentInv.settlementMethod) {
                 SettlementMethod.TRANSFER -> currentInv.thirdPartyTransferAmount > 0 || currentInv.thirdPartyTransferWeight18k > 0.0
-                SettlementMethod.POS -> currentInv.balance.isSettled || (currentInv.cashPosAmount >= netAmount && netAmount > 0)
+                SettlementMethod.POS -> currentInv.cashPosAmount >= netAmount && netAmount > 0
                 SettlementMethod.BULLION -> currentInv.bullionWeight > 0.0
-                SettlementMethod.LEDGER -> true
+                SettlementMethod.LEDGER -> false
             }
         }
 
@@ -152,13 +160,15 @@ class BarterInvoiceViewModel(
             "تسویه چندمرحله‌ای (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits(currentInv.payments.size.toString())} روش پرداخت)"
         } else if (currentInv.payments.size == 1) {
             "روش تسویه: ${currentInv.payments.first().method.labelFa}"
+        } else if (!hasAnyPayment) {
+            "نسیه / ثبت در حساب دفتری"
         } else {
             when (currentInv.settlementMethod) {
                 SettlementMethod.TRANSFER -> {
                     val partyName = currentInv.thirdPartyCustomer?.name?.ifBlank { "همکار" } ?: "همکار"
                     "تهاتر سه‌طرفه: حواله به $partyName (${currentInv.thirdPartyInvoiceNumber.ifBlank { "دفتر حساب" }})"
                 }
-                SettlementMethod.POS -> "روش تسویه: کارتخوان / پوز"
+                SettlementMethod.POS -> if (currentInv.cashPosAmount > 0) "روش تسویه: کارتخوان / پوز" else "نسیه / حساب دفتری"
                 SettlementMethod.LEDGER -> "روش تسویه: دفتر معین طلایی (${currentInv.ledgerDueDate})"
                 SettlementMethod.BULLION -> "روش تسویه: تحویل شمش و آبشده"
             }
@@ -166,18 +176,21 @@ class BarterInvoiceViewModel(
 
         return InvoiceListItem(
             id = currentInv.id,
-            invoiceNumber = currentInv.invoiceNumber,
+            invoiceNumber = currentInv.cleanInvoiceNumber,
             customerName = customerName,
             customerInitials = initials,
             isVerified = true,
-            createdAtText = "کد فاکتور: ${currentInv.invoiceNumber} • همین الان",
+            createdAtText = "کد فاکتور: ${currentInv.cleanInvoiceNumber} • همین الان",
             status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
             statusDetail = if (isSettled) {
-                if (currentInv.payments.size > 1) "تسویه چندمرحله‌ای کامل"
+                if (currentInv.balance.isSettled && !hasAnyPayment) "تسویه با تهاتر اقلام"
+                else if (currentInv.payments.size > 1) "تسویه چندمرحله‌ای کامل"
                 else if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه"
                 else "تسویه نقدی کامل"
             } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
                 "مانده: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} ت"
+            } else if (!hasAnyPayment) {
+                "نسیه (مانده دفتری)"
             } else "در انتظار پرداخت",
             itemsSummary = (currentInv.salesItems + currentInv.receivedItems).joinToString(" + ") { it.title }.ifBlank { "اقلام طلا و مسکوکات" },
             itemsCountText = "اقلام فاکتور (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits((currentInv.salesItems.size + currentInv.receivedItems.size).toString())} قلم):",
@@ -254,11 +267,11 @@ class BarterInvoiceViewModel(
                 subScreen = InvoicesSubScreen.LIST,
                 isSuccessSnackbarVisible = true,
                 statusMessage = if (state.isEditingExistingInvoice) {
-                    "فاکتور ${currentInv.invoiceNumber} با موفقیت ویرایش شد"
+                    "فاکتور ${currentInv.cleanInvoiceNumber} با موفقیت ویرایش شد"
                 } else if (currentInv.settlementMethod == SettlementMethod.TRANSFER && currentInv.thirdPartyCustomer != null) {
-                    "فاکتور ${currentInv.invoiceNumber} ثبت و تهاتر با ${currentInv.thirdPartyCustomer.name} با موفقیت اعمال شد"
+                    "فاکتور ${currentInv.cleanInvoiceNumber} ثبت و تهاتر با ${currentInv.thirdPartyCustomer.name} با موفقیت اعمال شد"
                 } else {
-                    "فاکتور ${currentInv.invoiceNumber} با موفقیت ثبت گردید"
+                    "فاکتور ${currentInv.cleanInvoiceNumber} با موفقیت ثبت گردید"
                 }
             )
         }

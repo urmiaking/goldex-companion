@@ -609,7 +609,7 @@ fun CustomerStatementScreen(
                                     fontFamily = VazirmatnFamily
                                 )
                                 Text(
-                                    text = "آیا از حذف سند #${PersianNumberFormatter.toPersianDigits(transactionToDelete?.documentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
+                                    text = "آیا از حذف سند #${PersianNumberFormatter.toPersianDigits(transactionToDelete?.cleanDocumentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
                                     fontSize = 13.sp,
                                     color = colors.textSecondary,
                                     lineHeight = 20.sp,
@@ -848,8 +848,15 @@ private fun StatementTransactionCard(
                                 )
                             }
                         }
+                        val cleanDoc = transaction.cleanDocumentNumber
+                        val cleanInv = transaction.cleanInvoiceNumber
+                        val headerSubtitle = if (!cleanInv.isNullOrBlank()) {
+                            "سند #${PersianNumberFormatter.toPersianDigits(cleanDoc)} • فاکتور #${PersianNumberFormatter.toPersianDigits(cleanInv)} • ${transaction.dateTime}"
+                        } else {
+                            "سند #${PersianNumberFormatter.toPersianDigits(cleanDoc)} • ${transaction.dateTime}"
+                        }
                         Text(
-                            text = "سند #${PersianNumberFormatter.toPersianDigits(transaction.documentNumber)} • ${transaction.dateTime}",
+                            text = headerSubtitle,
                             fontSize = 9.5.sp,
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
