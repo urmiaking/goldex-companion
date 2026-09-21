@@ -213,4 +213,27 @@ class FeatureStateSplitTest {
         assertEquals("104000000", meltState.mesghalPriceInput)
         assertEquals(104_000_000L, meltState.rates.goldMelt)
     }
+
+    @Test
+    fun mainUiStateDefaultValuesMatchProductionExpectations() {
+        val state = MainUiState()
+        assertEquals("750", state.karatInput)
+        assertEquals(Karat.K18, state.selectedKarat)
+        assertEquals(WageType.PERCENTAGE, state.wageType)
+        assertEquals("10", state.wageInput)
+        assertEquals("7", state.profitPercentInput)
+        assertEquals("9", state.taxPercentInput)
+    }
+
+    @Test
+    fun customerManagerEmptyStateCalculatesZeroDebtsAndReceivables() {
+        val emptyState = com.goldex.companion.ui.invoices.CustomerManagerUiState(customerList = emptyList())
+        assertEquals(0, emptyState.totalActiveCount)
+        assertEquals(0, emptyState.debtorsCount)
+        assertEquals(0, emptyState.creditorsCount)
+        assertEquals(0.0, emptyState.totalGoldReceivableGrams, 0.0001)
+        assertEquals(0L, emptyState.totalCashReceivableTomans)
+        assertEquals(0.0, emptyState.totalGoldPayableGrams, 0.0001)
+        assertEquals(0L, emptyState.totalCashPayableTomans)
+    }
 }

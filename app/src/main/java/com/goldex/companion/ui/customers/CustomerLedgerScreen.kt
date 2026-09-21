@@ -587,7 +587,7 @@ private fun MasterPortfolioLedgerSummaryCard(uiState: CustomerManagerUiState) {
                         }
 
                         Text(
-                            text = "${PersianNumberFormatter.formatPrice(uiState.totalCashReceivableTomans.coerceAtLeast(2450000000L))} تومان",
+                            text = "${PersianNumberFormatter.formatPrice(uiState.totalCashReceivableTomans)} تومان",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
                             color = Color.White,
@@ -607,7 +607,7 @@ private fun MasterPortfolioLedgerSummaryCard(uiState: CustomerManagerUiState) {
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "${PersianNumberFormatter.formatWeight(uiState.totalGoldReceivableGrams.coerceAtLeast(1240.50))} گرم آبشده",
+                                text = "${PersianNumberFormatter.formatWeight(uiState.totalGoldReceivableGrams)} گرم آبشده",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFFFFE088),
@@ -667,7 +667,7 @@ private fun MasterPortfolioLedgerSummaryCard(uiState: CustomerManagerUiState) {
                         }
 
                         Text(
-                            text = "${PersianNumberFormatter.formatPrice(uiState.totalCashPayableTomans.coerceAtLeast(890000000L))} تومان",
+                            text = "${PersianNumberFormatter.formatPrice(uiState.totalCashPayableTomans)} تومان",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
                             color = Color.White,
@@ -687,7 +687,7 @@ private fun MasterPortfolioLedgerSummaryCard(uiState: CustomerManagerUiState) {
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "${PersianNumberFormatter.formatWeight(uiState.totalGoldPayableGrams.coerceAtLeast(218.30))} گرم معوق",
+                                text = "${PersianNumberFormatter.formatWeight(uiState.totalGoldPayableGrams)} گرم معوق",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color(0xFFFB7185),

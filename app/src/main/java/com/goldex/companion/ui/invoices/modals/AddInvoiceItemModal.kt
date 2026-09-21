@@ -100,6 +100,8 @@ fun AddInvoiceItemModal(
     spotPrice18k: Long,
     defaultCategory: InvoiceItemCategory = InvoiceItemCategory.CRAFTED,
     existingItem: BarterItem? = null,
+    defaultProfitPercent: String = "7",
+    defaultTaxPercent: String = "9",
     onDismiss: () -> Unit,
     onSaveItem: (BarterItem) -> Unit
 ) {
@@ -302,6 +304,8 @@ fun AddInvoiceItemModal(
                                             CraftedGoldForm(
                                                 spotPrice18k = spotPrice18k,
                                                 existingItem = existingItem as? CraftedGoldItem,
+                                                defaultProfitPercent = defaultProfitPercent,
+                                                defaultTaxPercent = defaultTaxPercent,
                                                 onDismiss = handleDismiss,
                                                 onConfirm = { item ->
                                                     onSaveItem(item)
@@ -426,6 +430,8 @@ private fun InlineCustomKaratChip(
 private fun CraftedGoldForm(
     spotPrice18k: Long,
     existingItem: CraftedGoldItem?,
+    defaultProfitPercent: String = "7",
+    defaultTaxPercent: String = "9",
     onDismiss: () -> Unit,
     onConfirm: (CraftedGoldItem) -> Unit
 ) {
@@ -448,8 +454,16 @@ private fun CraftedGoldForm(
     var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
     var wageType by remember { mutableStateOf(existingItem?.wageType ?: WageType.PERCENTAGE) }
     var wageInputStr by remember { mutableStateOf(existingItem?.wageInput?.toString() ?: "") }
-    var profitStr by remember { mutableStateOf(existingItem?.profitPercent?.toString() ?: "") }
-    var taxStr by remember { mutableStateOf(existingItem?.taxPercent?.toString() ?: "") }
+    var profitStr by remember {
+        mutableStateOf(
+            existingItem?.let { if (it.profitPercent > 0.0) it.profitPercent.toString() else defaultProfitPercent } ?: defaultProfitPercent
+        )
+    }
+    var taxStr by remember {
+        mutableStateOf(
+            existingItem?.let { if (it.taxPercent > 0.0) it.taxPercent.toString() else defaultTaxPercent } ?: defaultTaxPercent
+        )
+    }
 
     val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
     val stoneWeight = stoneWeightStr.toDoubleOrNull() ?: 0.0

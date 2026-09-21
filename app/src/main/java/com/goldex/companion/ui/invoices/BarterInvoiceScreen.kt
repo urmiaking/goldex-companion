@@ -136,6 +136,8 @@ fun BarterInvoiceScreen(
     onSendSms: () -> Unit,
     onFinalSubmit: () -> Unit,
     onNavigateBack: (() -> Unit)? = null,
+    defaultProfitPercent: String = "7",
+    defaultTaxPercent: String = "9",
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -361,6 +363,8 @@ fun BarterInvoiceScreen(
                     spotPrice18k = invoice.spotPrice18k,
                     defaultCategory = uiState.targetCategory,
                     existingItem = uiState.editingItem,
+                    defaultProfitPercent = defaultProfitPercent,
+                    defaultTaxPercent = defaultTaxPercent,
                     onDismiss = onCloseItemModal,
                     onSaveItem = onSaveItem
                 )

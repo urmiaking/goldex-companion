@@ -43,12 +43,12 @@ data class MainUiState(
     val grossWeightInput: String = "",
     val stoneWeightInput: String = "",
     val selectedKarat: Karat = Karat.K18,
-    val karatInput: String = "",
+    val karatInput: String = "750",
     val spotPriceInput: String = "",
     val wageType: WageType = WageType.PERCENTAGE,
-    val wageInput: String = "",
-    val profitPercentInput: String = "",
-    val taxPercentInput: String = "",
+    val wageInput: String = "10",
+    val profitPercentInput: String = "7",
+    val taxPercentInput: String = "9",
     val jewelryResult: DetailedJewelryResult? = null,
     val priceInWords: String = "",
 
@@ -141,6 +141,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                 profitPercentInput = s.defaultProfitPercent,
                 taxPercentInput = s.defaultTaxPercent,
                 wageType = s.defaultWageType,
+                wageInput = if (s.defaultWageType == WageType.PERCENTAGE) "10" else "",
+                karatInput = "750",
+                selectedKarat = Karat.K18,
                 autoSyncPrice = s.autoSyncRates,
                 rates = initialRates,
                 spotPriceInput = if (initialRates.gold18 > 0L) initialRates.gold18.toString() else "",
@@ -541,7 +544,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     override fun onWageTypeChanged(type: WageType) {
-        _uiState.update { it.copy(wageType = type) }
+        _uiState.update { current ->
+            val updatedWage = if (type == WageType.TOMAN_PER_GRAM) {
+                ""
+            } else {
+                if (current.wageInput.isBlank()) "10" else current.wageInput
+            }
+            current.copy(wageType = type, wageInput = updatedWage)
+        }
         calculateJewelry()
     }
 
@@ -590,17 +600,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     override fun resetJewelry() {
+        val s = settingsRepository.loadSettings()
         _uiState.update {
             it.copy(
                 itemTitleInput = "",
                 grossWeightInput = "",
                 stoneWeightInput = "",
                 selectedKarat = Karat.K18,
-                karatInput = "",
+                karatInput = "750",
                 wageType = WageType.PERCENTAGE,
-                wageInput = "",
-                profitPercentInput = "",
-                taxPercentInput = ""
+                wageInput = "10",
+                profitPercentInput = s.defaultProfitPercent,
+                taxPercentInput = s.defaultTaxPercent
             )
         }
         calculateJewelry()

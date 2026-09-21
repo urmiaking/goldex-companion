@@ -38,10 +38,11 @@ class WizardStateTest {
     @Test
     fun testWizardProfileStateDefaults() {
         val state = WizardProfileState()
-        assertEquals("جواهری و بنکداری آریا", state.galleryName)
-        assertEquals("حاج احمد کاظمی", state.managerName)
-        assertEquals("۴۴۰۲", state.unionCode)
-        assertEquals("۰۲۱-۵۵۶۲۳۴۸۱", state.phone)
+        assertEquals("", state.galleryName)
+        assertEquals("", state.managerName)
+        assertEquals("", state.unionCode)
+        assertEquals("", state.phone)
+        assertEquals("", state.address)
     }
 
     @Test
@@ -49,7 +50,7 @@ class WizardStateTest {
         val state = WizardFinancialState()
         assertEquals("7", state.profitPercent)
         assertTrue(state.isVatEnabled)
-        assertEquals("10", state.vatRate)
+        assertEquals("9", state.vatRate)
         assertEquals(Karat.K18, state.baseKarat)
     }
 

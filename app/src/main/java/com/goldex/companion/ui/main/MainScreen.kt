@@ -582,6 +582,7 @@ fun MainScreen(
                                     MoreHubScreen(
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
+                                        inventoryWeight = inventoryState.totalGoldWeight18k,
                                         isDarkTheme = mainUiState.isDarkTheme,
                                         licenseInfo = licenseInfo,
                                         onOpenLicenseActivation = {
@@ -880,7 +881,9 @@ fun MainScreen(
                     },
                     onNavigateBack = {
                         barterInvoiceViewModel.navigateBackToList()
-                    }
+                    },
+                    defaultProfitPercent = settingsState.appSettings.defaultProfitPercent,
+                    defaultTaxPercent = settingsState.appSettings.defaultTaxPercent
                 )
             }
 
@@ -1002,12 +1005,32 @@ fun MainScreen(
                             updatedSettings.defaultWageType
                         )
 
-                        // Save initial inventory items into Portfolio if entered
+                        // Save initial inventory items into Inventory and Portfolio if entered
                         val vitrinWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinWeight) ?: 0.0
+                        val vitrinOjrat = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinOjrat) ?: 0.0
                         if (vitrinWeight > 0.0) {
+                            val galleryTitle = updatedSettings.galleryName.ifBlank { "گالری" }
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "VITRIN-01",
+                                    title = "مصنوعات ویترین ($galleryTitle)",
+                                    category = InventoryCategory.SETS,
+                                    location = "سینی شماره ۱ ویترین اصلی",
+                                    grossWeightGrams = vitrinWeight,
+                                    karat = Karat.K18,
+                                    customKaratValue = 750,
+                                    workshop = galleryTitle,
+                                    wageType = WageType.PERCENTAGE,
+                                    wagePercent = vitrinOjrat,
+                                    wageValue = vitrinOjrat,
+                                    profitPercent = updatedSettings.defaultProfitPercent.toDoubleOrNull() ?: 7.0,
+                                    taxPercent = updatedSettings.defaultTaxPercent.toDoubleOrNull() ?: 9.0,
+                                    quantity = 1
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
-                                    title = "مصنوعات ویترین (${updatedSettings.galleryName})",
+                                    title = "مصنوعات ویترین ($galleryTitle)",
                                     category = PortfolioCategory.GOLD,
                                     weightGrams = vitrinWeight,
                                     karat = Karat.K18,
@@ -1018,13 +1041,32 @@ fun MainScreen(
                         }
 
                         val meltWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.meltWeight) ?: 0.0
+                        val meltAyarInt = PersianNumberFormatter.parseToCleanLong(initialInventory.meltAyar)?.toInt() ?: 750
                         if (meltWeight > 0.0) {
+                            val meltKarat = if (meltAyarInt >= 900) Karat.K21 else Karat.K18
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "MELT-01",
+                                    title = "طلای آبشده گاوصندوق",
+                                    category = InventoryCategory.MISC,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = meltWeight,
+                                    karat = meltKarat,
+                                    customKaratValue = meltAyarInt,
+                                    workshop = "ری‌گیری و ذوب",
+                                    wageType = WageType.PERCENTAGE,
+                                    wagePercent = 0.0,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0,
+                                    quantity = 1
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "طلای آبشده گاوصندوق",
                                     category = PortfolioCategory.GOLD,
                                     weightGrams = meltWeight,
-                                    karat = Karat.K18,
+                                    karat = meltKarat,
                                     purchasePriceTotal = 0L,
                                     purchaseDate = "موجودی اول دوره"
                                 )
@@ -1032,6 +1074,20 @@ fun MainScreen(
                         }
 
                         if (initialInventory.coinTamam > 0) {
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "COIN-EMAMI",
+                                    title = "تمام بهار آزادی (طرح جدید)",
+                                    category = InventoryCategory.COINS,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = 8.133,
+                                    karat = Karat.K21,
+                                    customKaratValue = 900,
+                                    quantity = initialInventory.coinTamam,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "تمام بهار آزادی (طرح جدید)",
@@ -1044,6 +1100,20 @@ fun MainScreen(
                         }
 
                         if (initialInventory.coinNim > 0) {
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "COIN-NIM",
+                                    title = "نیم سکه بهار آزادی",
+                                    category = InventoryCategory.COINS,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = 4.066,
+                                    karat = Karat.K21,
+                                    customKaratValue = 900,
+                                    quantity = initialInventory.coinNim,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "نیم سکه بهار آزادی",
@@ -1056,6 +1126,20 @@ fun MainScreen(
                         }
 
                         if (initialInventory.coinRob > 0) {
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "COIN-ROB",
+                                    title = "ربع سکه بهار آزادی",
+                                    category = InventoryCategory.COINS,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = 2.033,
+                                    karat = Karat.K21,
+                                    customKaratValue = 900,
+                                    quantity = initialInventory.coinRob,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "ربع سکه بهار آزادی",
@@ -1068,6 +1152,20 @@ fun MainScreen(
                         }
 
                         if (initialInventory.coinQadim > 0) {
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "COIN-QADIM",
+                                    title = "تمام بهار آزادی (طرح قدیم)",
+                                    category = InventoryCategory.COINS,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = 8.133,
+                                    karat = Karat.K21,
+                                    customKaratValue = 900,
+                                    quantity = initialInventory.coinQadim,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "تمام بهار آزادی (طرح قدیم)",
@@ -1080,6 +1178,20 @@ fun MainScreen(
                         }
 
                         if (initialInventory.coinGerami > 0) {
+                            inventoryViewModel.addItem(
+                                InventoryItem(
+                                    code = "COIN-GERAMI",
+                                    title = "سکه یک گرمی بانکی",
+                                    category = InventoryCategory.COINS,
+                                    location = "گاوصندوق اصلی",
+                                    grossWeightGrams = 1.01,
+                                    karat = Karat.K21,
+                                    customKaratValue = 900,
+                                    quantity = initialInventory.coinGerami,
+                                    profitPercent = 0.0,
+                                    taxPercent = 0.0
+                                )
+                            )
                             portfolioViewModel.addPortfolioItem(
                                 PortfolioItem(
                                     title = "سکه یک گرمی بانکی",

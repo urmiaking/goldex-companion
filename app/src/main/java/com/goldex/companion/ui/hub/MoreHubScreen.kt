@@ -49,6 +49,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 fun MoreHubScreen(
     settings: AppSettings,
     customerCount: Int,
+    inventoryWeight: Double = 0.0,
     isDarkTheme: Boolean,
     licenseInfo: LicenseInfo = LicenseInfo(),
     onToggleTheme: () -> Unit,
@@ -269,7 +270,7 @@ fun MoreHubScreen(
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
-                                text = "${customerCount.coerceAtLeast(84)} مشتری",
+                                text = "${PersianNumberFormatter.toPersianDigits(customerCount.toString())} مشتری",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFBBF24)
@@ -293,7 +294,7 @@ fun MoreHubScreen(
                                 color = Color(0xFF94A3B8)
                             )
                             Text(
-                                text = "۱,۸۴۲.۶ گرم",
+                                text = "${PersianNumberFormatter.formatWeight(inventoryWeight)} گرم",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFF8FAFC)
