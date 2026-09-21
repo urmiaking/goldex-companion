@@ -93,6 +93,7 @@ import com.goldex.companion.ui.wizard.OnboardingWizardScreen
 import com.goldex.companion.ui.wizard.WizardLicenseChoice
 import com.goldex.companion.ui.license.LicenseViewModel
 import com.goldex.companion.ui.license.LicenseViewModelFactory
+import com.goldex.companion.ui.security.AppLockViewModel
 import com.goldex.companion.ui.license.LicenseActivationModal
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioCategory
@@ -103,7 +104,8 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    mainViewModel: MainViewModel = viewModel()
+    mainViewModel: MainViewModel = viewModel(),
+    appLockViewModel: AppLockViewModel? = null
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as Application
@@ -590,7 +592,20 @@ fun MainScreen(
                                             licenseViewModel.setActivationDialogVisible(true)
                                         },
                                         onToggleTheme = mainViewModel::toggleTheme,
-                                        onToggleBiometricLock = { settingsViewModel.toggleBiometricLock(it) },
+                                        onToggleBiometricLock = { enabled ->
+                                            if (appLockViewModel != null) {
+                                                appLockViewModel.toggleBiometricLock(enabled) { success, message ->
+                                                    if (success) {
+                                                        settingsViewModel.loadSettings()
+                                                    }
+                                                    if (!message.isNullOrBlank()) {
+                                                        QiratoToast.show(context, message)
+                                                    }
+                                                }
+                                            } else {
+                                                settingsViewModel.toggleBiometricLock(enabled)
+                                            }
+                                        },
                                         onCheckForUpdates = { updateViewModel.checkForUpdates(manual = true) },
                                         onNavigateLedger = {
                                             customerViewModel.openCustomerLedger()

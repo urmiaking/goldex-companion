@@ -693,7 +693,7 @@ fun MoreHubScreen(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "قفل امنیتی با Face ID / اثر انگشت",
+                                text = "قفل امنیتی با اثر انگشت",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = colors.textMain

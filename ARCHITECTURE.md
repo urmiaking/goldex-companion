@@ -16,6 +16,7 @@ Do not perform a broad rewrite to satisfy this document. Migrations are incremen
 ```text
 MainActivity
   -> GoldExCompanionTheme
+  -> AppLockScreen (when locked)
   -> MainViewModel (App Shell, Market Rates & Calculator Core)
   -> MainScreen
        -> DashboardScreen (DashboardUiState)
@@ -34,6 +35,7 @@ MainActivity
        -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog, AddInventoryItemModal, AdjustStockModal)
 
 Feature ViewModels & State Holders:
+  -> AppLockViewModel (SettingsStore, BiometricAuthManager)
   -> InventoryViewModel (InventoryStore)
   -> CustomerManagerViewModel (CustomerStore)
   -> InvoiceManagerViewModel (InvoiceStore)
@@ -45,8 +47,8 @@ Feature ViewModels & State Holders:
   -> MainViewModel (MarketRatesStore, MarketHistoryStore, SettingsStore, Navigation & Calculator Core)
 
 model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
-domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation)
-data/  -> HTTP integrations, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), and SharedPreferences/JSON persistence via PersistenceJsonCodecs (Customers, Invoices, BarterInvoices, Inventory, Portfolio)
+domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
+data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), and SharedPreferences/JSON persistence via PersistenceJsonCodecs (Customers, Invoices, BarterInvoices, Inventory, Portfolio)
 ```
 
 ### Current source of truth
