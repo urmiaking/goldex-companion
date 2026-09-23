@@ -7,6 +7,7 @@ import com.goldex.companion.model.LedgerDirection
 import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.model.SettlementPaymentItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -19,6 +20,65 @@ data class InvoiceSyncResult(
 
 object InvoiceLedgerSyncUseCase {
 
+    private fun getEffectivePayments(invoice: BarterInvoice): List<SettlementPaymentItem> {
+        if (invoice.payments.isNotEmpty()) {
+            return invoice.payments
+        }
+        val fallback = mutableListOf<SettlementPaymentItem>()
+        when (invoice.settlementMethod) {
+            SettlementMethod.POS -> {
+                if (invoice.cashPosAmount > 0L) {
+                    fallback.add(
+                        SettlementPaymentItem(
+                            method = SettlementMethod.POS,
+                            amountTomans = invoice.cashPosAmount,
+                            trackingCode = invoice.posTrackingCode
+                        )
+                    )
+                }
+            }
+            SettlementMethod.TRANSFER -> {
+                if (invoice.thirdPartyTransferAmount > 0L || invoice.thirdPartyTransferWeight18k > 0.0) {
+                    fallback.add(
+                        SettlementPaymentItem(
+                            method = SettlementMethod.TRANSFER,
+                            amountTomans = invoice.thirdPartyTransferAmount,
+                            goldWeight18k = invoice.thirdPartyTransferWeight18k,
+                            trackingCode = invoice.thirdPartyTrackingCode,
+                            thirdPartyCustomerName = invoice.thirdPartyCustomer?.name ?: ""
+                        )
+                    )
+                }
+            }
+            SettlementMethod.BULLION -> {
+                if (invoice.bullionWeight > 0.0) {
+                    val eq18k = invoice.bullionWeight * (invoice.bullionKarat.toDouble() / 750.0)
+                    fallback.add(
+                        SettlementPaymentItem(
+                            method = SettlementMethod.BULLION,
+                            goldWeight18k = eq18k,
+                            amountTomans = (eq18k * invoice.spotPrice18k).toLong(),
+                            bullionKarat = invoice.bullionKarat,
+                            bullionAngNumber = invoice.bullionAngNumber
+                        )
+                    )
+                }
+            }
+            SettlementMethod.LEDGER -> {
+                if (invoice.ledgerAmount > 0L) {
+                    fallback.add(
+                        SettlementPaymentItem(
+                            method = SettlementMethod.LEDGER,
+                            amountTomans = invoice.ledgerAmount,
+                            description = "موعد: ${invoice.ledgerDueDate}"
+                        )
+                    )
+                }
+            }
+        }
+        return fallback
+    }
+
     fun generateLedgerSync(
         invoice: BarterInvoice,
         currentCustomer: Customer
@@ -30,30 +90,18 @@ object InvoiceLedgerSyncUseCase {
         val dateStr = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()).format(Date(invoice.createdAt))
         val transactions = mutableListOf<LedgerTransaction>()
         var customer = currentCustomer
-
+        val cleanInvNum = invoice.cleanInvoiceNumber
+        val effectivePayments = getEffectivePayments(invoice)
         val balance = invoice.balance
 
         if (invoice.customerRole == CustomerRole.WHOLESALER) {
             // WHOLESALER: Primary currency is 18k Gold Weight
-            // Sales 18k weight vs Received 18k weight
             val net18kWeightDelta = balance.net18kWeightDelta
 
-            // Check if bullion/melt was settled in payments
-            val bullionSettledInPayments = invoice.payments
-                .filter { it.method == SettlementMethod.BULLION }
-                .sumOf { it.goldWeight18k }
-            val directBullionSettled = if (invoice.settlementMethod == SettlementMethod.BULLION) {
-                invoice.bullionWeight * (invoice.bullionKarat.toDouble() / 750.0)
-            } else 0.0
-            val totalBullionSettled = bullionSettledInPayments + directBullionSettled
-
-            val cleanInvNum = invoice.cleanInvoiceNumber
-            val netWeightToLedger = net18kWeightDelta - totalBullionSettled
-
-            if (abs(netWeightToLedger) >= 0.001) {
-                val isPayToCustomer = netWeightToLedger > 0 // Delivered gold to customer -> Customer is debtor
+            if (abs(net18kWeightDelta) >= 0.001) {
+                val isPayToCustomer = net18kWeightDelta > 0 // Delivered gold to customer -> Customer is debtor
                 val direction = if (isPayToCustomer) LedgerDirection.PAY else LedgerDirection.RECEIVE
-                val weight = abs(netWeightToLedger)
+                val weight = abs(net18kWeightDelta)
 
                 val tx = LedgerTransaction(
                     customerId = customer.id,
@@ -82,81 +130,380 @@ object InvoiceLedgerSyncUseCase {
                 )
             }
 
-            // Also check if there is an unpaid cash remainder in wholesale deferred to ledger
-            if (invoice.settlementMethod == SettlementMethod.LEDGER && invoice.ledgerAmount > 0L) {
-                val txCash = LedgerTransaction(
-                    customerId = customer.id,
-                    documentNumber = (1000..9999).random().toString(),
-                    title = "مانده دفتری فاکتور #$cleanInvNum (${invoice.ledgerDueDate})",
-                    dateTime = dateStr,
-                    type = LedgerEntryType.CASH_RIAL,
-                    direction = LedgerDirection.PAY,
-                    amountTomans = invoice.ledgerAmount,
-                    note = "انتقال مانده ریالی فاکتور به دفتر معین",
-                    tagBadge = "دفتر معین",
-                    invoiceId = invoice.id,
-                    invoiceNumber = cleanInvNum,
-                    isAutoGenerated = true,
-                    timestamp = invoice.createdAt
-                )
-                transactions.add(txCash)
-                customer = customer.copy(
-                    cashDebtTomans = customer.cashDebtTomans + invoice.ledgerAmount,
-                    lastActivityTime = "لحظاتی پیش"
-                )
+            // Settlement payments for wholesaler
+            effectivePayments.forEach { p ->
+                when (p.method) {
+                    SettlementMethod.BULLION -> {
+                        val weight = if (p.goldWeight18k > 0.0) {
+                            p.goldWeight18k
+                        } else if (invoice.spotPrice18k > 0L) {
+                            p.amountTomans.toDouble() / invoice.spotPrice18k
+                        } else 0.0
+
+                        if (weight >= 0.001) {
+                            val isCustomerDelivering = net18kWeightDelta >= 0
+                            val dir = if (isCustomerDelivering) LedgerDirection.RECEIVE else LedgerDirection.PAY
+                            val txBullion = LedgerTransaction(
+                                customerId = customer.id,
+                                documentNumber = (1000..9999).random().toString(),
+                                title = if (dir == LedgerDirection.RECEIVE) "دریافت شمش/آبشده فاکتور #$cleanInvNum" else "تحویل شمش/آبشده فاکتور #$cleanInvNum",
+                                dateTime = dateStr,
+                                type = LedgerEntryType.GOLD_WEIGHT,
+                                direction = dir,
+                                goldCategory = "آبشده",
+                                scaleWeightGrams = weight,
+                                karat = p.bullionKarat,
+                                equivalent750WeightGrams = weight,
+                                angNumber = p.bullionAngNumber,
+                                note = buildString {
+                                    append("تسویه با شمش و آبشده بابت فاکتور #$cleanInvNum")
+                                    if (p.bullionAngNumber.isNotBlank()) append(" (انگ: ${p.bullionAngNumber})")
+                                },
+                                tagBadge = "تحویل شمش",
+                                invoiceId = invoice.id,
+                                invoiceNumber = cleanInvNum,
+                                isAutoGenerated = true,
+                                timestamp = invoice.createdAt
+                            )
+                            transactions.add(txBullion)
+                            val goldDelta = if (dir == LedgerDirection.PAY) weight else -weight
+                            customer = customer.copy(
+                                goldDebtGrams = customer.goldDebtGrams + goldDelta,
+                                lastActivityTime = "لحظاتی پیش"
+                            )
+                        }
+                    }
+                    SettlementMethod.TRANSFER -> {
+                        if (p.goldWeight18k >= 0.001) {
+                            val isCustomerDelivering = net18kWeightDelta >= 0
+                            val dir = if (isCustomerDelivering) LedgerDirection.RECEIVE else LedgerDirection.PAY
+                            val txTransfer = LedgerTransaction(
+                                customerId = customer.id,
+                                documentNumber = (1000..9999).random().toString(),
+                                title = "حواله طلایی فاکتور #$cleanInvNum",
+                                dateTime = dateStr,
+                                type = LedgerEntryType.GOLD_WEIGHT,
+                                direction = dir,
+                                goldCategory = "حواله",
+                                scaleWeightGrams = p.goldWeight18k,
+                                karat = 750,
+                                equivalent750WeightGrams = p.goldWeight18k,
+                                trackingCode = p.trackingCode,
+                                note = "حواله طلایی بابت فاکتور #$cleanInvNum",
+                                tagBadge = "حواله طلایی",
+                                invoiceId = invoice.id,
+                                invoiceNumber = cleanInvNum,
+                                isAutoGenerated = true,
+                                timestamp = invoice.createdAt
+                            )
+                            transactions.add(txTransfer)
+                            val goldDelta = if (dir == LedgerDirection.PAY) p.goldWeight18k else -p.goldWeight18k
+                            customer = customer.copy(
+                                goldDebtGrams = customer.goldDebtGrams + goldDelta,
+                                lastActivityTime = "لحظاتی پیش"
+                            )
+                        }
+                        if (p.amountTomans > 0L) {
+                            val isCustomerPaying = balance.netPayableAmount >= 0
+                            val dir = if (isCustomerPaying) LedgerDirection.RECEIVE else LedgerDirection.PAY
+                            val txCash = LedgerTransaction(
+                                customerId = customer.id,
+                                documentNumber = (1000..9999).random().toString(),
+                                title = if (dir == LedgerDirection.RECEIVE) "دریافت حواله نقدی فاکتور #$cleanInvNum" else "پرداخت حواله نقدی فاکتور #$cleanInvNum",
+                                dateTime = dateStr,
+                                type = LedgerEntryType.CASH_RIAL,
+                                direction = dir,
+                                amountTomans = p.amountTomans,
+                                paymentMethod = "حواله بانکی / پایا",
+                                trackingCode = p.trackingCode,
+                                note = buildString {
+                                    append("حواله نقدی بابت فاکتور #$cleanInvNum")
+                                    if (p.trackingCode.isNotBlank()) append(" (کد پیگیری: ${p.trackingCode})")
+                                },
+                                tagBadge = "تسویه حواله",
+                                invoiceId = invoice.id,
+                                invoiceNumber = cleanInvNum,
+                                isAutoGenerated = true,
+                                timestamp = invoice.createdAt
+                            )
+                            transactions.add(txCash)
+                            val cashDelta = if (dir == LedgerDirection.PAY) p.amountTomans else -p.amountTomans
+                            customer = customer.copy(
+                                cashDebtTomans = customer.cashDebtTomans + cashDelta,
+                                lastActivityTime = "لحظاتی پیش"
+                            )
+                        }
+                    }
+                    SettlementMethod.POS -> {
+                        if (p.amountTomans > 0L) {
+                            val isCustomerPaying = balance.netPayableAmount >= 0
+                            val dir = if (isCustomerPaying) LedgerDirection.RECEIVE else LedgerDirection.PAY
+                            val txPos = LedgerTransaction(
+                                customerId = customer.id,
+                                documentNumber = (1000..9999).random().toString(),
+                                title = if (dir == LedgerDirection.RECEIVE) "دریافت کارتخوان (POS) فاکتور #$cleanInvNum" else "پرداخت کارتخوان به مشتری #$cleanInvNum",
+                                dateTime = dateStr,
+                                type = LedgerEntryType.CASH_RIAL,
+                                direction = dir,
+                                amountTomans = p.amountTomans,
+                                paymentMethod = "کارتخوان (POS)",
+                                trackingCode = p.trackingCode,
+                                note = buildString {
+                                    append("پرداخت کارتخوان بابت فاکتور #$cleanInvNum")
+                                    if (p.trackingCode.isNotBlank()) append(" (کد پیگیری: ${p.trackingCode})")
+                                },
+                                tagBadge = "تسویه کارتخوان",
+                                invoiceId = invoice.id,
+                                invoiceNumber = cleanInvNum,
+                                isAutoGenerated = true,
+                                timestamp = invoice.createdAt
+                            )
+                            transactions.add(txPos)
+                            val cashDelta = if (dir == LedgerDirection.PAY) p.amountTomans else -p.amountTomans
+                            customer = customer.copy(
+                                cashDebtTomans = customer.cashDebtTomans + cashDelta,
+                                lastActivityTime = "لحظاتی پیش"
+                            )
+                        }
+                    }
+                    SettlementMethod.LEDGER -> {
+                        if (p.amountTomans > 0L) {
+                            val dueDate = p.description.ifBlank { invoice.ledgerDueDate }
+                            val txCash = LedgerTransaction(
+                                customerId = customer.id,
+                                documentNumber = (1000..9999).random().toString(),
+                                title = "مانده دفتری فاکتور #$cleanInvNum ($dueDate)",
+                                dateTime = dateStr,
+                                type = LedgerEntryType.CASH_RIAL,
+                                direction = LedgerDirection.PAY,
+                                amountTomans = p.amountTomans,
+                                note = "انتقال مانده ریالی فاکتور به دفتر معین",
+                                tagBadge = "دفتر معین",
+                                invoiceId = invoice.id,
+                                invoiceNumber = cleanInvNum,
+                                isAutoGenerated = true,
+                                timestamp = invoice.createdAt
+                            )
+                            transactions.add(txCash)
+                            customer = customer.copy(
+                                cashDebtTomans = customer.cashDebtTomans + p.amountTomans,
+                                lastActivityTime = "لحظاتی پیش"
+                            )
+                        }
+                    }
+                }
             }
         } else {
             // RETAIL: Primary currency is Cash / Toman
-            val cleanInvNum = invoice.cleanInvoiceNumber
-            val remainingCash = invoice.remainingBalanceTomans
-            if (remainingCash > 0L) {
-                // Customer owes money
-                val tx = LedgerTransaction(
+            val netPayable = balance.netPayableAmount
+
+            if (netPayable > 1000.0) {
+                // Customer owes money for the invoice goods
+                val invoiceAmount = netPayable.toLong()
+                val invoiceTx = LedgerTransaction(
                     customerId = customer.id,
                     documentNumber = (1000..9999).random().toString(),
-                    title = "مانده فاکتور فروش طلا #$cleanInvNum",
+                    title = "فاکتور فروش طلا #$cleanInvNum",
                     dateTime = dateStr,
                     type = LedgerEntryType.CASH_RIAL,
                     direction = LedgerDirection.PAY,
-                    amountTomans = remainingCash,
-                    paymentMethod = "مانده دفتری فاکتور",
-                    note = "ثبت خودکار مانده پرداخت‌نشده فاکتور $cleanInvNum",
+                    amountTomans = invoiceAmount,
+                    paymentMethod = "فاکتور فروش",
+                    note = "ثبت خودکار فاکتور فروش شماره $cleanInvNum",
                     tagBadge = "فاکتور فروش",
                     invoiceId = invoice.id,
                     invoiceNumber = cleanInvNum,
                     isAutoGenerated = true,
                     timestamp = invoice.createdAt
                 )
-                transactions.add(tx)
-
+                transactions.add(invoiceTx)
                 customer = customer.copy(
-                    cashDebtTomans = customer.cashDebtTomans + remainingCash,
+                    cashDebtTomans = customer.cashDebtTomans + invoiceAmount,
                     lastActivityTime = "لحظاتی پیش"
                 )
-            } else if (balance.netPayableAmount < -1000.0) {
-                // Customer gave more scrap gold than purchase -> creditor
-                val creditAmount = abs(balance.netPayableAmount).toLong()
-                val tx = LedgerTransaction(
+
+                // Process settlement payments made by customer (reducing debt)
+                effectivePayments.forEach { p ->
+                    when (p.method) {
+                        SettlementMethod.POS -> {
+                            if (p.amountTomans > 0L) {
+                                val tx = LedgerTransaction(
+                                    customerId = customer.id,
+                                    documentNumber = (1000..9999).random().toString(),
+                                    title = "دریافت کارتخوان (POS) فاکتور #$cleanInvNum",
+                                    dateTime = dateStr,
+                                    type = LedgerEntryType.CASH_RIAL,
+                                    direction = LedgerDirection.RECEIVE,
+                                    amountTomans = p.amountTomans,
+                                    paymentMethod = "کارتخوان (POS)",
+                                    trackingCode = p.trackingCode,
+                                    note = buildString {
+                                        append("پرداخت کارتخوان بابت فاکتور #$cleanInvNum")
+                                        if (p.trackingCode.isNotBlank()) append(" (کد پیگیری: ${p.trackingCode})")
+                                    },
+                                    tagBadge = "تسویه کارتخوان",
+                                    invoiceId = invoice.id,
+                                    invoiceNumber = cleanInvNum,
+                                    isAutoGenerated = true,
+                                    timestamp = invoice.createdAt
+                                )
+                                transactions.add(tx)
+                                customer = customer.copy(
+                                    cashDebtTomans = customer.cashDebtTomans - p.amountTomans,
+                                    lastActivityTime = "لحظاتی پیش"
+                                )
+                            }
+                        }
+                        SettlementMethod.TRANSFER -> {
+                            if (p.amountTomans > 0L) {
+                                val tx = LedgerTransaction(
+                                    customerId = customer.id,
+                                    documentNumber = (1000..9999).random().toString(),
+                                    title = "دریافت حواله فاکتور #$cleanInvNum",
+                                    dateTime = dateStr,
+                                    type = LedgerEntryType.CASH_RIAL,
+                                    direction = LedgerDirection.RECEIVE,
+                                    amountTomans = p.amountTomans,
+                                    paymentMethod = "حواله بانکی / پایا",
+                                    trackingCode = p.trackingCode,
+                                    note = buildString {
+                                        append("پرداخت حواله بابت فاکتور #$cleanInvNum")
+                                        if (p.trackingCode.isNotBlank()) append(" (کد پیگیری: ${p.trackingCode})")
+                                    },
+                                    tagBadge = "تسویه حواله",
+                                    invoiceId = invoice.id,
+                                    invoiceNumber = cleanInvNum,
+                                    isAutoGenerated = true,
+                                    timestamp = invoice.createdAt
+                                )
+                                transactions.add(tx)
+                                customer = customer.copy(
+                                    cashDebtTomans = customer.cashDebtTomans - p.amountTomans,
+                                    lastActivityTime = "لحظاتی پیش"
+                                )
+                            }
+                        }
+                        SettlementMethod.BULLION -> {
+                            val valTomans = if (p.amountTomans > 0L) {
+                                p.amountTomans
+                            } else if (p.goldWeight18k > 0.0 && invoice.spotPrice18k > 0L) {
+                                (p.goldWeight18k * invoice.spotPrice18k).toLong()
+                            } else 0L
+
+                            if (valTomans > 0L) {
+                                val tx = LedgerTransaction(
+                                    customerId = customer.id,
+                                    documentNumber = (1000..9999).random().toString(),
+                                    title = "دریافت شمش/آبشده فاکتور #$cleanInvNum",
+                                    dateTime = dateStr,
+                                    type = LedgerEntryType.CASH_RIAL,
+                                    direction = LedgerDirection.RECEIVE,
+                                    amountTomans = valTomans,
+                                    paymentMethod = "آبشده و شمش",
+                                    goldCategory = "آبشده",
+                                    scaleWeightGrams = p.goldWeight18k,
+                                    karat = p.bullionKarat,
+                                    equivalent750WeightGrams = p.goldWeight18k,
+                                    angNumber = p.bullionAngNumber,
+                                    note = buildString {
+                                        append("تسویه با تحویل آبشده بابت فاکتور #$cleanInvNum")
+                                        if (p.bullionAngNumber.isNotBlank()) append(" (انگ: ${p.bullionAngNumber})")
+                                    },
+                                    tagBadge = "تحویل شمش",
+                                    invoiceId = invoice.id,
+                                    invoiceNumber = cleanInvNum,
+                                    isAutoGenerated = true,
+                                    timestamp = invoice.createdAt
+                                )
+                                transactions.add(tx)
+                                customer = customer.copy(
+                                    cashDebtTomans = customer.cashDebtTomans - valTomans,
+                                    lastActivityTime = "لحظاتی پیش"
+                                )
+                            }
+                        }
+                        SettlementMethod.LEDGER -> {
+                            // Deferral to customer ledger; already represented by invoiceTx debit
+                        }
+                    }
+                }
+            } else if (netPayable < -1000.0) {
+                // Customer gave more scrap gold than purchase -> customer is creditor (shop owes customer)
+                val creditAmount = abs(netPayable).toLong()
+                val invoiceTx = LedgerTransaction(
                     customerId = customer.id,
                     documentNumber = (1000..9999).random().toString(),
-                    title = "بستانکاری خرید طلا #$cleanInvNum",
+                    title = "خرید طلا از مشتری #$cleanInvNum",
                     dateTime = dateStr,
                     type = LedgerEntryType.CASH_RIAL,
                     direction = LedgerDirection.RECEIVE,
                     amountTomans = creditAmount,
-                    note = "بستانکاری بابت مازاد طلای متفرقه تحویلی",
+                    note = "بستانکاری بابت خرید طلای متفرقه فاکتور #$cleanInvNum",
                     tagBadge = "خرید طلا",
                     invoiceId = invoice.id,
                     invoiceNumber = cleanInvNum,
                     isAutoGenerated = true,
                     timestamp = invoice.createdAt
                 )
-                transactions.add(tx)
-
+                transactions.add(invoiceTx)
                 customer = customer.copy(
                     cashDebtTomans = customer.cashDebtTomans - creditAmount,
                     lastActivityTime = "لحظاتی پیش"
                 )
+
+                // Process settlement payments made TO the customer ("یا بهش مبلغی بدیم")
+                effectivePayments.forEach { p ->
+                    when (p.method) {
+                        SettlementMethod.LEDGER -> {
+                            // Remaining credit stays in customer ledger
+                        }
+                        else -> {
+                            val amt = if (p.amountTomans > 0L) {
+                                p.amountTomans
+                            } else if (p.goldWeight18k > 0.0 && invoice.spotPrice18k > 0L) {
+                                (p.goldWeight18k * invoice.spotPrice18k).toLong()
+                            } else 0L
+
+                            if (amt > 0L) {
+                                val payTitle = when (p.method) {
+                                    SettlementMethod.POS -> "پرداخت کارتخوان به مشتری #$cleanInvNum"
+                                    SettlementMethod.TRANSFER -> "پرداخت حواله به مشتری #$cleanInvNum"
+                                    else -> "پرداخت وجه تسویه خرید #$cleanInvNum"
+                                }
+                                val payMethod = when (p.method) {
+                                    SettlementMethod.POS -> "کارتخوان (POS)"
+                                    SettlementMethod.TRANSFER -> "حواله بانکی / پایا"
+                                    else -> "اسکناس نقد"
+                                }
+                                val tx = LedgerTransaction(
+                                    customerId = customer.id,
+                                    documentNumber = (1000..9999).random().toString(),
+                                    title = payTitle,
+                                    dateTime = dateStr,
+                                    type = LedgerEntryType.CASH_RIAL,
+                                    direction = LedgerDirection.PAY, // Paid to customer -> balances out the credit
+                                    amountTomans = amt,
+                                    paymentMethod = payMethod,
+                                    trackingCode = p.trackingCode,
+                                    note = buildString {
+                                        append("پرداخت وجه به مشتری بابت تسویه فاکتور #$cleanInvNum")
+                                        if (p.trackingCode.isNotBlank()) append(" (کد پیگیری: ${p.trackingCode})")
+                                    },
+                                    tagBadge = "تسویه خرید طلا",
+                                    invoiceId = invoice.id,
+                                    invoiceNumber = cleanInvNum,
+                                    isAutoGenerated = true,
+                                    timestamp = invoice.createdAt
+                                )
+                                transactions.add(tx)
+                                customer = customer.copy(
+                                    cashDebtTomans = customer.cashDebtTomans + amt,
+                                    lastActivityTime = "لحظاتی پیش"
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
