@@ -62,6 +62,7 @@ fun MoreHubScreen(
     onNavigateConvert: () -> Unit,
     onNavigateCoinBubble: () -> Unit,
     onNavigateInvoices: () -> Unit,
+    onNavigateReporting: () -> Unit = {},
     onOpenTaxProfitModal: () -> Unit,
     onOpenPriceSourceModal: () -> Unit,
     onOpenJewelerProfile: () -> Unit,
@@ -465,7 +466,19 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
 
-                // Item 0: Melt gold calculator
+                // Item 0: Reporting Center & Financial Balance Sheets
+                HubListRowItem(
+                    title = "مرکز گزارشات و ترازنامه‌های مالی",
+                    subtitle = "تحلیل عملکرد مالی، سود ناخالص و ترازنامه‌های زرگری",
+                    icon = HubReporting,
+                    iconTint = Color(0xFF2563EB),
+                    iconBg = Color(0xFFEFF6FF),
+                    onClick = onNavigateReporting
+                )
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
+                // Item 1: Melt gold calculator
                 HubListRowItem(
                     title = "محاسبه مظنه آبشده و طلای خام",
                     subtitle = "تبدیل مظنه مثقال به گرم ۱۸ عیار و آزمایشگاه ری‌گیری",

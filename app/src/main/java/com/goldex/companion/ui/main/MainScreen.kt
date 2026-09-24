@@ -95,6 +95,9 @@ import com.goldex.companion.ui.license.LicenseViewModel
 import com.goldex.companion.ui.license.LicenseViewModelFactory
 import com.goldex.companion.ui.security.AppLockViewModel
 import com.goldex.companion.ui.license.LicenseActivationModal
+import com.goldex.companion.ui.reporting.ReportingScreen
+import com.goldex.companion.ui.reporting.ReportingViewModel
+import com.goldex.companion.ui.reporting.ReportingViewModelFactory
 import com.goldex.companion.data.PortfolioItem
 import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.model.Karat
@@ -119,6 +122,7 @@ fun MainScreen(
     val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel(factory = BarterInvoiceViewModelFactory(app))
     val licenseViewModel: LicenseViewModel = viewModel(factory = LicenseViewModelFactory(app))
     val inventoryViewModel: InventoryViewModel = viewModel(factory = InventoryViewModelFactory(app))
+    val reportingViewModel: ReportingViewModel = viewModel(factory = ReportingViewModelFactory(app))
 
     val mainUiState by mainViewModel.uiState.collectAsState()
     val customerState by customerViewModel.uiState.collectAsState()
@@ -131,6 +135,7 @@ fun MainScreen(
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
     val licenseUiState by licenseViewModel.uiState.collectAsState()
     val inventoryState by inventoryViewModel.uiState.collectAsState()
+    val reportingUiState by reportingViewModel.uiState.collectAsState()
     val licenseInfo = licenseUiState.licenseInfo
 
     val colors = LocalGoldExColors.current
@@ -646,6 +651,9 @@ fun MainScreen(
                                             invoiceViewModel.loadInvoices()
                                             invoiceViewModel.setInvoiceManagerVisible(true)
                                         },
+                                        onNavigateReporting = {
+                                            reportingViewModel.setReportingVisible(true)
+                                        },
                                         onOpenTaxProfitModal = {
                                             settingsViewModel.setTaxProfitModalVisible(true)
                                         },
@@ -706,7 +714,8 @@ fun MainScreen(
 
             // BackHandler for all sub-screens
             BackHandler(
-                enabled = customerState.selectedCustomerForStatement != null ||
+                enabled = reportingUiState.isReportingVisible ||
+                          customerState.selectedCustomerForStatement != null ||
                           customerState.isCustomerLedgerVisible ||
                           barterUiState.subScreen != InvoicesSubScreen.LIST ||
                           inventoryState.isInventoryVisible ||
@@ -716,7 +725,9 @@ fun MainScreen(
                           mainUiState.isMeltVisible ||
                           mainUiState.isRateDetailVisible
             ) {
-                if (customerState.selectedCustomerForStatement != null) {
+                if (reportingUiState.isReportingVisible) {
+                    reportingViewModel.setReportingVisible(false)
+                } else if (customerState.selectedCustomerForStatement != null) {
                     customerViewModel.closeCustomerStatement()
                 } else if (customerState.isCustomerLedgerVisible) {
                     customerViewModel.closeCustomerLedger()
@@ -961,6 +972,33 @@ fun MainScreen(
                         onBack = { customerViewModel.closeCustomerStatement() }
                     )
                 }
+            }
+
+            // Reporting Center & Balance Sheets Screen
+            AnimatedVisibility(
+                visible = reportingUiState.isReportingVisible,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                ReportingScreen(
+                    uiState = reportingUiState,
+                    onBack = { reportingViewModel.setReportingVisible(false) },
+                    onSelectPeriod = reportingViewModel::selectPeriod,
+                    onOpenBreakdown = reportingViewModel::openBreakdown,
+                    onCloseBreakdown = reportingViewModel::closeBreakdown,
+                    onNavigateInventory = {
+                        reportingViewModel.setReportingVisible(false)
+                        inventoryViewModel.setInventoryVisible(true)
+                    },
+                    onNavigateCustomerLedger = {
+                        reportingViewModel.setReportingVisible(false)
+                        customerViewModel.openCustomerLedger()
+                    },
+                    onOpenCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(true) },
+                    onCloseCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(false) },
+                    onSubmitCustomRange = reportingViewModel::setCustomDateRange
+                )
             }
 
             // Market Rate Detail & Trend Chart Screen (Stitch Screen 57d121df61a34215ba36be0989160e62)

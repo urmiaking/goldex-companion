@@ -29,6 +29,7 @@ MainActivity
        -> CustomerLedgerScreen (CustomerManagerViewModel)
        -> CustomerStatementScreen (CustomerManagerViewModel)
        -> InventoryScreen (InventoryViewModel & explicit callbacks)
+       -> ReportingScreen (ReportingViewModel & explicit callbacks)
        -> MoreHubScreen (AppSettings & explicit callbacks)
        -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
        -> OnboardingWizardScreen (WizardUiState & SettingsStore integration)
@@ -36,6 +37,7 @@ MainActivity
 
 Feature ViewModels & State Holders:
   -> AppLockViewModel (SettingsStore, BiometricAuthManager)
+  -> ReportingViewModel (InvoiceStore, CustomerStore, InventoryStore, SettingsStore)
   -> InventoryViewModel (InventoryStore)
   -> CustomerManagerViewModel (CustomerStore)
   -> InvoiceManagerViewModel (InvoiceStore)
@@ -47,7 +49,7 @@ Feature ViewModels & State Holders:
   -> MainViewModel (MarketRatesStore, MarketHistoryStore, SettingsStore, Navigation & Calculator Core)
 
 model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
-domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
+domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation, ReportingUseCases) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
 data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), and SharedPreferences/JSON persistence via PersistenceJsonCodecs (Customers, Invoices, BarterInvoices, Inventory, Portfolio)
 ```
 
@@ -90,6 +92,7 @@ Recommended feature areas:
 - `invoices`: invoice lifecycle, customer association, PDF/export
 - `portfolio`: holdings, valuation, profit/loss
 - `inventory`: showcase items, stock kardex ledger, weight conversions, vault valuation
+- `reporting`: financial performance analytics, gross profit, vault weight balance, customer counterparties, and official VAT reports
 - `settings`: user preferences and jeweler profile
 
 ## 4. State and UI contracts
