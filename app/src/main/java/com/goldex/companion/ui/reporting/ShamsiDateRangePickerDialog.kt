@@ -25,11 +25,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.goldex.companion.domain.reporting.ShamsiCalendarHelper
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.hub.HubChevronLeft
+import com.goldex.companion.ui.hub.HubChevronRight
 import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
@@ -93,15 +95,16 @@ fun ShamsiDateRangePickerDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = colors.surface,
-            border = BorderStroke(0.8.dp, colors.goldBorder),
-            shadowElevation = 20.dp,
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .padding(vertical = 16.dp)
-        ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = colors.surface,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                shadowElevation = 20.dp,
+                modifier = Modifier
+                    .fillMaxWidth(0.94f)
+                    .padding(vertical = 16.dp)
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -221,7 +224,36 @@ fun ShamsiDateRangePickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Next Month Button (points to future: in RTL this is right arrow or chevron)
+                    // Right Button (First child in RTL): Previous Month (ماه قبل)
+                    IconButton(
+                        onClick = {
+                            if (viewMonth > 1) {
+                                viewMonth--
+                            } else {
+                                viewMonth = 12
+                                viewYear--
+                            }
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = HubChevronRight,
+                            contentDescription = "ماه قبل",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    // Month & Year Label (Center)
+                    Text(
+                        text = "${ShamsiCalendarHelper.getMonthNameFa(viewMonth)} ${PersianNumberFormatter.toPersianDigits(viewYear.toString())}",
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+
+                    // Left Button (Last child in RTL): Next Month (ماه بعد)
                     IconButton(
                         onClick = {
                             if (viewMonth < 12) {
@@ -236,35 +268,6 @@ fun ShamsiDateRangePickerDialog(
                         Icon(
                             imageVector = HubChevronLeft,
                             contentDescription = "ماه بعد",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    // Month & Year Label
-                    Text(
-                        text = "${ShamsiCalendarHelper.getMonthNameFa(viewMonth)} ${PersianNumberFormatter.toPersianDigits(viewYear.toString())}",
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textMain,
-                        fontFamily = VazirmatnFamily
-                    )
-
-                    // Previous Month Button
-                    IconButton(
-                        onClick = {
-                            if (viewMonth > 1) {
-                                viewMonth--
-                            } else {
-                                viewMonth = 12
-                                viewYear--
-                            }
-                        },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = HubArrowRight,
-                            contentDescription = "ماه قبل",
                             tint = colors.textSecondary,
                             modifier = Modifier.size(16.dp)
                         )
@@ -382,6 +385,7 @@ fun ShamsiDateRangePickerDialog(
         }
     }
 }
+}
 
 @Composable
 private fun PresetChip(
@@ -472,38 +476,45 @@ private fun DayCell(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        // Range strip connector background
-        if (isInRange && !isSelectedEndpoint) {
+        // Range strip connector background in Persian RTL:
+        // In RTL, dates flow from RIGHT to LEFT.
+        // - Single day selected (isStart && isEnd): No strip
+        // - isStart: Strip extends to the LEFT (towards future days: Spacer on right, Box on left)
+        // - isEnd: Strip extends to the RIGHT (from past days: Box on right, Spacer on left)
+        // - Middle in-range days: Full-width strip
+        if (isStart && isEnd) {
+            // Single day selected - no connector strip
+        } else if (isStart && isInRange) {
+            // Half strip to LEFT (towards future in RTL)
+            Row(modifier = Modifier.fillMaxSize()) {
+                Spacer(modifier = Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(vertical = 3.dp)
+                        .background(colors.goldContainer.copy(alpha = 0.45f))
+                )
+            }
+        } else if (isEnd && isInRange) {
+            // Half strip to RIGHT (from past in RTL)
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(vertical = 3.dp)
+                        .background(colors.goldContainer.copy(alpha = 0.45f))
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        } else if (isInRange) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(28.dp)
                     .background(colors.goldContainer.copy(alpha = 0.45f))
             )
-        } else if (isStart && isInRange) {
-            // Half strip to left (RTL)
-            Row(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(vertical = 3.dp)
-                        .background(colors.goldContainer.copy(alpha = 0.45f))
-                )
-                Spacer(modifier = Modifier.weight(1f))
-            }
-        } else if (isEnd && isInRange) {
-            // Half strip to right (RTL)
-            Row(modifier = Modifier.fillMaxSize()) {
-                Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(vertical = 3.dp)
-                        .background(colors.goldContainer.copy(alpha = 0.45f))
-                )
-            }
         }
 
         // Circular active day indicator

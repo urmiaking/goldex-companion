@@ -27,6 +27,25 @@ internal val HubChevronLeft: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+internal val HubChevronRight: ImageVector = ImageVector.Builder(
+    name = "HubChevronRight",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(9f, 18f)
+        lineTo(15f, 12f)
+        lineTo(9f, 6f)
+    }
+}.build()
+
 internal val HubReporting: ImageVector = ImageVector.Builder(
     name = "HubReporting",
     defaultWidth = 24.dp,

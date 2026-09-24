@@ -27,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.goldex.companion.domain.reporting.*
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
@@ -199,18 +201,18 @@ fun ReportingScreen(
             // 2. Hero KPI Vault Card
             // ==========================================
             Surface(
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 color = Color(0xFF141B2B),
                 border = BorderStroke(
                     width = 1.dp,
                     brush = Brush.verticalGradient(
                         listOf(
-                            Color(0xFFD4AF37).copy(alpha = 0.5f),
-                            Color(0xFFB8860B).copy(alpha = 0.15f)
+                            Color(0xFFD4AF37).copy(alpha = 0.55f),
+                            Color(0xFFB8860B).copy(alpha = 0.2f)
                         )
                     )
                 ),
-                shadowElevation = 10.dp,
+                shadowElevation = 12.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -233,31 +235,31 @@ fun ReportingScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Vault Card Header
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFD4AF37).copy(alpha = 0.18f))
-                                    .border(0.8.dp, Color(0xFFD4AF37).copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFD4AF37).copy(alpha = 0.20f))
+                                    .border(1.dp, Color(0xFFD4AF37).copy(alpha = 0.45f), RoundedCornerShape(12.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = ReportingAccountBalance,
                                     contentDescription = null,
                                     tint = Color(0xFFE9C349),
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
 
-                            Column {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 AnimatedContent(
                                     targetState = uiState.selectedPeriod.labelFa,
                                     transitionSpec = {
@@ -267,15 +269,15 @@ fun ReportingScreen(
                                 ) { periodLabel ->
                                     Text(
                                         text = "تراز کل $periodLabel",
-                                        fontSize = 10.sp,
+                                        fontSize = 11.5.sp,
                                         color = Color(0xFF94A3B8),
                                         fontFamily = VazirmatnFamily
                                     )
                                 }
                                 Text(
                                     text = "خلاصه شاخص‌های عملکرد زرگری",
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.5.sp,
+                                    fontWeight = FontWeight.Black,
                                     color = Color(0xFFF8FAFC),
                                     fontFamily = VazirmatnFamily
                                 )
@@ -283,10 +285,10 @@ fun ReportingScreen(
                         }
 
                         // 2x2 Grid of KPIs
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 // KPI 1: Gross Profit
                                 KpiGridCard(
@@ -313,7 +315,7 @@ fun ReportingScreen(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 // KPI 3: Turnover
                                 val turnoverMillions = uiState.kpi.turnoverTomans / 1_000_000L
@@ -526,20 +528,21 @@ private fun KpiGridCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = Color(0xFF1E283C),
-        border = BorderStroke(0.6.dp, Color.White.copy(alpha = 0.08f)),
+        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.09f)),
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
                 text = title,
-                fontSize = 10.sp,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
                 color = Color(0xFF94A3B8),
                 maxLines = 1,
                 fontFamily = VazirmatnFamily
@@ -557,16 +560,17 @@ private fun KpiGridCard(
                 ) {
                     Text(
                         text = targetVal,
-                        fontSize = 14.sp,
+                        fontSize = 17.5.sp,
                         fontWeight = FontWeight.Black,
                         color = valueColor,
                         fontFamily = VazirmatnFamily
                     )
                     Text(
                         text = targetUnit,
-                        fontSize = 9.5.sp,
-                        color = Color(0xFF94A3B8),
-                        modifier = Modifier.padding(bottom = 1.dp),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFCBD5E1),
+                        modifier = Modifier.padding(bottom = 2.dp),
                         fontFamily = VazirmatnFamily
                     )
                 }
@@ -580,8 +584,8 @@ private fun KpiGridCard(
             ) { targetSub ->
                 Text(
                     text = targetSub,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = subtitleColor,
                     maxLines = 1,
                     fontFamily = VazirmatnFamily
@@ -773,10 +777,11 @@ private fun BreakdownDetailsDialog(
     val colors = LocalGoldExColors.current
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = colors.surface,
-            border = BorderStroke(0.8.dp, colors.goldBorder),
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = colors.surface,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
             shadowElevation = 16.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -946,6 +951,7 @@ private fun BreakdownDetailsDialog(
             }
         }
     }
+}
 }
 
 @Composable
