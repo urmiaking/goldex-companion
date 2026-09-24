@@ -90,6 +90,10 @@ fun CustomerStatementScreen(
     val context = LocalContext.current
     var transactionToDelete by remember { mutableStateOf<LedgerTransaction?>(null) }
 
+    val runningBalances = remember(customer, allTransactions) {
+        calculateRunningBalances(customer, allTransactions)
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             modifier = modifier
@@ -539,8 +543,13 @@ fun CustomerStatementScreen(
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     txList.forEach { tx ->
+                                        val balances = runningBalances[tx.id]
+                                        val computedGold = balances?.first ?: tx.resultingGoldBalance
+                                        val computedCash = balances?.second ?: tx.resultingCashBalance
                                         StatementTransactionCard(
                                             transaction = tx,
+                                            computedGoldBalance = computedGold,
+                                            computedCashBalance = computedCash,
                                             onEditClick = { onEditTransaction(tx) },
                                             onDeleteClick = { transactionToDelete = tx }
                                         )
@@ -609,7 +618,7 @@ fun CustomerStatementScreen(
                                     fontFamily = VazirmatnFamily
                                 )
                                 Text(
-                                    text = "آیا از حذف سند #${PersianNumberFormatter.toPersianDigits(transactionToDelete?.cleanDocumentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
+                                    text = "آیا از حذف سند شماره ${PersianNumberFormatter.toPersianDigits(transactionToDelete?.cleanDocumentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
                                     fontSize = 13.sp,
                                     color = colors.textSecondary,
                                     lineHeight = 20.sp,
@@ -761,6 +770,8 @@ private fun MethodChip(
 @Composable
 private fun StatementTransactionCard(
     transaction: LedgerTransaction,
+    computedGoldBalance: Double = transaction.resultingGoldBalance,
+    computedCashBalance: Long = transaction.resultingCashBalance,
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
 ) {
@@ -854,9 +865,9 @@ private fun StatementTransactionCard(
                         val cleanDoc = transaction.cleanDocumentNumber
                         val cleanInv = transaction.cleanInvoiceNumber
                         val headerSubtitle = if (!cleanInv.isNullOrBlank()) {
-                            "سند #${PersianNumberFormatter.toPersianDigits(cleanDoc)} • فاکتور #${PersianNumberFormatter.toPersianDigits(cleanInv)} • ${transaction.dateTime}"
+                            "سند شماره ${PersianNumberFormatter.toPersianDigits(cleanDoc)} • فاکتور شماره ${PersianNumberFormatter.toPersianDigits(cleanInv)} • ${transaction.dateTime}"
                         } else {
-                            "سند #${PersianNumberFormatter.toPersianDigits(cleanDoc)} • ${transaction.dateTime}"
+                            "سند شماره ${PersianNumberFormatter.toPersianDigits(cleanDoc)} • ${transaction.dateTime}"
                         }
                         Text(
                             text = headerSubtitle,
@@ -1026,7 +1037,7 @@ private fun StatementTransactionCard(
                 )
 
                 if (isGold) {
-                    val bal = transaction.resultingGoldBalance
+                    val bal = computedGoldBalance
                     val statusText = when {
                         bal > 0.0001 -> "بدهکار"
                         bal < -0.0001 -> "بستانکار"
@@ -1064,7 +1075,7 @@ private fun StatementTransactionCard(
                         }
                     }
                 } else {
-                    val bal = transaction.resultingCashBalance
+                    val bal = computedCashBalance
                     val statusText = when {
                         bal > 0L -> "بدهکار"
                         bal < 0L -> "بستانکار"
@@ -1105,4 +1116,49 @@ private fun StatementTransactionCard(
             }
         }
     }
+}
+
+/**
+ * Accurately calculates the chronological running balances (gold in grams, cash in Tomans)
+ * for every transaction in a customer's statement, based on the customer's authoritative balances.
+ * Tracing backwards from the current balance ensures historical integrity and eliminates 0-balance display.
+ */
+fun calculateRunningBalances(
+    customer: Customer,
+    allTransactions: List<LedgerTransaction>
+): Map<String, Pair<Double, Long>> {
+    val sortedNewestFirst = allTransactions.sortedWith(
+        compareByDescending<LedgerTransaction> { it.timestamp }
+            .thenByDescending { it.dateTime }
+    )
+
+    var currentGold = customer.goldDebtGrams
+    var currentCash = customer.cashDebtTomans
+
+    val resultMap = mutableMapOf<String, Pair<Double, Long>>()
+
+    for (tx in sortedNewestFirst) {
+        resultMap[tx.id] = Pair(currentGold, currentCash)
+
+        when (tx.type) {
+            LedgerEntryType.GOLD_WEIGHT -> {
+                val delta = if (tx.direction == LedgerDirection.PAY) {
+                    tx.equivalent750WeightGrams
+                } else {
+                    -tx.equivalent750WeightGrams
+                }
+                currentGold -= delta
+            }
+            LedgerEntryType.CASH_RIAL -> {
+                val delta = if (tx.direction == LedgerDirection.PAY) {
+                    tx.amountTomans
+                } else {
+                    -tx.amountTomans
+                }
+                currentCash -= delta
+            }
+        }
+    }
+
+    return resultMap
 }

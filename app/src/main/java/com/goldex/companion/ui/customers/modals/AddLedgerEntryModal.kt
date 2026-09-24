@@ -362,22 +362,48 @@ fun AddLedgerEntryModal(
     val isGoldMode = selectedModeIndex == 0
     val isReceive = selectedDirectionIndex == 0
 
-    val newProjectedGoldBalance by remember(customer.goldDebtGrams, equivalent750Grams, isReceive, isGoldMode) {
+    val baseGoldBalance = remember(customer.goldDebtGrams, editingTransaction) {
+        if (editingTransaction != null && editingTransaction.type == LedgerEntryType.GOLD_WEIGHT) {
+            val oldDelta = if (editingTransaction.direction == LedgerDirection.PAY) {
+                editingTransaction.equivalent750WeightGrams
+            } else {
+                -editingTransaction.equivalent750WeightGrams
+            }
+            customer.goldDebtGrams - oldDelta
+        } else {
+            customer.goldDebtGrams
+        }
+    }
+
+    val baseCashBalance = remember(customer.cashDebtTomans, editingTransaction) {
+        if (editingTransaction != null && editingTransaction.type == LedgerEntryType.CASH_RIAL) {
+            val oldDelta = if (editingTransaction.direction == LedgerDirection.PAY) {
+                editingTransaction.amountTomans
+            } else {
+                -editingTransaction.amountTomans
+            }
+            customer.cashDebtTomans - oldDelta
+        } else {
+            customer.cashDebtTomans
+        }
+    }
+
+    val newProjectedGoldBalance by remember(baseGoldBalance, equivalent750Grams, isReceive, isGoldMode) {
         derivedStateOf {
-            if (!isGoldMode) customer.goldDebtGrams
+            if (!isGoldMode) baseGoldBalance
             else {
-                if (isReceive) customer.goldDebtGrams - equivalent750Grams
-                else customer.goldDebtGrams + equivalent750Grams
+                if (isReceive) baseGoldBalance - equivalent750Grams
+                else baseGoldBalance + equivalent750Grams
             }
         }
     }
 
-    val newProjectedCashBalance by remember(customer.cashDebtTomans, cashAmountLong, isReceive, isGoldMode) {
+    val newProjectedCashBalance by remember(baseCashBalance, cashAmountLong, isReceive, isGoldMode) {
         derivedStateOf {
-            if (isGoldMode) customer.cashDebtTomans
+            if (isGoldMode) baseCashBalance
             else {
-                if (isReceive) customer.cashDebtTomans - cashAmountLong
-                else customer.cashDebtTomans + cashAmountLong
+                if (isReceive) baseCashBalance - cashAmountLong
+                else baseCashBalance + cashAmountLong
             }
         }
     }
@@ -450,7 +476,7 @@ fun AddLedgerEntryModal(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "سند روزنامه #${PersianNumberFormatter.toPersianDigits(documentNumber)}",
+                                    text = "سند روزنامه شماره ${PersianNumberFormatter.toPersianDigits(documentNumber)}",
                                     fontSize = 11.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily

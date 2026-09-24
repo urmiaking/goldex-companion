@@ -1301,6 +1301,7 @@ private fun SettlementSection(
     var transferWeightStr by remember { mutableStateOf("") }
     var transferAmountStr by remember { mutableStateOf("") }
     var transferTrackingCode by remember { mutableStateOf("") }
+    var transferIsGoldMode by remember { mutableStateOf(false) }
     var isThirdPartyPickerVisible by remember { mutableStateOf(false) }
 
     if (isThirdPartyPickerVisible) {
@@ -1314,9 +1315,12 @@ private fun SettlementSection(
                 thirdPartyInvoiceNumber = inv.cleanInvoiceNumber
                 val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
                 val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
-                if (transferWeightStr.isBlank()) {
+                if (transferIsGoldMode) {
                     transferWeightStr = String.format(Locale.US, "%.3f", w)
+                    transferAmountStr = ""
+                } else {
                     transferAmountStr = amt.toString()
+                    transferWeightStr = ""
                 }
                 isThirdPartyPickerVisible = false
             },
@@ -1326,9 +1330,12 @@ private fun SettlementSection(
                 thirdPartyInvoiceNumber = "حساب دفتری باز"
                 val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
                 val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
-                if (transferWeightStr.isBlank()) {
+                if (transferIsGoldMode) {
                     transferWeightStr = String.format(Locale.US, "%.3f", w)
+                    transferAmountStr = ""
+                } else {
                     transferAmountStr = amt.toString()
+                    transferWeightStr = ""
                 }
                 isThirdPartyPickerVisible = false
             },
@@ -1801,24 +1808,54 @@ private fun SettlementSection(
                                 }
                             }
 
+                            LuxurySegmentedControl(
+                                items = listOf(false, true),
+                                selectedItem = transferIsGoldMode,
+                                onItemSelected = { isGold ->
+                                    transferIsGoldMode = isGold
+                                    if (isGold) transferAmountStr = "" else transferWeightStr = ""
+                                },
+                                label = { if (!it) "حواله نقدی (بانکی / پایا)" else "حواله وزنی طلا (گرم)" },
+                                modifier = Modifier.fillMaxWidth(),
+                                height = 32.dp,
+                                fontSize = 10.5.sp
+                            )
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                if (!transferIsGoldMode) {
+                                    GoldInputField(
+                                        value = transferAmountStr,
+                                        onValueChange = { input ->
+                                            transferAmountStr = input.filter { it.isDigit() }
+                                            transferWeightStr = ""
+                                        },
+                                        label = "مبلغ حواله",
+                                        trailingText = "تومان",
+                                        useThousandsSeparator = true,
+                                        modifier = Modifier.weight(1.2f)
+                                    )
+                                } else {
+                                    GoldInputField(
+                                        value = transferWeightStr,
+                                        onValueChange = { input ->
+                                            transferWeightStr = input
+                                            transferAmountStr = ""
+                                        },
+                                        label = "وزن حواله",
+                                        trailingText = "گرم",
+                                        keyboardType = KeyboardType.Decimal,
+                                        modifier = Modifier.weight(1.2f)
+                                    )
+                                }
                                 GoldInputField(
-                                    value = transferWeightStr,
-                                    onValueChange = { transferWeightStr = it },
-                                    label = "وزن حواله",
-                                    trailingText = "گرم",
-                                    keyboardType = KeyboardType.Decimal,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                GoldInputField(
-                                    value = transferAmountStr,
-                                    onValueChange = { input -> transferAmountStr = input.filter { it.isDigit() } },
-                                    label = "مبلغ حواله",
-                                    trailingText = "تومان",
-                                    useThousandsSeparator = true,
+                                    value = transferTrackingCode,
+                                    onValueChange = { transferTrackingCode = it },
+                                    label = "کد پیگیری",
+                                    trailingText = "اختیاری",
+                                    keyboardType = KeyboardType.Number,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -1840,10 +1877,15 @@ private fun SettlementSection(
                                 SettlementMethod.POS -> posStr = remainingBalance.toString()
                                 SettlementMethod.LEDGER -> ledgerStr = remainingBalance.toString()
                                 SettlementMethod.TRANSFER -> {
-                                    transferAmountStr = remainingBalance.toString()
-                                    if (invoice.spotPrice18k > 0) {
-                                        val w = remainingBalance.toDouble() / invoice.spotPrice18k
-                                        transferWeightStr = String.format(Locale.US, "%.3f", w)
+                                    if (!transferIsGoldMode) {
+                                        transferAmountStr = remainingBalance.toString()
+                                        transferWeightStr = ""
+                                    } else {
+                                        if (invoice.spotPrice18k > 0) {
+                                            val w = remainingBalance.toDouble() / invoice.spotPrice18k
+                                            transferWeightStr = String.format(Locale.US, "%.3f", w)
+                                        }
+                                        transferAmountStr = ""
                                     }
                                 }
                                 SettlementMethod.BULLION -> {
@@ -1924,8 +1966,8 @@ private fun SettlementSection(
                             } else null
                         }
                         SettlementMethod.TRANSFER -> {
-                            val amt = transferAmountStr.toLongOrNull() ?: 0L
-                            val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                            val amt = if (!transferIsGoldMode) (transferAmountStr.toLongOrNull() ?: 0L) else 0L
+                            val w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
                             if (amt > 0L || w > 0.0) {
                                 SettlementPaymentItem(
                                     id = UUID.randomUUID().toString(),
@@ -2102,18 +2144,18 @@ private fun SettlementModal(
     var thirdPartyInvoiceNumber by remember(invoice.thirdPartyInvoiceNumber) {
         mutableStateOf(invoice.thirdPartyInvoiceNumber)
     }
-    var transferWeightStr by remember(invoice.thirdPartyTransferWeight18k, balance.net18kWeightDelta) {
+    var transferIsGoldMode by remember {
+        mutableStateOf(invoice.thirdPartyTransferWeight18k > 0.0 && invoice.thirdPartyTransferAmount == 0L)
+    }
+    var transferWeightStr by remember(invoice.thirdPartyTransferWeight18k) {
         mutableStateOf(
             if (invoice.thirdPartyTransferWeight18k > 0.0) invoice.thirdPartyTransferWeight18k.toString()
-            else if (selectedMethod == SettlementMethod.TRANSFER && kotlin.math.abs(balance.net18kWeightDelta) > 0.0)
-                String.format(java.util.Locale.US, "%.3f", kotlin.math.abs(balance.net18kWeightDelta))
             else ""
         )
     }
-    var transferAmountStr by remember(invoice.thirdPartyTransferAmount, netPayableAmount) {
+    var transferAmountStr by remember(invoice.thirdPartyTransferAmount) {
         mutableStateOf(
             if (invoice.thirdPartyTransferAmount > 0L) invoice.thirdPartyTransferAmount.toString()
-            else if (selectedMethod == SettlementMethod.TRANSFER && absNetPayableLong > 0L) absNetPayableLong.toString()
             else ""
         )
     }
@@ -2133,11 +2175,15 @@ private fun SettlementModal(
                 thirdPartyInvoiceNumber = inv.invoiceNumber
                 val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
                 val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
-                if (transferWeightStr.isBlank()) {
+                if (transferIsGoldMode) {
                     transferWeightStr = String.format(java.util.Locale.US, "%.3f", w)
+                    transferAmountStr = ""
+                    onThirdPartyTransferChange(cust, inv.id, inv.invoiceNumber, w, 0L, transferTrackingCode)
+                } else {
                     transferAmountStr = amt.toString()
+                    transferWeightStr = ""
+                    onThirdPartyTransferChange(cust, inv.id, inv.invoiceNumber, 0.0, amt, transferTrackingCode)
                 }
-                onThirdPartyTransferChange(cust, inv.id, inv.invoiceNumber, w, amt, transferTrackingCode)
                 isThirdPartyPickerVisible = false
             },
             onSelectCustomerLedger = { cust ->
@@ -2146,11 +2192,15 @@ private fun SettlementModal(
                 thirdPartyInvoiceNumber = "حساب دفتری باز"
                 val w = transferWeightStr.toDoubleOrNull() ?: kotlin.math.abs(balance.net18kWeightDelta)
                 val amt = transferAmountStr.toLongOrNull() ?: absNetPayableLong
-                if (transferWeightStr.isBlank()) {
+                if (transferIsGoldMode) {
                     transferWeightStr = String.format(java.util.Locale.US, "%.3f", w)
+                    transferAmountStr = ""
+                    onThirdPartyTransferChange(cust, "", "حساب دفتری باز", w, 0L, transferTrackingCode)
+                } else {
                     transferAmountStr = amt.toString()
+                    transferWeightStr = ""
+                    onThirdPartyTransferChange(cust, "", "حساب دفتری باز", 0.0, amt, transferTrackingCode)
                 }
-                onThirdPartyTransferChange(cust, "", "حساب دفتری باز", w, amt, transferTrackingCode)
                 isThirdPartyPickerVisible = false
             },
             onDismiss = { isThirdPartyPickerVisible = false }
@@ -2788,55 +2838,84 @@ private fun SettlementModal(
                                 }
                             }
 
-                            // 2. Barter Transfer Quantities: Weight (Primary) & Toman Amount
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                GoldInputField(
-                                    value = transferWeightStr,
-                                    onValueChange = { input ->
-                                        transferWeightStr = input
-                                        val w = input.toDoubleOrNull() ?: 0.0
-                                        val autoAmount = (w * invoice.spotPrice18k).toLong()
-                                        if (w > 0.0) {
-                                            transferAmountStr = autoAmount.toString()
-                                        }
-                                        onThirdPartyTransferChange(
-                                            thirdPartyCustomer,
-                                            thirdPartyInvoiceId,
-                                            thirdPartyInvoiceNumber,
-                                            w,
-                                            autoAmount,
-                                            transferTrackingCode
-                                        )
-                                    },
-                                    label = "وزن طلا",
-                                    trailingText = "گرم",
-                                    isDecimal = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                GoldInputField(
-                                    value = transferAmountStr,
-                                    onValueChange = { input ->
-                                        val digits = input.filter { it.isDigit() }
-                                        transferAmountStr = digits
-                                        val amt = digits.toLongOrNull() ?: 0L
+                            // 2. Barter Transfer Quantities: Toggle between Cash and Gold
+                            LuxurySegmentedControl(
+                                items = listOf(false, true),
+                                selectedItem = transferIsGoldMode,
+                                onItemSelected = { isGold ->
+                                    transferIsGoldMode = isGold
+                                    if (isGold) {
+                                        transferAmountStr = ""
                                         val w = transferWeightStr.toDoubleOrNull() ?: 0.0
                                         onThirdPartyTransferChange(
                                             thirdPartyCustomer,
                                             thirdPartyInvoiceId,
                                             thirdPartyInvoiceNumber,
                                             w,
+                                            0L,
+                                            transferTrackingCode
+                                        )
+                                    } else {
+                                        transferWeightStr = ""
+                                        val amt = transferAmountStr.toLongOrNull() ?: 0L
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            0.0,
+                                            amt,
+                                            transferTrackingCode
+                                        )
+                                    }
+                                },
+                                label = { if (!it) "حواله نقدی (بانکی / پایا)" else "حواله وزنی طلا (گرم)" },
+                                modifier = Modifier.fillMaxWidth(),
+                                height = 32.dp,
+                                fontSize = 10.5.sp
+                            )
+
+                            if (!transferIsGoldMode) {
+                                GoldInputField(
+                                    value = transferAmountStr,
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }
+                                        transferAmountStr = digits
+                                        transferWeightStr = ""
+                                        val amt = digits.toLongOrNull() ?: 0L
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            0.0,
                                             amt,
                                             transferTrackingCode
                                         )
                                     },
-                                    label = "ارزش تومانی معادل",
+                                    label = "مبلغ حواله نقدی",
                                     trailingText = "تومان",
                                     useThousandsSeparator = true,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                GoldInputField(
+                                    value = transferWeightStr,
+                                    onValueChange = { input ->
+                                        transferWeightStr = input
+                                        transferAmountStr = ""
+                                        val w = input.toDoubleOrNull() ?: 0.0
+                                        onThirdPartyTransferChange(
+                                            thirdPartyCustomer,
+                                            thirdPartyInvoiceId,
+                                            thirdPartyInvoiceNumber,
+                                            w,
+                                            0L,
+                                            transferTrackingCode
+                                        )
+                                    },
+                                    label = "وزن حواله طلا",
+                                    trailingText = "گرم",
+                                    isDecimal = true,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
 
@@ -2848,18 +2927,31 @@ private fun SettlementModal(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        val totalW = kotlin.math.abs(balance.net18kWeightDelta)
-                                        val totalA = absNetPayableLong
-                                        transferWeightStr = String.format(java.util.Locale.US, "%.3f", totalW)
-                                        transferAmountStr = totalA.toString()
-                                        onThirdPartyTransferChange(
-                                            thirdPartyCustomer,
-                                            thirdPartyInvoiceId,
-                                            thirdPartyInvoiceNumber,
-                                            totalW,
-                                            totalA,
-                                            transferTrackingCode
-                                        )
+                                        if (transferIsGoldMode) {
+                                            val totalW = kotlin.math.abs(balance.net18kWeightDelta)
+                                            transferWeightStr = String.format(java.util.Locale.US, "%.3f", totalW)
+                                            transferAmountStr = ""
+                                            onThirdPartyTransferChange(
+                                                thirdPartyCustomer,
+                                                thirdPartyInvoiceId,
+                                                thirdPartyInvoiceNumber,
+                                                totalW,
+                                                0L,
+                                                transferTrackingCode
+                                            )
+                                        } else {
+                                            val totalA = absNetPayableLong
+                                            transferAmountStr = totalA.toString()
+                                            transferWeightStr = ""
+                                            onThirdPartyTransferChange(
+                                                thirdPartyCustomer,
+                                                thirdPartyInvoiceId,
+                                                thirdPartyInvoiceNumber,
+                                                0.0,
+                                                totalA,
+                                                transferTrackingCode
+                                            )
+                                        }
                                     }
                             ) {
                                 Box(
@@ -2867,7 +2959,11 @@ private fun SettlementModal(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "⚡ تهاتر کامل مانده فاکتور (${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم طلای ۱۸ عیار)",
+                                        text = if (transferIsGoldMode) {
+                                            "⚡ تهاتر کامل مانده فاکتور (${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم طلای ۱۸ عیار)"
+                                        } else {
+                                            "⚡ تسویه کامل مانده فاکتور (${PersianNumberFormatter.formatPrice(absNetPayableLong.toDouble())} تومان)"
+                                        },
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.goldPrimary,
@@ -3309,10 +3405,16 @@ private fun SettlementModal(
                                     onLedgerAmountChange(remainingBalance)
                                 }
                                 SettlementMethod.TRANSFER -> {
-                                    transferAmountStr = remainingBalance.toString()
-                                    val w = if (invoice.spotPrice18k > 0) remainingBalance.toDouble() / invoice.spotPrice18k else 0.0
-                                    transferWeightStr = String.format(Locale.US, "%.3f", w)
-                                    onThirdPartyTransferChange(thirdPartyCustomer, thirdPartyInvoiceId, thirdPartyInvoiceNumber, w, remainingBalance, transferTrackingCode)
+                                    if (!transferIsGoldMode) {
+                                        transferAmountStr = remainingBalance.toString()
+                                        transferWeightStr = ""
+                                        onThirdPartyTransferChange(thirdPartyCustomer, thirdPartyInvoiceId, thirdPartyInvoiceNumber, 0.0, remainingBalance, transferTrackingCode)
+                                    } else {
+                                        val w = if (invoice.spotPrice18k > 0) remainingBalance.toDouble() / invoice.spotPrice18k else 0.0
+                                        transferWeightStr = String.format(Locale.US, "%.3f", w)
+                                        transferAmountStr = ""
+                                        onThirdPartyTransferChange(thirdPartyCustomer, thirdPartyInvoiceId, thirdPartyInvoiceNumber, w, 0L, transferTrackingCode)
+                                    }
                                 }
                                 SettlementMethod.BULLION -> {
                                     if (invoice.spotPrice18k > 0) {
@@ -3390,8 +3492,8 @@ private fun SettlementModal(
                             } else null
                         }
                         SettlementMethod.TRANSFER -> {
-                            val amt = transferAmountStr.toLongOrNull() ?: 0L
-                            val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                            val amt = if (!transferIsGoldMode) (transferAmountStr.toLongOrNull() ?: 0L) else 0L
+                            val w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
                             if (amt > 0L || w > 0.0) {
                                 SettlementPaymentItem(
                                     id = UUID.randomUUID().toString(),
@@ -3520,8 +3622,8 @@ private fun SettlementModal(
                                     else emptyList()
                                 }
                                 SettlementMethod.TRANSFER -> {
-                                    val amt = transferAmountStr.toLongOrNull() ?: 0L
-                                    val w = transferWeightStr.toDoubleOrNull() ?: 0.0
+                                    val amt = if (!transferIsGoldMode) (transferAmountStr.toLongOrNull() ?: 0L) else 0L
+                                    val w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
                                     if (amt > 0L || w > 0.0) listOf(SettlementPaymentItem(method = SettlementMethod.TRANSFER, amountTomans = amt, goldWeight18k = w, trackingCode = transferTrackingCode, thirdPartyCustomerName = thirdPartyCustomer?.name ?: ""))
                                     else emptyList()
                                 }

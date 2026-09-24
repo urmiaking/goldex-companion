@@ -207,7 +207,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "فاکتور رسمی #۸۸۴۲",
+                        title = "فاکتور رسمی شماره ۸۸۴۲",
                         timeText = "امروز ۱۵:۴۰",
                         specDetails = "۲۴.۳۵۰ گرم • بنکداری طلا",
                         totalPrice = (24.35 * basePrice).roundToLong(),
@@ -215,7 +215,7 @@ data class MarketRateDetailState(
                     ),
                     RateTransactionItem(
                         isBuy = false,
-                        title = "سند معامله #۸۸۳۹",
+                        title = "سند معامله شماره ۸۸۳۹",
                         timeText = "امروز ۱۲:۱۵",
                         specDetails = "۱۲.۱۸۰ گرم • تسویه نقدی",
                         totalPrice = (12.18 * basePrice).roundToLong(),
@@ -263,7 +263,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "حواله شمش طلا #۹۱۰۲",
+                        title = "حواله شمش طلا شماره ۹۱۰۲",
                         timeText = "امروز ۱۶:۲۰",
                         specDetails = "۵۰.۰۰۰ گرم • شمش سوئیسی ۹۹۹",
                         totalPrice = (50.0 * basePrice).roundToLong(),
@@ -271,7 +271,7 @@ data class MarketRateDetailState(
                     ),
                     RateTransactionItem(
                         isBuy = false,
-                        title = "تسویه کارگاهی #۹۰۸۸",
+                        title = "تسویه کارگاهی شماره ۹۰۸۸",
                         timeText = "امروز ۱۱:۳۰",
                         specDetails = "۲۰.۵۰۰ گرم • تسویه آبشده کارگاهی",
                         totalPrice = (20.5 * basePrice).roundToLong(),
@@ -318,7 +318,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "حواله آبشده سبزه میدان #۷۷۱۱",
+                        title = "حواله آبشده سبزه میدان شماره ۷۷۱۱",
                         timeText = "امروز ۱۶:۵۰",
                         specDetails = "۲ مثقال • انگ دار آزمایشگاهی",
                         totalPrice = (2.0 * basePrice).roundToLong(),
@@ -326,7 +326,7 @@ data class MarketRateDetailState(
                     ),
                     RateTransactionItem(
                         isBuy = false,
-                        title = "سند تسویه بنکدار #۷۶۹۵",
+                        title = "سند تسویه بنکدار شماره ۷۶۹۵",
                         timeText = "امروز ۱۳:۴۰",
                         specDetails = "۱.۵ مثقال • ری‌گیری تهران",
                         totalPrice = (1.5 * basePrice).roundToLong(),
@@ -373,7 +373,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "فاکتور خرید سکه #۵۵۳۰",
+                        title = "فاکتور خرید سکه شماره ۵۵۳۰",
                         timeText = "امروز ۱۷:۱۰",
                         specDetails = "۲ قطعه سکه تمام امامی طرح ۸۶",
                         totalPrice = 2 * basePrice,
@@ -381,7 +381,7 @@ data class MarketRateDetailState(
                     ),
                     RateTransactionItem(
                         isBuy = false,
-                        title = "فروش سکه صرافی #۵۵۱۸",
+                        title = "فروش سکه صرافی شماره ۵۵۱۸",
                         timeText = "امروز ۱۴:۳۰",
                         specDetails = "۱ قطعه سکه تمام با پلمپ معتبر",
                         totalPrice = basePrice,
@@ -428,7 +428,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "خرید سکه بهار #۴۴۱۰",
+                        title = "خرید سکه بهار شماره ۴۴۱۰",
                         timeText = "امروز ۱۲:۵۰",
                         specDetails = "۱ قطعه سکه تمام بهار آزادی",
                         totalPrice = basePrice,
@@ -475,7 +475,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "فاکتور نیم سکه #۳۳۰۵",
+                        title = "فاکتور نیم سکه شماره ۳۳۰۵",
                         timeText = "امروز ۱۳:۱۰",
                         specDetails = "۲ قطعه نیم سکه بهار آزادی",
                         totalPrice = 2 * basePrice,
@@ -522,7 +522,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = false,
-                        title = "فروش ربع سکه #۲۲۰۱",
+                        title = "فروش ربع سکه شماره ۲۲۰۱",
                         timeText = "امروز ۱۰:۴۵",
                         specDetails = "۱ قطعه ربع سکه بهار",
                         totalPrice = basePrice,
@@ -569,7 +569,7 @@ data class MarketRateDetailState(
                 recentTransactions = listOf(
                     RateTransactionItem(
                         isBuy = true,
-                        title = "خرید سکه گرمی #۱۱۰۹",
+                        title = "خرید سکه گرمی شماره ۱۱۰۹",
                         timeText = "امروز ۰۹:۳۰",
                         specDetails = "۱ قطعه سکه گرمی با کارت بانک مرکزی",
                         totalPrice = basePrice,

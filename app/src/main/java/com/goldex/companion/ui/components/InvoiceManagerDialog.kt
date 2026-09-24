@@ -255,7 +255,7 @@ fun InvoiceManagerDialog(
                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
-                                                    text = "#${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}",
+                                                    text = "فاکتور ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = colors.goldPrimary

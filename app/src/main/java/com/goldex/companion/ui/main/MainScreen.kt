@@ -238,9 +238,9 @@ fun MainScreen(
                     val isEditing = customerState.editingLedgerTransaction != null
                     customerViewModel.saveLedgerEntry(tx)
                     val msg = if (isEditing) {
-                        "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
+                        "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
                     } else {
-                        "سند #${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                        "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
                     }
                     QiratoToast.show(context, msg)
                 }

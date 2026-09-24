@@ -221,8 +221,6 @@ class CustomerManagerViewModel(
             ?: _uiState.value.ledgerEntryTargetCustomer
 
         if (editing != null) {
-            repository.updateTransaction(transaction)
-
             if (target != null) {
                 // First reverse the old transaction effect
                 val intermediateCustomer = when (editing.type) {
@@ -269,11 +267,16 @@ class CustomerManagerViewModel(
                         )
                     }
                 }
+                val txToSave = transaction.copy(
+                    resultingGoldBalance = updatedCustomer.goldDebtGrams,
+                    resultingCashBalance = updatedCustomer.cashDebtTomans
+                )
+                repository.updateTransaction(txToSave)
                 repository.updateCustomer(updatedCustomer)
+            } else {
+                repository.updateTransaction(transaction)
             }
         } else {
-            repository.addTransaction(transaction)
-
             if (target != null) {
                 val updatedCustomer = when (transaction.type) {
                     LedgerEntryType.GOLD_WEIGHT -> {
@@ -299,7 +302,14 @@ class CustomerManagerViewModel(
                         )
                     }
                 }
+                val txToSave = transaction.copy(
+                    resultingGoldBalance = updatedCustomer.goldDebtGrams,
+                    resultingCashBalance = updatedCustomer.cashDebtTomans
+                )
+                repository.addTransaction(txToSave)
                 repository.updateCustomer(updatedCustomer)
+            } else {
+                repository.addTransaction(transaction)
             }
         }
 
