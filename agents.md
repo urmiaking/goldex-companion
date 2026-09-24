@@ -28,12 +28,14 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 
 ## 2. Build and verification policy
 
-- Before triggering GitHub Actions CI, run a local compile-only check using the fastest available Gradle task (e.g., `./gradlew compileDebugKotlin`) to catch syntax and compilation errors early.
-- Do not run full Gradle builds, test suites, or APK assembly on the local machine. Those remain CI-only.
-- Compilation, unit tests, instrumentation tests, APK assembly, signing, and release verification run in GitHub Actions.
+- Unit tests run locally on the development machine (`./gradlew testDebugUnitTest`) to verify calculations, formatting, and domain behavior before merging to `main`. They are offloaded from GitHub Actions CI to conserve runner quota and speed up release delivery.
+- Run a local compile-only check (`./gradlew compileDebugKotlin --no-build-cache --no-daemon -q`) and unit tests locally before merging or tagging.
+- Do not run full APK assembly or signing on the local machine. Those remain CI-only.
+- Release APK assembly, signing, failure reporting, and release distribution run in GitHub Actions.
 - The workflow source of truth is `.github/workflows/build-and-release.yml`.
+- Feature branches (`feature/<name>`) and Git Worktrees must be used for feature development and parallel agent workflows (see `.agents/rules/git-worktree-and-branching.md`).
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.
-- Before a change is complete, run the narrowest available non-Gradle validation and inspect diagnostics. For code changes, CI must execute the relevant tests and build.
+- Before a change is complete, verify compilation and unit tests locally.
 - Do not claim a build or test passed unless its output is available.
 
 ## 3. Current technology constraints
@@ -214,12 +216,13 @@ After editing:
 
 - [ ] Existing behavior and persisted data remain compatible.
 - [ ] No secrets or private keys were added.
-- [ ] No local Gradle build was run.
-- [ ] Relevant tests and diagnostics were checked.
+- [ ] No local full APK assembly or release signing was run (CI-only).
+- [ ] Local syntax check and unit tests (`testDebugUnitTest`) passed.
 - [ ] Financial formulas and rounding are covered.
 - [ ] Persian digits and RTL behavior remain intact.
 - [ ] Design tokens remain centralized.
 - [ ] Dashboard values are not falsely presented as live data.
 - [ ] Documentation matches the implementation.
+- [ ] Feature branch merged to `main` before tagging.
 - [ ] Cloud CI is ready to build, sign, and publish the artifact.
 - [ ] Release signing credentials are supplied through protected CI secrets before broad public distribution.

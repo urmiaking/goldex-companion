@@ -11,3 +11,4 @@ app/build/
 stitch_specs/
 *.hprof
 /output/
+.worktrees/

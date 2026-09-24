@@ -50,9 +50,6 @@ jobs:
             echo "GOLD_EX_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Run Unit Tests
-        run: ./gradlew test --stacktrace
-
       - name: Build Release APK
         run: |
           set -e -o pipefail
