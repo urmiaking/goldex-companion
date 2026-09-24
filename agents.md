@@ -198,9 +198,19 @@ Each ADR contains context, decision, consequences, and revisit conditions.
 
 ## 13. Change protocol
 
+### 13.1 Codebase exploration and search policy
+- Never run repetitive terminal grep/find loops (`git grep`, `rg`, `findstr`) to discover code.
+- Prioritize `codebase-memory-mcp` via `call_mcp_tool`:
+  1. Check index freshness with `list_projects` or `index_status`; if the repository is unindexed or has large external updates, trigger `index_repository(repo_path="...", mode="fast")` before proceeding.
+  2. Use `search_code` for high-speed AST-enriched keyword and text search (sub-second results for both Persian and English terms).
+  3. Use `search_graph` for symbol and composable discovery.
+  4. Use `trace_path` to locate callers and callees before editing.
+  5. Use `get_code_snippet` to inspect specific implementations without reading large files.
+- **Graceful Fallback**: Fall back to targeted, scoped `git grep` or directory view only if `codebase-memory-mcp` is unavailable or when searching non-code assets (e.g. Android XML, Gradle scripts, docs). See `.agents/rules/codebase-search-memory.md`.
+
 Before editing:
 
-1. Find the concrete behavior owner and nearby tests/call sites.
+1. Find the concrete behavior owner and nearby tests/call sites using `codebase-memory-mcp`.
 2. Check for uncommitted user work.
 3. State one falsifiable hypothesis and one focused validation.
 4. Make the smallest compatible edit.
