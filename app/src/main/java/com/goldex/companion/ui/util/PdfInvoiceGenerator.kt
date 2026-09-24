@@ -121,7 +121,7 @@ object PdfInvoiceGenerator {
                 paint.textSize = 11.5f
                 paint.typeface = boldTypeface
                 paint.textAlign = Paint.Align.CENTER
-                c.drawText("ادامه اقلام فاکتور رسمی زرگری #${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)} (صفحه ${PersianNumberFormatter.toPersianDigits(pageNum.toString())})", 595f / 2f, 21f, paint)
+                c.drawText("ادامه اقلام فاکتور رسمی زرگری شماره ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)} (صفحه ${PersianNumberFormatter.toPersianDigits(pageNum.toString())})", 595f / 2f, 21f, paint)
             }
         }
 
@@ -172,7 +172,7 @@ object PdfInvoiceGenerator {
 
         paint.typeface = regularTypeface
         paint.color = Color.rgb(51, 65, 85)
-        canvas.drawText("شماره فاکتور: #${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}", 545f, 106f, paint)
+        canvas.drawText("شماره فاکتور: ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}", 545f, 106f, paint)
         canvas.drawText("تاریخ صدور: ${PersianNumberFormatter.toPersianDigits(dateStr)}", 545f, 120f, paint)
         canvas.drawText("مرجع مظنه: $sourceName", 545f, 133f, paint)
 

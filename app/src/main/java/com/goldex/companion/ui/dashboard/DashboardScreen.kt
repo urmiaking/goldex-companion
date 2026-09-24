@@ -809,8 +809,8 @@ fun DashboardScreen(
                         }
 
                         TransactionRowItem(
-                            title = invoice.customerName.ifBlank { "فاکتور #${invoice.invoiceNumber}" },
-                            subtitle = "فاکتور #${invoice.invoiceNumber} • $itemsSummaryShort",
+                            title = invoice.customerName.ifBlank { "فاکتور شماره ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)}" },
+                            subtitle = "فاکتور شماره ${PersianNumberFormatter.toPersianDigits(invoice.invoiceNumber)} • $itemsSummaryShort",
                             amount = PersianNumberFormatter.formatPrice(invoice.finalAmount.toDouble()),
                             unit = "تومان",
                             statusLabel = compactStatus,

@@ -49,7 +49,7 @@ data class Invoice(
         val sb = StringBuilder()
         sb.append("🧾 فاکتور رسمی زرگری و معامله طلا (قیراط)\n")
         sb.append("════════════════════════════════════════\n")
-        sb.append("شماره فاکتور: #${PersianNumberFormatter.toPersianDigits(invoiceNumber)} • تاریخ: ${PersianNumberFormatter.toPersianDigits(dateStr)}\n")
+        sb.append("شماره فاکتور: ${PersianNumberFormatter.toPersianDigits(invoiceNumber)} • تاریخ: ${PersianNumberFormatter.toPersianDigits(dateStr)}\n")
         sb.append("منبع مظنه: $sourceName\n")
         if (customer != null) {
             sb.append("────────────────────────────────────────\n")
