@@ -57,7 +57,6 @@ fun MoreHubScreen(
     onCheckForUpdates: () -> Unit,
     onNavigateLedger: () -> Unit,
     onNavigateMelt: () -> Unit,
-    onNavigateWorkshop: () -> Unit,
     onNavigateInventory: () -> Unit,
     onNavigateConvert: () -> Unit,
     onNavigateCoinBubble: () -> Unit,
@@ -401,17 +400,17 @@ fun MoreHubScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Card 3: سفارشات و کارگاه
+                // Card 3: مرکز گزارشات و ترازنامه
                 ManagementGridCard(
-                    title = "سفارشات و کارگاه",
-                    subtitle = "پیگیری ریخته‌گری، مخراجی و تحویل",
-                    badgeText = "در حال ساخت",
+                    title = "گزارشات و ترازنامه",
+                    subtitle = "تحلیل سود، تراز مالی و عملکرد",
+                    badgeText = "تحلیلی",
                     badgeColor = Color(0xFF2563EB),
-                    icon = HubHandyman,
+                    icon = HubReporting,
                     iconBg = Color(0xFFEFF6FF),
                     iconTint = Color(0xFF1D4ED8),
                     modifier = Modifier.weight(1f),
-                    onClick = onNavigateWorkshop
+                    onClick = onNavigateReporting
                 )
 
                 // Card 4: انبار و ویترین طلا
@@ -465,18 +464,6 @@ fun MoreHubScreen(
                 }
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
-
-                // Item 0: Reporting Center & Financial Balance Sheets
-                HubListRowItem(
-                    title = "مرکز گزارشات و ترازنامه‌های مالی",
-                    subtitle = "تحلیل عملکرد مالی، سود ناخالص و ترازنامه‌های زرگری",
-                    icon = HubReporting,
-                    iconTint = Color(0xFF2563EB),
-                    iconBg = Color(0xFFEFF6FF),
-                    onClick = onNavigateReporting
-                )
-
-                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Item 1: Melt gold calculator
                 HubListRowItem(

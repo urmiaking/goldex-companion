@@ -1,8 +1,10 @@
 package com.goldex.companion.ui.reporting
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +31,12 @@ import com.goldex.companion.domain.reporting.*
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.hub.HubArrowRight
+import com.goldex.companion.ui.hub.HubChevronLeft
+import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
+import com.goldex.companion.ui.theme.VazirmatnFamily
 
 @Composable
 fun ReportingScreen(
@@ -47,128 +54,142 @@ fun ReportingScreen(
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-    ) {
+    Scaffold(
+        containerColor = colors.background,
+        topBar = {
+            Surface(
+                color = colors.surface,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                shadowElevation = 2.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(ButtonShape)
+                                .background(colors.surfaceElevated)
+                                .border(0.6.dp, colors.goldBorder, ButtonShape)
+                        ) {
+                            Icon(
+                                imageVector = HubArrowRight,
+                                contentDescription = "بازگشت",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.goldPrimary)
+                                )
+                                Text(
+                                    text = "مرکز گزارشات و ترازنامه‌ها",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                            Text(
+                                text = "تحلیل عملکرد مالی و ترازنامه‌های زرگری",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
+                .padding(paddingValues)
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ==========================================
-            // 1. Top Header & Period Control
+            // 1. Period Filter Chips Row
             // ==========================================
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clickable { onBack() },
-                            shape = CircleShape,
-                            color = colors.surfaceElevated,
-                            border = BorderStroke(0.6.dp, colors.goldBorder),
-                            shadowElevation = if (colors.isDark) 0.dp else 1.dp
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = ReportingArrowForward,
-                                    contentDescription = "بازگشت",
-                                    tint = colors.textMain,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        Column {
-                            Text(
-                                text = "مرکز گزارشات و ترازنامه‌ها",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black,
-                                color = colors.textMain
-                            )
-                            Text(
-                                text = "تحلیل عملکرد مالی و ترازنامه‌های زرگری",
-                                fontSize = 11.sp,
-                                color = colors.textMuted
-                            )
-                        }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ReportingPeriod.entries.forEach { period ->
+                    val isSelected = uiState.selectedPeriod == period
+                    val chipBg = if (isSelected) {
+                        if (colors.isDark) colors.goldPrimary else Color(0xFF1E2333)
+                    } else {
+                        colors.surfaceElevated
                     }
-                }
+                    val chipTextColor = if (isSelected) {
+                        if (colors.isDark) Color(0xFF141B2B) else Color.White
+                    } else {
+                        colors.textSecondary
+                    }
 
-                // Period Filter Chips Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ReportingPeriod.entries.forEach { period ->
-                        val isSelected = uiState.selectedPeriod == period
-                        val chipBg = if (isSelected) {
-                            if (colors.isDark) colors.goldPrimary else Color(0xFF1E2333)
-                        } else {
-                            colors.surfaceElevated
-                        }
-                        val chipTextColor = if (isSelected) {
-                            if (colors.isDark) Color(0xFF141B2B) else Color.White
-                        } else {
-                            colors.textSecondary
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = chipBg,
-                            border = BorderStroke(
-                                0.6.dp,
-                                if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
-                            ),
-                            modifier = Modifier.clickable {
-                                if (period == ReportingPeriod.CUSTOM) {
-                                    onOpenCustomDateDialog()
-                                } else {
-                                    onSelectPeriod(period)
-                                }
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = chipBg,
+                        border = BorderStroke(
+                            0.6.dp,
+                            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.clickable {
+                            if (period == ReportingPeriod.CUSTOM) {
+                                onOpenCustomDateDialog()
+                            } else {
+                                onSelectPeriod(period)
                             }
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                if (period == ReportingPeriod.CUSTOM) {
-                                    Icon(
-                                        imageVector = ReportingCalendar,
-                                        contentDescription = null,
-                                        tint = chipTextColor,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                                Text(
-                                    text = if (period == ReportingPeriod.CUSTOM && uiState.customStartDateShamsi.isNotBlank()) {
-                                        "${PersianNumberFormatter.toPersianDigits(uiState.customStartDateShamsi)} تا ${PersianNumberFormatter.toPersianDigits(uiState.customEndDateShamsi)}"
-                                    } else {
-                                        period.labelFa
-                                    },
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = chipTextColor
+                            if (period == ReportingPeriod.CUSTOM) {
+                                Icon(
+                                    imageVector = ReportingCalendar,
+                                    contentDescription = null,
+                                    tint = chipTextColor,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
+                            Text(
+                                text = if (period == ReportingPeriod.CUSTOM && uiState.customStartDateShamsi.isNotBlank()) {
+                                    "${PersianNumberFormatter.toPersianDigits(uiState.customStartDateShamsi)} تا ${PersianNumberFormatter.toPersianDigits(uiState.customEndDateShamsi)}"
+                                } else {
+                                    period.labelFa
+                                },
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = chipTextColor,
+                                fontFamily = VazirmatnFamily
+                            )
                         }
                     }
                 }
@@ -237,16 +258,26 @@ fun ReportingScreen(
                             }
 
                             Column {
-                                Text(
-                                    text = "تراز کل ${uiState.selectedPeriod.labelFa}",
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF94A3B8)
-                                )
+                                AnimatedContent(
+                                    targetState = uiState.selectedPeriod.labelFa,
+                                    transitionSpec = {
+                                        LuxuryMotion.numberSlideSpec(isIncreasing = true)
+                                    },
+                                    label = "periodTitleAnimation"
+                                ) { periodLabel ->
+                                    Text(
+                                        text = "تراز کل $periodLabel",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF94A3B8),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
                                 Text(
                                     text = "خلاصه شاخص‌های عملکرد زرگری",
                                     fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFF8FAFC)
+                                    color = Color(0xFFF8FAFC),
+                                    fontFamily = VazirmatnFamily
                                 )
                             }
                         }
@@ -473,13 +504,13 @@ fun ReportingScreen(
         )
     }
 
-    // Custom Date Range Dialog
+    // Shamsi Date Range Picker Dialog
     if (uiState.isCustomDateDialogVisible) {
-        CustomDateRangeDialog(
-            currentStart = uiState.customStartDateShamsi,
-            currentEnd = uiState.customEndDateShamsi,
+        ShamsiDateRangePickerDialog(
+            currentStartShamsi = uiState.customStartDateShamsi,
+            currentEndShamsi = uiState.customEndDateShamsi,
             onDismiss = onCloseCustomDateDialog,
-            onSubmit = onSubmitCustomRange
+            onConfirmRange = onSubmitCustomRange
         )
     }
 }
@@ -510,32 +541,52 @@ private fun KpiGridCard(
                 text = title,
                 fontSize = 10.sp,
                 color = Color(0xFF94A3B8),
-                maxLines = 1
+                maxLines = 1,
+                fontFamily = VazirmatnFamily
             )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+            AnimatedContent(
+                targetState = value to unit,
+                transitionSpec = {
+                    LuxuryMotion.numberSlideSpec(isIncreasing = true)
+                },
+                label = "kpiValueSlide"
+            ) { (targetVal, targetUnit) ->
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = targetVal,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        color = valueColor,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Text(
+                        text = targetUnit,
+                        fontSize = 9.5.sp,
+                        color = Color(0xFF94A3B8),
+                        modifier = Modifier.padding(bottom = 1.dp),
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+            }
+            AnimatedContent(
+                targetState = subtitle,
+                transitionSpec = {
+                    LuxuryMotion.numberSlideSpec(isIncreasing = true)
+                },
+                label = "kpiSubtitleSlide"
+            ) { targetSub ->
                 Text(
-                    text = value,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Black,
-                    color = valueColor
-                )
-                Text(
-                    text = unit,
-                    fontSize = 9.5.sp,
-                    color = Color(0xFF94A3B8),
-                    modifier = Modifier.padding(bottom = 1.dp)
+                    text = targetSub,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = subtitleColor,
+                    maxLines = 1,
+                    fontFamily = VazirmatnFamily
                 )
             }
-            Text(
-                text = subtitle,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Medium,
-                color = subtitleColor,
-                maxLines = 1
-            )
         }
     }
 }
@@ -555,7 +606,7 @@ private fun SpecializedLedgerRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -584,30 +635,25 @@ private fun SpecializedLedgerRow(
                     text = title,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.textMain
+                    color = colors.textMain,
+                    fontFamily = VazirmatnFamily
                 )
                 Text(
                     text = subtitle,
                     fontSize = 10.sp,
-                    color = colors.textMuted
+                    color = colors.textMuted,
+                    fontFamily = VazirmatnFamily
                 )
             }
         }
 
-        Surface(
-            shape = CircleShape,
-            color = colors.surfaceElevated,
-            modifier = Modifier.size(24.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = ReportingArrowForward,
-                    contentDescription = null,
-                    tint = colors.textMuted,
-                    modifier = Modifier.size(12.dp)
-                )
-            }
-        }
+        // Sleek iOS-style drill-down chevron (< in Persian RTL)
+        Icon(
+            imageVector = HubChevronLeft,
+            contentDescription = null,
+            tint = colors.textMuted.copy(alpha = 0.55f),
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -646,7 +692,8 @@ private fun QuickReportCard(
                     text = title,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = colors.textSecondary
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
                 )
                 Icon(
                     imageVector = icon,
@@ -657,17 +704,31 @@ private fun QuickReportCard(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(
-                    text = countText,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Black,
-                    color = colors.textMain
-                )
-                Text(
-                    text = weightText,
-                    fontSize = 10.sp,
-                    color = colors.textMuted
-                )
+                AnimatedContent(
+                    targetState = countText,
+                    transitionSpec = { LuxuryMotion.numberSlideSpec(isIncreasing = true) },
+                    label = "quickCountSlide"
+                ) { targetCount ->
+                    Text(
+                        text = targetCount,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+                AnimatedContent(
+                    targetState = weightText,
+                    transitionSpec = { LuxuryMotion.numberSlideSpec(isIncreasing = true) },
+                    label = "quickWeightSlide"
+                ) { targetWeight ->
+                    Text(
+                        text = targetWeight,
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
 
             HorizontalDivider(color = colors.border.copy(alpha = 0.35f), thickness = 0.5.dp)
@@ -680,14 +741,22 @@ private fun QuickReportCard(
                 Text(
                     text = amountLabel,
                     fontSize = 10.sp,
-                    color = colors.textMuted
+                    color = colors.textMuted,
+                    fontFamily = VazirmatnFamily
                 )
-                Text(
-                    text = amountText,
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
+                AnimatedContent(
+                    targetState = amountText,
+                    transitionSpec = { LuxuryMotion.numberSlideSpec(isIncreasing = true) },
+                    label = "quickAmountSlide"
+                ) { targetAmount ->
+                    Text(
+                        text = targetAmount,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
             }
         }
     }
@@ -903,98 +972,6 @@ private fun BreakdownRow(
             fontWeight = FontWeight.Bold,
             color = valueColor ?: colors.textMain
         )
-    }
-}
-
-@Composable
-private fun CustomDateRangeDialog(
-    currentStart: String,
-    currentEnd: String,
-    onDismiss: () -> Unit,
-    onSubmit: (startMs: Long, endMs: Long, startShamsi: String, endShamsi: String) -> Unit
-) {
-    val colors = LocalGoldExColors.current
-    var startDateInput by remember { mutableStateOf(currentStart.ifBlank { "1403/01/01" }) }
-    var endDateInput by remember { mutableStateOf(currentEnd.ifBlank { "1403/12/29" }) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = colors.surface,
-            border = BorderStroke(0.8.dp, colors.goldBorder),
-            shadowElevation = 16.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    text = "تعیین بازه تاریخی دلخواه",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
-
-                Text(
-                    text = "تاریخ شروع و پایان بازه را به صورت شمسی وارد نمایید (مثال: ۱۴۰۳/۰۶/۰۱)",
-                    fontSize = 10.5.sp,
-                    color = colors.textMuted
-                )
-
-                OutlinedTextField(
-                    value = startDateInput,
-                    onValueChange = { startDateInput = it },
-                    label = { Text("از تاریخ (شمسی)", fontSize = 11.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = colors.goldPrimary,
-                        unfocusedBorderColor = colors.border
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = endDateInput,
-                    onValueChange = { endDateInput = it },
-                    label = { Text("تا تاریخ (شمسی)", fontSize = 11.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = colors.goldPrimary,
-                        unfocusedBorderColor = colors.border
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Dialog Buttons (RTL: Cancel on right, Submit on left)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(0.8.dp, colors.border)
-                    ) {
-                        Text("انصراف", fontSize = 11.5.sp, color = colors.textSecondary)
-                    }
-
-                    GoldButton(
-                        text = "اعمال فیلتر",
-                        onClick = {
-                            // Estimate timestamps (e.g. 30 days window)
-                            val now = System.currentTimeMillis()
-                            val startMs = now - (60L * 86_400_000L)
-                            onSubmit(startMs, now, startDateInput, endDateInput)
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
     }
 }
 

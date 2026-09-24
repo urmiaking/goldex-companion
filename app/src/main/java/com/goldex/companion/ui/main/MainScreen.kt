@@ -635,9 +635,6 @@ fun MainScreen(
                                         onNavigateMelt = {
                                             mainViewModel.setMeltVisible(true)
                                         },
-                                        onNavigateWorkshop = {
-                                            QiratoToast.show(context, "سامانه سفارشات و کارگاه در فاز ۴ فعال خواهد شد")
-                                        },
                                         onNavigateInventory = {
                                             inventoryViewModel.setInventoryVisible(true)
                                         },
