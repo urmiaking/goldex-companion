@@ -42,108 +42,16 @@ fun ReportingScreen(
     onBack: () -> Unit,
     onSelectPeriod: (ReportingPeriod) -> Unit,
     onOpenBreakdown: (ReportingBreakdownType) -> Unit,
-    onCloseBreakdown: () -> Unit,
-    onNavigateInventory: () -> Unit,
-    onNavigateCustomerLedger: () -> Unit,
     onOpenCustomDateDialog: () -> Unit,
     onCloseCustomDateDialog: () -> Unit,
     onSubmitCustomRange: (startMs: Long, endMs: Long, startShamsi: String, endShamsi: String) -> Unit
 ) {
-    uiState.activeBreakdown?.let { breakdownType ->
-        ReportingDetailScreen(
-            type = breakdownType,
-            uiState = uiState,
-            onBack = onCloseBreakdown,
-            onSelectPeriod = onSelectPeriod,
-            onOpenCustomDateDialog = onOpenCustomDateDialog,
-            onNavigateInventory = {
-                onCloseBreakdown()
-                onNavigateInventory()
-            },
-            onNavigateCustomerLedger = {
-                onCloseBreakdown()
-                onNavigateCustomerLedger()
-            }
-        )
-        if (uiState.isCustomDateDialogVisible) {
-            ShamsiDateRangePickerDialog(
-                currentStartShamsi = uiState.customStartDateShamsi,
-                currentEndShamsi = uiState.customEndDateShamsi,
-                onDismiss = onCloseCustomDateDialog,
-                onConfirmRange = onSubmitCustomRange
-            )
-        }
-        return
-    }
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
 
     Scaffold(
         containerColor = colors.background,
-        topBar = {
-            Surface(
-                color = colors.surface,
-                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(ButtonShape)
-                                .background(colors.surfaceElevated)
-                                .border(0.6.dp, colors.goldBorder, ButtonShape)
-                        ) {
-                            Icon(
-                                imageVector = HubArrowRight,
-                                contentDescription = "بازگشت",
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.goldPrimary)
-                                )
-                                Text(
-                                    text = "مرکز گزارشات و ترازنامه‌ها",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain,
-                                    fontFamily = VazirmatnFamily
-                                )
-                            }
-                            Text(
-                                text = "تحلیل عملکرد مالی و ترازنامه‌های زرگری",
-                                fontSize = 10.5.sp,
-                                color = colors.textMuted,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        topBar = { ReportingTopBar("مرکز گزارشات و ترازنامه‌ها", "تحلیل عملکرد مالی و ترازنامه‌های زرگری", onBack) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -156,68 +64,7 @@ fun ReportingScreen(
             // ==========================================
             // 1. Period Filter Chips Row
             // ==========================================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                ReportingPeriod.entries.forEach { period ->
-                    val isSelected = uiState.selectedPeriod == period
-                    val chipBg = if (isSelected) {
-                        if (colors.isDark) colors.goldPrimary else Color(0xFF1E2333)
-                    } else {
-                        colors.surfaceElevated
-                    }
-                    val chipTextColor = if (isSelected) {
-                        if (colors.isDark) Color(0xFF141B2B) else Color.White
-                    } else {
-                        colors.textSecondary
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = chipBg,
-                        border = BorderStroke(
-                            0.6.dp,
-                            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.clickable {
-                            if (period == ReportingPeriod.CUSTOM) {
-                                onOpenCustomDateDialog()
-                            } else {
-                                onSelectPeriod(period)
-                            }
-                        }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (period == ReportingPeriod.CUSTOM) {
-                                Icon(
-                                    imageVector = ReportingCalendar,
-                                    contentDescription = null,
-                                    tint = chipTextColor,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                            Text(
-                                text = if (period == ReportingPeriod.CUSTOM && uiState.customStartDateShamsi.isNotBlank()) {
-                                    "${PersianNumberFormatter.toPersianDigits(uiState.customStartDateShamsi)} تا ${PersianNumberFormatter.toPersianDigits(uiState.customEndDateShamsi)}"
-                                } else {
-                                    period.labelFa
-                                },
-                                fontSize = 11.5.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = chipTextColor,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-                }
-            }
+            ReportingPeriodFilters(uiState, onSelectPeriod, onOpenCustomDateDialog)
 
             // ==========================================
             // 2. Hero KPI Vault Card
@@ -510,7 +357,7 @@ fun ReportingScreen(
     }
 
     // Shamsi Date Range Picker Dialog
-    if (uiState.isCustomDateDialogVisible) {
+    if (uiState.isCustomDateDialogVisible && uiState.activeBreakdown == null) {
         ShamsiDateRangePickerDialog(
             currentStartShamsi = uiState.customStartDateShamsi,
             currentEndShamsi = uiState.customEndDateShamsi,

@@ -30,6 +30,7 @@ class ReportingDetailsUseCaseTest {
     fun periodDetailsUseOnlyRecordedSalesWithinRange() {
         val details = ReportingDetailsUseCase.calculate(
             invoices = listOf(
+                BarterInvoice(createdAt = 50L, salesItems = listOf(sale)),
                 BarterInvoice(createdAt = 125L, salesItems = listOf(sale)),
                 BarterInvoice(createdAt = 250L, salesItems = listOf(sale))
             ),
@@ -43,6 +44,7 @@ class ReportingDetailsUseCaseTest {
         assertEquals(1_540_000L, details.salesCategories.single().profitTomans)
         assertEquals(318_600L, details.salesCategories.single().vatTomans)
         assertEquals(3_540_000L, details.profitBucketsTomans.sum())
+        assertEquals(3_540_000L, details.previousProfitBucketsTomans.sum())
         assertEquals("انگشتر ۱۸ عیار", details.topSalesItems.single().title)
     }
 
@@ -53,8 +55,14 @@ class ReportingDetailsUseCaseTest {
             customers = listOf(Customer(id = "customer-1", name = "آزمایش", cashDebtTomans = -5_000L, goldDebtGrams = 1.25)),
             inventoryItems = listOf(InventoryItem(code = "A", title = "انگشتر", grossWeightGrams = 2.5,
                 quantity = 2, location = "ویترین")),
-            adjustments = listOf(StockAdjustment(itemId = "item-1", itemTitle = "انگشتر",
-                type = StockAdjustmentType.CHARGE, weightGrams = 5.0, timestamp = 100L)),
+            adjustments = listOf(
+                StockAdjustment(itemId = "item-1", itemTitle = "انگشتر",
+                    type = StockAdjustmentType.CHARGE, weightGrams = 5.0, timestamp = 100L),
+                StockAdjustment(itemId = "item-1", itemTitle = "انگشتر",
+                    type = StockAdjustmentType.DEDUCT, weightGrams = 1.5, timestamp = 150L),
+                StockAdjustment(itemId = "item-1", itemTitle = "قدیمی",
+                    type = StockAdjustmentType.CHARGE, weightGrams = 20.0, timestamp = 50L)
+            ),
             periodRange = 100L to 200L
         )
 
@@ -62,6 +70,9 @@ class ReportingDetailsUseCaseTest {
         assertEquals(1.25, details.customerBalances.single().goldDebtGrams, 0.001)
         assertEquals(5.0, details.inventoryLocations.single().weight18k, 0.001)
         assertEquals(2, details.inventoryLocations.single().piecesCount)
-        assertEquals("انگشتر", details.inventoryMovements.single().title)
+        assertEquals(2, details.inventoryMovements.size)
+        assertEquals(5.0, details.periodInboundGrams, 0.001)
+        assertEquals(1.5, details.periodOutboundGrams, 0.001)
+        assertEquals("انگشتر", details.inventoryMovements.first().title)
     }
 }

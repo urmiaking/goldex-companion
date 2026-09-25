@@ -1,6 +1,7 @@
 package com.goldex.companion.ui.main
 
 import android.app.Application
+import android.content.Intent
 import android.widget.Toast
 import com.goldex.companion.ui.components.QiratoToast
 import androidx.activity.compose.BackHandler
@@ -96,6 +97,10 @@ import com.goldex.companion.ui.license.LicenseViewModelFactory
 import com.goldex.companion.ui.security.AppLockViewModel
 import com.goldex.companion.ui.license.LicenseActivationModal
 import com.goldex.companion.ui.reporting.ReportingScreen
+import com.goldex.companion.ui.reporting.ReportingDetailScreen
+import com.goldex.companion.ui.reporting.ShamsiDateRangePickerDialog
+import com.goldex.companion.ui.reporting.reportingShareText
+import com.goldex.companion.domain.reporting.ReportingBreakdownType
 import com.goldex.companion.ui.reporting.ReportingViewModel
 import com.goldex.companion.ui.reporting.ReportingViewModelFactory
 import com.goldex.companion.data.PortfolioItem
@@ -987,19 +992,55 @@ fun MainScreen(
                     onBack = { reportingViewModel.setReportingVisible(false) },
                     onSelectPeriod = reportingViewModel::selectPeriod,
                     onOpenBreakdown = reportingViewModel::openBreakdown,
-                    onCloseBreakdown = reportingViewModel::closeBreakdown,
-                    onNavigateInventory = {
-                        reportingViewModel.setReportingVisible(false)
-                        inventoryViewModel.setInventoryVisible(true)
-                    },
-                    onNavigateCustomerLedger = {
-                        reportingViewModel.setReportingVisible(false)
-                        customerViewModel.openCustomerLedger()
-                    },
                     onOpenCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(true) },
                     onCloseCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(false) },
                     onSubmitCustomRange = reportingViewModel::setCustomDateRange
                 )
+            }
+
+            // Keep the last page composed while its matching screen-pop exit runs.
+            var lastReportType by remember { mutableStateOf<ReportingBreakdownType?>(null) }
+            LaunchedEffect(reportingUiState.activeBreakdown) {
+                reportingUiState.activeBreakdown?.let { lastReportType = it }
+            }
+            AnimatedVisibility(
+                visible = reportingUiState.isReportingVisible && reportingUiState.activeBreakdown != null,
+                enter = LuxuryMotion.ScreenPushEnter,
+                exit = LuxuryMotion.ScreenPopExit,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                (reportingUiState.activeBreakdown ?: lastReportType)?.let { reportType ->
+                    ReportingDetailScreen(
+                        type = reportType,
+                        uiState = reportingUiState,
+                        onBack = reportingViewModel::closeBreakdown,
+                        onSelectPeriod = reportingViewModel::selectPeriod,
+                        onOpenCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(true) },
+                        onNavigateInventory = {
+                            reportingViewModel.setReportingVisible(false)
+                            inventoryViewModel.setInventoryVisible(true)
+                        },
+                        onNavigateCustomerLedger = {
+                            reportingViewModel.setReportingVisible(false)
+                            customerViewModel.openCustomerLedger()
+                        },
+                        onShareReport = {
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, reportingShareText(reportType, reportingUiState))
+                            }
+                            context.startActivity(Intent.createChooser(sendIntent, "اشتراک خلاصه گزارش"))
+                        }
+                    )
+                    if (reportingUiState.isCustomDateDialogVisible) {
+                        ShamsiDateRangePickerDialog(
+                            currentStartShamsi = reportingUiState.customStartDateShamsi,
+                            currentEndShamsi = reportingUiState.customEndDateShamsi,
+                            onDismiss = { reportingViewModel.setCustomDateDialogVisible(false) },
+                            onConfirmRange = reportingViewModel::setCustomDateRange
+                        )
+                    }
+                }
             }
 
             // Market Rate Detail & Trend Chart Screen (Stitch Screen 57d121df61a34215ba36be0989160e62)
