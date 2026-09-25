@@ -5,6 +5,7 @@ import com.goldex.companion.model.CraftedGoldItem
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.StockAdjustment
+import com.goldex.companion.model.StockAdjustmentType
 
 /** Projects recorded activity for the four full report screens; it never invents sample rows. */
 object ReportingDetailsUseCase {
@@ -41,11 +42,19 @@ object ReportingDetailsUseCase {
             .take(5)
 
         val buckets = LongArray(4)
+        val previousBuckets = LongArray(4)
         val duration = (end - start).coerceAtLeast(1L)
         periodInvoices.forEach { invoice ->
             val bucket = (((invoice.createdAt - start).toDouble() / duration) * 4)
                 .toInt().coerceIn(0, 3)
             buckets[bucket] += invoice.salesItems.filterIsInstance<CraftedGoldItem>()
+                .sumOf { it.wageAmount.toLong() + it.profitAmount.toLong() }
+        }
+        val previousStart = start - duration - 1L
+        invoices.filter { it.createdAt in previousStart until start }.forEach { invoice ->
+            val bucket = (((invoice.createdAt - previousStart).toDouble() / duration) * 4)
+                .toInt().coerceIn(0, 3)
+            previousBuckets[bucket] += invoice.salesItems.filterIsInstance<CraftedGoldItem>()
                 .sumOf { it.wageAmount.toLong() + it.profitAmount.toLong() }
         }
 
@@ -71,7 +80,8 @@ object ReportingDetailsUseCase {
             }
             .sortedByDescending { it.weight18k }
 
-        val movements = adjustments.sortedByDescending { it.timestamp }.take(8).map {
+        val periodAdjustments = adjustments.filter { it.timestamp in start..end }
+        val movements = periodAdjustments.sortedByDescending { it.timestamp }.take(8).map {
             InventoryMovementReportRow(
                 title = it.itemTitle,
                 typeLabel = it.type.labelFa,
@@ -84,9 +94,12 @@ object ReportingDetailsUseCase {
             salesCategories = categories,
             topSalesItems = topItems,
             profitBucketsTomans = buckets.toList(),
+            previousProfitBucketsTomans = previousBuckets.toList(),
             customerBalances = balances,
             inventoryLocations = locations,
-            inventoryMovements = movements
+            inventoryMovements = movements,
+            periodInboundGrams = periodAdjustments.filter { it.type == StockAdjustmentType.CHARGE }.sumOf { it.weightGrams },
+            periodOutboundGrams = periodAdjustments.filter { it.type == StockAdjustmentType.DEDUCT }.sumOf { it.weightGrams }
         )
     }
 }

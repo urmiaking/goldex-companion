@@ -124,9 +124,12 @@ data class ReportingDetails(
     val salesCategories: List<SalesCategoryReportRow> = emptyList(),
     val topSalesItems: List<SalesItemReportRow> = emptyList(),
     val profitBucketsTomans: List<Long> = listOf(0L, 0L, 0L, 0L),
+    val previousProfitBucketsTomans: List<Long> = listOf(0L, 0L, 0L, 0L),
     val customerBalances: List<CustomerBalanceReportRow> = emptyList(),
     val inventoryLocations: List<InventoryLocationReportRow> = emptyList(),
-    val inventoryMovements: List<InventoryMovementReportRow> = emptyList()
+    val inventoryMovements: List<InventoryMovementReportRow> = emptyList(),
+    val periodInboundGrams: Double = 0.0,
+    val periodOutboundGrams: Double = 0.0
 )
 
 /**
