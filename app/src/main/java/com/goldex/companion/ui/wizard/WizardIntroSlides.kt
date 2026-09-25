@@ -178,7 +178,7 @@ fun WizardIntroContent(
             IntroSlideData(
                 imageRes = R.drawable.img_wizard_slide_1,
                 topBadgeText = "مظنه زنده بازار و محاسبه آنی",
-                unionBadgeTitle = "استاندارد عیار ۷۵۰ و فاکتور مؤدیان",
+                unionBadgeTitle = "استاندارد عیار ۷۵۰ و فاکتور رسمی",
                 unionBadgeSubtitle = "مورد تأیید اتحادیه صنف طلا و جواهر",
                 pillCategory = "نسل چهارم محاسبات زرگری",
                 headline = "خوش‌آمدید به دستیار هوشمند قیـراط",
@@ -234,7 +234,7 @@ fun WizardIntroContent(
             ),
             FeatureHighlight(
                 icon = WizardReceiptLong,
-                title = "صدور فاکتور رسمی و سامانه مؤدیان",
+                title = "صدور فاکتور رسمی طلا و جواهر",
                 description = "محاسبه خودکار ارزش افزوده صرفاً روی اجرت ساخت و سود (معافیت اصل طلا) با خروجی چاپی استاندارد اتحادیه."
             ),
             FeatureHighlight(

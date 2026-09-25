@@ -43,6 +43,23 @@ class WizardStateTest {
         assertEquals("", state.unionCode)
         assertEquals("", state.phone)
         assertEquals("", state.address)
+        assertEquals("", state.logoUri)
+        assertEquals("", state.stampUri)
+    }
+
+    @Test
+    fun testWizardProfileStateWithBrandAssets() {
+        val state = WizardProfileState(
+            galleryName = "گالری زرین",
+            managerName = "علی راد",
+            unionCode = "12345",
+            phone = "09123456789",
+            address = "بازار طلا",
+            logoUri = "content://media/external/images/media/1",
+            stampUri = "content://media/external/images/media/2"
+        )
+        assertEquals("content://media/external/images/media/1", state.logoUri)
+        assertEquals("content://media/external/images/media/2", state.stampUri)
     }
 
     @Test

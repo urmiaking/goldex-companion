@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,6 +44,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.calculator.AppTab
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import kotlin.math.cos
 import kotlin.math.sin
@@ -485,6 +488,7 @@ fun WizardCompletionContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val logoBitmap = rememberProfileAssetBitmap(profileState.logoUri)
                     Box(
                         modifier = Modifier
                             .size(38.dp)
@@ -492,12 +496,23 @@ fun WizardCompletionContent(
                             .background(colors.goldContainer),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = WizardStorefront,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (logoBitmap != null) {
+                            Image(
+                                bitmap = logoBitmap,
+                                contentDescription = profileState.galleryName,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(4.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Icon(
+                                imageVector = WizardStorefront,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                     Column {
                         Row(

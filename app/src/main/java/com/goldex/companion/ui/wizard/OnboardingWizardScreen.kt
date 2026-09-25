@@ -42,7 +42,9 @@ fun OnboardingWizardScreen(
                 managerName = currentSettings.managerName,
                 unionCode = currentSettings.unionCode,
                 phone = currentSettings.galleryPhone,
-                address = currentSettings.galleryAddress
+                address = currentSettings.galleryAddress,
+                logoUri = currentSettings.invoiceLogoUri,
+                stampUri = currentSettings.invoiceStampUri
             )
         )
     }
@@ -70,6 +72,8 @@ fun OnboardingWizardScreen(
             galleryPhone = profileState.phone,
             galleryAddress = profileState.address,
             galleryLicense = "صنف طلا و جواهر: ${profileState.unionCode}",
+            invoiceLogoUri = profileState.logoUri,
+            invoiceStampUri = profileState.stampUri,
             defaultProfitPercent = financialState.profitPercent,
             defaultTaxPercent = if (financialState.isVatEnabled) financialState.vatRate else "0",
             hasCompletedOnboarding = true
