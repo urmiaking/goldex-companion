@@ -7,6 +7,7 @@ enum class ReportingPeriod(val labelFa: String) {
     TODAY("امروز"),
     THIS_WEEK("این هفته"),
     THIS_MONTH("ماه جاری"),
+    THIS_QUARTER("فصل جاری"),
     THIS_YEAR("سالانه"),
     CUSTOM("بازه دلخواه")
 }
@@ -83,6 +84,51 @@ data class VatReportLedger(
     val vatPercent: Double = 9.0
 )
 
+/** Read-only detail rows derived from the same local records as the gateway totals. */
+data class SalesCategoryReportRow(
+    val title: String,
+    val salesTomans: Long,
+    val wageTomans: Long,
+    val profitTomans: Long,
+    val vatTomans: Long
+)
+
+data class SalesItemReportRow(
+    val title: String,
+    val weight18k: Double,
+    val earningsTomans: Long
+)
+
+data class CustomerBalanceReportRow(
+    val id: String,
+    val name: String,
+    val role: String,
+    val cashDebtTomans: Long,
+    val goldDebtGrams: Double
+)
+
+data class InventoryLocationReportRow(
+    val location: String,
+    val weight18k: Double,
+    val piecesCount: Int
+)
+
+data class InventoryMovementReportRow(
+    val title: String,
+    val typeLabel: String,
+    val weightGrams: Double,
+    val timestamp: Long
+)
+
+data class ReportingDetails(
+    val salesCategories: List<SalesCategoryReportRow> = emptyList(),
+    val topSalesItems: List<SalesItemReportRow> = emptyList(),
+    val profitBucketsTomans: List<Long> = listOf(0L, 0L, 0L, 0L),
+    val customerBalances: List<CustomerBalanceReportRow> = emptyList(),
+    val inventoryLocations: List<InventoryLocationReportRow> = emptyList(),
+    val inventoryMovements: List<InventoryMovementReportRow> = emptyList()
+)
+
 /**
  * Specialized Ledger Breakdown Dialog/Sheet types
  */
@@ -106,6 +152,7 @@ data class ReportingUiState(
     val goldInventory: GoldInventoryLedger = GoldInventoryLedger(),
     val debtorsCreditors: DebtorsCreditorsLedger = DebtorsCreditorsLedger(),
     val vatReport: VatReportLedger = VatReportLedger(),
+    val details: ReportingDetails = ReportingDetails(),
     val activeBreakdown: ReportingBreakdownType? = null,
     val isReportingVisible: Boolean = false,
     val isCustomDateDialogVisible: Boolean = false,

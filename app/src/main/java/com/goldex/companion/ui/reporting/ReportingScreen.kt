@@ -26,12 +26,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.goldex.companion.domain.reporting.*
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.hub.HubChevronLeft
@@ -53,6 +49,32 @@ fun ReportingScreen(
     onCloseCustomDateDialog: () -> Unit,
     onSubmitCustomRange: (startMs: Long, endMs: Long, startShamsi: String, endShamsi: String) -> Unit
 ) {
+    uiState.activeBreakdown?.let { breakdownType ->
+        ReportingDetailScreen(
+            type = breakdownType,
+            uiState = uiState,
+            onBack = onCloseBreakdown,
+            onSelectPeriod = onSelectPeriod,
+            onOpenCustomDateDialog = onOpenCustomDateDialog,
+            onNavigateInventory = {
+                onCloseBreakdown()
+                onNavigateInventory()
+            },
+            onNavigateCustomerLedger = {
+                onCloseBreakdown()
+                onNavigateCustomerLedger()
+            }
+        )
+        if (uiState.isCustomDateDialogVisible) {
+            ShamsiDateRangePickerDialog(
+                currentStartShamsi = uiState.customStartDateShamsi,
+                currentEndShamsi = uiState.customEndDateShamsi,
+                onDismiss = onCloseCustomDateDialog,
+                onConfirmRange = onSubmitCustomRange
+            )
+        }
+        return
+    }
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
 
@@ -487,25 +509,6 @@ fun ReportingScreen(
         }
     }
 
-    // ==========================================
-    // 5. Specialized Breakdown Dialogs
-    // ==========================================
-    uiState.activeBreakdown?.let { breakdownType ->
-        BreakdownDetailsDialog(
-            type = breakdownType,
-            uiState = uiState,
-            onDismiss = onCloseBreakdown,
-            onNavigateInventory = {
-                onCloseBreakdown()
-                onNavigateInventory()
-            },
-            onNavigateCustomerLedger = {
-                onCloseBreakdown()
-                onNavigateCustomerLedger()
-            }
-        )
-    }
-
     // Shamsi Date Range Picker Dialog
     if (uiState.isCustomDateDialogVisible) {
         ShamsiDateRangePickerDialog(
@@ -765,225 +768,3 @@ private fun QuickReportCard(
         }
     }
 }
-
-@Composable
-private fun BreakdownDetailsDialog(
-    type: ReportingBreakdownType,
-    uiState: ReportingUiState,
-    onDismiss: () -> Unit,
-    onNavigateInventory: () -> Unit,
-    onNavigateCustomerLedger: () -> Unit
-) {
-    val colors = LocalGoldExColors.current
-
-    Dialog(onDismissRequest = onDismiss) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = colors.surface,
-                border = BorderStroke(0.8.dp, colors.goldBorder),
-            shadowElevation = 16.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Header
-                val (title, icon, iconTint, iconBg) = when (type) {
-                    ReportingBreakdownType.SALES_PERFORMANCE ->
-                        Quadruple("سود و زیان و عملکرد فروش", ReportingInsights, Color(0xFFD97706), Color(0xFFFEF3C7))
-                    ReportingBreakdownType.GOLD_INVENTORY ->
-                        Quadruple("تراز وزنی و انبار طلا", ReportingScale, Color(0xFFB45309), Color(0xFFFFFBEB))
-                    ReportingBreakdownType.DEBTORS_CREDITORS ->
-                        Quadruple("صورتحساب بدهکاران و بستانکاران", ReportingContacts, Color(0xFF059669), Color(0xFFECFDF5))
-                    ReportingBreakdownType.VAT_REPORT ->
-                        Quadruple("گزارش مالیات ارزش‌افزوده", ReportingReceipt, Color(0xFF2563EB), Color(0xFFEFF6FF))
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(iconBg),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = iconTint,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = title,
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain
-                            )
-                            Text(
-                                text = "دوره: ${uiState.selectedPeriod.labelFa}",
-                                fontSize = 10.sp,
-                                color = colors.textMuted
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
-
-                // Body content per type
-                when (type) {
-                    ReportingBreakdownType.SALES_PERFORMANCE -> {
-                        val sp = uiState.salesPerformance
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BreakdownRow("کل فروش ناخالص:", "${PersianNumberFormatter.formatWithSeparators(sp.grossSalesTomans)} تومان")
-                            BreakdownRow("ارزش طلای خام فروخته شده:", "${PersianNumberFormatter.formatWithSeparators(sp.rawGoldValueTomans)} تومان")
-                            BreakdownRow("مجموع اجرت ساخت:", "${PersianNumberFormatter.formatWithSeparators(sp.totalWageTomans)} تومان", valueColor = colors.goldPrimary)
-                            BreakdownRow("مجموع سود مصوب گالری:", "${PersianNumberFormatter.formatWithSeparators(sp.totalProfitTomans)} تومان", valueColor = colors.profitGreen)
-                            BreakdownRow("مالیات بر ارزش‌افزوده وصولی:", "${PersianNumberFormatter.formatWithSeparators(sp.totalTaxTomans)} تومان")
-                            BreakdownRow("مجموع وزن ۱۸ عیار فروخته شده:", "${PersianNumberFormatter.formatWeight(sp.totalWeight18k)} گرم")
-                            BreakdownRow("تعداد اقلام فروش رفته:", "${PersianNumberFormatter.toPersianDigits(sp.itemsCount.toString())} مورد")
-                        }
-                    }
-
-                    ReportingBreakdownType.GOLD_INVENTORY -> {
-                        val gi = uiState.goldInventory
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BreakdownRow("مجموع وزن ۱۸ عیار انبار:", "${PersianNumberFormatter.formatWeight(gi.totalWeight18k)} گرم", valueColor = colors.goldPrimary)
-                            BreakdownRow("موجودی در ویترین و سینی‌ها:", "${PersianNumberFormatter.formatWeight(gi.showcaseWeight18k)} گرم")
-                            BreakdownRow("موجودی در گاوصندوق و انبار:", "${PersianNumberFormatter.formatWeight(gi.vaultWeight18k)} گرم")
-                            BreakdownRow("تعداد کل کارهای ثبت‌شده:", "${PersianNumberFormatter.toPersianDigits(gi.piecesCount.toString())} قطعه")
-                            BreakdownRow("تعداد سینی‌های فعال:", "${PersianNumberFormatter.toPersianDigits(gi.activeTraysCount.toString())} سینی")
-                            BreakdownRow("تعداد گاوصندوق‌های فعال:", "${PersianNumberFormatter.toPersianDigits(gi.activeSafesCount.toString())} گاوصندوق")
-                        }
-                    }
-
-                    ReportingBreakdownType.DEBTORS_CREDITORS -> {
-                        val dc = uiState.debtorsCreditors
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BreakdownRow("کل مطالبات ریالی (بدهکار به ما):", "${PersianNumberFormatter.formatWithSeparators(dc.totalReceivablesTomans)} تومان", valueColor = colors.errorRed)
-                            BreakdownRow("تعداد طرف‌حساب‌های بدهکار:", "${PersianNumberFormatter.toPersianDigits(dc.debtorCount.toString())} مشتری")
-                            BreakdownRow("کل بستانکاری‌ها (طلب دیگران از ما):", "${PersianNumberFormatter.formatWithSeparators(dc.totalPayablesTomans)} تومان")
-                            BreakdownRow("تعداد طرف‌حساب‌های بستانکار:", "${PersianNumberFormatter.toPersianDigits(dc.creditorCount.toString())} همکار")
-                            BreakdownRow("تراز وزنی طلا:", "${PersianNumberFormatter.formatWeight(dc.goldDebtGrams)} گرم ۱۸")
-                        }
-                    }
-
-                    ReportingBreakdownType.VAT_REPORT -> {
-                        val vr = uiState.vatReport
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BreakdownRow("مأخذ مشمول مالیات (اجرت + سود):", "${PersianNumberFormatter.formatWithSeparators(vr.taxableBaseTomans)} تومان", valueColor = colors.goldPrimary)
-                            BreakdownRow("مالیات ارزش افزوده متعلقه (${PersianNumberFormatter.toPersianDigits(vr.vatPercent.toString())}٪):", "${PersianNumberFormatter.formatWithSeparators(vr.totalVatCollectedTomans)} تومان", valueColor = colors.profitGreen)
-                            BreakdownRow("ارزش اصل طلای خام (۱۰۰٪ معاف):", "${PersianNumberFormatter.formatWithSeparators(vr.taxExemptRawGoldTomans)} تومان")
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.goldContainer.copy(alpha = 0.35f),
-                                border = BorderStroke(0.6.dp, colors.goldBorder),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "مطابق قانون دائمی مالیات بر ارزش‌افزوده طلا مصوب دی‌ماه ۱۴۰۰، اصل طلا، پلاتین و جواهر معاف از مالیات بوده و ۹٪ ارزش افزوده صرفاً به اجرت ساخت و سود تعلق می‌گیرد.",
-                                    fontSize = 10.sp,
-                                    lineHeight = 15.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(10.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
-
-                // Action buttons (Two-action rule: Cancel/Close on right, Primary action on left)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Right action: Dismiss / Close
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(0.8.dp, colors.border)
-                    ) {
-                        Text(
-                            text = "بستن",
-                            fontSize = 11.5.sp,
-                            color = colors.textSecondary
-                        )
-                    }
-
-                    // Left action: Deep link to related feature if applicable
-                    when (type) {
-                        ReportingBreakdownType.GOLD_INVENTORY -> {
-                            GoldButton(
-                                text = "مشاهده انبار و ویترین",
-                                onClick = onNavigateInventory,
-                                modifier = Modifier.weight(1.2f)
-                            )
-                        }
-                        ReportingBreakdownType.DEBTORS_CREDITORS -> {
-                            GoldButton(
-                                text = "دفتر حساب و معین",
-                                onClick = onNavigateCustomerLedger,
-                                modifier = Modifier.weight(1.2f)
-                            )
-                        }
-                        else -> {
-                            // Single dismiss button layout handled cleanly
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-}
-
-@Composable
-private fun BreakdownRow(
-    label: String,
-    value: String,
-    valueColor: Color? = null
-) {
-    val colors = LocalGoldExColors.current
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            fontSize = 11.sp,
-            color = colors.textSecondary
-        )
-        Text(
-            text = value,
-            fontSize = 11.5.sp,
-            fontWeight = FontWeight.Bold,
-            color = valueColor ?: colors.textMain
-        )
-    }
-}
-
-private data class Quadruple<A, B, C, D>(
-    val first: A,
-    val second: B,
-    val third: C,
-    val fourth: D
-)

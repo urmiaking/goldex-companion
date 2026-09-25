@@ -723,7 +723,11 @@ fun MainScreen(
                           mainUiState.isRateDetailVisible
             ) {
                 if (reportingUiState.isReportingVisible) {
-                    reportingViewModel.setReportingVisible(false)
+                    if (reportingUiState.activeBreakdown != null) {
+                        reportingViewModel.closeBreakdown()
+                    } else {
+                        reportingViewModel.setReportingVisible(false)
+                    }
                 } else if (customerState.selectedCustomerForStatement != null) {
                     customerViewModel.closeCustomerStatement()
                 } else if (customerState.isCustomerLedgerVisible) {
