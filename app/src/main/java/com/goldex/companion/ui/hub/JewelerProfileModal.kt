@@ -45,6 +45,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.ProfileBrandAssetTile
+import com.goldex.companion.ui.components.persistProfileAssetPermission
+import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
@@ -574,89 +577,4 @@ fun JewelerProfileModal(
         }
     }
 }
-}
-
-@Composable
-private fun ProfileBrandAssetTile(
-    title: String,
-    actionLabel: String,
-    bitmap: ImageBitmap?,
-    fallback: String,
-    onPick: () -> Unit,
-    onClear: (() -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    val colors = LocalGoldExColors.current
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = colors.surface,
-        border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.border)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(7.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(colors.goldContainer.copy(alpha = 0.35f))
-                    .border(1.dp, colors.goldBorder.copy(alpha = 0.7f), RoundedCornerShape(14.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = title,
-                        modifier = Modifier.fillMaxSize().padding(4.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                } else {
-                    Text(
-                        text = fallback.ifBlank { "نشان" },
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = colors.goldPrimary
-                    )
-                }
-            }
-            Text(title, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = onPick,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text(actionLabel, fontSize = 9.5.sp, fontWeight = FontWeight.Bold)
-                }
-                if (onClear != null) {
-                    IconButton(onClick = onClear, modifier = Modifier.size(30.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "حذف $title", tint = colors.errorRed, modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun rememberProfileAssetBitmap(uriValue: String): ImageBitmap? {
-    val context = LocalContext.current
-    return remember(uriValue) {
-        if (uriValue.isBlank()) return@remember null
-        runCatching {
-            context.contentResolver.openInputStream(Uri.parse(uriValue))
-                ?.use { BitmapFactory.decodeStream(it) }
-                ?.asImageBitmap()
-        }.getOrNull()
-    }
-}
-
-private fun persistProfileAssetPermission(context: Context, uri: Uri) {
-    runCatching {
-        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
 }

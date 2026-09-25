@@ -72,6 +72,24 @@ class WizardValidationTest {
     }
 
     @Test
+    fun validateWizardProfile_withBrandAssets_returnsNoErrors() {
+        val validProfileWithAssets = WizardProfileState(
+            galleryName = "گالری طلای پرسپولیس",
+            managerName = "محمد حسینی",
+            unionCode = "۹۸۷۶۵",
+            phone = "۰۲۱۲۲۳۳۴۴۵۵",
+            address = "تهران، بازار بزرگ، بازار زرگرها",
+            logoUri = "content://media/external/images/media/1",
+            stampUri = "content://media/external/images/media/2"
+        )
+
+        val errors = validateWizardProfile(validProfileWithAssets)
+
+        assertFalse(errors.hasErrors)
+        assertNull(errors.firstErrorMessage)
+    }
+
+    @Test
     fun validateWizardFinancial_withValidDefaults_returnsNoErrors() {
         val defaultFinancial = WizardFinancialState(
             profitPercent = "7",

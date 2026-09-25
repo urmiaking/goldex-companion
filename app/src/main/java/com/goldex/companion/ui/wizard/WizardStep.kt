@@ -16,7 +16,9 @@ data class WizardProfileState(
     val managerName: String = "",
     val unionCode: String = "",
     val phone: String = "",
-    val address: String = ""
+    val address: String = "",
+    val logoUri: String = "",
+    val stampUri: String = ""
 )
 
 data class WizardProfileErrors(

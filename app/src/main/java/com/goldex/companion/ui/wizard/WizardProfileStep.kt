@@ -25,10 +25,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.persistProfileAssetPermission
+import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -42,6 +47,29 @@ fun WizardProfileContent(
     profileErrors: WizardProfileErrors = WizardProfileErrors()
 ) {
     val colors = LocalGoldExColors.current
+    val context = LocalContext.current
+
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistProfileAssetPermission(context, it)
+            onProfileChange(profileState.copy(logoUri = it.toString()))
+        }
+    }
+    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            persistProfileAssetPermission(context, it)
+            onProfileChange(profileState.copy(stampUri = it.toString()))
+        }
+    }
+
+    val monogram = remember(profileState.galleryName) {
+        val parts = profileState.galleryName.trim().split(" ").filter { it.isNotBlank() }
+        if (parts.size >= 2) {
+            "${parts[0].firstOrNull() ?: ""}${parts[1].firstOrNull() ?: ""}"
+        } else {
+            profileState.galleryName.take(2).ifBlank { "جا" }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -78,68 +106,72 @@ fun WizardProfileContent(
             )
         }
 
-        // Logo Upload Box Card
+        // Logo & Commercial Stamp Upload Box Card
         LuxuryCard(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp)
+            contentPadding = PaddingValues(14.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colors.goldContainer),
-                    contentAlignment = Alignment.Center
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = WizardStorefront,
-                        contentDescription = null,
-                        tint = colors.goldPrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-
-                Text(
-                    text = "نشان تجاری و آرم واحد صنفی",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textMain
-                )
-
-                Text(
-                    text = "نمایش خودکار آرم طلافروشی در سربرگ و مهر رسمی اسناد",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colors.textMuted
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.goldContainer),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = WizardCheckCircle,
+                            imageVector = WizardStorefront,
                             contentDescription = null,
-                            tint = colors.profitGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = "نشان پیش‌فرض زرگری فعال است",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.profitGreen
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
+                    Column {
+                        Text(
+                            text = "لوگو و مهر تجاری واحد صنفی",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "نمایش خودکار در سربرگ فاکتورهای رسمی و اسناد چاپی",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colors.textMuted
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ProfileBrandAssetTile(
+                        title = "لوگوی واحد صنفی",
+                        actionLabel = if (profileState.logoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
+                        bitmap = rememberProfileAssetBitmap(profileState.logoUri),
+                        fallback = monogram,
+                        onPick = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                        onClear = if (profileState.logoUri.isNotBlank()) ({ onProfileChange(profileState.copy(logoUri = "")) }) else null,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileBrandAssetTile(
+                        title = "مهر تجاری",
+                        actionLabel = if (profileState.stampUri.isNotBlank()) "تغییر مهر" else "انتخاب مهر",
+                        bitmap = rememberProfileAssetBitmap(profileState.stampUri),
+                        fallback = "مهر",
+                        onPick = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                        onClear = if (profileState.stampUri.isNotBlank()) ({ onProfileChange(profileState.copy(stampUri = "")) }) else null,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
