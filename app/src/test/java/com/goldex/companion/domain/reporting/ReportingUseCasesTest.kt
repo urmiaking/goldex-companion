@@ -43,6 +43,15 @@ class ReportingUseCasesTest {
     }
 
     @Test
+    fun currentQuarterStartsWithinPersianQuarterAndIncludesToday() {
+        val now = System.currentTimeMillis()
+        val (start, end) = ReportingUseCases.calculatePeriodTimeRange(ReportingPeriod.THIS_QUARTER, currentTimeMs = now)
+
+        assertTrue(now in start..end)
+        assertTrue(end - start in 86_399_999L..(93L * 86_400_000L))
+    }
+
+    @Test
     fun testPeriodTimeRange_Custom_RespectsProvidedTimestamps() {
         val customStart = 1000L
         val customEnd = 5000L

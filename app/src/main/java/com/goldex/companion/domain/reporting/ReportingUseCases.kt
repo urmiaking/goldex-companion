@@ -54,6 +54,14 @@ object ReportingUseCases {
                 Pair(startOfMonthMs, endOfTodayMs)
             }
 
+            ReportingPeriod.THIS_QUARTER -> {
+                val (_, jm, jd) = MarketHistoryConverter.gregorianToShamsi(gy, gm, gd)
+                val monthsSinceQuarterStart = (jm - 1) % 3
+                val daysPerPriorMonth = if (jm <= 6) 31 else 30
+                val daysSinceQuarterStart = monthsSinceQuarterStart * daysPerPriorMonth + jd - 1
+                Pair(startOfTodayMs - daysSinceQuarterStart * 86_400_000L, endOfTodayMs)
+            }
+
             ReportingPeriod.THIS_YEAR -> {
                 val (_, jm, jd) = MarketHistoryConverter.gregorianToShamsi(gy, gm, gd)
                 val daysPassedInYear = if (jm <= 6) {

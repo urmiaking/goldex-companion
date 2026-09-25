@@ -12,6 +12,7 @@ import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.domain.reporting.ReportingBreakdownType
+import com.goldex.companion.domain.reporting.ReportingDetailsUseCase
 import com.goldex.companion.domain.reporting.ReportingPeriod
 import com.goldex.companion.domain.reporting.ReportingUiState
 import com.goldex.companion.domain.reporting.ReportingUseCases
@@ -43,6 +44,7 @@ class ReportingViewModel(
         val invoices = invoiceStore.getBarterInvoices()
         val customers = customerStore.getCustomers()
         val inventoryItems = inventoryStore.getItems()
+        val adjustments = inventoryStore.getAdjustments()
         val settings = settingsStore.loadSettings()
 
         val periodRange = ReportingUseCases.calculatePeriodTimeRange(
@@ -83,6 +85,14 @@ class ReportingViewModel(
             defaultVatPercent = settings.defaultTaxPercent.toDoubleOrNull() ?: 9.0
         )
 
+        val details = ReportingDetailsUseCase.calculate(
+            invoices = invoices,
+            customers = customers,
+            inventoryItems = inventoryItems,
+            adjustments = adjustments,
+            periodRange = periodRange
+        )
+
         _uiState.update {
             it.copy(
                 kpi = kpi,
@@ -91,6 +101,7 @@ class ReportingViewModel(
                 goldInventory = goldInventory,
                 debtorsCreditors = debtorsCreditors,
                 vatReport = vatReport,
+                details = details,
                 isLoading = false
             )
         }
@@ -132,7 +143,7 @@ class ReportingViewModel(
     }
 
     fun setReportingVisible(visible: Boolean) {
-        _uiState.update { it.copy(isReportingVisible = visible) }
+        _uiState.update { it.copy(isReportingVisible = visible, activeBreakdown = if (visible) it.activeBreakdown else null) }
         if (visible) {
             loadData()
         }
