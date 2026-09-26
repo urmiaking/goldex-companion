@@ -259,93 +259,63 @@ fun CustomerLedgerScreen(
                     }
                 }
 
-                // Item C: Search & Quick Find Input Bar with Tune Filter Button
+                // Item C: Full-width Search & Quick Find Input Bar
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = colors.surface,
+                        border = BorderStroke(0.6.dp, colors.border),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = colors.surface,
-                            border = BorderStroke(0.6.dp, colors.border),
-                            modifier = Modifier.weight(1f)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp)
-                                    .padding(horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                BasicTextField(
-                                    value = uiState.searchQuery,
-                                    onValueChange = onSearchQueryChange,
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = TextStyle(
-                                        fontFamily = VazirmatnFamily,
-                                        fontSize = 12.sp,
-                                        color = colors.textMain
-                                    ),
-                                    cursorBrush = SolidColor(colors.goldPrimary),
-                                    singleLine = true,
-                                    decorationBox = { innerTextField ->
-                                        if (uiState.searchQuery.isBlank()) {
-                                            Text(
-                                                text = "جستجوی نام بنکدار، کیفی، کارگاه یا شماره تماس...",
-                                                fontSize = 11.5.sp,
-                                                color = colors.textMuted,
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                )
-                                if (uiState.searchQuery.isNotBlank()) {
-                                    IconButton(
-                                        onClick = { onSearchQueryChange("") },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "پاک کردن",
-                                            tint = colors.textMuted,
-                                            modifier = Modifier.size(16.dp)
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            BasicTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = onSearchQueryChange,
+                                modifier = Modifier.weight(1f),
+                                textStyle = TextStyle(
+                                    fontFamily = VazirmatnFamily,
+                                    fontSize = 12.sp,
+                                    color = colors.textMain
+                                ),
+                                cursorBrush = SolidColor(colors.goldPrimary),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    if (uiState.searchQuery.isBlank()) {
+                                        Text(
+                                            text = "جستجوی نام بنکدار، کیفی، کارگاه یا شماره تماس...",
+                                            fontSize = 11.5.sp,
+                                            color = colors.textMuted,
+                                            fontFamily = VazirmatnFamily
                                         )
                                     }
+                                    innerTextField()
                                 }
-                            }
-                        }
-
-                        // Filter Button beside Search Bar (Fix 2 - Stitch Design)
-                        Surface(
-                            shape = ButtonShape,
-                            color = colors.surfaceElevated,
-                            border = BorderStroke(0.6.dp, colors.border),
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(ButtonShape)
-                                .clickable {
-                                    val tabs = CustomerLedgerFilterTab.values()
-                                    val nextIndex = (uiState.selectedLedgerFilter.ordinal + 1) % tabs.size
-                                    onFilterSelect(tabs[nextIndex])
+                            )
+                            if (uiState.searchQuery.isNotBlank()) {
+                                IconButton(
+                                    onClick = { onSearchQueryChange("") },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "پاک کردن",
+                                        tint = colors.textMuted,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = LedgerFilterTuneVector,
-                                    contentDescription = "فیلتر پیشرفته",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
                         }
                     }

@@ -103,8 +103,8 @@ fun InvoicesManagementScreen(
                 totalTurnoverMillionTomans = totalTurnoverMillionTomans
             )
 
-            // 2. Search & Filter Bar
-            SearchAndQuickFilterBar(
+            // 2. Search Bar
+            InvoiceSearchBar(
                 query = uiState.searchQuery,
                 onQueryChange = onSearchQueryChange
             )
@@ -317,88 +317,65 @@ private fun KpiStatBox(
 }
 
 /**
- * 2. Search & Filter Bar matching Stitch Screen 6
+ * 2. Search Bar matching Stitch Screen 6
  */
 @Composable
-private fun SearchAndQuickFilterBar(
+private fun InvoiceSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
-        // Search Input Box
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(46.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "🔍",
-                    fontSize = 14.sp
-                )
-
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (query.isEmpty()) {
-                        Text(
-                            text = "جستجوی مشتری، شناسه فاکتور، تلفن...",
-                            fontSize = 12.sp,
-                            color = colors.textMuted,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textMain,
-                            fontFamily = VazirmatnFamily,
-                            textAlign = TextAlign.Right,
-                            textDirection = TextDirection.Rtl
-                        ),
-                        cursorBrush = SolidColor(colors.goldPrimary),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-            }
-        }
-
-        // Filter / Sort Action Button
-        Box(
-            modifier = Modifier
-                .size(46.dp)
-                .clip(ButtonShape)
-                .background(colors.surface)
-                .border(1.dp, colors.border, ButtonShape)
-                .clickable { /* Filter and Sort Action */ },
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "⚡",
-                fontSize = 18.sp
+                text = "🔍",
+                fontSize = 14.sp
             )
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (query.isEmpty()) {
+                    Text(
+                        text = "جستجوی مشتری، شناسه فاکتور، تلفن...",
+                        fontSize = 12.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textMain,
+                        fontFamily = VazirmatnFamily,
+                        textAlign = TextAlign.Right,
+                        textDirection = TextDirection.Rtl
+                    ),
+                    cursorBrush = SolidColor(colors.goldPrimary),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
         }
     }
 }
