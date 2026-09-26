@@ -256,7 +256,7 @@ fun SettingsDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        OutlinedTextField(
+                        GoldOutlinedTextField(
                             value = profitPct,
                             onValueChange = { profitPct = it },
                             label = { Text("سود طلافروش (٪)", fontSize = 11.sp) },
@@ -269,7 +269,7 @@ fun SettingsDialog(
                             )
                         )
 
-                        OutlinedTextField(
+                        GoldOutlinedTextField(
                             value = taxPct,
                             onValueChange = { taxPct = it },
                             label = { Text("مالیات ارزش افزوده (٪)", fontSize = 11.sp) },
@@ -293,7 +293,7 @@ fun SettingsDialog(
                         color = colors.goldPrimary
                     )
 
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = galleryName,
                         onValueChange = { galleryName = it },
                         label = { Text("نام فروشگاه / گالری طلا", fontSize = 11.sp) },
@@ -309,7 +309,7 @@ fun SettingsDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        OutlinedTextField(
+                        GoldOutlinedTextField(
                             value = galleryPhone,
                             onValueChange = { galleryPhone = it },
                             label = { Text("تلفن تماس", fontSize = 11.sp) },
@@ -322,7 +322,7 @@ fun SettingsDialog(
                             )
                         )
 
-                        OutlinedTextField(
+                        GoldOutlinedTextField(
                             value = galleryLicense,
                             onValueChange = { galleryLicense = it },
                             label = { Text("شماره پروانه کسب / اتحادیه", fontSize = 11.sp) },
@@ -335,7 +335,7 @@ fun SettingsDialog(
                         )
                     }
 
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = galleryAddress,
                         onValueChange = { galleryAddress = it },
                         label = { Text("نشانی گالری (درج در انتهای فاکتور)", fontSize = 11.sp) },

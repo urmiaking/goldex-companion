@@ -581,7 +581,7 @@ fun AddCustomerDialog(
                     }
 
                     // Name (Required)
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = name,
                         onValueChange = {
                             name = it
@@ -610,7 +610,7 @@ fun AddCustomerDialog(
                     }
 
                     // Phone
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = phone,
                         onValueChange = { phone = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() || c == '+' } },
                         label = { Text("شماره همراه (اختیاری)", fontSize = 11.sp) },
@@ -629,7 +629,7 @@ fun AddCustomerDialog(
                     )
 
                     // National ID
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = nationalId,
                         onValueChange = { nationalId = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() } },
                         label = { Text("کد ملی / شناسه اقتصادی (اختیاری)", fontSize = 11.sp) },
@@ -648,7 +648,7 @@ fun AddCustomerDialog(
                     )
 
                     // Note
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = note,
                         onValueChange = { note = it },
                         label = { Text("توضیحات و یادداشت (اختیاری)", fontSize = 11.sp) },
@@ -764,7 +764,7 @@ fun EditCustomerDialog(
                     }
 
                     // Name
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = name,
                         onValueChange = {
                             name = it
@@ -793,7 +793,7 @@ fun EditCustomerDialog(
                     }
 
                     // Phone
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = phone,
                         onValueChange = { phone = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() || c == '+' } },
                         label = { Text("شماره همراه (اختیاری)", fontSize = 11.sp) },
@@ -812,7 +812,7 @@ fun EditCustomerDialog(
                     )
 
                     // National ID
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = nationalId,
                         onValueChange = { nationalId = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() } },
                         label = { Text("کد ملی / شناسه اقتصادی (اختیاری)", fontSize = 11.sp) },
@@ -831,7 +831,7 @@ fun EditCustomerDialog(
                     )
 
                     // Note
-                    OutlinedTextField(
+                    GoldOutlinedTextField(
                         value = note,
                         onValueChange = { note = it },
                         label = { Text("توضیحات و یادداشت (اختیاری)", fontSize = 11.sp) },
