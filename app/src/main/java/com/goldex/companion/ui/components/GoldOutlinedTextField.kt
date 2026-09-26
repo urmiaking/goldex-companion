@@ -1,11 +1,6 @@
 package com.goldex.companion.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
@@ -13,14 +8,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 
-/** Keeps the floating label's fill aligned with the Material field container in every state. */
+/** Outlined input seam: labels render directly without a painted background. */
 @Composable
 fun GoldOutlinedTextField(
     value: String,
@@ -47,19 +41,6 @@ fun GoldOutlinedTextField(
     shape: Shape = OutlinedTextFieldDefaults.shape,
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
 ) {
-    val focused by interactionSource.collectIsFocusedAsState()
-    // Match Material 3's state precedence and 150ms container-color transition.
-    val labelBackground by animateColorAsState(
-        targetValue = when {
-            !enabled -> colors.disabledContainerColor
-            isError -> colors.errorContainerColor
-            focused -> colors.focusedContainerColor
-            else -> colors.unfocusedContainerColor
-        },
-        animationSpec = tween(durationMillis = 150),
-        label = "inputLabelBackground"
-    )
-
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -67,9 +48,7 @@ fun GoldOutlinedTextField(
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
-        label = label?.let { content ->
-            { Box(Modifier.background(labelBackground)) { content() } }
-        },
+        label = label,
         placeholder = placeholder,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,

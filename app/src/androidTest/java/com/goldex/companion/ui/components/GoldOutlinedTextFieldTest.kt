@@ -28,18 +28,20 @@ class GoldOutlinedTextFieldTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun labelMatchesContainerAcrossFocusValidationAndThemeChanges() {
+    fun floatingLabelRemainsTransparentAcrossFocusValidationAndThemeChanges() {
         val dark = mutableStateOf(false)
         val value = mutableStateOf("")
         val enabled = mutableStateOf(true)
         val error = mutableStateOf(false)
         lateinit var focusManager: FocusManager
+        var surroundingColor = Color.Unspecified
         compose.setContent {
             GoldExCompanionTheme(isDarkTheme = dark.value) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val colors = LocalGoldExColors.current
                     focusManager = LocalFocusManager.current
-                    Surface(color = colors.surface) {
+                    surroundingColor = colors.background
+                    Surface(color = surroundingColor) {
                         GoldOutlinedTextField(
                             value = value.value,
                             onValueChange = { value.value = it },
@@ -68,26 +70,27 @@ class GoldOutlinedTextFieldTest {
                 value.value = ""
             }
             compose.onNodeWithTag("field").performClick()
-            assertMatchingBackground()
+            assertTransparentBackground(surroundingColor)
             compose.onNodeWithTag("field").performTextInput("12.5")
             compose.runOnIdle { assertEquals("12.5", value.value) }
-            assertMatchingBackground()
+            assertTransparentBackground(surroundingColor)
             compose.runOnIdle { focusManager.clearFocus(force = true) }
-            assertMatchingBackground()
+            assertTransparentBackground(surroundingColor)
             compose.runOnIdle { error.value = true }
             compose.onNodeWithTag("field").performClick()
-            assertMatchingBackground()
+            assertTransparentBackground(surroundingColor)
             compose.runOnIdle { enabled.value = false }
-            assertMatchingBackground()
+            assertTransparentBackground(surroundingColor)
         }
     }
 
-    private fun assertMatchingBackground() {
+    private fun assertTransparentBackground(surroundingColor: Color) {
         compose.waitForIdle()
         val label = compose.onNodeWithTag("label", useUnmergedTree = true)
             .captureToImage().toPixelMap()
-        val field = compose.onNodeWithTag("field").captureToImage().toPixelMap()
-        assertColorEquals(field[field.width / 2, field.height - 10], label[0, 0])
+        // The floating label extends above the field. Its empty top corner must
+        // reveal the surrounding surface, rather than a painted label rectangle.
+        assertColorEquals(surroundingColor, label[0, 0])
     }
 
     private fun assertColorEquals(expected: Color, actual: Color) {
