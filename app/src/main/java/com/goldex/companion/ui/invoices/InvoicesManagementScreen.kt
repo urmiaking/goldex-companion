@@ -742,34 +742,35 @@ private fun InvoiceTransactionCard(
                 }
             }
 
-            // Keep the destructive control separate from PDF/details on narrow screens.
-            Column(
+            // RTL order: total price, flexible space, delete, PDF, details.
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    Text(
+                        text = item.amountLabel,
+                        fontSize = 10.sp,
+                        color = colors.textMuted,
+                        fontFamily = VazirmatnFamily
+                    )
+                    AnimatedPriceText(
+                        amount = item.finalAmount,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.textMain,
+                        unit = "تومان"
+                    )
+                }
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(1.dp)
-                    ) {
-                        Text(
-                            text = item.amountLabel,
-                            fontSize = 10.sp,
-                            color = colors.textMuted,
-                            fontFamily = VazirmatnFamily
-                        )
-                        AnimatedPriceText(
-                            amount = item.finalAmount,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Black,
-                            color = colors.textMain,
-                            unit = "تومان"
-                        )
-                    }
-
                     IconButton(onClick = onDeleteClick, modifier = Modifier.size(48.dp)) {
                         Icon(
                             imageVector = InvoiceTrashVector,
@@ -778,13 +779,6 @@ private fun InvoiceTransactionCard(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
                     // PDF Button
                     Box(
                         modifier = Modifier
