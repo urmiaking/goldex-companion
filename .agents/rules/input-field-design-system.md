@@ -31,5 +31,5 @@ In Persian financial and gold market interfaces, typing numbers with decimal poi
 
 ### Rule 4: Floating Label Background
 - Use `GoldInputField` or `GoldOutlinedTextField` for outlined inputs with floating labels.
-- The label background must follow the configured field container color in focused, unfocused, error, and disabled states, including its color transition.
-- Do not paint the label with a fixed white background or change theme tokens to conceal a mismatch.
+- Floating labels must remain transparent in every state; pass the label directly without a background modifier, Surface, or painted wrapper.
+- Do not add white, gray, or field-colored backgrounds to labels. Preserve the field container colors and the native outline cutout.
