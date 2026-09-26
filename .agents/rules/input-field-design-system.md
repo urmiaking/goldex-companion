@@ -28,3 +28,8 @@ In Persian financial and gold market interfaces, typing numbers with decimal poi
 ### Rule 3: Typography & Persian Digits
 - All input fields must explicitly set ontFamily = VazirmatnFamily and ontFeatureSettings = VazirmatnFeatureSettings (which enables OpenType ss01).
 - ASCII digits typed into inputs are automatically rendered as authentic Persian numerals while preserving LTR keyboard flow.
+
+### Rule 4: Floating Label Background
+- Use `GoldInputField` or `GoldOutlinedTextField` for outlined inputs with floating labels.
+- The label background must follow the configured field container color in focused, unfocused, error, and disabled states, including its color transition.
+- Do not paint the label with a fixed white background or change theme tokens to conceal a mismatch.

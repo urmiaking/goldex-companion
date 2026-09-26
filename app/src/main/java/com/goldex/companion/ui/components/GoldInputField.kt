@@ -39,7 +39,7 @@ fun GoldInputField(
     val isText = effectiveKeyboardType == KeyboardType.Text
 
     Column(modifier = modifier) {
-        OutlinedTextField(
+        GoldOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             isError = isError,
