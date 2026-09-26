@@ -43,6 +43,7 @@ fun InvoiceManagerDialog(
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
+    var pendingDeletion by remember { mutableStateOf<Invoice?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredInvoices = remember(invoices, searchQuery) {
@@ -61,6 +62,18 @@ fun InvoiceManagerDialog(
 
     val totalWeight = remember(invoices) { invoices.sumOf { it.totalNetWeight } }
     val totalAmount = remember(invoices) { invoices.sumOf { it.totalPayable } }
+
+    pendingDeletion?.let { selected ->
+        InvoiceDeletionConfirmationDialog(
+            invoiceNumber = selected.invoiceNumber,
+            reversesLedger = false,
+            onDismiss = { pendingDeletion = null },
+            onConfirm = {
+                pendingDeletion = null
+                onDeleteInvoice(selected.id)
+            }
+        )
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -321,7 +334,7 @@ fun InvoiceManagerDialog(
                                             }
 
                                             IconButton(
-                                                onClick = { onDeleteInvoice(invoice.id) },
+                                                onClick = { pendingDeletion = invoice },
                                                 modifier = Modifier
                                                     .size(34.dp)
                                                     .clip(ButtonShape)
