@@ -594,6 +594,12 @@ fun MainScreen(
                                             }
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
+                                        onDeleteInvoice = { invoiceId ->
+                                            if (barterInvoiceViewModel.deleteInvoice(invoiceId)) {
+                                                customerViewModel.loadCustomers()
+                                            }
+                                            QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
+                                        },
                                         onExportPdfClick = { item ->
                                             if (!licenseInfo.isLicensed) {
                                                 licenseViewModel.setActivationDialogVisible(true)

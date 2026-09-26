@@ -8,6 +8,9 @@ import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceRepository
 import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase
+import com.goldex.companion.domain.invoice.InvoiceDeletionUseCase
+import com.goldex.companion.domain.invoice.InvoiceDeletionResult
+import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.BarterBalance
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
@@ -77,7 +80,7 @@ class BarterInvoiceViewModel(
     init {
         val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 0L
         val savedBarterInvoices = invoiceStore?.getBarterInvoices() ?: emptyList()
-        val initialItems = savedBarterInvoices.map { createInvoiceListItem(it) }
+        val initialItems = createInvoiceList(savedBarterInvoices)
         _uiState.update { current ->
             current.copy(
                 invoice = BarterInvoice(spotPrice18k = defaultSpot),
@@ -235,33 +238,10 @@ class BarterInvoiceViewModel(
             }
         }
 
-        val newCard = createInvoiceListItem(currentInv)
-
         _uiState.update { state ->
-            val updatedInvoices = state.invoicesList.map { invoiceItem ->
-                if (currentInv.settlementMethod == SettlementMethod.TRANSFER &&
-                    currentInv.thirdPartyInvoiceId.isNotBlank() &&
-                    invoiceItem.id == currentInv.thirdPartyInvoiceId
-                ) {
-                    val deductedAmount = (invoiceItem.finalAmount - currentInv.thirdPartyTransferAmount).coerceAtLeast(0L)
-                    val targetStatus = if (deductedAmount <= 0L) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID
-                    val targetStatusDetail = if (deductedAmount <= 0L) {
-                        "تسویه کامل با تهاتر فاکتور ${currentInv.invoiceNumber}"
-                    } else {
-                        "مانده پس از تهاتر: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(deductedAmount.toDouble())} ت"
-                    }
-                    invoiceItem.copy(
-                        finalAmount = deductedAmount,
-                        status = targetStatus,
-                        statusDetail = targetStatusDetail,
-                        line2Detail = "کسر ${com.goldex.companion.model.PersianNumberFormatter.formatWeight(currentInv.thirdPartyTransferWeight18k)} گرم طلا بابت تهاتر حواله ${currentInv.invoiceNumber}"
-                    )
-                } else {
-                    invoiceItem
-                }
-            }
-
-            val finalList = listOf(newCard) + updatedInvoices.filterNot { it.id == newCard.id }
+            val savedInvoices = invoiceStore?.getBarterInvoices()
+                ?: (listOf(currentInv) + state.invoicesList.mapNotNull { it.barterInvoice }.filterNot { it.id == currentInv.id })
+            val finalList = createInvoiceList(savedInvoices)
             state.copy(
                 invoicesList = finalList,
                 subScreen = InvoicesSubScreen.LIST,
@@ -446,21 +426,63 @@ class BarterInvoiceViewModel(
         _uiState.update { it.copy(invoice = it.invoice.copy(syncWithLedger = sync)) }
     }
 
-    fun deleteInvoice(invoiceId: String) {
-        val invoice = _uiState.value.invoicesList.firstOrNull { it.id == invoiceId }?.barterInvoice
-        invoiceStore?.deleteBarterInvoice(invoiceId)
-        if (invoice?.customer != null && customerStore != null) {
-            val customer = customerStore.getCustomers().firstOrNull { it.id == invoice.customer.id }
-            val existingTxs = customerStore.getTransactionsByInvoiceId(invoiceId)
-            if (customer != null && existingTxs.isNotEmpty()) {
-                val updatedCustomer = InvoiceLedgerSyncUseCase.reverseLedgerSync(existingTxs, customer)
-                customerStore.deleteTransactionsByInvoiceId(invoiceId)
-                customerStore.updateCustomer(updatedCustomer)
+    fun deleteInvoice(invoiceId: String): Boolean {
+        val result = invoiceStore?.let { InvoiceDeletionUseCase(it, customerStore).delete(invoiceId) }
+            ?: InvoiceDeletionResult.Failed(rollbackSucceeded = true)
+        val deleted = result is InvoiceDeletionResult.Deleted
+        val message = when (result) {
+            is InvoiceDeletionResult.Deleted -> "فاکتور ${PersianNumberFormatter.toPersianDigits(result.invoice.cleanInvoiceNumber)} حذف و آثار دفتری و پرداخت‌های مرتبط برگشت داده شد"
+            InvoiceDeletionResult.NotFound -> "فاکتور مورد نظر یافت نشد"
+            InvoiceDeletionResult.MissingLedgerStore -> "حذف فاکتور بدون دسترسی به دفتر حساب امکان‌پذیر نیست"
+            InvoiceDeletionResult.MissingCustomer -> "طرف‌حساب اسناد مرتبط یافت نشد؛ ابتدا دفتر حساب را بررسی کنید"
+            InvoiceDeletionResult.ReferencedByTransfer -> "ابتدا حواله فاکتورهای مرتبط به این فاکتور را حذف یا ویرایش کنید"
+            is InvoiceDeletionResult.Failed -> if (result.rollbackSucceeded) {
+                "حذف فاکتور انجام نشد؛ اطلاعات قبلی حفظ شد"
+            } else {
+                "خطا در بازیابی اطلاعات؛ پیش از تلاش مجدد دفتر حساب را بررسی کنید"
             }
         }
         _uiState.update { state ->
-            state.copy(invoicesList = state.invoicesList.filterNot { it.id == invoiceId })
+            val clearEditor = (deleted || result == InvoiceDeletionResult.NotFound) && state.invoice.id == invoiceId
+            state.copy(
+                invoicesList = when (result) {
+                    is InvoiceDeletionResult.Deleted -> createInvoiceList(result.remainingInvoices)
+                    InvoiceDeletionResult.NotFound -> createInvoiceList(state.invoicesList.mapNotNull { it.barterInvoice }.filterNot { it.id == invoiceId })
+                    else -> state.invoicesList
+                },
+                invoice = if (clearEditor) BarterInvoice(spotPrice18k = state.invoice.spotPrice18k) else state.invoice,
+                subScreen = if (clearEditor) InvoicesSubScreen.LIST else state.subScreen,
+                isEditingExistingInvoice = if (clearEditor) false else state.isEditingExistingInvoice,
+                isItemModalVisible = if (clearEditor) false else state.isItemModalVisible,
+                editingItem = if (clearEditor) null else state.editingItem,
+                isSuccessSnackbarVisible = deleted,
+                statusMessage = message
+            )
         }
+        return deleted
+    }
+
+    // Transfer target cards are a projection; rebuilding removes a deleted source's deduction
+    // and reapplies only the transfers that still exist, including after an app restart.
+    private fun createInvoiceList(invoices: List<BarterInvoice>): List<InvoiceListItem> {
+        var cards = invoices.map(::createInvoiceListItem)
+        invoices.asReversed().forEach { source ->
+            if (source.settlementMethod == SettlementMethod.TRANSFER && source.thirdPartyInvoiceId.isNotBlank()) {
+                cards = cards.map { card ->
+                    if (card.id != source.thirdPartyInvoiceId || card.id == source.id) card else {
+                        val remaining = (card.finalAmount - source.thirdPartyTransferAmount).coerceAtLeast(0L)
+                        card.copy(
+                            finalAmount = remaining,
+                            status = if (remaining == 0L) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
+                            statusDetail = if (remaining == 0L) "تسویه کامل با تهاتر فاکتور ${source.cleanInvoiceNumber}"
+                                else "مانده پس از تهاتر: ${PersianNumberFormatter.formatPrice(remaining.toDouble())} ت",
+                            line2Detail = "کسر ${PersianNumberFormatter.formatWeight(source.thirdPartyTransferWeight18k)} گرم طلا بابت تهاتر حواله ${source.cleanInvoiceNumber}"
+                        )
+                    }
+                }
+            }
+        }
+        return cards
     }
 
     fun resetNewInvoice() {
