@@ -33,6 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.goldex.companion.ui.components.InvoiceDeletionConfirmationDialog
+import com.goldex.companion.ui.invoices.components.InvoiceTrashVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,8 +76,10 @@ fun InvoicesManagementScreen(
     onNewInvoiceClick: () -> Unit,
     onInvoiceItemClick: (InvoiceListItem) -> Unit,
     onExportPdfClick: (InvoiceListItem) -> Unit,
+    onDeleteInvoice: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var pendingDeletion by remember { mutableStateOf<InvoiceListItem?>(null) }
     val invoices = uiState.filteredInvoices
     val allInvoices = uiState.invoicesList
 
@@ -87,6 +93,17 @@ fun InvoicesManagementScreen(
     }
     val totalTurnoverMillionTomans = remember(allInvoices) {
         allInvoices.sumOf { it.finalAmount } / 1_000_000L
+    }
+
+    pendingDeletion?.let { selected ->
+        InvoiceDeletionConfirmationDialog(
+            invoiceNumber = selected.invoiceNumber,
+            onDismiss = { pendingDeletion = null },
+            onConfirm = {
+                pendingDeletion = null
+                onDeleteInvoice(selected.id)
+            }
+        )
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -144,7 +161,8 @@ fun InvoicesManagementScreen(
                             InvoiceTransactionCard(
                                 item = invoiceItem,
                                 onCardClick = { onInvoiceItemClick(invoiceItem) },
-                                onPdfClick = { onExportPdfClick(invoiceItem) }
+                                onPdfClick = { onExportPdfClick(invoiceItem) },
+                                onDeleteClick = { pendingDeletion = invoiceItem }
                             )
                         }
                     }
@@ -542,6 +560,7 @@ private fun InvoiceTransactionCard(
     item: InvoiceListItem,
     onCardClick: () -> Unit,
     onPdfClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -723,32 +742,47 @@ private fun InvoiceTransactionCard(
                 }
             }
 
-            // Bottom Row: Price & Actions
-            Row(
+            // Keep the destructive control separate from PDF/details on narrow screens.
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = item.amountLabel,
-                        fontSize = 10.sp,
-                        color = colors.textMuted,
-                        fontFamily = VazirmatnFamily
-                    )
-                    AnimatedPriceText(
-                        amount = item.finalAmount,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Black,
-                        color = colors.textMain,
-                        unit = "تومان"
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        Text(
+                            text = item.amountLabel,
+                            fontSize = 10.sp,
+                            color = colors.textMuted,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.finalAmount,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            color = colors.textMain,
+                            unit = "تومان"
+                        )
+                    }
+
+                    IconButton(onClick = onDeleteClick, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            imageVector = InvoiceTrashVector,
+                            contentDescription = "حذف فاکتور ${PersianNumberFormatter.toPersianDigits(item.invoiceNumber)}",
+                            tint = colors.errorRed,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // PDF Button
