@@ -8,10 +8,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 // Stitch "Persian Sovereign Aurum" Design Tokens
-val GoldPrimaryDark = Color(0xFFDFB35A)         // Champagne Gold for Dark
-val GoldSecondaryDark = Color(0xFFC7983B)
-val GoldContainerDark = Color(0x24DFB35A)
-val GoldBorderDark = Color(0x4DDFB35A)
+val GoldPrimaryDark = Color(0xFFD4AF37)         // Stitch Dark Champagne Gold #D4AF37
+val GoldSecondaryDark = Color(0xFFF3C64F)
+val GoldContainerDark = Color(0x24D4AF37)
+val GoldBorderDark = Color(0x33D4AF37)
 
 val GoldPrimaryLight = Color(0xFFD4AF37)        // Stitch Master Champagne Gold #D4AF37
 val GoldSecondaryLight = Color(0xFFB8860B)      // Stitch Deep Bullion Gold #B8860B
@@ -50,10 +50,10 @@ val GoldExAppColors.goldGradient: Brush
 
 val GoldExAppColors.heroCardGradient: Brush
     get() = Brush.linearGradient(
-        listOf(
-            Color(0xFF141B2B),
-            Color(0xFF1C2436),
-            Color(0xFF141B2B)
+        if (isDark) listOf(
+            Color(0xFF1A1F2B), Color(0xFF12161F), Color(0xFF0A0D12)
+        ) else listOf(
+            Color(0xFF141B2B), Color(0xFF1C2436), Color(0xFF141B2B)
         )
     )
 
@@ -76,33 +76,32 @@ val GoldExAppColors.specularHairlineBrush: Brush
 
 val GoldExAppColors.goldButtonGradient: Brush
     get() = Brush.horizontalGradient(
-        listOf(
-            Color(0xFFFAC24B),
-            Color(0xFFE7B342)
-        )
+        if (isDark) listOf(goldSecondary, goldPrimary)
+        else listOf(Color(0xFFFAC24B), Color(0xFFE7B342))
     )
 
 val GoldExAppColors.goldButtonContainer: Color
-    get() = Color(0xFFEBB644)
+    get() = if (isDark) goldSecondary else Color(0xFFEBB644)
 
 val GoldExAppColors.goldButtonText: Color
-    get() = Color(0xFF554300)
+    get() = if (isDark) background else Color(0xFF554300)
 
+// Stitch dark dashboard: charcoal canvas, slate cards, warm stone text.
 val DarkGoldExColors = GoldExAppColors(
     isDark = true,
-    background = Color(0xFF0A0B0E),
-    surface = Color(0xFF13161F),
-    surfaceElevated = Color(0xFF191D2A),
-    surfaceVariant = Color(0xFF1E2333),
-    border = Color(0xFF242938),
+    background = Color(0xFF0B0D11),
+    surface = Color(0xFF161B22),
+    surfaceElevated = Color(0xFF1E2530),
+    surfaceVariant = Color(0xFF1A202C),
+    border = Color(0x0DFFFFFF),
     goldPrimary = GoldPrimaryDark,
     goldSecondary = GoldSecondaryDark,
     goldBullion = GoldSecondaryDark,
     goldContainer = GoldContainerDark,
     goldBorder = GoldBorderDark,
-    textMain = Color(0xFFF3F4F8),
-    textSecondary = Color(0xFF9EA6B8),
-    textMuted = Color(0xFF676E7E),
+    textMain = Color(0xFFF8FAFC),
+    textSecondary = Color(0xFFD6D3D1),
+    textMuted = Color(0xFFA8A29E),
     profitGreen = Color(0xFF10B981),
     errorRed = Color(0xFFEF4444)
 )
@@ -127,3 +126,15 @@ val LightGoldExColors = GoldExAppColors(
 )
 
 val LocalGoldExColors = staticCompositionLocalOf { LightGoldExColors }
+
+// Dashboard keeps a dark vault card in both themes; preserve its light-mode artwork.
+val GoldExAppColors.dashboardVaultGradient: Brush
+    get() = if (isDark) heroCardGradient else Brush.linearGradient(
+        listOf(Color(0xFF141A29), Color(0xFF1D263B), Color(0xFF111622))
+    )
+
+val GoldExAppColors.goldHighlight: Color
+    get() = if (isDark) Color(0xFFFFE088) else Color(0xFFFFDF88)
+
+val GoldExAppColors.marketGainText: Color
+    get() = if (isDark) profitGreen else Color(0xFF059669)

@@ -62,6 +62,9 @@ import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
+import com.goldex.companion.ui.theme.dashboardVaultGradient
+import com.goldex.companion.ui.theme.goldHighlight
+import com.goldex.companion.ui.theme.marketGainText
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 
@@ -116,7 +119,7 @@ fun DashboardScreen(
                                 listOf(
                                     colors.goldPrimary,
                                     colors.goldBullion,
-                                    Color(0xFFFFDF88)
+                                    colors.goldHighlight
                                 )
                             )
                         )
@@ -187,7 +190,7 @@ fun DashboardScreen(
                         text = "بازار زنده",
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF007A50)
+                        color = if (colors.isDark) colors.profitGreen else Color(0xFF007A50)
                     )
                 }
             }
@@ -219,20 +222,14 @@ fun DashboardScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
                 .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF141A29),
-                            Color(0xFF1D263B),
-                            Color(0xFF111622)
-                        )
-                    )
+                    colors.dashboardVaultGradient
                 )
                 .border(
                     width = 0.8.dp,
                     brush = Brush.linearGradient(
                         listOf(
                             colors.goldPrimary.copy(alpha = 0.6f),
-                            Color(0x33B8860B),
+                            if (colors.isDark) colors.goldBorder else Color(0x33B8860B),
                             colors.goldPrimary.copy(alpha = 0.2f)
                         )
                     ),
@@ -407,7 +404,7 @@ fun DashboardScreen(
                         text = "بروزرسانی لحظه‌ای",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF059669)
+                        color = colors.marketGainText
                     )
                 }
             }
@@ -630,7 +627,7 @@ fun DashboardScreen(
                         val isPositive = activeChart.isPositive
                         val deltaBg = if (isPositive) Color(0xFF10B981).copy(alpha = 0.12f) else Color(0xFFEF4444).copy(alpha = 0.12f)
                         val deltaBorder = if (isPositive) Color(0xFF10B981).copy(alpha = 0.3f) else Color(0xFFEF4444).copy(alpha = 0.3f)
-                        val deltaColor = if (isPositive) Color(0xFF059669) else Color(0xFFEF4444)
+                        val deltaColor = if (isPositive) colors.marketGainText else colors.errorRed
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = deltaBg,
@@ -711,7 +708,7 @@ fun DashboardScreen(
                                 currentPrice = chart.candles.lastOrNull()?.close ?: activeRate,
                                 currencyUnit = "تومان",
                                 modifier = Modifier.fillMaxWidth().height(130.dp),
-                                goldColor = colors.goldPrimary
+                                goldColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary
                             )
                         }
                     }

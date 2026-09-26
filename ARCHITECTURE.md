@@ -71,7 +71,7 @@ data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market 
 - Financial models and formatters: `model/`
 - Report detail projections: `domain/reporting/ReportingDetailsUseCase.kt` builds period sales categories, current and previous-period profit buckets, and stock movement totals, plus current customer and inventory-location snapshots. `MainScreen` opens the four report pages over the reports gateway with the same screen-push transition. `ui/reporting/ReportingChrome.kt` owns their shared header and date filters; `ReportingShareText.kt` formats user-initiated aggregate summaries. All pages consume the same `ReportingUiState`; no second data owner or persisted shape was introduced.
 - Integrations: `data/`
-- Design tokens: `ui/theme/`
+- Design tokens: `ui/theme/`. Dark-mode custom colors and Material 3 roles share the Stitch charcoal/slate/champagne palette; `docs/stitch/dark-mode/` stores the source dashboard HTML, screenshot, and role mapping. Dashboard vault gradients and market-gain labels select theme-aware tokens without changing financial state or the light palette.
 - Tests: `app/src/test/`
 - Release workflow: `.github/workflows/build-and-release.yml`
 

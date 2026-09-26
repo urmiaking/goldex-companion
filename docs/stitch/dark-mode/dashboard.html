@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html class="dark" dir="rtl" lang="fa"><head></head><body class="bg-[#0B0D11] font-body-md text-[#F8FAFC] flex flex-col min-h-screen selection:bg-amber-500/30 selection:text-amber-200"><svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><style>
+  * {
+    font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+  .material-symbols-outlined, [class*="material-symbols"] {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr !important;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'liga';
+    user-select: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  @layer base {
+    html, body {
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background-color: #0B0D11;
+    }
+    body {
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
+</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-surface-variant": "#94A3B8", "inverse-surface": "#F8FAFC", "on-error": "#ffffff", "outline": "#64748B", "surface-container-highest": "#28303E", "surface-container-lowest": "#0E1116", "secondary": "#F3C64F", "surface-container-high": "#1E2530", "on-tertiary": "#ffffff", "on-secondary-fixed-variant": "#5d4200", "on-tertiary-fixed": "#002113", "secondary-container": "#4A3B00", "surface-container-low": "#12161D", "on-primary-container": "#FFE088", "tertiary": "#10B981", "on-secondary": "#1E1800", "surface-container": "#161B22", "surface": "#0B0D11", "on-secondary-container": "#F3C64F", "on-background": "#F8FAFC", "on-primary-fixed-variant": "#574500", "surface-tint": "#D4AF37", "primary-fixed": "#FFE088", "error": "#EF4444", "on-primary-fixed": "#241a00", "surface-dim": "#08090C", "surface-variant": "#1A202C", "tertiary-fixed-dim": "#4edea3", "primary-container": "#2A2308", "on-tertiary-fixed-variant": "#005236", "secondary-fixed-dim": "#f7bd48", "secondary-fixed": "#ffdea6", "on-surface": "#F8FAFC", "on-primary": "#0B0D11", "inverse-on-surface": "#0B0D11", "outline-variant": "rgba(212, 175, 55, 0.2)", "error-container": "#3F1315", "primary": "#D4AF37", "on-error-container": "#FFDAD6", "on-tertiary-container": "#A7F3D0", "background": "#0B0D11", "inverse-primary": "#735c00", "tertiary-fixed": "#6ffbbe", "primary-fixed-dim": "#e9c349", "on-secondary-fixed": "#271900", "tertiary-container": "#064E3B", "surface-bright": "#161B22" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.25rem", "space-sm": "0.75rem", "space-xl": "1.5rem", "gutter-card": "1rem", "space-md": "1rem", "card-padding": "1.25rem", "space-2xl": "2rem", "space-2xs": "0.25rem", "margin-screen": "1.25rem", "space-xs": "0.5rem", "space-3xl": "2.5rem" }, "fontFamily": { "headline-lg": ["epilogue"], "body-md": ["manrope"], "label-md": ["manrope"], "display-lg": ["epilogue"], "body-lg": ["manrope"], "body-sm": ["manrope"], "label-lg": ["manrope"], "label-sm": ["manrope"], "headline-sm": ["manrope"], "headline-md": ["epilogue"] }, "fontSize": { "headline-lg": ["26px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-md": ["14px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }], "display-lg": ["34px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "500" }], "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }], "headline-sm": ["18px", { "lineHeight": "26px", "letterSpacing": "0em", "fontWeight": "600" }], "headline-md": ["22px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }] } } } }</script><header class="w-full flex items-center justify-between px-4 py-3 bg-[#0B0D11]/90 backdrop-blur-md sticky top-0 z-30 border-b border-amber-500/10"><div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-neutral-900 flex items-center justify-center p-1.5 shadow-[0_0_15px_rgba(212,175,55,0.2)] border border-amber-500/40">
+<svg class="w-full h-full" fill="none" viewbox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<circle cx="50" cy="46" r="32" stroke="#d4af37" stroke-width="8"></circle>
+<path d="M68 64L84 82" stroke="#d4af37" stroke-linecap="round" stroke-width="8"></path>
+<path d="M38 42L44 34H56L62 42L50 56L38 42Z" fill="#d4af37"></path>
+<path d="M44 34L50 56M56 34L50 56M38 42H62" stroke="#101318" stroke-width="2"></path>
+</svg>
+</div>
+<div class="text-right">
+<h1 class="text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 font-['Epilogue',sans-serif]">قیراط</h1>
+<p class="text-[11px] text-stone-400 font-medium">دستیار جامع محاسبات و فاکتور طلا</p>
+</div>
+</div>
+<div class="flex items-center justify-center w-10 h-10 rounded-2xl bg-[#161B22] border border-amber-500/25 shadow-inner relative hover:border-amber-500/50 transition-colors">
+<span class="material-symbols-outlined text-amber-200/90 text-xl">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+</div></header><main class="flex flex-col relative w-full pb-36 px-margin-screen bg-[#0B0D11] min-h-screen pt-2"><div class="flex flex-col w-full gap-space-lg pb-10">
+<!-- Trader Welcome & TGJU Live Status -->
+<div class="flex items-center justify-between gap-space-sm pt-2">
+<div class="flex items-center gap-space-sm">
+<div class="relative w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-amber-500/40 via-yellow-400 to-amber-200 shadow-lg shadow-amber-500/10 flex-shrink-0">
+<img alt="حاج محمد کاظمی" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXE5erqhxSsHWO7UqGEs5GtCIW0a2nK-KhLgPuqhYoU6ZeaBCm2vnkaBdT5u0EAIMQNJhOj4q8ALjb-LOBFttK3Ycco449y_poX9nVgLtIYZt1Jy9FVPZ9IHFYjhbrk9blQYoXbOWJtKLjUHsTji957zx3AODYUDJXApB7tyFZ51-MsU0SLCPpqhWH1iTm3VgSAXaHnAQldapW0uWx-a6A4plVV1cvEj7J6x6fJwRgbluNHVcg-BIY"/>
+<span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-[#0B0D11] rounded-full shadow-[0_0_10px_rgba(16,185,129,0.7)]"></span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-white truncate font-bold">روز بخیر، حاج محمد کاظمی</span>
+<span class="material-symbols-outlined !text-[18px] text-amber-400" style='font-variation-settings: "FILL" 1;'>verified</span>
+</div>
+<span class="font-label-sm text-label-sm text-stone-400">بنکداری طلای کیهان • سرای زرگران بازار بزرگ</span>
+</div>
+</div>
+</div>
+<!-- Sovereign Gold Vault Asset Card -->
+<div class="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#1A1F2B] via-[#12161F] to-[#0A0D12] text-white p-space-lg border border-amber-500/25">
+<!-- Subtle Golden Shimmer Background Elements -->
+<div class="absolute -top-16 -left-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-20 -right-10 w-52 h-52 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="absolute top-0 right-1/4 w-32 h-20 bg-amber-400/5 blur-2xl pointer-events-none"></div>
+<!-- Card Content Layer -->
+<div class="relative z-10 flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+<span class="material-symbols-outlined !text-[20px]" style='font-variation-settings: "FILL" 1;'>account_balance_wallet</span>
+</div>
+<span class="font-label-md text-label-md text-stone-300 tracking-wide">موجودی کل (خالص ۱۸ عیار)</span>
+</div>
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-400 font-label-sm text-label-sm font-semibold shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+<span class="material-symbols-outlined !text-[15px]">trending_up</span>
+<span class="">+۱.۲٪ (۴.۱+ گرم)</span>
+</div>
+</div>
+<!-- Main Weight Metric -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg font-bold text-white tracking-tight">۳۴۲.۵۰۰</span>
+<span class="font-headline-sm text-headline-sm text-amber-300 font-semibold">گرم ۷۵۰</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-stone-400">ارزش ریالی روز بازار:</span>
+<span class="font-headline-sm text-headline-sm text-transparent bg-clip-text bg-gradient-to-l from-amber-200 via-amber-400 to-yellow-300 font-bold">۱,۴۶۸,۵۰۰,۰۰۰</span>
+<span class="font-label-md text-label-md text-stone-300">تومان</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Market Overview Strip -->
+<div class="w-full flex flex-col gap-2">
+<div class="flex items-center justify-between px-0.5">
+<span class="font-label-sm text-label-sm text-stone-300 font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined !text-[17px] text-amber-400">currency_exchange</span>
+<span class="">تابلوی زنده مظنه‌های بازار</span>
+</span>
+<span class="font-label-sm text-label-sm text-emerald-400 font-bold flex items-center gap-1.5 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/30 shadow-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="">بروزرسانی لحظه‌ای</span>
+</span>
+</div>
+<div class="flex flex-row overflow-x-auto gap-space-sm pb-1 pt-1 no-scrollbar" style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;">
+<!-- Quote 1 -->
+<div class="flex-shrink-0 min-w-[175px] p-3.5 rounded-xl bg-[#161B22] shadow-md flex flex-col justify-between gap-2 border border-white/5 hover:border-amber-500/30 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style="scroll-snap-align: start;">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-stone-300 font-medium">مظنه آبشده (مثقال)</span>
+<div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined !text-[18px]" style='font-variation-settings: "FILL" 1;'>layers</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-white tracking-wide">۱۸,۵۶۰,۰۰۰</span>
+<div class="flex items-center justify-between text-label-sm text-label-sm pt-0.5">
+<span class="text-stone-400">تومان</span>
+<span class="text-emerald-400 font-semibold flex items-center gap-0.5">+۰.۴٪</span>
+</div>
+</div>
+</div>
+<!-- Quote 2 -->
+<div class="flex-shrink-0 min-w-[175px] p-3.5 rounded-xl bg-[#161B22] shadow-md flex flex-col justify-between gap-2 border border-white/5 hover:border-amber-500/30 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style="scroll-snap-align: start;">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-stone-300 font-medium">سکه تمام بهار آزادی</span>
+<div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined !text-[18px]" style='font-variation-settings: "FILL" 1;'>monetization_on</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-white tracking-wide">۴۹,۱۰۰,۰۰۰</span>
+<div class="flex items-center justify-between text-label-sm text-label-sm pt-0.5">
+<span class="text-stone-400">تومان</span>
+<span class="text-emerald-400 font-semibold flex items-center gap-0.5">+۰.۶٪</span>
+</div>
+</div>
+</div>
+<!-- Quote 3 -->
+<div class="flex-shrink-0 min-w-[175px] p-3.5 rounded-xl bg-[#161B22] shadow-md flex flex-col justify-between gap-2 border border-white/5 hover:border-amber-500/30 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style="scroll-snap-align: start;">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-stone-300 font-medium">طلای ۱۸ عیار (گرم)</span>
+<div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined !text-[18px]" style='font-variation-settings: "FILL" 1;'>toll</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-white tracking-wide">۴,۲۸۵,۰۰۰</span>
+<div class="flex items-center justify-between text-label-sm text-label-sm pt-0.5">
+<span class="text-stone-400">تومان</span>
+<span class="text-emerald-400 font-semibold flex items-center gap-0.5">+۰.۸٪</span>
+</div>
+</div>
+</div>
+<!-- Quote 4 -->
+<div class="flex-shrink-0 min-w-[175px] p-3.5 rounded-xl bg-[#161B22] shadow-md flex flex-col justify-between gap-2 border border-white/5 hover:border-amber-500/30 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style="scroll-snap-align: start;">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-stone-300 font-medium">نیم سکه بهار آزادی</span>
+<div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined !text-[18px]" style='font-variation-settings: "FILL" 1;'>radio_button_checked</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-white tracking-wide">۲۵,۴۰۰,۰۰۰</span>
+<div class="flex items-center justify-between text-label-sm text-label-sm pt-0.5">
+<span class="text-stone-400">تومان</span>
+<span class="text-emerald-400 font-semibold flex items-center gap-0.5">+۰.۳٪</span>
+</div>
+</div>
+</div>
+<!-- Quote 5 -->
+<div class="flex-shrink-0 min-w-[175px] p-3.5 rounded-xl bg-[#161B22] shadow-md flex flex-col justify-between gap-2 border border-white/5 hover:border-amber-500/30 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]" style="scroll-snap-align: start;">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-stone-300 font-medium">انس جهانی طلا</span>
+<div class="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined !text-[18px]" style='font-variation-settings: "FILL" 1;'>public</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm font-bold text-white tracking-wide">۲,۶۸۴.۲۰</span>
+<div class="flex items-center justify-between text-label-sm text-label-sm pt-0.5">
+<span class="text-stone-400">دلار / اونس</span>
+<span class="text-emerald-400 font-semibold flex items-center gap-0.5">+۱.۱٪</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions & Shortcuts Grid (دسترسی‌های سریع زرگری) -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined !text-[20px] text-amber-400">widgets</span>
+<h2 class="font-headline-sm text-headline-sm text-white font-bold">دسترسی‌های سریع بنکداری</h2>
+</div>
+<span class="font-label-sm text-label-sm text-stone-400">ابزارهای محاسباتی</span>
+</div>
+<div class="grid grid-cols-3 gap-space-sm">
+<!-- Shortcut 1: Calculator -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">calculate</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">محاسبه طلا</span>
+</button>
+<!-- Shortcut 2: New Invoice -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">post_add</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">صدور فاکتور</span>
+</button>
+<!-- Shortcut 3: Karat Converter -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">balance</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">تبدیل عیار</span>
+</button>
+<!-- Shortcut 4: Coin Bubble -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">bubble_chart</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">حباب مسکوکات</span>
+</button>
+<!-- Shortcut 5: Live Ticker Sheet -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">candlestick_chart</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">مظنه آبشده</span>
+</button>
+<!-- Shortcut 6: Customer Ledger -->
+<button class="group flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/30 hover:bg-[#1E232D] transition-all active:scale-[0.96]" type="button">
+<div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-black group-hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all shadow-inner">
+<span class="material-symbols-outlined !text-[24px]">menu_book</span>
+</div>
+<span class="font-label-md text-label-md text-stone-200 group-hover:text-white font-semibold text-center">دفترچه کیفی</span>
+</button>
+</div>
+</div>
+<!-- Live Market Chart & Price Trends (نمودار مظنه و نوسانات امروز بازار طلا) -->
+<div class="flex flex-col gap-space-sm p-space-lg rounded-2xl bg-[#161B22] border border-white/5 shadow-xl">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-white font-bold">روند طلای ۱۸ عیار</span>
+<span class="font-label-sm text-label-sm text-stone-400">نرخ پایه اتحادیه طلا و جواهر</span>
+</div>
+<!-- Timeframe Toggle Tabs -->
+<div class="flex items-center gap-1 bg-[#0E1116] p-1 rounded-xl border border-white/5" id="timeframe-selector">
+<button class="px-2.5 py-1 rounded-lg text-label-sm font-label-sm font-bold bg-[#1E2530] text-amber-300 border border-amber-500/30 shadow-xs transition-colors" type="button">امروز</button>
+<button class="px-2.5 py-1 rounded-lg text-label-sm font-label-sm text-stone-400 hover:text-white transition-colors" type="button">هفتگی</button>
+<button class="px-2.5 py-1 rounded-lg text-label-sm font-label-sm text-stone-400 hover:text-white transition-colors" type="button">ماهانه</button>
+</div>
+</div>
+<!-- Active Quote & Intraday Delta -->
+<div class="flex flex-wrap items-center justify-between gap-2 pt-1"><div class="flex items-baseline flex-wrap gap-1.5 min-w-0"><span class="font-display-lg text-display-lg font-bold text-white tracking-tight">۴,۲۸۵,۰۰۰</span><span class="font-label-md text-label-md text-stone-400 flex-shrink-0">تومان / گرم</span></div><div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/30 text-emerald-400 font-label-md text-label-md font-bold flex-shrink-0 shadow-xs"><span class="material-symbols-outlined !text-[16px]">arrow_upward</span><span class="truncate">+۳۲,۰۰۰ (۰.۸+٪)</span></div></div>
+<!-- Interactive Smooth Golden Area Chart SVG -->
+<div class="relative w-full h-40 mt-1">
+<svg class="w-full h-full overflow-visible" fill="none" preserveaspectratio="none" viewbox="0 0 360 140">
+<defs>
+<!-- Gradient fill for the chart area in dark mode -->
+<lineargradient id="goldGradientDark" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#F3C64F" stop-opacity="0.38"></stop>
+<stop offset="65%" stop-color="#D4AF37" stop-opacity="0.10"></stop>
+<stop offset="100%" stop-color="#D4AF37" stop-opacity="0.0"></stop>
+</lineargradient>
+<filter height="160%" id="glowDark" width="160%" x="-30%" y="-30%">
+<fedropshadow dx="0" dy="2" flood-color="#F3C64F" flood-opacity="0.6" stddeviation="5"></fedropshadow>
+</filter>
+</defs>
+<!-- Area Fill -->
+<path d="M 0 110 C 40 95, 75 120, 110 80 C 150 45, 190 70, 230 40 C 270 15, 310 50, 360 25 L 360 140 L 0 140 Z" fill="url(#goldGradientDark)"></path>
+<!-- Crisp Golden Trend Line -->
+<path d="M 0 110 C 40 95, 75 120, 110 80 C 150 45, 190 70, 230 40 C 270 15, 310 50, 360 25" filter="url(#glowDark)" stroke="#F3C64F" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.75"></path>
+<!-- Highest Peak Marker Point -->
+<circle cx="230" cy="40" fill="#FFE088" r="4.5" stroke="#161B22" stroke-width="2.5"></circle>
+<!-- Live Current Price Node -->
+<circle cx="360" cy="25" fill="#FFE088" r="5"></circle>
+<circle class="animate-ping" cx="360" cy="25" fill="#F3C64F" opacity="0.45" r="9"></circle>
+</svg>
+</div>
+<!-- Time Labels (Persian Hours) -->
+<div class="flex items-center justify-between font-label-sm text-label-sm text-stone-400 px-1">
+<span class="">۱۰:۰۰</span>
+<span class="">۱۲:۰۰</span>
+<span class="">۱۴:۰۰</span>
+<span class="">۱۶:۰۰</span>
+<span class="font-bold text-amber-300">۱۸:۰۰ (زنده)</span>
+</div>
+</div>
+<!-- Recent Transactions & Invoices Stream (آخرین فاکتورها و تبادلات) -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined !text-[20px] text-amber-400">receipt_long</span>
+<h2 class="font-headline-sm text-headline-sm text-white font-bold">آخرین فاکتورها و تبادلات</h2>
+</div>
+<button class="flex items-center gap-0.5 text-amber-400 hover:text-amber-300 font-label-md text-label-md font-semibold transition-colors" type="button">
+<span class="">مشاهده همه (۴۸)</span>
+<span class="material-symbols-outlined !text-[18px]">chevron_left</span>
+</button>
+</div>
+<div class="flex flex-col gap-space-sm">
+<!-- Item 1: Cartier Bracelet -->
+<div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/25 transition-all">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0">
+<span class="material-symbols-outlined !text-[22px]" style='font-variation-settings: "FILL" 1;'>diamond</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg font-bold text-white truncate">دستبند کارتیه ۱۸ عیار</span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-label-sm text-label-sm font-bold flex-shrink-0">تسویه کامل</span>
+</div>
+<span class="font-body-sm text-body-sm text-stone-400 truncate">حاج محمد کاظمی • ۱۲.۵۰۰ گرم</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-1">
+<span class="font-headline-sm text-headline-sm font-bold text-white">۲۴۱,۵۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-stone-400">تومان</span>
+</div>
+</div>
+<!-- Item 2: Coin Purchase with Balance -->
+<div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/25 transition-all">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
+<span class="material-symbols-outlined !text-[22px]" style='font-variation-settings: "FILL" 1;'>monetization_on</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg font-bold text-white truncate">سکه تمام بهار آزادی</span>
+<span class="px-2 py-0.5 rounded-full bg-amber-950/60 border border-amber-500/30 text-amber-300 font-label-sm text-label-sm font-bold flex-shrink-0">مانده ۸.۴ م</span>
+</div>
+<span class="font-body-sm text-body-sm text-stone-400 truncate">خانم سارا رادمنش • فاکتور #۱۴۰۳۹</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-1">
+<span class="font-headline-sm text-headline-sm font-bold text-white">۴۲,۳۰۰,۰۰۰</span>
+<span class="font-label-sm text-label-sm text-stone-400">تومان</span>
+</div>
+</div>
+<!-- Item 3: Workshop Bullion Ingot Receipt -->
+<div class="flex items-center justify-between p-3.5 rounded-2xl bg-[#161B22] border border-white/5 shadow-md hover:border-amber-500/25 transition-all">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-300 flex-shrink-0">
+<span class="material-symbols-outlined !text-[22px]" style='font-variation-settings: "FILL" 1;'>inventory_2</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg font-bold text-white truncate">تحویل شمش آبشده</span>
+<span class="px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-stone-300 font-label-sm text-label-sm font-bold flex-shrink-0">ورود به گاوصندوق</span>
+</div>
+<span class="font-body-sm text-body-sm text-stone-400 truncate">کارگاه زرگری کمالی • رسید انبار #۷۳</span>
+</div>
+</div>
+<div class="flex flex-col items-end flex-shrink-0 pl-1">
+<span class="font-headline-sm text-headline-sm font-bold text-amber-300">۵۰.۰۰۰</span>
+<span class="font-label-sm text-label-sm text-stone-400">گرم ۷۵۰</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // Micro-interaction for timeframe buttons in dark mode
+  document.querySelectorAll('#timeframe-selector button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#timeframe-selector button').forEach(b => {
+        b.classList.remove('bg-[#1E2530]', 'text-amber-300', 'border', 'border-amber-500/30', 'shadow-xs', 'font-bold');
+        b.classList.add('text-stone-400');
+      });
+      btn.classList.add('bg-[#1E2530]', 'text-amber-300', 'border', 'border-amber-500/30', 'shadow-xs', 'font-bold');
+      btn.classList.remove('text-stone-400');
+    });
+  });
+</script></main><!-- Floating Dock Luxury Navigation (Dark Theme) -->
+<nav class="fixed bottom-5 inset-x-0 z-50 mx-4 max-w-lg sm:mx-auto pb-safe pointer-events-none">
+<div class="pointer-events-auto flex items-center justify-between px-3 py-2 rounded-full border border-amber-500/30 shadow-[0_16px_36px_rgba(0,0,0,0.6)] transition-all duration-200 text-stone-400" style="background: rgba(18, 22, 30, 0.85); backdrop-filter: blur(24px) saturate(180%); box-shadow: rgba(0, 0, 0, 0.5) 0px 16px 36px -10px, rgba(212, 175, 55, 0.12) 0px 1px 1px 0px inset;">
+<!-- Home (Active) -->
+<a aria-current="page" class="relative group flex flex-col items-center justify-center py-1 px-3.5 rounded-full text-amber-300 bg-amber-500/20 border border-amber-500/30 shadow-[0_0_12px_rgba(212,175,55,0.2)] transition-all duration-200 active:scale-95" data-path="dashboard" href="#">
+<span class="material-symbols-outlined !text-[22px] text-amber-300" style='font-variation-settings: "FILL" 1;'>dashboard</span>
+<span class="text-[10px] font-bold mt-0.5 text-amber-300">خانه</span>
+<span class="absolute -top-1 w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]"></span>
+</a>
+<!-- Calculator -->
+<a class="group flex flex-col items-center justify-center py-1 px-3 rounded-full text-stone-400 hover:text-white transition-all duration-200 active:scale-95" data-path="calculator" href="#">
+<span class="material-symbols-outlined !text-[22px] group-hover:scale-110 transition-transform">calculate</span>
+<span class="text-[10px] font-medium mt-0.5">ماشین‌حساب</span>
+</a>
+<!-- Live Rates -->
+<a class="group flex flex-col items-center justify-center py-1 px-3 rounded-full text-stone-400 hover:text-white transition-all duration-200 active:scale-95" data-path="live-rates" href="#">
+<span class="material-symbols-outlined !text-[22px] group-hover:scale-110 transition-transform">candlestick_chart</span>
+<span class="text-[10px] font-medium mt-0.5">تابلوی مظنه</span>
+</a>
+<!-- Invoices -->
+<a class="group flex flex-col items-center justify-center py-1 px-3 rounded-full text-stone-400 hover:text-white transition-all duration-200 active:scale-95" data-path="invoices" href="#">
+<span class="material-symbols-outlined !text-[22px] group-hover:scale-110 transition-transform">receipt_long</span>
+<span class="text-[10px] font-medium mt-0.5">فاکتورها</span>
+</a>
+<!-- Menu -->
+<a class="group flex flex-col items-center justify-center py-1 px-3 rounded-full text-stone-400 hover:text-white transition-all duration-200 active:scale-95" data-path="menu" href="#">
+<span class="material-symbols-outlined !text-[22px] group-hover:scale-110 transition-transform">grid_view</span>
+<span class="text-[10px] font-medium mt-0.5">بیشتر</span>
+</a>
+</div>
+</nav>
+</body></html>
