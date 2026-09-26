@@ -832,6 +832,38 @@ internal object PersistenceJsonCodecs {
         return array
     }
 
+    fun encodeBarterItemsString(items: List<BarterItem>): String = encodeBarterItems(items).toString()
+    fun decodeBarterItemsString(json: String?): List<BarterItem> =
+        if (json.isNullOrBlank()) emptyList() else decodeBarterItems(runCatching { JSONArray(json) }.getOrNull())
+
+    fun encodePaymentItemsString(payments: List<SettlementPaymentItem>): String = encodePaymentItems(payments).toString()
+    fun decodePaymentItemsString(json: String?): List<SettlementPaymentItem> =
+        if (json.isNullOrBlank()) emptyList() else decodePaymentItems(runCatching { JSONArray(json) }.getOrNull())
+
+    fun encodeInvoiceItemsString(items: List<InvoiceItem>): String = encodeInvoiceItems(items).toString()
+    fun decodeInvoiceItemsString(json: String?): List<InvoiceItem> =
+        if (json.isNullOrBlank()) emptyList() else decodeInvoiceItems(runCatching { JSONArray(json) }.getOrNull())
+
+    fun encodeCustomerString(customer: Customer): String =
+        JSONObject().apply {
+            put("id", customer.id)
+            put("name", customer.name)
+            put("phone", customer.phone)
+            put("nationalId", customer.nationalId)
+            put("note", customer.note)
+            put("createdAt", customer.createdAt)
+            put("role", customer.role)
+            put("goldDebtGrams", customer.goldDebtGrams)
+            put("cashDebtTomans", customer.cashDebtTomans)
+            put("accountCode", customer.accountCode)
+            put("isVerified", customer.isVerified)
+            put("cityOrMarket", customer.cityOrMarket)
+            put("lastActivityTime", customer.lastActivityTime)
+        }.toString()
+
+    fun decodeCustomerString(json: String?): Customer? =
+        if (json.isNullOrBlank()) null else decodeCustomers("[$json]").firstOrNull()
+
     private inline fun <reified T : Enum<T>> enumOrDefault(value: String, default: T): T =
         runCatching { enumValueOf<T>(value) }.getOrDefault(default)
 

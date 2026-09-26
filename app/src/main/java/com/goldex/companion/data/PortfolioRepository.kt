@@ -55,30 +55,11 @@ data class PortfolioItem(
     }
 }
 
-class PortfolioRepository(context: Context) : PortfolioStore {
-    private val prefs: SharedPreferences = context.getSharedPreferences("goldex_portfolio_prefs", Context.MODE_PRIVATE)
+class PortfolioRepository(
+    private val delegate: PortfolioStore
+) : PortfolioStore by delegate {
 
-    override fun getItems(): List<PortfolioItem> {
-        val jsonString = prefs.getString("items_json", null)
-        if (jsonString.isNullOrBlank()) {
-            return emptyList()
-        }
-
-        return PersistenceJsonCodecs.decodePortfolioItems(jsonString)
-    }
-
-    override fun addItem(item: PortfolioItem) {
-        val current = getItems().toMutableList()
-        current.add(0, item)
-        saveItems(current)
-    }
-
-    override fun deleteItem(id: String) {
-        val current = getItems().filter { it.id != id }
-        saveItems(current)
-    }
-
-    private fun saveItems(items: List<PortfolioItem>) {
-        prefs.edit().putString("items_json", PersistenceJsonCodecs.encodePortfolioItems(items)).apply()
-    }
+    constructor(context: Context) : this(
+        com.goldex.companion.data.local.db.GoldexDatabaseProvider.getPortfolioStore(context)
+    )
 }

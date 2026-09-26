@@ -50,7 +50,7 @@ Feature ViewModels & State Holders:
 
 model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
 domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation, ReportingUseCases) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
-data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), and SharedPreferences/JSON persistence via PersistenceJsonCodecs (Customers, Invoices, BarterInvoices, Inventory, Portfolio)
+data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), Room database (GoldexDatabase, DAOs, Entities, Mappers) with automatic zero-data-loss SharedPreferences JSON migration (DataMigrationManager), and multiplatform-ready Repository delegation contracts.
 ```
 
 ### Current source of truth
@@ -286,10 +286,10 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - The app-shell light/dark choice is owned by `MainViewModel` through `ThemePreference` and the `SettingsStore` theme preference methods. It is persisted independently from financial and jeweler-profile settings so stale feature state cannot overwrite the selected appearance.
 - Gold Inventory & Showcase module established in `ui/inventory/` (`InventoryScreen`, `InventoryViewModel`, `AddInventoryItemModal`, `AdjustStockModal`) with official guild retail price formulas, automated profit by category (20% jewelry, 0% coins, 7% standard), dual wage modes (percentage and toman per gram), custom gold fineness, RFID/tray tracking, animated category capsule filters, and stock adjustment logging.
 - The four specialized reporting entries open dedicated RTL pages with the gateway's header, date chips, screen transition, dark summary cards, and animated changing figures. Sales, VAT, and stock movements use the selected period, including a Persian-calendar current-quarter option; inventory and customer balance totals remain explicitly labeled as current recorded balances. The profit page labels wage plus recorded seller profit rather than claiming net operating profit, since expense records are not available. VAT shows recorded invoice tax and the configured default rate separately. Stitch source HTML and screenshots are kept under `docs/stitch/reporting/` as visual references.
+- Production persistence migration to Room database (`GoldexDatabase`, Room DAOs, independent database entities, type converters, and mappers) fully established. Clean Architecture Ports & Adapters separation isolates domain models (`Customer`, `BarterInvoice`, `InventoryItem`, etc.) completely from database annotations. Zero-data-loss automated migration (`DataMigrationManager`) migrates existing SharedPreferences JSON on first launch inside an atomic SQLite transaction while preserving legacy files as immutable safety backups.
 
 ## 14. Known current compromises
 
-- Some persistence is collection-level SharedPreferences JSON, now behind tested compatibility codecs (to be migrated to Room when dataset scale justifies).
 - The market layer contains provider-specific HTTP and parsing code.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 
