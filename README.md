@@ -45,3 +45,6 @@
 ### وضعیت انتشار
 
 نسخه فعلی `0.55.6` شامل ویزارد هوشمند راه‌اندازی با امکان ثبت لوگو و مهر رسمی، گزارش‌های تخصصی مالی، مدیریت انبار و ویترین طلا و ابزارهای ثبت معاملات است. ساخت نهایی و امضای نسخه انتشار در GitHub Actions انجام می‌شوند.
+
+
+Cloud synchronization (disabled by default) adds mobile OTP accounts, durable offline changes, private logo/stamp files and one active writer device. Enable from the cloud wizard step or More Hub settings after the server release gate is ready. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).

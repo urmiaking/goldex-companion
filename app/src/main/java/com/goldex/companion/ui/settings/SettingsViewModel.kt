@@ -1,6 +1,9 @@
 package com.goldex.companion.ui.settings
 
 import android.app.Application
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.goldex.companion.data.AppSettings
@@ -29,6 +32,7 @@ class SettingsViewModel(
 
     init {
         loadSettings()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) { repository.settings.collect { settings -> _uiState.update { it.copy(appSettings = settings) } } }
     }
 
     fun loadSettings() {
@@ -38,7 +42,7 @@ class SettingsViewModel(
 
     fun updateSettings(newSettings: AppSettings) {
         repository.saveSettings(newSettings)
-        _uiState.update { it.copy(appSettings = newSettings) }
+        _uiState.update { it.copy(appSettings = repository.settings.value) }
     }
 
     fun setSettingsDialogVisible(visible: Boolean) {

@@ -18,6 +18,9 @@ interface InventoryDao {
     @Query("SELECT * FROM inventory_items ORDER BY createdAt DESC")
     fun queryAllItems(): List<InventoryItemEntity>
 
+    @Query("SELECT * FROM inventory_items WHERE id=:id")
+    fun getItemSync(id: String): InventoryItemEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: InventoryItemEntity)
 

@@ -47,6 +47,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  */
 @Composable
 fun MoreHubScreen(
+    onOpenCloudSettings: () -> Unit = {},
     settings: AppSettings,
     customerCount: Int,
     inventoryWeight: Double = 0.0,
@@ -86,6 +87,7 @@ fun MoreHubScreen(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        com.goldex.companion.ui.components.GoldButton(text = "همگام‌سازی ابری و حساب", onClick = onOpenCloudSettings, isSecondary = true, modifier = Modifier.fillMaxWidth())
         // ==========================================
         // 1. Jeweler Profile & Guild Hero Card
         // ==========================================

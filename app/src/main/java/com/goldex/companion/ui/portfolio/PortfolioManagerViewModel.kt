@@ -44,7 +44,6 @@ class PortfolioManagerViewModel(
     }
 
     fun updatePortfolioItem(item: PortfolioItem) {
-        repository.deleteItem(item.id)
         repository.addItem(item)
         _uiState.update { it.copy(portfolioItems = repository.getItems()) }
     }

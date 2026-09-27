@@ -23,6 +23,10 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 @Composable
 fun OnboardingWizardScreen(
     currentSettings: AppSettings,
+    cloudContent: @Composable () -> Unit = {},
+    cloudReady: () -> Boolean = { true },
+    cloudRestored: () -> Boolean = { false },
+    onDeferCloud: () -> Unit = {},
     liveGold18Price: Long,
     onFinish: (targetTab: AppTab, updatedSettings: AppSettings, initialInventory: WizardInventoryState, licenseState: WizardLicenseState) -> Unit,
     onValidateLicense: (choice: WizardLicenseChoice, code: String, onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit = { _, _, onSuccess, _ -> onSuccess() },
@@ -128,7 +132,8 @@ fun OnboardingWizardScreen(
     BackHandler(enabled = true) {
         when (currentStep) {
             WizardStep.INTRO -> onSkip()
-            WizardStep.PROFILE -> currentStep = WizardStep.INTRO
+            WizardStep.CLOUD -> currentStep = WizardStep.INTRO
+            WizardStep.PROFILE -> currentStep = WizardStep.CLOUD
             WizardStep.FINANCIAL_DEFAULTS -> currentStep = WizardStep.PROFILE
             WizardStep.INVENTORY -> currentStep = WizardStep.FINANCIAL_DEFAULTS
             WizardStep.COMPLETION -> currentStep = WizardStep.INVENTORY
@@ -180,6 +185,7 @@ fun OnboardingWizardScreen(
                             WizardIntroContent()
                         }
 
+                        WizardStep.CLOUD -> cloudContent()
                         WizardStep.PROFILE -> {
                             WizardProfileContent(
                                 profileState = profileState,
@@ -254,17 +260,23 @@ fun OnboardingWizardScreen(
                             GoldButton(
                                 text = "شروع و ثبت مشخصات",
                                 trailingIcon = WizardArrowLeft,
-                                onClick = { currentStep = WizardStep.PROFILE },
+                                onClick = { currentStep = WizardStep.CLOUD },
                                 modifier = Modifier.weight(1.8f)
                             )
                         }
 
+                        WizardStep.CLOUD -> {
+                            GoldButton(text = "بعداً فعال می‌کنم", isSecondary = true, onClick = { onDeferCloud(); currentStep = WizardStep.PROFILE }, modifier = Modifier.weight(1f))
+                            GoldButton(text = if (cloudRestored()) "ورود با اطلاعات بازیابی‌شده" else "ادامه", enabled = cloudReady(), onClick = {
+                                if (cloudRestored()) onFinish(AppTab.HOME, currentSettings, WizardInventoryState(), WizardLicenseState()) else currentStep = WizardStep.PROFILE
+                            }, modifier = Modifier.weight(1.5f))
+                        }
                         WizardStep.PROFILE -> {
                             GoldButton(
                                 text = "بازگشت",
                                 icon = WizardArrowRight,
                                 isSecondary = true,
-                                onClick = { currentStep = WizardStep.INTRO },
+                                onClick = { currentStep = WizardStep.CLOUD },
                                 modifier = Modifier.weight(1f)
                             )
 

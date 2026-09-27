@@ -153,6 +153,7 @@ class RoomDatabaseIntegrationTest {
 
         override fun observeAllItems(): Flow<List<InventoryItemEntity>> = itemsFlow.asStateFlow()
         override fun queryAllItems(): List<InventoryItemEntity> = items.values.sortedByDescending { it.createdAt }
+        override fun getItemSync(id: String): InventoryItemEntity? = items[id]
         override suspend fun insertItem(item: InventoryItemEntity) { items[item.id] = item; emitItems() }
         override fun insertItemSync(item: InventoryItemEntity) { items[item.id] = item; emitItems() }
         override suspend fun insertAllItems(newItems: List<InventoryItemEntity>) { newItems.forEach { items[it.id] = it }; emitItems() }
@@ -284,6 +285,7 @@ class RoomDatabaseIntegrationTest {
         )
         repo.adjustStock(adj)
         assertEquals(1, repo.getAdjustments().size)
+        assertEquals(6, repo.getItems().single().quantity)
 
         repo.deleteItem("item-101")
         assertTrue(repo.getItems().isEmpty())

@@ -127,6 +127,10 @@ val LightGoldExColors = GoldExAppColors(
 
 val LocalGoldExColors = staticCompositionLocalOf { LightGoldExColors }
 
+// Cloud status semantics shared by wizard, settings and header.
+val GoldExAppColors.syncBlue: Color get() = if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB)
+val GoldExAppColors.syncWarning: Color get() = if (isDark) Color(0xFFFBBF24) else Color(0xFF92400E)
+
 // Dashboard keeps a dark vault card in both themes; preserve its light-mode artwork.
 val GoldExAppColors.dashboardVaultGradient: Brush
     get() = if (isDark) heroCardGradient else Brush.linearGradient(

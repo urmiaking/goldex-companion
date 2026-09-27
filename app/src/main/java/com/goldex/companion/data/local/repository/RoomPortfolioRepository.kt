@@ -7,9 +7,11 @@ import com.goldex.companion.data.local.db.mappers.toDomain
 import com.goldex.companion.data.local.db.mappers.toEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.goldex.companion.data.sync.*
 
 class RoomPortfolioRepository(
-    private val portfolioDao: PortfolioDao
+    private val portfolioDao: PortfolioDao,
+    private val sync: RoomSyncUnitOfWork? = null
 ) : PortfolioStore {
 
     override fun getItems(): List<PortfolioItem> {
@@ -17,12 +19,13 @@ class RoomPortfolioRepository(
     }
 
     override fun addItem(item: PortfolioItem) {
-        portfolioDao.insertSync(item.toEntity())
+        write { portfolioDao.insertSync(item.toEntity()); sync?.changed("portfolio", item.id, SyncJson.record(item)) }
     }
 
     override fun deleteItem(id: String) {
-        portfolioDao.deleteByIdSync(id)
+        write { portfolioDao.deleteByIdSync(id); sync?.changed("portfolio", id, null) }
     }
+    private fun write(action: () -> Unit) { if (sync == null) action() else sync.transaction(action) }
 
     // Reactive Flow extensions
     fun observeItems(): Flow<List<PortfolioItem>> {

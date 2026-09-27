@@ -144,13 +144,7 @@ internal object PersistenceJsonCodecs {
             for (index in 0 until array.length()) {
                 val obj = array.optJSONObject(index) ?: continue
                 val customer = obj.optJSONObject("customer")?.let { customerObj ->
-                    Customer(
-                        id = customerObj.stringValue("id"),
-                        name = customerObj.stringValue("name", "مشتری"),
-                        phone = customerObj.stringValue("phone"),
-                        nationalId = customerObj.stringValue("nationalId"),
-                        note = customerObj.stringValue("note")
-                    )
+                    decodeCustomers(JSONArray().put(customerObj).toString()).singleOrNull()
                 }
                 val items = decodeInvoiceItems(obj.optJSONArray("items"))
                 invoices += Invoice(
@@ -175,13 +169,7 @@ internal object PersistenceJsonCodecs {
                 put("createdAt", invoice.createdAt)
                 put("note", invoice.note)
                 invoice.customer?.let { customer ->
-                    put("customer", JSONObject().apply {
-                        put("id", customer.id)
-                        put("name", customer.name)
-                        put("phone", customer.phone)
-                        put("nationalId", customer.nationalId)
-                        put("note", customer.note)
-                    })
+                    put("customer", JSONArray(encodeCustomers(listOf(customer))).getJSONObject(0))
                 }
                 put("items", encodeInvoiceItems(invoice.items))
             })
@@ -555,24 +543,9 @@ internal object PersistenceJsonCodecs {
                 val id = obj.stringValue("id").trim()
                 if (id.isEmpty()) continue
                 val customerObj = obj.optJSONObject("customer")
-                val customer = customerObj?.let { c ->
-                    Customer(
-                        id = c.stringValue("id"),
-                        name = c.stringValue("name"),
-                        phone = c.stringValue("phone"),
-                        nationalId = c.stringValue("nationalId"),
-                        note = c.stringValue("note"),
-                        role = c.optString("role", "بنکدار و همکار بازار")
-                    )
-                }
+                val customer = customerObj?.let { c -> decodeCustomers(JSONArray().put(c).toString()).singleOrNull() }
                 val thirdPartyObj = obj.optJSONObject("thirdPartyCustomer")
-                val thirdPartyCustomer = thirdPartyObj?.let { c ->
-                    Customer(
-                        id = c.stringValue("id"),
-                        name = c.stringValue("name"),
-                        phone = c.stringValue("phone")
-                    )
-                }
+                val thirdPartyCustomer = thirdPartyObj?.let { c -> decodeCustomers(JSONArray().put(c).toString()).singleOrNull() }
                 invoices += BarterInvoice(
                     id = id,
                     invoiceNumber = obj.stringValue("invoiceNumber"),
@@ -612,16 +585,7 @@ internal object PersistenceJsonCodecs {
                 put("id", invoice.id)
                 put("invoiceNumber", invoice.invoiceNumber)
                 put("createdAt", invoice.createdAt)
-                invoice.customer?.let { c ->
-                    put("customer", JSONObject().apply {
-                        put("id", c.id)
-                        put("name", c.name)
-                        put("phone", c.phone)
-                        put("nationalId", c.nationalId)
-                        put("note", c.note)
-                        put("role", c.role)
-                    })
-                }
+                invoice.customer?.let { c -> put("customer", JSONArray(encodeCustomers(listOf(c))).getJSONObject(0)) }
                 put("customerRole", invoice.customerRole.name)
                 put("spotPrice18k", invoice.spotPrice18k)
                 put("salesItems", encodeBarterItems(invoice.salesItems))
@@ -634,13 +598,7 @@ internal object PersistenceJsonCodecs {
                 put("bullionWeight", invoice.bullionWeight)
                 put("bullionKarat", invoice.bullionKarat)
                 put("bullionAngNumber", invoice.bullionAngNumber)
-                invoice.thirdPartyCustomer?.let { tc ->
-                    put("thirdPartyCustomer", JSONObject().apply {
-                        put("id", tc.id)
-                        put("name", tc.name)
-                        put("phone", tc.phone)
-                    })
-                }
+                invoice.thirdPartyCustomer?.let { c -> put("thirdPartyCustomer", JSONArray(encodeCustomers(listOf(c))).getJSONObject(0)) }
                 put("thirdPartyInvoiceId", invoice.thirdPartyInvoiceId)
                 put("thirdPartyInvoiceNumber", invoice.thirdPartyInvoiceNumber)
                 put("thirdPartyTransferWeight18k", invoice.thirdPartyTransferWeight18k)

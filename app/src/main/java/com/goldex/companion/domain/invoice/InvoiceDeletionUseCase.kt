@@ -6,6 +6,7 @@ import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.model.SettlementMethod
+import com.goldex.companion.data.sync.SyncUnitOfWork
 
 sealed interface InvoiceDeletionResult {
     data class Deleted(val invoice: BarterInvoice, val remainingInvoices: List<BarterInvoice>) : InvoiceDeletionResult
@@ -19,9 +20,20 @@ sealed interface InvoiceDeletionResult {
 /** Reverses recorded entries, including settlements, without regenerating invoice calculations. */
 class InvoiceDeletionUseCase(
     private val invoices: InvoiceStore,
-    private val customers: CustomerStore?
+    private val customers: CustomerStore?,
+    private val unit: SyncUnitOfWork? = null
 ) {
     fun delete(invoiceId: String): InvoiceDeletionResult {
+        if (unit == null) return deleteWithoutTransaction(invoiceId)
+        return try {
+            unit.transaction {
+                val result = deleteWithoutTransaction(invoiceId)
+                if (result is InvoiceDeletionResult.Failed) error("Rollback financial group")
+                result
+            }
+        } catch (_: Exception) { InvoiceDeletionResult.Failed(rollbackSucceeded = true) }
+    }
+    private fun deleteWithoutTransaction(invoiceId: String): InvoiceDeletionResult {
         var invoice: BarterInvoice? = null
         var transactions = emptyList<LedgerTransaction>()
         val originals = mutableListOf<Customer>()
