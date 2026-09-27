@@ -504,11 +504,11 @@ fun MoreHubScreen(
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
-                // Item 3: Cloud & Excel backup
+                // Item 3: Invoice management and PDF export
                 HubListRowItem(
-                    title = "پشتیبان‌گیری ابری و اکسل فاکتورها",
-                    subtitle = "همگام‌سازی ابری و گزارش جامع مالیاتی",
-                    icon = HubCloudSync,
+                    title = "مدیریت و خروجی فاکتورها",
+                    subtitle = "مشاهدهٔ فاکتورها و اشتراک‌گذاری PDF",
+                    icon = HubMenuBook,
                     iconTint = Color(0xFF4F46E5),
                     iconBg = Color(0xFFE0E7FF),
                     onClick = onNavigateInvoices
