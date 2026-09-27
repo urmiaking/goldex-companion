@@ -257,13 +257,17 @@ fun CloudSignInForm(phone: String, code: String, form: CloudFormState, onPhoneCh
             GoldInputField(value=phone,onValueChange={ onPhoneChange(PersianNumberFormatter.toEnglishDigits(it).take(14)) },
                 label="شماره موبایل",keyboardType=KeyboardType.Phone,useThousandsSeparator=false,enabled=!form.busy,modifier=Modifier.fillMaxWidth())
             GoldButton("دریافت کد ورود",onClick={ keyboard?.hide(); onRequest() },isLoading=form.busy,
-                enabled=!form.busy && Regex("^(09[0-9]{9}|\\+?989[0-9]{9})$").matches(phone.trim()),modifier=Modifier.fillMaxWidth())
+                enabled=!form.busy && Regex("^(09[0-9]{9}|(?:[+]|00)?989[0-9]{9})$").matches(phone.trim()),modifier=Modifier.fillMaxWidth())
         } else {
             if(challenge.optString("otpMode")=="temporary") Surface(shape=ButtonShape,color=colors.goldContainer) {
                 Text("کد ورود موقت: ${PersianNumberFormatter.toPersianDigits(challenge.optString("temporaryCode"))}",
                     modifier=Modifier.fillMaxWidth().padding(12.dp),color=colors.goldPrimary,style=MaterialTheme.typography.bodyMedium)
             }
-            GoldInputField(value=code,onValueChange={ onCodeChange(PersianNumberFormatter.toEnglishDigits(it).filter(Char::isDigit).take(6)) },
+            GoldInputField(value=code,onValueChange={
+                val digits=PersianNumberFormatter.toEnglishDigits(it).filter(Char::isDigit).take(6)
+                onCodeChange(digits)
+                if(digits.length==6) keyboard?.hide()
+            },
                 label="کد ورود شش‌رقمی",keyboardType=KeyboardType.NumberPassword,useThousandsSeparator=false,enabled=!form.busy,modifier=Modifier.fillMaxWidth())
             GoldButton("تأیید و اتصال",onClick={ keyboard?.hide(); onVerify() },isLoading=form.busy,enabled=!form.busy && code.length==6,modifier=Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
