@@ -44,7 +44,7 @@
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.3` اتصال ابری را کنار سایر گزینه‌های تنظیمات و داخل مدال استاندارد برنامه قرار می‌دهد. ورود با شماره و کد در مراحل جدا انجام می‌شود. تا اتصال پنل پیامکی، سرور با تأیید مالک پروژه کد موقت `123456` را فعال کرده است. ساخت و امضای APK در GitHub Actions، پس از آزمون مهاجرت و رابط کاربری روی emulator، انجام می‌شوند.
+نسخهٔ `0.56.4` اتصال ابری را کنار سایر گزینه‌های تنظیمات و داخل مدال استاندارد برنامه قرار می‌دهد. ورود با شماره و کد در مراحل جدا انجام می‌شود. تا اتصال پنل پیامکی، سرور با تأیید مالک پروژه کد موقت `123456` را فعال کرده است. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).

@@ -9,4 +9,4 @@ Keep the entry in the existing settings card beside price, financial and lock op
 Server responses explicitly select temporary or SMS mode. Only a temporary response displays its code. The client never accepts or verifies codes itself. Device proof and license enforcement remain server-owned.
 
 ## Consequences and revisit
-Existing financial data, outbox and formulas do not change. Device tests cover both themes, dismissal and phone/code navigation and capture screenshots. Configure SMS on the server when a provider becomes available; no app update is required to remove the temporary-code hint.
+Existing financial data, outbox and formulas do not change. Instrumented tests are available for manual checks of both themes, dismissal and phone/code navigation; they are not part of release CI. Configure SMS on the server when a provider becomes available; no app update is required to remove the temporary-code hint.
