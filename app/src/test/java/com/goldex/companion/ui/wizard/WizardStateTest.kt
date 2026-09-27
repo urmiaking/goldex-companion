@@ -21,8 +21,8 @@ class WizardStateTest {
     @Test
     fun testWizardStepsSequence() {
         val steps = WizardStep.values()
-        assertEquals(listOf(WizardStep.INTRO, WizardStep.CLOUD, WizardStep.PROFILE, WizardStep.FINANCIAL_DEFAULTS, WizardStep.INVENTORY, WizardStep.COMPLETION), steps.toList())
-        assertEquals((0..5).toList(), steps.map { it.stepNumber })
+        assertEquals(listOf(WizardStep.INTRO, WizardStep.PROFILE, WizardStep.FINANCIAL_DEFAULTS, WizardStep.INVENTORY, WizardStep.COMPLETION), steps.toList())
+        assertEquals((0..4).toList(), steps.map { it.stepNumber })
     }
 
     @Test

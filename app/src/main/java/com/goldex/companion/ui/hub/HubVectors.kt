@@ -388,6 +388,88 @@ internal val HubCloudDownload: ImageVector = ImageVector.Builder(
     }
 }.build()
 
+internal val HubCloud: ImageVector = ImageVector.Builder(
+    name = "HubCloud",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(19.35f, 10.04f)
+        curveTo(18.67f, 6.59f, 15.64f, 4f, 12f, 4f)
+        curveTo(9.11f, 4f, 6.6f, 5.64f, 5.35f, 8.04f)
+        curveTo(2.34f, 8.36f, 0f, 10.91f, 0f, 14f)
+        curveTo(0f, 17.31f, 2.69f, 20f, 6f, 20f)
+        horizontalLineTo(19f)
+        curveTo(21.76f, 20f, 24f, 17.76f, 24f, 15f)
+        curveTo(24f, 12.36f, 21.95f, 10.22f, 19.35f, 10.04f)
+        close()
+    }
+}.build()
+
+internal val HubCloudOff: ImageVector = ImageVector.Builder(
+    name = "HubCloudOff",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(19.35f, 10.04f)
+        curveTo(18.67f, 6.59f, 15.64f, 4f, 12f, 4f)
+        curveTo(9.87f, 4f, 7.96f, 5.03f, 6.74f, 6.62f)
+        moveTo(3.18f, 10.15f)
+        curveTo(1.33f, 11.02f, 0f, 12.87f, 0f, 15f)
+        curveTo(0f, 17.76f, 2.24f, 20f, 5f, 20f)
+        horizontalLineTo(16.5f)
+        moveTo(20.5f, 19.5f)
+        curveTo(22.43f, 18.77f, 24f, 17.07f, 24f, 15f)
+        curveTo(24f, 12.36f, 21.95f, 10.22f, 19.35f, 10.04f)
+        moveTo(3f, 3f)
+        lineTo(21f, 21f)
+    }
+}.build()
+
+internal val HubDevices: ImageVector = ImageVector.Builder(
+    name = "HubDevices",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.9f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(4f, 6f)
+        horizontalLineTo(20f)
+        curveTo(21.1f, 6f, 22f, 6.9f, 22f, 8f)
+        verticalLineTo(16f)
+        curveTo(22f, 17.1f, 21.1f, 18f, 20f, 18f)
+        horizontalLineTo(4f)
+        curveTo(2.9f, 18f, 2f, 17.1f, 2f, 16f)
+        verticalLineTo(8f)
+        curveTo(2f, 6.9f, 2.9f, 6f, 4f, 6f)
+        close()
+        moveTo(10f, 15f)
+        horizontalLineTo(14f)
+    }
+}.build()
+
+
 internal val HubStorefront: ImageVector = ImageVector.Builder(
     name = "HubStorefront",
     defaultWidth = 24.dp,

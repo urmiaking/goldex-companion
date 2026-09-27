@@ -37,7 +37,7 @@ class CloudSyncViewModel(application: Application) : AndroidViewModel(applicatio
         _form.update { it.copy(challenge=null) }
     }
     fun changePhone() { if (!_form.value.busy) _form.update { it.copy(challenge=null,error="") } }
-    fun sync()=coordinator.requestSync()
+    fun sync()=action { coordinator.sync() }
     fun activateTrial()=action { coordinator.activateTrial() }
     fun restore()=action { coordinator.restore(true) }
     fun reauthenticate()=coordinator.reauthenticate()

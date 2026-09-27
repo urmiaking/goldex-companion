@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.R
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.hub.HubChevronLeft
+import com.goldex.companion.ui.hub.HubCloud
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 data class IntroSlideData(
@@ -167,6 +169,7 @@ fun WizardIntroTopBar(
  */
 @Composable
 fun WizardIntroContent(
+    onRestoreCloud: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -585,6 +588,57 @@ fun WizardIntroContent(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        if (onRestoreCloud != null) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceElevated,
+                border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onRestoreCloud() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.goldContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = HubCloud,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "قبلاً حساب کاربری داشته‌اید؟",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "ورود به حساب و بازیابی خودکار اطلاعات از فضای ابری",
+                            fontSize = 10.5.sp,
+                            color = colors.textMuted
+                        )
+                    }
+                    Icon(
+                        imageVector = HubChevronLeft,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
