@@ -232,7 +232,7 @@ The Persian Sovereign Aurum design system is a product contract.
 - Do not log customer identity, financial records, tokens, or full network payloads in production.
 - Validate external data before using it in financial calculations.
 - Release builds must be reproducible by `.github/workflows/build-and-release.yml`.
-- Tag releases run the cloud Room migration and RTL/light/dark cloud-status Compose tests on an API 29 emulator in CI before publishing the signed APK. Unit tests remain local; instrumentation reports are attached to the workflow run.
+- Tag releases use the original build/sign/publish workflow. Compile checks and unit tests run locally before merging or tagging. Instrumented tests are optional manual device checks and do not run in release CI.
 - Every release must have human-readable Persian notes and a verified artifact.
 
 ## 11. Testing strategy

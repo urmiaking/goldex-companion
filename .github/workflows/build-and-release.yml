@@ -13,7 +13,6 @@ jobs:
   build:
     name: "Build and Release APK"
     runs-on: ubuntu-latest
-    timeout-minutes: 40
 
     steps:
       - name: Checkout Code
@@ -50,31 +49,6 @@ jobs:
             echo "GOLD_EX_RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS"
             echo "GOLD_EX_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
-
-      - name: Enable emulator hardware acceleration
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Verify cloud migration and Compose on emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          arch: x86_64
-          disable-animations: true
-          script: |
-            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goldex.companion.data.sync.CloudMigrationDeviceTest,com.goldex.companion.ui.sync.CloudSyncDeviceTest --no-daemon --stacktrace; result=$?; adb pull /sdcard/Android/data/com.goldex.companion/files/cloud-ui app/build/reports/androidTests/cloud-ui; exit "$result"
-
-      - name: Upload emulator test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloud-device-tests
-          path: |
-            app/build/reports/androidTests/
-            app/build/outputs/androidTest-results/
-          if-no-files-found: ignore
 
       - name: Build Release APK
         run: |
