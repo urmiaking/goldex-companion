@@ -56,6 +56,7 @@ abstract class GoldexDatabase : RoomDatabase() {
                     GoldexDatabase::class.java,
                     DATABASE_NAME
                 )
+                    .allowMainThreadQueries()
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
