@@ -59,7 +59,7 @@ class CloudSyncDeviceTest {
             }; bitmap.recycle()
         }
         compose.onNodeWithContentDescription("بستن همگام‌سازی ابری").performClick()
-        compose.waitForIdle(); assertEquals(1,dismissals)
+        compose.waitUntil(timeoutMillis=3000) { dismissals==1 }
     }
     @Test fun everyCloudStateIsAccessibleClickableInRtlAndBothThemes() {
         val status=mutableStateOf(SyncStatus.PENDING)
