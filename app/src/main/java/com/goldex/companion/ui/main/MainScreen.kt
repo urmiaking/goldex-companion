@@ -147,7 +147,7 @@ fun MainScreen(
     val reportingUiState by reportingViewModel.uiState.collectAsState()
     val licenseInfo = licenseUiState.licenseInfo
 
-    if (showCloudSettings || cloudState.readOnly) CloudSettingsDialog(cloudViewModel, onDismiss = { showCloudSettings = false }, canDismiss = !cloudState.readOnly)
+    if (showCloudSettings) CloudSettingsDialog(cloudViewModel, onDismiss = { showCloudSettings = false })
     LaunchedEffect(mainUiState.isWizardVisible) { cloudViewModel.deferOnboarding(mainUiState.isWizardVisible) }
     LaunchedEffect(cloudState.restoredGeneration) {
         if (cloudState.restoredGeneration > 0) {
@@ -634,6 +634,8 @@ fun MainScreen(
                                 AppTab.MORE -> {
                                     MoreHubScreen(
                                         onOpenCloudSettings = { showCloudSettings = true },
+                                        cloudEnabled = cloudState.enabled,
+                                        cloudStatus = cloudState.status.title(),
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
                                         inventoryWeight = inventoryState.totalGoldWeight18k,

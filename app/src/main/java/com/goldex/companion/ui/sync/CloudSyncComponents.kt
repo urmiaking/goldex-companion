@@ -5,6 +5,10 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
@@ -25,12 +33,17 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.data.sync.*
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.hub.HubCloudDownload
 import com.goldex.companion.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 fun SyncStatus.title()=when(this) {
     SyncStatus.DISABLED -> "همگام‌سازی خاموش است"
@@ -93,30 +106,18 @@ fun CloudSettingsContent(viewModel: CloudSyncViewModel, modifier: Modifier=Modif
         context.startActivity(android.content.Intent.createChooser(intent,"ذخیرهٔ پشتیبان محلی"))
         viewModel.backupShared()
     } }
-    var phone by remember { mutableStateOf(form.phone) }
-    var code by remember { mutableStateOf("") }
+    var phone by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(form.phone) }
+    var code by androidx.compose.runtime.saveable.rememberSaveable(form.challenge?.optString("challengeId")) { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-        Text("همگام‌سازی ابری",style=MaterialTheme.typography.titleLarge,color=colors.textMain)
-        Text("اطلاعات کاری شما شامل فاکتورها، دفتر حساب، موجودی، پرتفوی، مشخصات فروشگاه و لوگو/مهر به حساب شخصی منتقل می‌شود. فقط یک دستگاه امکان ثبت و ویرایش دارد.",color=colors.textSecondary)
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-            Text("اتصال به ابر",color=colors.textMain)
-            Switch(checked=state.enabled,onCheckedChange=viewModel::setEnabled,enabled=!form.busy && !state.busy)
-        }
+        CloudConnectionToggle(state.enabled, !form.busy && !state.busy, viewModel::setEnabled)
         if(state.enabled) {
-            Text(state.status.title(),color=if(state.status==SyncStatus.SYNCED) colors.profitGreen else colors.textSecondary)
-            if(state.phone.isNotBlank()) Text("حساب: ${PersianNumberFormatter.toPersianDigits(state.phone)}",color=colors.textMuted)
-            Text("عملیات در انتظار: ${PersianNumberFormatter.toPersianDigits(state.pending)}",color=colors.textMuted)
-            if(state.lastSuccessAt>0) Text("آخرین موفقیت: ${PersianNumberFormatter.toPersianDigits(SimpleDateFormat("yyyy/MM/dd HH:mm",Locale.US).format(Date(state.lastSuccessAt)))}",color=colors.textMuted)
+            if(state.phone.isNotBlank() && state.status!=SyncStatus.AUTH_REQUIRED) CloudAccountSummary(state)
             if(state.message.isNotBlank()) Text(state.message,color=colors.syncWarning)
             if(state.phone.isBlank() || state.status==SyncStatus.AUTH_REQUIRED) {
-                Text("شمارهٔ ورود حساب مستقل از شمارهٔ تماس فروشگاه است. سینک به Trial فعال یا لایسنس دائمی نیاز دارد.",color=colors.textSecondary)
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    OutlinedTextField(value=phone,onValueChange={ phone=it },label={ Text("شماره موبایل") },singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Phone),modifier=Modifier.fillMaxWidth(),enabled=!form.busy)
-                    if(form.challenge!=null) OutlinedTextField(value=code,onValueChange={ code=it },label={ Text("کد ورود") },singleLine=true,keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.NumberPassword),modifier=Modifier.fillMaxWidth(),enabled=!form.busy)
-                }
-                GoldButton(text=if(form.challenge==null) "دریافت کد ورود" else "تأیید کد",onClick={ if(form.challenge==null) viewModel.requestCode(phone) else viewModel.verifyCode(code) },enabled=!form.busy,isLoading=form.busy,modifier=Modifier.fillMaxWidth())
-                if(form.challenge!=null) TextButton(onClick={ viewModel.requestCode(form.phone) },enabled=!form.busy) { Text("ارسال دوبارهٔ کد",color=colors.goldPrimary) }
+                CloudSignInForm(phone, code, form, onPhoneChange={ phone=it }, onCodeChange={ code=it },
+                    onRequest={ viewModel.requestCode(phone) }, onVerify={ viewModel.verifyCode(code) },
+                    onChangePhone=viewModel::changePhone, onResend={ viewModel.requestCode(form.phone) })
                 TextButton(onClick=viewModel::activateTrial,enabled=!form.busy) { Text("فعال‌سازی دورهٔ آزمایشی",color=colors.goldPrimary) }
             } else {
                 GoldButton(text="همگام‌سازی اکنون",onClick=viewModel::sync,enabled=!state.busy && !form.busy,modifier=Modifier.fillMaxWidth())
@@ -128,7 +129,7 @@ fun CloudSettingsContent(viewModel: CloudSyncViewModel, modifier: Modifier=Modif
                 TextButton(onClick={ confirm="logout" },enabled=!form.busy && !state.busy) { Text("خروج از حساب",color=colors.textMuted) }
             }
         }
-        TextButton(onClick=viewModel::exportBackup,enabled=!form.busy && !state.busy) { Text("ذخیرهٔ پشتیبان محلی و اختلاف‌ها",color=colors.goldPrimary) }
+        if(state.phone.isNotBlank() || state.readOnly) TextButton(onClick=viewModel::exportBackup,enabled=!form.busy && !state.busy) { Text("ذخیرهٔ پشتیبان محلی و اختلاف‌ها",color=colors.goldPrimary) }
         if(state.readOnly || state.phone.isNotBlank() || state.status==SyncStatus.WRITER_CHANGED) TextButton(onClick={ confirm="detach" },enabled=!form.busy && !state.busy) { Text("جداسازی داده برای اتصال به حساب دیگر",color=colors.textMuted) }
         if(form.error.isNotBlank()) Text(form.error,color=colors.errorRed)
         Text("خاموش‌کردن سینک یا پایان مجوز، اطلاعات محلی و نسخهٔ ابری را حذف نمی‌کند. سینک جایگزین پشتیبان مستقل نیست.",color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
@@ -190,10 +191,143 @@ fun CloudSettingsContent(viewModel: CloudSyncViewModel, modifier: Modifier=Modif
 
 @Composable
 fun CloudSettingsDialog(viewModel: CloudSyncViewModel, onDismiss: () -> Unit, canDismiss: Boolean = true) {
+    CloudSettingsModal(onDismiss=onDismiss, canDismiss=canDismiss) { CloudSettingsContent(viewModel) }
+}
+
+@Composable
+fun CloudConnectionToggle(enabled: Boolean, interactive: Boolean, onChange: (Boolean) -> Unit) {
     val colors=LocalGoldExColors.current
-    Dialog(onDismissRequest={ if(canDismiss) onDismiss() }) {
-        Surface(shape=ButtonShape,color=colors.surface,modifier=Modifier.fillMaxWidth().heightIn(max=680.dp)) {
-            Column { Box(Modifier.weight(1f,false)) { CloudSettingsContent(viewModel) }; if(canDismiss) TextButton(onClick=onDismiss,modifier=Modifier.align(Alignment.End)) { Text("بستن",color=colors.goldPrimary) } }
+    Surface(shape=RoundedCornerShape(16.dp), color=colors.surfaceElevated, border=BorderStroke(0.6.dp,colors.goldBorder)) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment=Alignment.CenterVertically,
+            horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement=Arrangement.spacedBy(4.dp)) {
+                Text("اتصال به ابر", color=colors.textMain, fontWeight=FontWeight.SemiBold)
+                Text("فاکتورها، حساب‌ها و موجودی با حساب شما همگام می‌شوند.", color=colors.textMuted, style=MaterialTheme.typography.bodySmall)
+            }
+            Switch(checked=enabled,onCheckedChange=onChange,enabled=interactive,
+                modifier=Modifier.semantics { contentDescription="اتصال به ابر" },
+                colors=SwitchDefaults.colors(checkedThumbColor=colors.goldPrimary,checkedTrackColor=colors.goldContainer,
+                    uncheckedThumbColor=colors.textMuted,uncheckedTrackColor=colors.surface))
+        }
+    }
+}
+
+@Composable
+fun CloudAccountSummary(state: SyncUiState) {
+    val colors=LocalGoldExColors.current
+    Surface(shape=RoundedCornerShape(16.dp),color=colors.surfaceElevated,border=BorderStroke(.6.dp,colors.border)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text(state.status.title(),fontWeight=FontWeight.SemiBold,
+                color=when(state.status) { SyncStatus.SYNCED->colors.profitGreen; SyncStatus.SYNCING->colors.syncBlue;
+                    SyncStatus.ERROR,SyncStatus.CONFLICT,SyncStatus.LICENSE_REQUIRED->colors.syncWarning; else->colors.textSecondary })
+            HorizontalDivider(color=colors.border)
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+                Text("شمارهٔ حساب",color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
+                Text(PersianNumberFormatter.toPersianDigits(state.phone),color=colors.textMain,style=MaterialTheme.typography.bodySmall)
+            }
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+                Text("تغییرات در انتظار",color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
+                Text(PersianNumberFormatter.toPersianDigits(state.pending),color=colors.textMain,style=MaterialTheme.typography.bodySmall)
+            }
+            Text(if(state.lastSuccessAt>0) "آخرین اتصال: ${PersianNumberFormatter.toPersianDigits(SimpleDateFormat("yyyy/MM/dd HH:mm",Locale.US).format(Date(state.lastSuccessAt)))}" else "هنوز همگام‌سازی انجام نشده",
+                color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+fun CloudSignInForm(phone: String, code: String, form: CloudFormState, onPhoneChange: (String) -> Unit,
+    onCodeChange: (String) -> Unit, onRequest: () -> Unit, onVerify: () -> Unit,
+    onChangePhone: () -> Unit, onResend: () -> Unit) {
+    val colors=LocalGoldExColors.current
+    val challenge=form.challenge
+    val keyboard=androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    var seconds by remember(challenge) { mutableIntStateOf(0) }
+    LaunchedEffect(challenge,form.requestedAtMillis) {
+        if(challenge!=null) do {
+            seconds=((challenge.optInt("retryAfter",60)*1000L-(System.currentTimeMillis()-form.requestedAtMillis)+999)/1000).toInt().coerceAtLeast(0)
+            if(seconds>0) delay(1000)
+        } while(seconds>0)
+    }
+    Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+        Text(if(challenge==null) "ورود به حساب ابری" else "تأیید شماره موبایل",color=colors.textMain,fontWeight=FontWeight.Bold)
+        Text(if(challenge==null) "شمارهٔ حساب می‌تواند با شمارهٔ تماس فروشگاه متفاوت باشد." else
+            "کد ورود برای ${PersianNumberFormatter.toPersianDigits(form.phone)}",color=colors.textSecondary,style=MaterialTheme.typography.bodySmall)
+        if(challenge==null) {
+            GoldInputField(value=phone,onValueChange={ onPhoneChange(PersianNumberFormatter.toEnglishDigits(it).take(14)) },
+                label="شماره موبایل",keyboardType=KeyboardType.Phone,useThousandsSeparator=false,enabled=!form.busy,modifier=Modifier.fillMaxWidth())
+            GoldButton("دریافت کد ورود",onClick={ keyboard?.hide(); onRequest() },isLoading=form.busy,
+                enabled=!form.busy && Regex("^(09[0-9]{9}|\\+?989[0-9]{9})$").matches(phone.trim()),modifier=Modifier.fillMaxWidth())
+        } else {
+            if(challenge.optString("otpMode")=="temporary") Surface(shape=ButtonShape,color=colors.goldContainer) {
+                Text("کد ورود موقت: ${PersianNumberFormatter.toPersianDigits(challenge.optString("temporaryCode"))}",
+                    modifier=Modifier.fillMaxWidth().padding(12.dp),color=colors.goldPrimary,style=MaterialTheme.typography.bodyMedium)
+            }
+            GoldInputField(value=code,onValueChange={ onCodeChange(PersianNumberFormatter.toEnglishDigits(it).filter(Char::isDigit).take(6)) },
+                label="کد ورود شش‌رقمی",keyboardType=KeyboardType.NumberPassword,useThousandsSeparator=false,enabled=!form.busy,modifier=Modifier.fillMaxWidth())
+            GoldButton("تأیید و اتصال",onClick={ keyboard?.hide(); onVerify() },isLoading=form.busy,enabled=!form.busy && code.length==6,modifier=Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+                TextButton(onClick=onChangePhone,enabled=!form.busy) { Text("تغییر شماره",color=colors.textMuted) }
+                TextButton(onClick=onResend,enabled=!form.busy && seconds==0) {
+                    Text(if(seconds>0) "درخواست مجدد · ${PersianNumberFormatter.toPersianDigits(seconds)} ثانیه" else "دریافت کد جدید",
+                        color=if(seconds>0) colors.textMuted else colors.goldPrimary)
+                }
+            }
+        }
+    }
+}
+
+/** Matches the bottom-anchored settings modals (TaxProfitModal / PriceSourceModal). */
+@Composable
+fun CloudSettingsModal(onDismiss: () -> Unit, canDismiss: Boolean = true, content: @Composable () -> Unit) {
+    val colors=LocalGoldExColors.current
+    val context=LocalContext.current
+    val reduced=Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f
+    var visible by remember { mutableStateOf(false) }
+    val scope=rememberCoroutineScope()
+    val dismiss: () -> Unit = { if(canDismiss && visible) scope.launch {
+        visible=false
+        if(!reduced) delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+        onDismiss()
+    }; Unit }
+    LaunchedEffect(Unit) { visible=true }
+    val scrim by animateFloatAsState(if(visible) .65f else 0f,tween(if(reduced) 0 else LuxuryMotion.DURATION_MODAL_ENTER),label="cloud_scrim")
+    Dialog(onDismissRequest=dismiss,properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black.copy(alpha=scrim)).imePadding()
+                .clickable(interactionSource=remember { MutableInteractionSource() },indication=null,onClick=dismiss),contentAlignment=Alignment.BottomCenter) {
+                val availableHeight=maxHeight*.88f
+                AnimatedVisibility(visible=visible,enter=if(reduced) EnterTransition.None else LuxuryMotion.ModalEnter,
+                    exit=if(reduced) ExitTransition.None else LuxuryMotion.ModalExit) {
+                    Surface(Modifier.fillMaxWidth().heightIn(max=availableHeight)
+                        .clickable(interactionSource=remember { MutableInteractionSource() },indication=null,onClick={}),
+                        shape=RoundedCornerShape(topStart=32.dp,topEnd=32.dp),color=colors.surface,
+                        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(colors.goldPrimary.copy(alpha=.6f),colors.border.copy(alpha=.3f))))) {
+                        Column(Modifier.navigationBarsPadding()) {
+                            Box(Modifier.padding(top=12.dp).size(40.dp,4.dp).clip(ButtonShape).background(colors.goldBorder).align(Alignment.CenterHorizontally))
+                            Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,
+                                horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+                                Box(Modifier.size(44.dp).clip(ButtonShape).background(colors.goldContainer),contentAlignment=Alignment.Center) {
+                                    Icon(HubCloudDownload,null,tint=colors.goldPrimary,modifier=Modifier.size(24.dp))
+                                }
+                                Column(Modifier.weight(1f)) {
+                                    Text("همگام‌سازی ابری",color=colors.textMain,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+                                    Text("حساب و اتصال اطلاعات شما",color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
+                                }
+                                if(canDismiss) IconButton(onClick=dismiss,modifier=Modifier.size(48.dp)) {
+                                    Icon(Icons.Default.Close,"بستن همگام‌سازی ابری",tint=colors.textMuted)
+                                }
+                            }
+                            HorizontalDivider(color=colors.goldBorder.copy(alpha=.4f))
+                            Box(Modifier.weight(1f,false)) { content() }
+                            if(canDismiss) {
+                                HorizontalDivider(color=colors.border)
+                                GoldButton("بستن",onClick=dismiss,isSecondary=true,modifier=Modifier.fillMaxWidth().padding(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

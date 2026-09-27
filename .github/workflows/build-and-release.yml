@@ -63,7 +63,9 @@ jobs:
           api-level: 29
           arch: x86_64
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goldex.companion.data.sync.CloudMigrationDeviceTest,com.goldex.companion.ui.sync.CloudSyncDeviceTest --no-daemon --stacktrace
+          script: |
+            ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goldex.companion.data.sync.CloudMigrationDeviceTest,com.goldex.companion.ui.sync.CloudSyncDeviceTest --no-daemon --stacktrace
+            adb pull /sdcard/Android/data/com.goldex.companion/files/cloud-ui app/build/reports/androidTests/cloud-ui
 
       - name: Upload emulator test results
         if: always()

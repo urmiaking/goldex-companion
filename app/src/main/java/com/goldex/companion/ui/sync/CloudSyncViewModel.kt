@@ -9,7 +9,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.json.JSONObject
 
-data class CloudFormState(val challenge: JSONObject? = null, val phone: String = "", val busy: Boolean = false, val error: String = "", val review: JSONObject? = null, val devices: JSONObject? = null, val backupPath: String? = null)
+data class CloudFormState(val challenge: JSONObject? = null, val requestedAtMillis: Long = 0, val phone: String = "", val busy: Boolean = false, val error: String = "", val review: JSONObject? = null, val devices: JSONObject? = null, val backupPath: String? = null)
 class CloudSyncViewModel(application: Application) : AndroidViewModel(application) {
     val coordinator=SyncCoordinator.get(application)
     val state=coordinator.state
@@ -29,13 +29,14 @@ class CloudSyncViewModel(application: Application) : AndroidViewModel(applicatio
     fun requestCode(phone: String)=action {
         val clean=PersianNumberFormatter.toEnglishDigits(phone).trim()
         val challenge=coordinator.requestCode(clean)
-        _form.update { it.copy(challenge=challenge,phone=clean) }
+        _form.update { it.copy(challenge=challenge,phone=clean,requestedAtMillis=System.currentTimeMillis()) }
     }
     fun verifyCode(code: String)=action {
         val form=_form.value
         coordinator.verifyCode(requireNotNull(form.challenge),PersianNumberFormatter.toEnglishDigits(code),form.phone)
         _form.update { it.copy(challenge=null) }
     }
+    fun changePhone() { if (!_form.value.busy) _form.update { it.copy(challenge=null,error="") } }
     fun sync()=coordinator.requestSync()
     fun activateTrial()=action { coordinator.activateTrial() }
     fun restore()=action { coordinator.restore(true) }
