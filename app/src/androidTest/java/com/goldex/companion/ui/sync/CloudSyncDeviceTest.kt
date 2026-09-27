@@ -8,6 +8,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.test.platform.app.InstrumentationRegistry
 import android.graphics.Bitmap
 import java.io.File
@@ -32,7 +36,7 @@ class CloudSyncDeviceTest {
         compose.setContent {
             GoldExCompanionTheme(isDarkTheme=dark.value) {
                 if(show.value) CloudSettingsModal(onDismiss={ dismissals++; show.value=false }) {
-                    Column(Modifier.padding(20.dp)) {
+                    Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
                         CloudSignInForm(phone.value,code.value,form.value,
                             onPhoneChange={ phone.value=it },onCodeChange={ code.value=it },
                             onRequest={ requests++; form.value=CloudFormState(phone=phone.value,requestedAtMillis=System.currentTimeMillis(),
@@ -46,7 +50,7 @@ class CloudSyncDeviceTest {
         compose.onNodeWithText("دریافت کد ورود").performClick()
         compose.onNodeWithText("کد ورود موقت: ۱۲۳۴۵۶").assertExists()
         compose.onNodeWithText("کد ورود شش‌رقمی").performTextInput("123456")
-        compose.onNodeWithText("تأیید و اتصال").performClick()
+        compose.onNodeWithText("تأیید و اتصال").performScrollTo().assertIsEnabled().performClick()
         assertEquals(1,requests); assertEquals(1,verifications)
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         for(theme in listOf(false,true)) {
