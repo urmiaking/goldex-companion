@@ -50,6 +50,7 @@ fun MoreHubScreen(
     onOpenCloudSettings: () -> Unit = {},
     cloudStatus: String = "خاموش",
     cloudEnabled: Boolean = false,
+    onToggleCloud: ((Boolean) -> Unit)? = null,
     settings: AppSettings,
     customerCount: Int,
     inventoryWeight: Double = 0.0,
@@ -667,21 +668,64 @@ fun MoreHubScreen(
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCloudSettings)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenCloudSettings)
                         .padding(horizontal = 14.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(colors.surfaceElevated),
-                        contentAlignment = Alignment.Center) {
-                        Icon(HubCloudDownload, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(16.dp))
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.surfaceElevated),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (cloudEnabled) HubCloud else HubCloudOff,
+                                contentDescription = null,
+                                tint = if (cloudEnabled) colors.goldPrimary else colors.textMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "همگام‌سازی ابری",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = if (cloudEnabled) cloudStatus else "اتصال حساب و نگهداری اطلاعات در ابر",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
                     }
-                    Column(Modifier.weight(1f)) {
-                        Text("همگام‌سازی ابری", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = colors.textMain)
-                        Text(if (cloudEnabled) cloudStatus else "اتصال حساب و نگهداری اطلاعات در ابر", fontSize = 10.5.sp, color = colors.textMuted)
-                    }
-                    Text(if (cloudEnabled) "روشن" else "خاموش", fontSize = 11.sp,
-                        color = if (cloudEnabled) colors.goldPrimary else colors.textMuted)
+
+                    Switch(
+                        checked = cloudEnabled,
+                        onCheckedChange = { checked ->
+                            if (onToggleCloud != null) {
+                                onToggleCloud(checked)
+                            } else {
+                                onOpenCloudSettings()
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = colors.goldPrimary,
+                            uncheckedThumbColor = colors.textMuted,
+                            uncheckedTrackColor = colors.surfaceElevated
+                        )
+                    )
                 }
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 

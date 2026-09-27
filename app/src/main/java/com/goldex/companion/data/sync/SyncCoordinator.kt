@@ -64,9 +64,6 @@ class SyncCoordinator private constructor(private val context: Context) {
     fun requestSync() {
         if(!_state.value.enabled || onboarding) return
         triggers.tryEmit(Unit)
-        WorkManager.getInstance(context).enqueueUniqueWork("qirato-cloud-pending",ExistingWorkPolicy.KEEP,
-            OneTimeWorkRequestBuilder<CloudSyncWorker>().setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL,30,TimeUnit.SECONDS).build())
     }
     fun reauthenticate() { _state.update { it.copy(status=SyncStatus.AUTH_REQUIRED) } }
     suspend fun requestCode(phone: String): JSONObject = withContext(Dispatchers.IO) { api.requestCode(phone) }
@@ -320,7 +317,13 @@ class SyncCoordinator private constructor(private val context: Context) {
 }
 class CloudSyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context,parameters) {
     override suspend fun doWork(): Result {
+        val coordinator = SyncCoordinator.get(applicationContext)
+        if (!coordinator.state.value.enabled) return Result.success()
+        if (coordinator.state.value.pending == 0 &&
+            System.currentTimeMillis() - coordinator.state.value.lastSuccessAt < 15000) {
+            return Result.success()
+        }
         if(runAttemptCount>0) delay(kotlin.random.Random.nextLong(0,3000))
-        return if(SyncCoordinator.get(applicationContext).sync()) Result.success() else Result.retry()
+        return if(coordinator.sync()) Result.success() else Result.retry()
     }
 }

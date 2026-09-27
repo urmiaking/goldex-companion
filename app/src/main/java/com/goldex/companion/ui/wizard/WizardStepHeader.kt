@@ -35,9 +35,9 @@ fun WizardStepHeader(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
-    val currentStepNum = currentStep.stepNumber.coerceIn(1, 5)
+    val currentStepNum = currentStep.stepNumber.coerceIn(1, 4)
 
-    val progressTarget = currentStepNum / 5f
+    val progressTarget = currentStepNum / 4f
     val animatedProgress by animateFloatAsState(
         targetValue = progressTarget,
         animationSpec = tween(durationMillis = 400),
@@ -74,7 +74,7 @@ fun WizardStepHeader(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "مرحله ${PersianNumberFormatter.toPersianDigits(currentStepNum)} از ۵",
+                        text = "مرحله ${PersianNumberFormatter.toPersianDigits(currentStepNum)} از ۴",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.goldPrimary

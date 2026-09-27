@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -175,6 +176,7 @@ fun WizardCompletionContent(
     licenseState: WizardLicenseState = WizardLicenseState(),
     isValidating: Boolean = false,
     validationError: String? = null,
+    cloudContent: (@Composable () -> Unit)? = null,
     onLicenseStateChange: (WizardLicenseState) -> Unit = {},
     onEnterApp: (AppTab) -> Unit,
     modifier: Modifier = Modifier
@@ -469,6 +471,73 @@ fun WizardCompletionContent(
                         )
                     }
                 }
+            }
+        }
+
+        // Optional Cloud Sync Section
+        if (cloudContent != null) {
+            LuxuryCard(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(colors.goldContainer.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = WizardAutoAwesome,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = "همگام‌سازی و پشتیبان ابری",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain
+                            )
+                            Text(
+                                text = "پشتیبان‌گیری خودکار و اتصال اطلاعات به ابر",
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border)
+                    ) {
+                        Text(
+                            text = "اختیاری",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textMuted,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.6.dp)
+
+                cloudContent()
             }
         }
 

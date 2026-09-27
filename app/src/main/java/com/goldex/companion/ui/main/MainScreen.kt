@@ -386,61 +386,7 @@ fun MainScreen(
                                 }
                             },
                             actions = {
-                                if (cloudState.enabled) {
-                                    CloudSyncButton(cloudState, onClick = { showCloudSettings = true })
-                                } else {
-                                // Notification Bell with Golden Live Dot
-                                val statusColor = when (mainUiState.connectionStatus) {
-                                    ConnectionStatus.ONLINE -> colors.profitGreen
-                                    ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
-                                    ConnectionStatus.OFFLINE -> colors.errorRed
-                                }
-
-                                Surface(
-                                    modifier = Modifier
-                                        .padding(end = 12.dp)
-                                        .size(40.dp),
-                                    shape = ButtonShape,
-                                    color = colors.surface,
-                                    border = BorderStroke(0.6.dp, colors.goldBorder),
-                                    shadowElevation = if (colors.isDark) 0.dp else 1.5.dp,
-                                    onClick = {
-                                        QiratoToast.show(
-                                            context,
-                                            "نگارش ۲.۴.۰ پرو • اتصال به شبکه طلا و جواهر برقرار است"
-                                        )
-                                    }
-                                ) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Notifications,
-                                            contentDescription = "اعلان‌ها",
-                                            tint = colors.textSecondary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .align(Alignment.TopStart)
-                                                .offset(x = 8.dp, y = 8.dp)
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.surface)
-                                                .padding(1.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape)
-                                                    .background(statusColor)
-                                            )
-                                        }
-                                    }
-                                }
-                                }
+                                CloudSyncButton(cloudState, onClick = { showCloudSettings = true })
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = colors.surface,
@@ -636,6 +582,17 @@ fun MainScreen(
                                         onOpenCloudSettings = { showCloudSettings = true },
                                         cloudEnabled = cloudState.enabled,
                                         cloudStatus = cloudState.status.title(),
+                                        onToggleCloud = { enabled ->
+                                            if (enabled) {
+                                                if (cloudState.phone.isBlank() || cloudState.status == com.goldex.companion.data.sync.SyncStatus.AUTH_REQUIRED) {
+                                                    showCloudSettings = true
+                                                } else {
+                                                    cloudViewModel.setEnabled(true)
+                                                }
+                                            } else {
+                                                cloudViewModel.setEnabled(false)
+                                            }
+                                        },
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
                                         inventoryWeight = inventoryState.totalGoldWeight18k,
@@ -1124,6 +1081,7 @@ fun MainScreen(
                     cloudReady = { !cloudState.enabled || (cloudState.phone.isNotBlank() && !cloudState.busy && cloudState.status in listOf(com.goldex.companion.data.sync.SyncStatus.PENDING, com.goldex.companion.data.sync.SyncStatus.SYNCED)) },
                     cloudRestored = { cloudState.restoredGeneration > 0 },
                     onDeferCloud = { cloudViewModel.setEnabled(false) },
+                    onOpenCloudRestore = { showCloudSettings = true },
                     currentSettings = settingsState.appSettings,
                     liveGold18Price = mainUiState.rates.gold18,
                     onValidateLicense = { choice, code, onSuccess, onError ->
