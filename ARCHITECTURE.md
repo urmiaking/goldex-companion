@@ -292,3 +292,4 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 
 These are tracked migration items, not reasons to break existing features through a broad rewrite.
+Cloud settings now opens from the existing More Hub settings group in a bottom-anchored modal using the existing financial modal geometry, LuxuryMotion and GoldInputField. Login separates phone/code steps, displays only server-selected temporary code hints, and respects resend cooldown. The cloud modal is no longer forced open by read-only state; repository mutation guards remain active. See docs/adr/0005-cloud-settings-modal.md.

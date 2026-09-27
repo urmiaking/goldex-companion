@@ -48,6 +48,8 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
 @Composable
 fun MoreHubScreen(
     onOpenCloudSettings: () -> Unit = {},
+    cloudStatus: String = "خاموش",
+    cloudEnabled: Boolean = false,
     settings: AppSettings,
     customerCount: Int,
     inventoryWeight: Double = 0.0,
@@ -87,7 +89,6 @@ fun MoreHubScreen(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        com.goldex.companion.ui.components.GoldButton(text = "همگام‌سازی ابری و حساب", onClick = onOpenCloudSettings, isSecondary = true, modifier = Modifier.fillMaxWidth())
         // ==========================================
         // 1. Jeweler Profile & Guild Hero Card
         // ==========================================
@@ -663,6 +664,25 @@ fun MoreHubScreen(
                     }
                 }
 
+                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCloudSettings)
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(colors.surfaceElevated),
+                        contentAlignment = Alignment.Center) {
+                        Icon(HubCloudDownload, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(16.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("همگام‌سازی ابری", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = colors.textMain)
+                        Text(if (cloudEnabled) cloudStatus else "اتصال حساب و نگهداری اطلاعات در ابر", fontSize = 10.5.sp, color = colors.textMuted)
+                    }
+                    Text(if (cloudEnabled) "روشن" else "خاموش", fontSize = 11.sp,
+                        color = if (cloudEnabled) colors.goldPrimary else colors.textMuted)
+                }
                 HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
 
                 // Setting 3: Biometric Lock Switch
