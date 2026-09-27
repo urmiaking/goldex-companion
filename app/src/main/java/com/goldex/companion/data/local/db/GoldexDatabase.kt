@@ -19,6 +19,7 @@ import com.goldex.companion.data.local.db.entities.InventoryItemEntity
 import com.goldex.companion.data.local.db.entities.LedgerTransactionEntity
 import com.goldex.companion.data.local.db.entities.PortfolioItemEntity
 import com.goldex.companion.data.local.db.entities.StockAdjustmentEntity
+import com.goldex.companion.data.sync.*
 
 @Database(
     entities = [
@@ -28,13 +29,16 @@ import com.goldex.companion.data.local.db.entities.StockAdjustmentEntity
         ClassicInvoiceEntity::class,
         InventoryItemEntity::class,
         StockAdjustmentEntity::class,
-        PortfolioItemEntity::class
+        PortfolioItemEntity::class,
+        SyncMetadata::class, SyncOutbox::class, SyncCheckpoint::class, SyncConflict::class,
+        BusinessSettings::class, AssetMetadata::class, SyncStaging::class
     ],
-    version = 1,
-    exportSchema = false
+    version = 2,
+    exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
 abstract class GoldexDatabase : RoomDatabase() {
+    abstract fun syncDao(): SyncDao
 
     abstract fun customerDao(): CustomerDao
     abstract fun ledgerTransactionDao(): LedgerTransactionDao
@@ -57,7 +61,7 @@ abstract class GoldexDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                     .allowMainThreadQueries()
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(SYNC_MIGRATION_1_2)
                     .build()
                 INSTANCE = instance
                 instance

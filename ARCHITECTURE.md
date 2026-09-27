@@ -62,7 +62,7 @@ data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market 
 - Invoice deletion: `domain/invoice/InvoiceDeletionUseCase.kt` owns preflight checks, reversal of the actual stored invoice-linked ledger entries grouped by customer, and removal of those entries before deleting the barter invoice. Settlement payment rows are reversed through their ledger entries exactly once; unrelated manual entries and other invoices remain intact. Missing ledger access, missing entry owners, or inbound third-party transfer references block deletion. The current invoice customer snapshot and `syncWithLedger` flag do not determine reversal ownership.
 - Invoice card footer: a single RTL row places the total price on the right, flexible spacing, then delete, PDF, and details. The delete icon is the rightmost control within the actions group and keeps its 48dp touch target.
 - Deletion UI: the invoice list and legacy archive use `InvoiceDeletionConfirmationDialog` with Persian RTL confirmation. `BarterInvoiceViewModel` updates list/editor state only after the deletion result and `MainScreen` refreshes customer balances and displays success or failure. Transfer target cards are derived from saved invoice records on load, save, and deletion so removing a source restores its deduction while retaining other transfers.
-- Deletion failure handling: pre-delete invoice, ledger, and affected customer snapshots compensate for reported repository exceptions. Existing SharedPreferences writes still use `apply()` across separate preference files: this is not a crash-atomic transaction and asynchronous disk failures cannot be detected by the use case. A future durable journal or transactional store must preserve existing JSON/IDs and include import/rollback tests before replacing this storage boundary.
+- Deletion failure handling: production Room repositories share `RoomSyncUnitOfWork`; invoice deletion, ledger reversal, balances and outbox roll back together. Existing compensation remains for nontransactional repository implementations used by compatibility tests.
 - Official invoice export: `domain/invoice/OfficialInvoiceDocument.kt` is the shared, pure projection of a barter invoice and gallery settings; `ui/util/OfficialInvoicePdfGenerator.kt` renders that projection as a premium A5 landscape PDF through one Vazirmatn/RTL typography path. `ui/invoices/InvoicePdfPreviewModal.kt` renders the generated file in-app with `PdfRenderer` before the same cached file is shared.
 - Business identity: `ui/hub/JewelerProfileModal.kt` owns the registered jeweler details plus logo and commercial-stamp selection. Their persistent URIs live beside the profile in `AppSettings`; the PDF renderer consumes the same profile-owned values. There is no separate invoice-branding state or QR configuration surface.
 - License & Subscription Management: `ui/license/LicenseActivationModal.kt` (bottom-sheet modal with RTL layout) and `data/license/LicenseRepository.kt` (integrates with `api.qirato.ir` for 14-day trials and lifetime code activation).
@@ -185,22 +185,19 @@ Introduce Room or another durable local database when:
 
 The migration must include an import path, schema version, backup/rollback behavior, and tests against existing JSON data. No existing user data may be discarded.
 
-## 7. Cloud-sync readiness
+## 7. Cloud synchronization
 
-Cloud sync is a later feature, but local models must not prevent it.
+`ui/sync/CloudSyncViewModel` owns account forms and delegates to the independent `data/sync/SyncCoordinator`. `AccountRepository`, `CloudSyncRepository` and `SyncUnitOfWork` define the identity, transport and transaction seams. The coordinator owns cloud opt-in, StateFlow status, mutex, debounce, connectivity/foreground triggers and WorkManager retries. Business ViewModels do not own networking.
 
-Before introducing sync, define:
+`GoldexDatabase` is Room version 2 with explicit additive migration and exported version 1/2 schemas. Business settings, sync metadata/outbox/checkpoint/conflicts, private asset metadata and staging share the financial database. `SettingsStore` remains compatible; biometric settings, theme, tokens, onboarding and opt-in remain device-owned. Legacy JSON is retained and malformed partial imports fail safely.
 
-- Account and device identity
-- Record ownership
-- Stable IDs generated locally
-- `createdAt`, `updatedAt`, and deletion/tombstone behavior
-- Conflict resolution per entity
-- Offline write queue and retry policy
-- Authentication and token storage
-- Server-authoritative versus local-authoritative fields
+`SaveBarterInvoiceUseCase` and `InvoiceDeletionUseCase` share a transaction across invoice, ledger, customer balances and outbox. Manual ledger mutations and stock count/movement are also grouped. Classic invoices retain their existing behavior (no new ledger effects are invented). Local repository methods remain synchronous, matching the existing app; `allowMainThreadQueries` is a known inherited compromise. Network and snapshot work run on IO.
 
-Do not add a generic sync layer before at least one feature has a documented conflict policy. Invoices, customers, and portfolio holdings may require different policies.
+Create/full payload, top-level patch, tombstones, per-record version, device sequence and durable receipts implement protocol 1. Only diffs leave normal sync; local full-version conflict snapshots are stripped from wire requests. Server ownership/version/revision are authoritative; financial calculations remain local and historical records never recalculate on download. Exact Long strings and decimal-string legacy values are tested. Read the identity, protocol and recovery ADRs in `docs/adr/`.
+
+Wizard includes an opt-in cloud step after the introduction, default off. Restored accounts bypass opening-inventory seeding. More Hub/settings expose account, queue depth, last success, manual sync, transfers, review, backup export and explicit account detach. Enabled header uses a 48dp cloud status control; green only after actual completion, rotating blue only during exchange, offline slash, login/lock/warning/pending badges. Only syncing-to-synced animates (~250ms); reduced motion disables rotation/transitions. Known retired writers require restore or detach before edits.
+
+Server public activation is disabled by default. Real SMS, protected secrets, production backup/restore checks and emulator/device UI validation must pass before release. Local Robolectric migration/atomicity tests are not a replacement for device validation; instrumented migration and Compose state tests are included for a provisioned test device. No local APK assembly/signing is part of this work.
 
 ## 8. Dashboard contract
 
@@ -235,6 +232,7 @@ The Persian Sovereign Aurum design system is a product contract.
 - Do not log customer identity, financial records, tokens, or full network payloads in production.
 - Validate external data before using it in financial calculations.
 - Release builds must be reproducible by `.github/workflows/build-and-release.yml`.
+- Tag releases run the cloud Room migration and RTL/light/dark cloud-status Compose tests on an API 29 emulator in CI before publishing the signed APK. Unit tests remain local; instrumentation reports are attached to the workflow run.
 - Every release must have human-readable Persian notes and a verified artifact.
 
 ## 11. Testing strategy

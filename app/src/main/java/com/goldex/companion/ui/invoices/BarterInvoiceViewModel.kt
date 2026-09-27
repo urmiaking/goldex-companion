@@ -71,7 +71,8 @@ data class BarterInvoiceUiState(
 
 class BarterInvoiceViewModel(
     private val invoiceStore: InvoiceStore? = null,
-    private val customerStore: CustomerStore? = null
+    private val customerStore: CustomerStore? = null,
+    private val syncUnit: com.goldex.companion.data.sync.SyncUnitOfWork? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BarterInvoiceUiState())
@@ -88,6 +89,8 @@ class BarterInvoiceViewModel(
             )
         }
     }
+
+    fun reloadInvoices() { invoiceStore?.let { store -> _uiState.update { it.copy(invoicesList = createInvoiceList(store.getBarterInvoices())) } } }
 
     fun setSubScreen(subScreen: InvoicesSubScreen) {
         _uiState.update { it.copy(subScreen = subScreen) }
@@ -210,32 +213,11 @@ class BarterInvoiceViewModel(
     fun submitAndSaveCurrentInvoice() {
         val currentInv = _uiState.value.invoice
 
-        // 1. Persist invoice to store
-        invoiceStore?.saveBarterInvoice(currentInv)
-
-        // 2. Synchronize with Customer Ledger
-        val targetCustomer = currentInv.customer
-        if (targetCustomer != null && customerStore != null) {
-            val allCustomers = customerStore.getCustomers()
-            val matchedCustomer = allCustomers.firstOrNull { it.id == targetCustomer.id } ?: targetCustomer
-
-            val existingTxs = customerStore.getTransactionsByInvoiceId(currentInv.id)
-            val customerAfterReversal = if (existingTxs.isNotEmpty()) {
-                customerStore.deleteTransactionsByInvoiceId(currentInv.id)
-                InvoiceLedgerSyncUseCase.reverseLedgerSync(existingTxs, matchedCustomer)
-            } else {
-                matchedCustomer
-            }
-
-            if (currentInv.syncWithLedger) {
-                val syncResult = InvoiceLedgerSyncUseCase.generateLedgerSync(currentInv, customerAfterReversal)
-                syncResult.transactionsToCreate.forEach { tx ->
-                    customerStore.addTransaction(tx)
-                }
-                customerStore.updateCustomer(syncResult.updatedCustomer)
-            } else if (existingTxs.isNotEmpty()) {
-                customerStore.updateCustomer(customerAfterReversal)
-            }
+        try {
+            invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit).save(currentInv) }
+        } catch (_: Exception) {
+            _uiState.update { it.copy(statusMessage = "ثبت فاکتور انجام نشد؛ اطلاعات قبلی حفظ شد") }
+            return
         }
 
         _uiState.update { state ->
@@ -427,7 +409,7 @@ class BarterInvoiceViewModel(
     }
 
     fun deleteInvoice(invoiceId: String): Boolean {
-        val result = invoiceStore?.let { InvoiceDeletionUseCase(it, customerStore).delete(invoiceId) }
+        val result = invoiceStore?.let { InvoiceDeletionUseCase(it, customerStore, syncUnit).delete(invoiceId) }
             ?: InvoiceDeletionResult.Failed(rollbackSucceeded = true)
         val deleted = result is InvoiceDeletionResult.Deleted
         val message = when (result) {
@@ -503,7 +485,7 @@ class BarterInvoiceViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         val invoiceStore = InvoiceRepository(application.applicationContext)
         val customerStore = CustomerRepository(application.applicationContext)
-        return BarterInvoiceViewModel(invoiceStore, customerStore) as T
+        return BarterInvoiceViewModel(invoiceStore, customerStore, com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(application)) as T
     }
 }
 

@@ -9,10 +9,12 @@ import com.goldex.companion.model.Customer
 import com.goldex.companion.model.LedgerTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import com.goldex.companion.data.sync.*
 
 class RoomCustomerRepository(
     private val customerDao: CustomerDao,
-    private val ledgerDao: LedgerTransactionDao
+    private val ledgerDao: LedgerTransactionDao,
+    private val sync: RoomSyncUnitOfWork? = null
 ) : CustomerStore {
 
     override fun getCustomers(): List<Customer> {
@@ -20,15 +22,15 @@ class RoomCustomerRepository(
     }
 
     override fun addCustomer(customer: Customer) {
-        customerDao.insertSync(customer.toEntity())
+        write { customerDao.insertSync(customer.toEntity()); sync?.changed("customer", customer.id, SyncJson.record(customer)) }
     }
 
     override fun updateCustomer(customer: Customer) {
-        customerDao.updateSync(customer.toEntity())
+        write { customerDao.updateSync(customer.toEntity()); sync?.changed("customer", customer.id, SyncJson.record(customer)) }
     }
 
     override fun deleteCustomer(id: String) {
-        customerDao.deleteByIdSync(id)
+        write { customerDao.deleteByIdSync(id); sync?.changed("customer", id, null) }
     }
 
     override fun getTransactions(customerId: String): List<LedgerTransaction> {
@@ -36,15 +38,15 @@ class RoomCustomerRepository(
     }
 
     override fun addTransaction(transaction: LedgerTransaction) {
-        ledgerDao.insertSync(transaction.toEntity())
+        write { ledgerDao.insertSync(transaction.toEntity()); sync?.changed("ledger", transaction.id, SyncJson.record(transaction)) }
     }
 
     override fun updateTransaction(transaction: LedgerTransaction) {
-        ledgerDao.updateSync(transaction.toEntity())
+        write { ledgerDao.updateSync(transaction.toEntity()); sync?.changed("ledger", transaction.id, SyncJson.record(transaction)) }
     }
 
     override fun deleteTransaction(id: String) {
-        ledgerDao.deleteByIdSync(id)
+        write { ledgerDao.deleteByIdSync(id); sync?.changed("ledger", id, null) }
     }
 
     override fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransaction> {
@@ -52,8 +54,13 @@ class RoomCustomerRepository(
     }
 
     override fun deleteTransactionsByInvoiceId(invoiceId: String) {
-        ledgerDao.deleteByInvoiceIdSync(invoiceId)
+        write {
+            val ids = ledgerDao.queryByInvoiceId(invoiceId).map { it.id }
+            ledgerDao.deleteByInvoiceIdSync(invoiceId)
+            ids.forEach { sync?.changed("ledger", it, null) }
+        }
     }
+    private fun write(action: () -> Unit) { if (sync == null) action() else sync.transaction(action) }
 
     // Reactive Flow extensions for modern and multiplatform consumers
     fun observeCustomers(): Flow<List<Customer>> {

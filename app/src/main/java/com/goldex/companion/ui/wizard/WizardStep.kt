@@ -5,10 +5,11 @@ import com.goldex.companion.model.PersianNumberFormatter
 
 enum class WizardStep(val stepNumber: Int, val titleFa: String) {
     INTRO(0, "معرفی امکانات"),
-    PROFILE(1, "مشخصات"),
-    FINANCIAL_DEFAULTS(2, "تنظیمات مالی"),
-    INVENTORY(3, "موجودی اول"),
-    COMPLETION(4, "تأیید نهایی")
+    CLOUD(1, "همگام‌سازی ابری"),
+    PROFILE(2, "مشخصات"),
+    FINANCIAL_DEFAULTS(3, "تنظیمات مالی"),
+    INVENTORY(4, "موجودی اول"),
+    COMPLETION(5, "تأیید نهایی")
 }
 
 data class WizardProfileState(

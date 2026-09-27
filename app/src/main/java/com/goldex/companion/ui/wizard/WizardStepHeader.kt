@@ -35,9 +35,9 @@ fun WizardStepHeader(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
-    val currentStepNum = currentStep.stepNumber.coerceIn(1, 4)
+    val currentStepNum = currentStep.stepNumber.coerceIn(1, 5)
 
-    val progressTarget = currentStepNum / 4f
+    val progressTarget = currentStepNum / 5f
     val animatedProgress by animateFloatAsState(
         targetValue = progressTarget,
         animationSpec = tween(durationMillis = 400),
@@ -74,7 +74,7 @@ fun WizardStepHeader(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "مرحله ${PersianNumberFormatter.toPersianDigits(currentStepNum)} از ۴",
+                        text = "مرحله ${PersianNumberFormatter.toPersianDigits(currentStepNum)} از ۵",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.goldPrimary
@@ -82,13 +82,7 @@ fun WizardStepHeader(
                 }
 
                 Text(
-                    text = when (currentStepNum) {
-                        1 -> "مشخصات گالری و پروانه"
-                        2 -> "پیش‌فرض‌های مالیاتی و سود"
-                        3 -> "موجودی اول دوره و گاوصندوق"
-                        4 -> "تکمیل و راه‌اندازی نهایی"
-                        else -> ""
-                    },
+                    text = currentStep.titleFa,
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = colors.textMuted
@@ -124,12 +118,7 @@ fun WizardStepHeader(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val steps = listOf(
-                    1 to "مشخصات",
-                    2 to "تنظیمات مالی",
-                    3 to "موجودی اول",
-                    4 to "تأیید نهایی"
-                )
+                val steps = WizardStep.values().filter { it != WizardStep.INTRO }.map { it.stepNumber to it.titleFa }
 
                 steps.forEach { (stepNum, label) ->
                     val isDone = stepNum < currentStepNum

@@ -89,7 +89,8 @@ data class CustomerManagerUiState(
 }
 
 class CustomerManagerViewModel(
-    private val repository: CustomerStore
+    private val repository: CustomerStore,
+    private val unit: com.goldex.companion.data.sync.SyncUnitOfWork? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CustomerManagerUiState())
     val uiState: StateFlow<CustomerManagerUiState> = _uiState.asStateFlow()
@@ -157,8 +158,7 @@ class CustomerManagerViewModel(
     }
 
     fun openEditLedgerEntry(transaction: LedgerTransaction) {
-        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
-            ?: _uiState.value.selectedCustomerForStatement
+        val target = requireNotNull(repository.getCustomers().firstOrNull { it.id == transaction.customerId }) { "Ledger owner missing" }
         _uiState.update {
             it.copy(
                 isAddLedgerEntryModalVisible = true,
@@ -179,9 +179,14 @@ class CustomerManagerViewModel(
     }
 
     fun deleteLedgerEntry(transaction: LedgerTransaction) {
+        write { deleteLedgerEntryInternal(transaction) }
+        refreshStatementData()
+    }
+
+    private fun deleteLedgerEntryInternal(transaction: LedgerTransaction) {
         repository.deleteTransaction(transaction.id)
 
-        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
+        val target = repository.getCustomers().firstOrNull { it.id == transaction.customerId }
             ?: _uiState.value.selectedCustomerForStatement
 
         if (target != null) {
@@ -212,13 +217,17 @@ class CustomerManagerViewModel(
             repository.updateCustomer(updatedCustomer)
         }
 
-        refreshStatementData()
     }
 
     fun saveLedgerEntry(transaction: LedgerTransaction) {
+        write { saveLedgerEntryInternal(transaction) }
+        refreshStatementData()
+    }
+
+    private fun saveLedgerEntryInternal(transaction: LedgerTransaction) {
         val editing = _uiState.value.editingLedgerTransaction
-        val target = _uiState.value.customerList.firstOrNull { it.id == transaction.customerId }
-            ?: _uiState.value.ledgerEntryTargetCustomer
+        val target = requireNotNull(repository.getCustomers().firstOrNull { it.id == transaction.customerId }) { "Ledger owner missing" }
+        require(editing==null || editing.customerId==transaction.customerId) { "Ledger owner cannot change during edit" }
 
         if (editing != null) {
             if (target != null) {
@@ -313,8 +322,9 @@ class CustomerManagerViewModel(
             }
         }
 
-        refreshStatementData()
     }
+
+    private fun write(action: () -> Unit) { if(unit == null) action() else unit.transaction(action) }
 
     private fun refreshStatementData() {
         val updatedCustomers = repository.getCustomers()
@@ -409,6 +419,6 @@ class CustomerManagerViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         val repository = CustomerRepository(application.applicationContext)
-        return CustomerManagerViewModel(repository) as T
+        return CustomerManagerViewModel(repository, com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(application)) as T
     }
 }

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.goldex.companion.ui.sync.*
 import com.goldex.companion.R
 import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.model.*
@@ -129,6 +130,9 @@ fun MainScreen(
     val inventoryViewModel: InventoryViewModel = viewModel(factory = InventoryViewModelFactory(app))
     val reportingViewModel: ReportingViewModel = viewModel(factory = ReportingViewModelFactory(app))
 
+    val cloudViewModel: CloudSyncViewModel = viewModel()
+    val cloudState by cloudViewModel.state.collectAsState()
+    var showCloudSettings by remember { mutableStateOf(false) }
     val mainUiState by mainViewModel.uiState.collectAsState()
     val customerState by customerViewModel.uiState.collectAsState()
     val invoiceState by invoiceViewModel.uiState.collectAsState()
@@ -143,6 +147,14 @@ fun MainScreen(
     val reportingUiState by reportingViewModel.uiState.collectAsState()
     val licenseInfo = licenseUiState.licenseInfo
 
+    if (showCloudSettings || cloudState.readOnly) CloudSettingsDialog(cloudViewModel, onDismiss = { showCloudSettings = false }, canDismiss = !cloudState.readOnly)
+    LaunchedEffect(mainUiState.isWizardVisible) { cloudViewModel.deferOnboarding(mainUiState.isWizardVisible) }
+    LaunchedEffect(cloudState.restoredGeneration) {
+        if (cloudState.restoredGeneration > 0) {
+            customerViewModel.loadCustomers(); invoiceViewModel.loadInvoices(); portfolioViewModel.loadPortfolio()
+            inventoryViewModel.loadItems(); settingsViewModel.loadSettings(); barterInvoiceViewModel.reloadInvoices()
+        }
+    }
     val colors = LocalGoldExColors.current
     var pdfPreview by remember { mutableStateOf<Pair<File, String>?>(null) }
 
@@ -174,6 +186,7 @@ fun MainScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 updateViewModel.onAppForegrounded()
+                cloudViewModel.sync()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -373,6 +386,9 @@ fun MainScreen(
                                 }
                             },
                             actions = {
+                                if (cloudState.enabled) {
+                                    CloudSyncButton(cloudState, onClick = { showCloudSettings = true })
+                                } else {
                                 // Notification Bell with Golden Live Dot
                                 val statusColor = when (mainUiState.connectionStatus) {
                                     ConnectionStatus.ONLINE -> colors.profitGreen
@@ -423,6 +439,7 @@ fun MainScreen(
                                             )
                                         }
                                     }
+                                }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
@@ -616,6 +633,7 @@ fun MainScreen(
 
                                 AppTab.MORE -> {
                                     MoreHubScreen(
+                                        onOpenCloudSettings = { showCloudSettings = true },
                                         settings = settingsState.appSettings,
                                         customerCount = customerState.customerList.size,
                                         inventoryWeight = inventoryState.totalGoldWeight18k,
@@ -935,7 +953,7 @@ fun MainScreen(
                     onFinalSubmit = {
                         barterInvoiceViewModel.submitAndSaveCurrentInvoice()
                         customerViewModel.loadCustomers()
-                        QiratoToast.show(context, "فاکتور تهاتر با موفقیت در سیستم ثبت شد.")
+                        QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
                     },
                     onNavigateBack = {
                         barterInvoiceViewModel.navigateBackToList()
@@ -1100,6 +1118,10 @@ fun MainScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 OnboardingWizardScreen(
+                    cloudContent = { CloudSettingsContent(cloudViewModel) },
+                    cloudReady = { !cloudState.enabled || (cloudState.phone.isNotBlank() && !cloudState.busy && cloudState.status in listOf(com.goldex.companion.data.sync.SyncStatus.PENDING, com.goldex.companion.data.sync.SyncStatus.SYNCED)) },
+                    cloudRestored = { cloudState.restoredGeneration > 0 },
+                    onDeferCloud = { cloudViewModel.setEnabled(false) },
                     currentSettings = settingsState.appSettings,
                     liveGold18Price = mainUiState.rates.gold18,
                     onValidateLicense = { choice, code, onSuccess, onError ->
@@ -1120,6 +1142,9 @@ fun MainScreen(
                         }
                     },
                     onFinish = { targetTab, updatedSettings, initialInventory, licenseState ->
+                        try {
+                        if (cloudState.restoredGeneration == 0L) {
+                        com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(context).transaction {
                         settingsViewModel.updateSettings(updatedSettings)
                         mainViewModel.applySettingsDefaults(
                             updatedSettings.defaultProfitPercent,
@@ -1325,9 +1350,14 @@ fun MainScreen(
                             )
                         }
 
+                        com.goldex.companion.data.local.db.GoldexDatabaseProvider.getDatabase(context).syncDao().checkpoint(com.goldex.companion.data.sync.SyncCheckpoint(id = "onboarding-complete"))
+                        }
+                        }
+                        settingsViewModel.completeOnboarding()
                         mainViewModel.setWizardVisible(false)
                         mainViewModel.selectTab(targetTab)
                         QiratoToast.show(context, "پیکربندی اولیه با موفقیت انجام شد")
+                        } catch (_: Exception) { settingsViewModel.loadSettings(); QiratoToast.show(context, "راه‌اندازی انجام نشد؛ داده‌های قبلی محفوظ است") }
                     },
                     onSkip = {
                         settingsViewModel.completeOnboarding()

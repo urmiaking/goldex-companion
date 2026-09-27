@@ -10,8 +10,13 @@ import com.goldex.companion.data.local.repository.RoomCustomerRepository
 import com.goldex.companion.data.local.repository.RoomInventoryRepository
 import com.goldex.companion.data.local.repository.RoomInvoiceRepository
 import com.goldex.companion.data.local.repository.RoomPortfolioRepository
+import com.goldex.companion.data.sync.RoomSyncUnitOfWork
 
 object GoldexDatabaseProvider {
+    @Volatile private var syncUnit: RoomSyncUnitOfWork? = null
+    fun getSyncUnit(context: Context): RoomSyncUnitOfWork = syncUnit ?: synchronized(this) {
+        syncUnit ?: RoomSyncUnitOfWork(getDatabase(context)).also { syncUnit = it }
+    }
 
     @Volatile
     private var database: GoldexDatabase? = null
@@ -40,7 +45,7 @@ object GoldexDatabaseProvider {
     fun getCustomerStore(context: Context): CustomerStore {
         return customerRepository ?: synchronized(this) {
             val db = getDatabase(context)
-            val repo = RoomCustomerRepository(db.customerDao(), db.ledgerTransactionDao())
+            val repo = RoomCustomerRepository(db.customerDao(), db.ledgerTransactionDao(), getSyncUnit(context))
             customerRepository = repo
             repo
         }
@@ -49,7 +54,7 @@ object GoldexDatabaseProvider {
     fun getInvoiceStore(context: Context): InvoiceStore {
         return invoiceRepository ?: synchronized(this) {
             val db = getDatabase(context)
-            val repo = RoomInvoiceRepository(db.barterInvoiceDao(), db.classicInvoiceDao())
+            val repo = RoomInvoiceRepository(db.barterInvoiceDao(), db.classicInvoiceDao(), getSyncUnit(context))
             invoiceRepository = repo
             repo
         }
@@ -58,7 +63,7 @@ object GoldexDatabaseProvider {
     fun getInventoryStore(context: Context): InventoryStore {
         return inventoryRepository ?: synchronized(this) {
             val db = getDatabase(context)
-            val repo = RoomInventoryRepository(db.inventoryDao())
+            val repo = RoomInventoryRepository(db.inventoryDao(), getSyncUnit(context))
             inventoryRepository = repo
             repo
         }
@@ -67,7 +72,7 @@ object GoldexDatabaseProvider {
     fun getPortfolioStore(context: Context): PortfolioStore {
         return portfolioRepository ?: synchronized(this) {
             val db = getDatabase(context)
-            val repo = RoomPortfolioRepository(db.portfolioDao())
+            val repo = RoomPortfolioRepository(db.portfolioDao(), getSyncUnit(context))
             portfolioRepository = repo
             repo
         }
