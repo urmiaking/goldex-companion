@@ -129,7 +129,8 @@ private fun InlineCustomKaratChip(
 @Composable
 fun JewelryTab(
     viewModel: JewelryActions,
-    uiState: JewelryUiState
+    uiState: JewelryUiState,
+    onAddToInvoice: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val colors = LocalGoldExColors.current
@@ -371,12 +372,12 @@ fun JewelryTab(
                         color = colors.goldContainer.copy(alpha = 0.25f),
                         border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.4f))
                     ) {
-                        Text(
+                        AnimatedPriceTicker(
                             text = karatBadgeLabel,
-                            fontFamily = VazirmatnFamily,
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.goldPrimary,
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
@@ -1130,9 +1131,13 @@ fun JewelryTab(
             text = "صدور و ثبت فاکتور رسمی",
             icon = CalcPostAdd,
             onClick = {
-                viewModel.addItemToInvoice()
-                viewModel.selectTab(AppTab.INVOICES)
-                Toast.makeText(context, "قطعه به سبد فاکتور افزوده شد ✓", Toast.LENGTH_SHORT).show()
+                if (onAddToInvoice != null) {
+                    onAddToInvoice()
+                } else {
+                    viewModel.addItemToInvoice()
+                    viewModel.selectTab(AppTab.INVOICES)
+                    Toast.makeText(context, "قطعه به سبد فاکتور افزوده شد ✓", Toast.LENGTH_SHORT).show()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         )

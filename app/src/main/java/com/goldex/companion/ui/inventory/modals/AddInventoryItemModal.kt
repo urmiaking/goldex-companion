@@ -86,6 +86,7 @@ import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import java.util.UUID
 
 // Reusable Inline Custom Karat Chip (styled exactly like preset chips)
@@ -217,8 +218,10 @@ fun AddInventoryItemModal(
 
     var workshopInput by remember { mutableStateOf("") }
     var wageType by remember { mutableStateOf(WageType.PERCENTAGE) }
-    var wageInput by remember { mutableStateOf("") }
+    var wageInput by remember { mutableStateOf("10") }
     var quantityInput by remember { mutableStateOf("1") }
+    var showCustomWageDialog by remember { mutableStateOf(false) }
+    var tempWagePercent by remember { mutableStateOf("") }
 
     val grossWeightDouble by remember(grossWeightInput) {
         derivedStateOf { PersianNumberFormatter.parseToCleanDouble(grossWeightInput) ?: 0.0 }
@@ -675,250 +678,238 @@ fun AddInventoryItemModal(
                         }
                     }
 
-                    // Workshop & Wage (With Percentage / Toman switcher)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GoldInputField(
-                            value = workshopInput,
-                            onValueChange = { workshopInput = it },
-                            label = "کارگاه سازنده / بنکدار",
-                            trailingText = null,
-                            keyboardType = KeyboardType.Text
-                        )
+                    // Workshop
+                    GoldInputField(
+                        value = workshopInput,
+                        onValueChange = { workshopInput = it },
+                        label = "کارگاه سازنده / بنکدار",
+                        trailingText = null,
+                        keyboardType = KeyboardType.Text
+                    )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    // ─── Wage (اجرت ساخت طلا) matching JewelryTab ─────────────
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.surface,
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            // Top Row: Title + Toggle (درصدی / تومانی)
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = CalcHandyman,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(17.dp)
-                                )
-                                Text(
-                                    text = "اجرت ساخت طلا",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain,
-                                    fontFamily = VazirmatnFamily
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = CalcHandyman,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                    Text(
+                                        text = "اجرت ساخت طلا",
+                                        fontFamily = VazirmatnFamily,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain
+                                    )
+                                }
+
+                                // Animated Mode Toggle (درصدی / تومانی)
+                                LuxurySegmentedControl(
+                                    items = listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM),
+                                    selectedItem = wageType,
+                                    onItemSelected = {
+                                        if (wageType != it) {
+                                            wageType = it
+                                            wageInput = if (it == WageType.PERCENTAGE) "10" else ""
+                                        }
+                                    },
+                                    label = { if (it == WageType.PERCENTAGE) "درصدی (٪)" else "تومانی / گرم" },
+                                    modifier = Modifier.width(176.dp),
+                                    height = 32.dp,
+                                    fontSize = 10.5.sp
                                 )
                             }
 
-                            LuxurySegmentedControl(
-                                items = listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM),
-                                selectedItem = wageType,
-                                onItemSelected = {
-                                    if (wageType != it) {
-                                        wageType = it
-                                        wageInput = ""
-                                    }
-                                },
-                                label = { if (it == WageType.PERCENTAGE) "درصدی (٪)" else "تومانی / گرم" },
-                                modifier = Modifier.width(176.dp),
-                                height = 32.dp,
-                                fontSize = 10.5.sp
-                            )
-                        }
-
-                        if (wageType == WageType.PERCENTAGE) {
-                            // Stepper + Percentage Input + Equivalent Toman Price Ticker
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                            if (wageType == WageType.PERCENTAGE) {
+                                // Stepper + Equivalent Wage Row (درصدی)
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = colors.surfaceElevated,
+                                    border = BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    // Stepper: [-]  Value Input  [+]
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 9.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.5.dp, colors.border),
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clickable {
-                                                    val current = PersianNumberFormatter.parseToCleanDouble(wageInput) ?: 0.0
-                                                    val newVal = (current - 1.0).coerceAtLeast(0.0)
-                                                    wageInput = if (newVal % 1.0 == 0.0) newVal.toLong().toString() else String.format(java.util.Locale.US, "%.1f", newVal)
+                                        // Stepper: [-]  Value  [+]
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = colors.surface,
+                                                border = BorderStroke(0.5.dp, colors.border),
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clickable {
+                                                        val current = PersianNumberFormatter.parseToCleanDouble(wageInput) ?: 10.0
+                                                        val newVal = (current - 1.0).coerceAtLeast(0.0)
+                                                        wageInput = if (newVal % 1.0 == 0.0) newVal.toLong().toString() else String.format(java.util.Locale.US, "%.1f", newVal)
+                                                    }
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = CalcRemove,
+                                                        contentDescription = "کاهش",
+                                                        tint = colors.goldPrimary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
                                                 }
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    imageVector = CalcRemove,
-                                                    contentDescription = "کاهش",
-                                                    tint = colors.goldPrimary,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
                                             }
-                                        }
 
-                                        Box(
-                                            modifier = Modifier
-                                                .width(76.dp)
-                                                .height(34.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            BasicTextField(
-                                                value = PersianNumberFormatter.toPersianDigits(wageInput),
-                                                onValueChange = { input ->
-                                                    wageInput = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() || it == '.' }
-                                                },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                                singleLine = true,
-                                                textStyle = TextStyle(
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = Color.Transparent,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .clickable {
+                                                        tempWagePercent = wageInput.ifBlank { "10" }
+                                                        showCustomWageDialog = true
+                                                    }
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${PersianNumberFormatter.toPersianDigits(wageInput.ifBlank { "10" })}٪",
                                                     fontFamily = VazirmatnFamily,
                                                     fontSize = 15.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = colors.textMain,
-                                                    textAlign = TextAlign.Center
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                decorationBox = { innerTextField ->
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.Center
-                                                    ) {
-                                                        if (wageInput.isEmpty()) {
+                                                    color = colors.textMain
+                                                )
+                                            }
+
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = colors.surface,
+                                                border = BorderStroke(0.5.dp, colors.border),
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clickable {
+                                                        val current = PersianNumberFormatter.parseToCleanDouble(wageInput) ?: 10.0
+                                                        val newVal = current + 1.0
+                                                        wageInput = if (newVal % 1.0 == 0.0) newVal.toLong().toString() else String.format(java.util.Locale.US, "%.1f", newVal)
+                                                    }
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Add,
+                                                        contentDescription = "افزایش",
+                                                        tint = colors.goldPrimary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Equivalent Toman Wage
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            AnimatedPriceTicker(
+                                                text = "${PersianNumberFormatter.formatPrice(estimatedValues.wageTomans)} تومان",
+                                                fontSize = 12.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary
+                                            )
+                                            Text(
+                                                text = "معادل ریالی اجرت",
+                                                fontFamily = VazirmatnFamily,
+                                                fontSize = 10.sp,
+                                                color = colors.textMuted
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Direct Toman Input Box (تومانی)
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = colors.surfaceElevated,
+                                    border = BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val cleanWage = PersianNumberFormatter.toEnglishDigits(wageInput).filter { it.isDigit() }
+                                        val displayWage = if (cleanWage.isNotBlank()) {
+                                            PersianNumberFormatter.formatPrice(cleanWage.toDoubleOrNull() ?: 0.0)
+                                        } else ""
+
+                                        Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                                BasicTextField(
+                                                    value = displayWage,
+                                                    onValueChange = { input ->
+                                                        val digitsOnly = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
+                                                        wageInput = digitsOnly
+                                                    },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    singleLine = true,
+                                                    textStyle = TextStyle(
+                                                        fontFamily = VazirmatnFamily,
+                                                        fontFeatureSettings = VazirmatnFeatureSettings,
+                                                        fontSize = 18.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = colors.textMain,
+                                                        textAlign = TextAlign.Right,
+                                                        textDirection = TextDirection.Ltr
+                                                    ),
+                                                    cursorBrush = SolidColor(colors.goldPrimary),
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    decorationBox = { innerTextField ->
+                                                        if (displayWage.isEmpty()) {
                                                             Text(
-                                                                text = "۰",
+                                                                text = "مبلغ اجرت هر گرم طلا...",
                                                                 fontFamily = VazirmatnFamily,
-                                                                fontSize = 15.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = colors.textMuted
+                                                                fontSize = 12.5.sp,
+                                                                color = colors.textMuted.copy(alpha = 0.55f),
+                                                                textAlign = TextAlign.Right,
+                                                                modifier = Modifier.fillMaxWidth()
                                                             )
                                                         }
                                                         innerTextField()
-                                                        Text(
-                                                            text = "٪",
-                                                            fontFamily = VazirmatnFamily,
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = colors.goldPrimary,
-                                                            modifier = Modifier.padding(start = 2.dp)
-                                                        )
                                                     }
-                                                }
-                                            )
-                                        }
-
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.5.dp, colors.border),
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clickable {
-                                                    val current = PersianNumberFormatter.parseToCleanDouble(wageInput) ?: 0.0
-                                                    val newVal = current + 1.0
-                                                    wageInput = if (newVal % 1.0 == 0.0) newVal.toLong().toString() else String.format(java.util.Locale.US, "%.1f", newVal)
-                                                }
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Add,
-                                                    contentDescription = "افزایش",
-                                                    tint = colors.goldPrimary,
-                                                    modifier = Modifier.size(16.dp)
                                                 )
                                             }
                                         }
-                                    }
-
-                                    // Equivalent Toman Wage
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        AnimatedPriceTicker(
-                                            text = "${PersianNumberFormatter.formatPrice(estimatedValues.wageTomans)} تومان",
+                                        Text(
+                                            text = "تومان / گرم",
+                                            fontFamily = VazirmatnFamily,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = colors.goldPrimary
-                                        )
-                                        Text(
-                                            text = "معادل ریالی اجرت",
-                                            fontFamily = VazirmatnFamily,
-                                            fontSize = 9.5.sp,
                                             color = colors.textMuted
                                         )
                                     }
-                                }
-                            }
-                        } else {
-                            // Direct Toman Input Box (تومانی) matching JewelryTab
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    val cleanWage = PersianNumberFormatter.toEnglishDigits(wageInput).filter { it.isDigit() }
-                                    val displayWage = if (cleanWage.isNotBlank()) {
-                                        PersianNumberFormatter.formatPrice(cleanWage.toDoubleOrNull() ?: 0.0)
-                                    } else ""
-
-                                    Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                            BasicTextField(
-                                                value = displayWage,
-                                                onValueChange = { input ->
-                                                    val digitsOnly = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
-                                                    wageInput = digitsOnly
-                                                },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                singleLine = true,
-                                                textStyle = TextStyle(
-                                                    fontFamily = VazirmatnFamily,
-                                                    fontSize = 16.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colors.textMain,
-                                                    textAlign = TextAlign.Right,
-                                                    textDirection = TextDirection.Ltr
-                                                ),
-                                                cursorBrush = SolidColor(colors.goldPrimary),
-                                                modifier = Modifier.fillMaxWidth(),
-                                                decorationBox = { innerTextField ->
-                                                    if (displayWage.isEmpty()) {
-                                                        Text(
-                                                            text = "مبلغ اجرت هر گرم طلا...",
-                                                            fontFamily = VazirmatnFamily,
-                                                            fontSize = 12.sp,
-                                                            color = colors.textMuted.copy(alpha = 0.55f),
-                                                            textAlign = TextAlign.Right,
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        )
-                                                    }
-                                                    innerTextField()
-                                                }
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        text = "تومان / گرم",
-                                        fontFamily = VazirmatnFamily,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMuted
-                                    )
                                 }
                             }
                         }
@@ -1138,4 +1129,62 @@ fun AddInventoryItemModal(
 }
 }
 }
+
+    if (showCustomWageDialog) {
+        Dialog(onDismissRequest = { showCustomWageDialog = false }) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = colors.surface,
+                    border = BorderStroke(1.dp, colors.goldBorder),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.fillMaxWidth(0.92f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "تنظیم درصد اجرت ساخت",
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        GoldInputField(
+                            value = tempWagePercent,
+                            onValueChange = { tempWagePercent = it },
+                            label = "درصد اجرت ساخت طلا",
+                            trailingText = "٪",
+                            keyboardType = KeyboardType.Decimal,
+                            isDecimal = true
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            GoldButton(
+                                text = "انصراف",
+                                onClick = { showCustomWageDialog = false },
+                                isSecondary = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                            GoldButton(
+                                text = "تأیید",
+                                onClick = {
+                                    val clean = PersianNumberFormatter.toEnglishDigits(tempWagePercent).filter { it.isDigit() || it == '.' }
+                                    if (clean.isNotBlank()) {
+                                        wageInput = clean
+                                    }
+                                    showCustomWageDialog = false
+                                },
+                                isSecondary = false,
+                                modifier = Modifier.weight(1.2f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
