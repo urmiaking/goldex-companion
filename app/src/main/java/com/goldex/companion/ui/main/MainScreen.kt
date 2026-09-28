@@ -60,6 +60,7 @@ import com.goldex.companion.ui.hub.PriceSourceModal
 import com.goldex.companion.ui.hub.StandardFormulasScreen
 import com.goldex.companion.ui.hub.TaxProfitModal
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
+import com.goldex.companion.domain.invoice.BarterCalculationUseCases
 import com.goldex.companion.ui.customers.CustomerLedgerScreen
 import com.goldex.companion.ui.customers.CustomerStatementScreen
 import com.goldex.companion.ui.customers.modals.AddLedgerEntryModal
@@ -535,7 +536,50 @@ fun MainScreen(
                                 AppTab.CALCULATOR -> {
                                     JewelryTab(
                                         viewModel = mainViewModel,
-                                        uiState = mainUiState.toJewelryUiState()
+                                        uiState = mainUiState.toJewelryUiState(),
+                                        onAddToInvoice = {
+                                            if (!licenseInfo.isLicensed) {
+                                                licenseViewModel.setActivationDialogVisible(true)
+                                                QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                                            } else {
+                                                val res = mainUiState.jewelryResult
+                                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                                    mainUiState.priceBasisTab
+                                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+
+                                                if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
+                                                    barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                                }
+
+                                                if (res != null) {
+                                                    val customKarat = PersianNumberFormatter.parseToCleanLong(mainUiState.karatInput)?.toInt() ?: 750
+                                                    val wageInputVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.wageInput) ?: 0.0
+                                                    val profitVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.profitPercentInput) ?: 0.0
+                                                    val taxVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.taxPercentInput) ?: 0.0
+
+                                                    val barterItem = BarterCalculationUseCases.calculateCraftedItem(
+                                                        title = mainUiState.itemTitleInput.ifBlank { "دستبند و زیورآلات ساخته شده" },
+                                                        karat = mainUiState.selectedKarat,
+                                                        customKaratValue = customKarat,
+                                                        grossWeight = res.grossWeight,
+                                                        stoneWeight = res.stoneWeight,
+                                                        spotPrice18k = currentSpot,
+                                                        wageType = mainUiState.wageType,
+                                                        wageInput = wageInputVal,
+                                                        profitPercent = profitVal,
+                                                        taxPercent = taxVal
+                                                    )
+                                                    barterInvoiceViewModel.addSalesItem(barterItem)
+                                                    mainViewModel.addItemToInvoice()
+                                                    mainViewModel.selectTab(AppTab.INVOICES)
+                                                    QiratoToast.show(context, "قطعه به سبد فاکتور افزوده شد ✓")
+                                                } else {
+                                                    mainViewModel.addItemToInvoice()
+                                                    mainViewModel.selectTab(AppTab.INVOICES)
+                                                }
+                                            }
+                                        }
                                     )
                                 }
 
@@ -772,9 +816,33 @@ fun MainScreen(
                     onAssayKaratChanged = karatConvertViewModel::onAssayKaratChanged,
                     onAgreedKaratChanged = karatConvertViewModel::onAgreedKaratChanged,
                     onTransferToInvoice = {
+                        val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                            PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                            mainUiState.priceBasisTab
+                        ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+
+                        if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
+                            barterInvoiceViewModel.openNewInvoice(currentSpot)
+                        }
+
+                        val eq18k = karatConvertUiState.convertedWeight
+                        val barterItem = BarterCalculationUseCases.calculateCraftedItem(
+                            title = "طلای تبدیل عیار (${karatConvertUiState.convertFromKarat.karatNumber} به ${karatConvertUiState.convertToKarat.karatNumber})",
+                            karat = Karat.K18,
+                            customKaratValue = 750,
+                            grossWeight = eq18k,
+                            stoneWeight = 0.0,
+                            spotPrice18k = currentSpot,
+                            wageType = WageType.PERCENTAGE,
+                            wageInput = 0.0,
+                            profitPercent = 0.0,
+                            taxPercent = 0.0
+                        )
+                        barterInvoiceViewModel.addSalesItem(barterItem)
                         mainViewModel.addItemToInvoice()
                         mainViewModel.setKaratConvertVisible(false)
                         mainViewModel.selectTab(AppTab.INVOICES)
+                        QiratoToast.show(context, "قطعه به سبد فاکتور افزوده شد ✓")
                     }
                 )
             }
@@ -836,29 +904,17 @@ fun MainScreen(
 
                         barterInvoiceViewModel.openNewInvoice(currentSpot)
 
-                        val rawGoldValue = item.netGoldWeightGrams * currentSpot * (item.karat.value.toDouble() / 750.0)
-                        val wageAmount = rawGoldValue * (item.wagePercent / 100.0)
-                        val profitAmount = (rawGoldValue + wageAmount) * (item.profitPercent / 100.0)
-                        val taxAmount = (wageAmount + profitAmount) * (item.taxPercent / 100.0)
-                        val totalPayable = rawGoldValue + wageAmount + profitAmount + taxAmount
-
-                        val barterItem = CraftedGoldItem(
+                        val barterItem = BarterCalculationUseCases.calculateCraftedItem(
                             title = item.title,
                             karat = item.karat,
+                            customKaratValue = item.customKaratValue,
                             grossWeight = item.grossWeightGrams,
                             stoneWeight = item.stoneWeightGrams,
-                            netWeight = item.netGoldWeightGrams,
-                            spotPrice = currentSpot,
+                            spotPrice18k = currentSpot,
                             wageType = WageType.PERCENTAGE,
                             wageInput = item.wagePercent,
-                            wageAmount = wageAmount,
                             profitPercent = item.profitPercent,
-                            profitAmount = profitAmount,
-                            taxPercent = item.taxPercent,
-                            taxAmount = taxAmount,
-                            rawGoldValue = rawGoldValue,
-                            totalPayable = totalPayable,
-                            equivalent18kWeight = item.weightIn18kGrams
+                            taxPercent = item.taxPercent
                         )
                         barterInvoiceViewModel.addSalesItem(barterItem)
                         inventoryViewModel.setInventoryVisible(false)

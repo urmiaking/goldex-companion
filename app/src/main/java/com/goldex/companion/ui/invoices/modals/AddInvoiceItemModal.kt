@@ -466,14 +466,14 @@ private fun CraftedGoldForm(
         )
     }
 
-    val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
-    val stoneWeight = stoneWeightStr.toDoubleOrNull() ?: 0.0
-    val wageInput = wageInputStr.toDoubleOrNull() ?: 0.0
-    val profit = profitStr.toDoubleOrNull() ?: 0.0
-    val tax = taxStr.toDoubleOrNull() ?: 0.0
+    val grossWeight = PersianNumberFormatter.parseToCleanDouble(grossWeightStr) ?: 0.0
+    val stoneWeight = PersianNumberFormatter.parseToCleanDouble(stoneWeightStr) ?: 0.0
+    val wageInput = PersianNumberFormatter.parseToCleanDouble(wageInputStr) ?: 0.0
+    val profit = PersianNumberFormatter.parseToCleanDouble(profitStr) ?: 0.0
+    val tax = PersianNumberFormatter.parseToCleanDouble(taxStr) ?: 0.0
 
     val effectiveKaratValue = if (isCustomKarat) {
-        customKaratStr.toIntOrNull() ?: 750
+        PersianNumberFormatter.parseToCleanLong(customKaratStr)?.toInt() ?: 750
     } else {
         selectedKaratPreset
     }
@@ -825,14 +825,14 @@ private fun ScrapGoldForm(
     var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "150000") }
     var commissionStr by remember { mutableStateOf(existingItem?.exchangeCommissionPercent?.toString() ?: "") }
 
-    val grossWeight = grossWeightStr.toDoubleOrNull() ?: 0.0
-    val stoneWeight = stoneWeightStr.toDoubleOrNull() ?: 0.0
-    val deficit = deficitStr.toIntOrNull() ?: 0
-    val deductionPerGram = deductionPerGramStr.toLongOrNull() ?: 0L
-    val commission = commissionStr.toDoubleOrNull() ?: 0.0
+    val grossWeight = PersianNumberFormatter.parseToCleanDouble(grossWeightStr) ?: 0.0
+    val stoneWeight = PersianNumberFormatter.parseToCleanDouble(stoneWeightStr) ?: 0.0
+    val deficit = PersianNumberFormatter.parseToCleanLong(deficitStr)?.toInt() ?: 0
+    val deductionPerGram = PersianNumberFormatter.parseToCleanLong(deductionPerGramStr) ?: 0L
+    val commission = PersianNumberFormatter.parseToCleanDouble(commissionStr) ?: 0.0
 
     val effectiveBaseKarat = if (isCustomKarat) {
-        customBaseKaratStr.toIntOrNull() ?: 750
+        PersianNumberFormatter.parseToCleanLong(customBaseKaratStr)?.toInt() ?: 750
     } else {
         selectedBaseKaratPreset
     }
@@ -1178,9 +1178,9 @@ private fun MeltGoldForm(
     var angNumber by remember { mutableStateOf(existingItem?.angNumber ?: "") }
     var labName by remember { mutableStateOf(existingItem?.labName ?: "") }
 
-    val weight = weightStr.toDoubleOrNull() ?: 0.0
+    val weight = PersianNumberFormatter.parseToCleanDouble(weightStr) ?: 0.0
     val labKarat = if (isCustomKarat) {
-        customKaratStr.toIntOrNull() ?: 750
+        PersianNumberFormatter.parseToCleanLong(customKaratStr)?.toInt() ?: 750
     } else {
         selectedKaratPreset
     }
