@@ -1077,7 +1077,7 @@ fun MainScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 OnboardingWizardScreen(
-                    cloudContent = { CloudSettingsContent(cloudViewModel, scrollable = false) },
+                    cloudContent = { WizardCloudSyncSection(cloudViewModel) },
                     cloudReady = { !cloudState.enabled || (cloudState.phone.isNotBlank() && !cloudState.busy && cloudState.status in listOf(com.goldex.companion.data.sync.SyncStatus.PENDING, com.goldex.companion.data.sync.SyncStatus.SYNCED)) },
                     cloudRestored = { cloudState.restoredGeneration > 0 },
                     onDeferCloud = { cloudViewModel.setEnabled(false) },

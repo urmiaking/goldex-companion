@@ -44,7 +44,7 @@
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.6` کرش‌های ویزارد راه‌اندازی اولیه را برطرف می‌کند: رفع خطای اسکرول تو در تو در مرحله تأیید نهایی، استفاده از قرارداد پایدار انتخاب تصویر (`GetContent`) همراه با ذخیره‌سازی محلی مقاوم و بهینه‌سازی ابعاد تصویر لوگو و مهر تجاری جهت جلوگیری از سرریز حافظه (OOM) و خطای رندر بوم. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
+نسخهٔ `0.56.7` رابط کاربری بخش همگام‌سازی ابری در ویزارد راه‌اندازی اولیه را با کارت‌های دوگانه آفلاین/آنلاین، انیمیشن‌های روان باز و بسته شدن، و فرایند بازیابی اطلاعات کاربرپسند و جذاب‌تر ارتقا می‌دهد. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).
