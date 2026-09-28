@@ -39,6 +39,7 @@ import com.goldex.companion.data.sync.*
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.hub.HubCloud
 import com.goldex.companion.ui.hub.HubCloudDownload
 import com.goldex.companion.ui.hub.HubCloudOff
@@ -506,6 +507,521 @@ fun CloudSettingsContent(
                                     action.startsWith("release:") -> viewModel.releaseWriter(action.removePrefix("release:"))
                                     action == "restore" -> viewModel.restore()
                                     action == "takeover" -> viewModel.takeover()
+                                    else -> viewModel.logout()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dedicated, luxury Cloud Sync Section designed specifically for the Onboarding Wizard.
+ * Features dual selectable option cards (Offline by default, Online with animated expansion),
+ * phone authentication, and a prominent celebratory cloud data restoration experience.
+ */
+@Composable
+fun WizardCloudSyncSection(
+    viewModel: CloudSyncViewModel,
+    modifier: Modifier = Modifier
+) {
+    val state by viewModel.state.collectAsState()
+    val form by viewModel.form.collectAsState()
+    val colors = LocalGoldExColors.current
+
+    // Offline is default unless user already enabled cloud or has entered phone
+    var isOnlineSelected by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(state.enabled || state.phone.isNotBlank())
+    }
+
+    var phone by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(form.phone) }
+    var code by androidx.compose.runtime.saveable.rememberSaveable(form.challenge?.optString("challengeId")) { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+
+    LuxuryCard(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Section Header
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp, 16.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(colors.goldPrimary)
+                    )
+                    Text(
+                        text = "نحوه ذخیره و همگام‌سازی اطلاعات",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = colors.surfaceElevated,
+                    border = BorderStroke(0.6.dp, colors.border)
+                ) {
+                    Text(
+                        text = "اختیاری",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textMuted,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            Text(
+                text = "محل نگهداری اطلاعات را تعیین کنید؛ برنامه به صورت پیش‌فرض کاملاً آفلاین کار می‌کند.",
+                fontSize = 11.sp,
+                color = colors.textSecondary
+            )
+        }
+
+        // Option 1: Offline / Local Mode (Default)
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    isOnlineSelected = false
+                    viewModel.setEnabled(false)
+                },
+            shape = RoundedCornerShape(12.dp),
+            color = if (!isOnlineSelected) colors.goldPrimary.copy(alpha = 0.12f) else colors.surfaceElevated,
+            border = BorderStroke(
+                1.dp,
+                if (!isOnlineSelected) colors.goldPrimary else colors.border
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                RadioButton(
+                    selected = !isOnlineSelected,
+                    onClick = {
+                        isOnlineSelected = false
+                        viewModel.setEnabled(false)
+                    },
+                    colors = RadioButtonDefaults.colors(selectedColor = colors.goldPrimary)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (!isOnlineSelected) colors.goldContainer else colors.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = HubCloudOff,
+                        contentDescription = null,
+                        tint = if (!isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "استفاده آفلاین و محلی (پیش‌فرض)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(5.dp),
+                            color = colors.profitGreen.copy(alpha = 0.15f),
+                            border = BorderStroke(0.5.dp, colors.profitGreen.copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = "پیش‌فرض",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.profitGreen,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "اطلاعات تنها روی حافظه این گوشی ذخیره می‌شود؛ بدون نیاز به اینترنت یا ارسال داده به سرور.",
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+
+        // Option 2: Online / Cloud Sync Mode
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    isOnlineSelected = true
+                    viewModel.setEnabled(true)
+                },
+            shape = RoundedCornerShape(12.dp),
+            color = if (isOnlineSelected) colors.goldPrimary.copy(alpha = 0.12f) else colors.surfaceElevated,
+            border = BorderStroke(
+                1.dp,
+                if (isOnlineSelected) colors.goldPrimary else colors.border
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                RadioButton(
+                    selected = isOnlineSelected,
+                    onClick = {
+                        isOnlineSelected = true
+                        viewModel.setEnabled(true)
+                    },
+                    colors = RadioButtonDefaults.colors(selectedColor = colors.goldPrimary)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isOnlineSelected) colors.goldContainer else colors.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = HubCloud,
+                        contentDescription = null,
+                        tint = if (isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "همگام‌سازی و پشتیبان ابری",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(5.dp),
+                            color = colors.goldPrimary.copy(alpha = 0.18f),
+                            border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.5f))
+                        ) {
+                            Text(
+                                text = "پیشنهادی",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = "پشتیبان‌گیری خودکار، اتصال همزمان چند دستگاه و بازیابی فوری اطلاعات قبلی.",
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+
+        // Animated Content for Online Mode
+        AnimatedVisibility(
+            visible = isOnlineSelected,
+            enter = expandVertically(animationSpec = tween(350)) + fadeIn(animationSpec = tween(350)),
+            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.6.dp)
+
+                // If backup / restore is detected on cloud server
+                if (state.status in listOf(SyncStatus.RESTORE_REQUIRED, SyncStatus.CONFLICT)) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = colors.goldContainer.copy(alpha = 0.35f),
+                        border = BorderStroke(1.2.dp, colors.goldPrimary)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(colors.goldPrimary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = HubCloudDownload,
+                                        contentDescription = null,
+                                        tint = colors.surface,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "نسخهٔ پشتیبان ابری شما پیدا شد! 🎉",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain
+                                    )
+                                    Text(
+                                        text = "اطلاعات گالری و فاکتورهای حساب شماره ${PersianNumberFormatter.toPersianDigits(state.phone)} در سرور موجود است.",
+                                        fontSize = 11.sp,
+                                        color = colors.textSecondary,
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "آیا مایلید اطلاعات گذشته شما بر روی این دستگاه بازیابی و جایگزین شود؟",
+                                fontSize = 11.5.sp,
+                                color = colors.textMain,
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            // RTL buttons: Secondary (cancel/ignore) on RIGHT, Primary (restore) on LEFT
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                GoldButton(
+                                    text = "صرف‌نظر و شروع تازه",
+                                    onClick = { viewModel.chooseLocal() },
+                                    isSecondary = true,
+                                    enabled = !form.busy && !state.busy,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                GoldButton(
+                                    text = if (state.busy || form.busy) "در حال بازیابی..." else "بازیابی کامل اطلاعات",
+                                    icon = HubCloudDownload,
+                                    onClick = { confirm = "restore" },
+                                    isLoading = state.busy || form.busy,
+                                    enabled = !state.busy && !form.busy,
+                                    modifier = Modifier.weight(1.5f)
+                                )
+                            }
+                        }
+                    }
+                } else if (state.restoredGeneration > 0) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.profitGreen.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, colors.profitGreen.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.profitGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "اطلاعات ابری با موفقیت بازیابی شد ✓",
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.profitGreen
+                                )
+                                Text(
+                                    text = "کلیه سوابق، دفاتر و فاکتورها روی این دستگاه قرار گرفتند.",
+                                    fontSize = 10.5.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // If not signed in / phone needed
+                if (state.phone.isBlank() || state.status == SyncStatus.AUTH_REQUIRED) {
+                    CloudSignInForm(
+                        phone = phone,
+                        code = code,
+                        form = form,
+                        onPhoneChange = { phone = it },
+                        onCodeChange = { code = it },
+                        onRequest = { viewModel.requestCode(phone) },
+                        onVerify = { viewModel.verifyCode(code) },
+                        onChangePhone = viewModel::changePhone,
+                        onResend = { viewModel.requestCode(form.phone) }
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer.copy(alpha = 0.25f),
+                        border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("💡", fontSize = 16.sp)
+                            Text(
+                                text = "در صورت داشتن حساب قبلی، پس از تأیید شماره، نسخه پشتیبان به صورت خودکار شناسایی و پیشنهاد بازیابی داده می‌شود.",
+                                fontSize = 11.sp,
+                                color = colors.textSecondary,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                } else if (state.status !in listOf(SyncStatus.RESTORE_REQUIRED, SyncStatus.CONFLICT)) {
+                    CloudAccountSummary(state)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        GoldButton(
+                            text = "خروج از حساب",
+                            onClick = { confirm = "logout" },
+                            isSecondary = true,
+                            enabled = !form.busy && !state.busy,
+                            modifier = Modifier.weight(1f)
+                        )
+                        GoldButton(
+                            text = if (state.busy || form.busy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی اکنون",
+                            onClick = viewModel::sync,
+                            isLoading = state.busy || form.busy || state.status == SyncStatus.SYNCING,
+                            enabled = !state.busy && !form.busy,
+                            modifier = Modifier.weight(1.5f)
+                        )
+                    }
+                }
+
+                if (form.error.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.errorRed.copy(alpha = 0.12f),
+                        border = BorderStroke(0.8.dp, colors.errorRed.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = colors.errorRed, modifier = Modifier.size(16.dp))
+                            Text(form.error, color = colors.errorRed, fontSize = 11.5.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Confirmation Dialogs (RTL: Cancel on RIGHT, Confirm on LEFT)
+    if (confirm.isNotBlank()) {
+        Dialog(
+            onDismissRequest = { confirm = "" },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .clip(RoundedCornerShape(20.dp)),
+                color = colors.surface,
+                border = BorderStroke(1.dp, colors.goldBorder)
+            ) {
+                Column(
+                    modifier = Modifier.padding(22.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = when (confirm) {
+                            "restore" -> "بازیابی اطلاعات از حساب ابری"
+                            "local" -> "صرف‌نظر و شروع تازه"
+                            else -> "خروج از حساب ابری"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain
+                    )
+                    Text(
+                        text = when (confirm) {
+                            "restore" -> "اطلاعات موجود روی سرور ابری بر روی این دستگاه بازیابی و جایگزین خواهد شد. آیا ادامه می‌دهید؟"
+                            "local" -> "آیا مایلید نسخه ابری قبلی را نادیده گرفته و به عنوان اطلاعات جدید ادامه دهید؟"
+                            else -> "سینک خاموش می‌شود و ارتباط با حساب ابری قطع خواهد شد."
+                        },
+                        color = colors.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        GoldButton(
+                            text = "انصراف",
+                            onClick = { confirm = "" },
+                            isSecondary = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                        GoldButton(
+                            text = if (confirm == "restore") "تأیید و بازیابی" else "تأیید",
+                            onClick = {
+                                val action = confirm
+                                confirm = ""
+                                when (action) {
+                                    "restore" -> viewModel.restore()
+                                    "local" -> viewModel.chooseLocal()
                                     else -> viewModel.logout()
                                 }
                             },
