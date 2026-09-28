@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -388,6 +389,15 @@ fun CloudSettingsContent(
                     Text(form.error, color = colors.errorRed, fontSize = 12.sp, lineHeight = 18.sp)
                 }
             }
+            if (form.error.contains("مجوز") || state.status == SyncStatus.LICENSE_REQUIRED) {
+                GoldButton(
+                    text = "فعال‌سازی مهلت تست ۱۴ روزه رایگان",
+                    onClick = { viewModel.activateTrial() },
+                    isLoading = form.busy,
+                    enabled = !form.busy,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         Surface(
@@ -593,165 +603,119 @@ fun WizardCloudSyncSection(
             )
         }
 
-        // Option 1: Offline / Local Mode (Default)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    isOnlineSelected = false
-                    viewModel.setEnabled(false)
-                },
-            shape = RoundedCornerShape(12.dp),
-            color = if (!isOnlineSelected) colors.goldPrimary.copy(alpha = 0.12f) else colors.surfaceElevated,
-            border = BorderStroke(
-                1.dp,
-                if (!isOnlineSelected) colors.goldPrimary else colors.border
-            )
+        // Dual Square Selection Cards in One Row (No RadioButtons, No Extra Text)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                RadioButton(
-                    selected = !isOnlineSelected,
-                    onClick = {
+            // 1. Offline Mode Card (Right side in RTL, first child)
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable {
                         isOnlineSelected = false
                         viewModel.setEnabled(false)
                     },
-                    colors = RadioButtonDefaults.colors(selectedColor = colors.goldPrimary)
+                shape = RoundedCornerShape(16.dp),
+                color = if (!isOnlineSelected) colors.goldContainer.copy(alpha = 0.35f) else colors.surfaceElevated,
+                border = BorderStroke(
+                    if (!isOnlineSelected) 1.5.dp else 0.8.dp,
+                    if (!isOnlineSelected) colors.goldPrimary else colors.border
                 )
-
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (!isOnlineSelected) colors.goldContainer else colors.surface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = HubCloudOff,
-                        contentDescription = null,
-                        tint = if (!isOnlineSelected) colors.goldPrimary else colors.textMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
+            ) {
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (!isOnlineSelected) colors.goldPrimary.copy(alpha = 0.15f) else colors.surface),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "استفاده آفلاین و محلی (پیش‌فرض)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
+                        Icon(
+                            imageVector = HubCloudOff,
+                            contentDescription = null,
+                            tint = if (!isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Surface(
-                            shape = RoundedCornerShape(5.dp),
-                            color = colors.profitGreen.copy(alpha = 0.15f),
-                            border = BorderStroke(0.5.dp, colors.profitGreen.copy(alpha = 0.4f))
-                        ) {
-                            Text(
-                                text = "پیش‌فرض",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.profitGreen,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                            )
-                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "اطلاعات تنها روی حافظه این گوشی ذخیره می‌شود؛ بدون نیاز به اینترنت یا ارسال داده به سرور.",
+                        text = "ذخیره در دستگاه",
+                        fontSize = 12.sp,
+                        fontWeight = if (!isOnlineSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (!isOnlineSelected) colors.textMain else colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "(آفلاین)",
                         fontSize = 10.5.sp,
-                        color = colors.textMuted,
-                        lineHeight = 15.sp
+                        fontWeight = FontWeight.Normal,
+                        color = if (!isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
-        }
 
-        // Option 2: Online / Cloud Sync Mode
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    isOnlineSelected = true
-                    viewModel.setEnabled(true)
-                },
-            shape = RoundedCornerShape(12.dp),
-            color = if (isOnlineSelected) colors.goldPrimary.copy(alpha = 0.12f) else colors.surfaceElevated,
-            border = BorderStroke(
-                1.dp,
-                if (isOnlineSelected) colors.goldPrimary else colors.border
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                RadioButton(
-                    selected = isOnlineSelected,
-                    onClick = {
+            // 2. Online Mode Card (Left side in RTL, second child)
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable {
                         isOnlineSelected = true
                         viewModel.setEnabled(true)
                     },
-                    colors = RadioButtonDefaults.colors(selectedColor = colors.goldPrimary)
+                shape = RoundedCornerShape(16.dp),
+                color = if (isOnlineSelected) colors.goldContainer.copy(alpha = 0.35f) else colors.surfaceElevated,
+                border = BorderStroke(
+                    if (isOnlineSelected) 1.5.dp else 0.8.dp,
+                    if (isOnlineSelected) colors.goldPrimary else colors.border
                 )
-
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isOnlineSelected) colors.goldContainer else colors.surface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = HubCloud,
-                        contentDescription = null,
-                        tint = if (isOnlineSelected) colors.goldPrimary else colors.textMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
+            ) {
                 Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isOnlineSelected) colors.goldPrimary.copy(alpha = 0.15f) else colors.surface),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "همگام‌سازی و پشتیبان ابری",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textMain
+                        Icon(
+                            imageVector = HubCloud,
+                            contentDescription = null,
+                            tint = if (isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Surface(
-                            shape = RoundedCornerShape(5.dp),
-                            color = colors.goldPrimary.copy(alpha = 0.18f),
-                            border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.5f))
-                        ) {
-                            Text(
-                                text = "پیشنهادی",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                            )
-                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "پشتیبان‌گیری خودکار، اتصال همزمان چند دستگاه و بازیابی فوری اطلاعات قبلی.",
+                        text = "همگام‌سازی ابری",
+                        fontSize = 12.sp,
+                        fontWeight = if (isOnlineSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isOnlineSelected) colors.textMain else colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "(آنلاین)",
                         fontSize = 10.5.sp,
-                        color = colors.textMuted,
-                        lineHeight = 15.sp
+                        fontWeight = FontWeight.Normal,
+                        color = if (isOnlineSelected) colors.goldPrimary else colors.textMuted,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -961,6 +925,15 @@ fun WizardCloudSyncSection(
                             Icon(Icons.Default.Warning, contentDescription = null, tint = colors.errorRed, modifier = Modifier.size(16.dp))
                             Text(form.error, color = colors.errorRed, fontSize = 11.5.sp)
                         }
+                    }
+                    if (form.error.contains("مجوز") || state.status == SyncStatus.LICENSE_REQUIRED) {
+                        GoldButton(
+                            text = "فعال‌سازی مهلت تست ۱۴ روزه رایگان",
+                            onClick = { viewModel.activateTrial() },
+                            isLoading = form.busy,
+                            enabled = !form.busy,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

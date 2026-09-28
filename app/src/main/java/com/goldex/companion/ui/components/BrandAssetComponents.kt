@@ -1,10 +1,13 @@
 package com.goldex.companion.ui.components
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.result.contract.ActivityResultContract
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -34,6 +37,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.ui.theme.LocalGoldExColors
+
+/**
+ * Robust image picker contract that falls back across ACTION_PICK, ACTION_GET_CONTENT and system choosers
+ * to support all Android versions, devices, emulators, and custom ROMs without failing on CATEGORY_OPENABLE.
+ */
+class SafeImagePickerContract : ActivityResultContract<Unit, Uri?>() {
+    override fun createIntent(context: Context, input: Unit): Intent {
+        val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+            type = "image/*"
+        }
+        val getContentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+        }
+        val chooser = Intent.createChooser(pickIntent, "انتخاب تصویر")
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(getContentIntent))
+        return chooser
+    }
+
+    override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
+        return if (resultCode == Activity.RESULT_OK) intent?.data else null
+    }
+}
 
 /**
  * Reusable tile for uploading, previewing, and managing store brand assets (logo, commercial stamp).
