@@ -28,6 +28,7 @@ import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import com.goldex.companion.R
 import com.goldex.companion.data.AppSettings
+import com.goldex.companion.ui.components.loadSafeProfileBitmap
 import com.goldex.companion.domain.invoice.OfficialInvoiceDocument
 import com.goldex.companion.domain.invoice.OfficialInvoiceDocumentFactory
 import com.goldex.companion.domain.invoice.OfficialInvoiceRow
@@ -364,9 +365,7 @@ object OfficialInvoicePdfGenerator {
 
     private fun loadPersistedBitmap(context: Context, uriValue: String): Bitmap? {
         if (uriValue.isBlank()) return null
-        return runCatching {
-            context.contentResolver.openInputStream(Uri.parse(uriValue))?.use(BitmapFactory::decodeStream)
-        }.getOrNull()
+        return loadSafeProfileBitmap(context, uriValue, maxDimension = 512)
     }
 
     /** A single width-bounded typography path for Persian shaping and bidi ordering. */

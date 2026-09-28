@@ -46,6 +46,8 @@ import androidx.compose.animation.core.tween
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
+import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -84,16 +86,18 @@ fun JewelerProfileModal(
 
     var isVisible by remember { mutableStateOf(false) }
 
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
-            logoUri = it.toString()
+            logoUri = localUri
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
-            stampUri = it.toString()
+            stampUri = localUri
         }
     }
 
@@ -306,7 +310,13 @@ fun JewelerProfileModal(
                                             actionLabel = "تغییر لوگو",
                                             bitmap = rememberProfileAssetBitmap(logoUri),
                                             fallback = monogram,
-                                            onPick = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                                            onPick = {
+                                                try {
+                                                    logoPicker.launch("image/*")
+                                                } catch (_: Exception) {
+                                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                }
+                                            },
                                             onClear = if (logoUri.isNotBlank()) ({ logoUri = "" }) else null,
                                             modifier = Modifier.weight(1f)
                                         )
@@ -315,7 +325,13 @@ fun JewelerProfileModal(
                                             actionLabel = "انتخاب مهر",
                                             bitmap = rememberProfileAssetBitmap(stampUri),
                                             fallback = "مهر",
-                                            onPick = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                                            onPick = {
+                                                try {
+                                                    stampPicker.launch("image/*")
+                                                } catch (_: Exception) {
+                                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                }
+                                            },
                                             onClear = if (stampUri.isNotBlank()) ({ stampUri = "" }) else null,
                                             modifier = Modifier.weight(1f)
                                         )

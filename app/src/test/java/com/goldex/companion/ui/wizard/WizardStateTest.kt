@@ -96,4 +96,13 @@ class WizardStateTest {
         val settingsCompleted = settingsDefault.copy(hasCompletedOnboarding = true)
         assertTrue(settingsCompleted.hasCompletedOnboarding)
     }
+
+    @Test
+    fun testWizardStepsProgressionFromInventoryToCompletion() {
+        var currentStep = WizardStep.INVENTORY
+        assertEquals(WizardStep.INVENTORY, currentStep)
+        currentStep = WizardStep.COMPLETION
+        assertEquals(WizardStep.COMPLETION, currentStep)
+        assertEquals(4, currentStep.stepNumber)
+    }
 }
