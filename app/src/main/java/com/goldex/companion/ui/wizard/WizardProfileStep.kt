@@ -32,7 +32,6 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
-import com.goldex.companion.ui.components.SafeImagePickerContract
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -51,14 +50,29 @@ fun WizardProfileContent(
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
 
-    val logoPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
+    val logoOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "wizard_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
             onProfileChange(profileState.copy(logoUri = localUri))
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
+    val logoGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "wizard_logo") ?: it.toString()
+            persistProfileAssetPermission(context, it)
+            onProfileChange(profileState.copy(logoUri = localUri))
+        }
+    }
+
+    val stampOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
+            persistProfileAssetPermission(context, it)
+            onProfileChange(profileState.copy(stampUri = localUri))
+        }
+    }
+    val stampGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
@@ -165,9 +179,13 @@ fun WizardProfileContent(
                         fallback = monogram,
                         onPick = {
                             try {
-                                logoPicker.launch(Unit)
+                                logoOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
                             } catch (_: Exception) {
-                                QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                try {
+                                    logoGetContentPicker.launch("image/*")
+                                } catch (_: Exception) {
+                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                }
                             }
                         },
                         onClear = if (profileState.logoUri.isNotBlank()) ({ onProfileChange(profileState.copy(logoUri = "")) }) else null,
@@ -180,9 +198,13 @@ fun WizardProfileContent(
                         fallback = "مهر",
                         onPick = {
                             try {
-                                stampPicker.launch(Unit)
+                                stampOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
                             } catch (_: Exception) {
-                                QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                try {
+                                    stampGetContentPicker.launch("image/*")
+                                } catch (_: Exception) {
+                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                }
                             }
                         },
                         onClear = if (profileState.stampUri.isNotBlank()) ({ onProfileChange(profileState.copy(stampUri = "")) }) else null,

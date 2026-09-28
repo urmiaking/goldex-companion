@@ -47,7 +47,6 @@ import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
-import com.goldex.companion.ui.components.SafeImagePickerContract
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -87,14 +86,29 @@ fun JewelerProfileModal(
 
     var isVisible by remember { mutableStateOf(false) }
 
-    val logoPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
+    val logoOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
             logoUri = localUri
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
+    val logoGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
+            persistProfileAssetPermission(context, it)
+            logoUri = localUri
+        }
+    }
+
+    val stampOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
+            persistProfileAssetPermission(context, it)
+            stampUri = localUri
+        }
+    }
+    val stampGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
@@ -313,9 +327,13 @@ fun JewelerProfileModal(
                                             fallback = monogram,
                                             onPick = {
                                                 try {
-                                                    logoPicker.launch(Unit)
+                                                    logoOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
                                                 } catch (_: Exception) {
-                                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                    try {
+                                                        logoGetContentPicker.launch("image/*")
+                                                    } catch (_: Exception) {
+                                                        QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                    }
                                                 }
                                             },
                                             onClear = if (logoUri.isNotBlank()) ({ logoUri = "" }) else null,
@@ -328,9 +346,13 @@ fun JewelerProfileModal(
                                             fallback = "مهر",
                                             onPick = {
                                                 try {
-                                                    stampPicker.launch(Unit)
+                                                    stampOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
                                                 } catch (_: Exception) {
-                                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                    try {
+                                                        stampGetContentPicker.launch("image/*")
+                                                    } catch (_: Exception) {
+                                                        QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                                                    }
                                                 }
                                             },
                                             onClear = if (stampUri.isNotBlank()) ({ stampUri = "" }) else null,
