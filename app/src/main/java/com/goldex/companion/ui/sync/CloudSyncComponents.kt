@@ -99,76 +99,157 @@ fun CloudSyncButton(state: SyncUiState, reducedMotion: Boolean? = null, onClick:
                     modifier = Modifier.size(20.dp)
                 )
 
-                if (state.status != SyncStatus.OFFLINE) {
-                    val tint = when (state.status) {
-                        SyncStatus.SYNCED -> colors.profitGreen
-                        SyncStatus.SYNCING -> colors.syncBlue
-                        SyncStatus.ERROR, SyncStatus.CONFLICT, SyncStatus.LICENSE_REQUIRED -> colors.syncWarning
-                        else -> colors.textMuted
-                    }
-                    val icon = when (state.status) {
-                        SyncStatus.SYNCED -> Icons.Default.Check
-                        SyncStatus.SYNCING -> Icons.Default.Refresh
-                        SyncStatus.AUTH_REQUIRED -> Icons.Default.AccountCircle
-                        SyncStatus.LICENSE_REQUIRED, SyncStatus.WRITER_CHANGED -> Icons.Default.Lock
-                        SyncStatus.ERROR, SyncStatus.CONFLICT, SyncStatus.RESTORE_REQUIRED -> Icons.Default.Warning
-                        else -> Icons.Default.Info
-                    }
+                // Status Badge at bottom-right (in RTL layout, Alignment.BottomStart is the bottom-right corner)
+                AnimatedContent(
+                    targetState = state.status,
+                    transitionSpec = {
+                        if (reduced) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            (scaleIn(tween(220, easing = FastOutSlowInEasing), initialScale = 0.5f) + fadeIn(tween(180)))
+                                .togetherWith(scaleOut(tween(160, easing = FastOutSlowInEasing), targetScale = 0.5f) + fadeOut(tween(140)))
+                        }
+                    },
+                    label = "cloud_status_badge",
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(2.dp)
+                ) { targetStatus ->
+                    when (targetStatus) {
+                        SyncStatus.SYNCING -> {
+                            val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+                            val rotation by if (!reduced) {
+                                infiniteTransition.animateFloat(
+                                    initialValue = 0f,
+                                    targetValue = 360f,
+                                    animationSpec = infiniteRepeatable(
+                                        animation = tween(1000, easing = LinearEasing),
+                                        repeatMode = RepeatMode.Restart
+                                    ),
+                                    label = "sync_angle"
+                                )
+                            } else {
+                                remember { mutableFloatStateOf(0f) }
+                            }
 
-                    var rotation by remember { mutableFloatStateOf(0f) }
-                    if (state.status == SyncStatus.SYNCING && !reduced) {
-                        val transition = rememberInfiniteTransition(label = "sync_rotation")
-                        val angle by transition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "sync_angle"
-                        )
-                        rotation = angle
-                    }
-
-                    AnimatedContent(
-                        targetState = state.status,
-                        transitionSpec = {
-                            val animate = !reduced && initialState == SyncStatus.SYNCING && targetState == SyncStatus.SYNCED
-                            (fadeIn(tween(if (animate) 250 else 0)) + scaleIn(animationSpec = tween(if (animate) 250 else 0), initialScale = if (animate) .75f else 1f))
-                                .togetherWith(fadeOut(tween(if (animate) 150 else 0)))
-                        },
-                        label = "cloud_status_badge",
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(2.dp)
-                    ) { _ ->
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(colors.surface)
-                                .padding(1.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = contentDesc,
-                                tint = tint,
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .rotate(rotation)
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.syncBlue),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = contentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(8.5.dp)
+                                        .rotate(rotation)
+                                )
+                            }
+                        }
+
+                        SyncStatus.SYNCED -> {
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.profitGreen),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = contentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(8.5.dp)
+                                )
+                            }
+                        }
+
+                        SyncStatus.ERROR -> {
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.errorRed),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = contentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(8.dp)
+                                )
+                            }
+                        }
+
+                        SyncStatus.CONFLICT, SyncStatus.LICENSE_REQUIRED, SyncStatus.RESTORE_REQUIRED, SyncStatus.AUTH_REQUIRED, SyncStatus.WRITER_CHANGED -> {
+                            val badgeIcon = when (targetStatus) {
+                                SyncStatus.AUTH_REQUIRED -> Icons.Default.AccountCircle
+                                SyncStatus.LICENSE_REQUIRED, SyncStatus.WRITER_CHANGED -> Icons.Default.Lock
+                                else -> Icons.Default.Warning
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.syncWarning),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = badgeIcon,
+                                    contentDescription = contentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(8.dp)
+                                )
+                            }
+                        }
+
+                        SyncStatus.OFFLINE -> {
+                            Box(
+                                modifier = Modifier
+                                    .size(11.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.errorRed.copy(alpha = 0.85f))
                             )
                         }
+
+                        else -> {
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.surface)
+                                    .padding(0.8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.goldPrimary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = contentDesc,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(8.5.dp)
+                                )
+                            }
+                        }
                     }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(3.dp)
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(colors.errorRed)
-                    )
                 }
             }
         }
