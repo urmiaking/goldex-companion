@@ -174,7 +174,11 @@ fun CloudSyncButton(state: SyncUiState, reducedMotion: Boolean? = null, onClick:
 }
 
 @Composable
-fun CloudSettingsContent(viewModel: CloudSyncViewModel, modifier: Modifier = Modifier) {
+fun CloudSettingsContent(
+    viewModel: CloudSyncViewModel,
+    modifier: Modifier = Modifier,
+    scrollable: Boolean = true
+) {
     val state by viewModel.state.collectAsState()
     val form by viewModel.form.collectAsState()
     val colors = LocalGoldExColors.current
@@ -196,11 +200,12 @@ fun CloudSettingsContent(viewModel: CloudSyncViewModel, modifier: Modifier = Mod
     var code by androidx.compose.runtime.saveable.rememberSaveable(form.challenge?.optString("challengeId")) { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
 
+    val scrollModifier = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .then(scrollModifier)
+            .padding(if (scrollable) 20.dp else 0.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         CloudConnectionToggle(state.enabled, !form.busy && !state.busy, viewModel::setEnabled)

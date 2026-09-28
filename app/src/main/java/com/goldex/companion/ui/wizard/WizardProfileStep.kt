@@ -32,6 +32,7 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -49,16 +50,18 @@ fun WizardProfileContent(
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
 
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "wizard_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
-            onProfileChange(profileState.copy(logoUri = it.toString()))
+            onProfileChange(profileState.copy(logoUri = localUri))
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
+            val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
-            onProfileChange(profileState.copy(stampUri = it.toString()))
+            onProfileChange(profileState.copy(stampUri = localUri))
         }
     }
 
@@ -159,7 +162,13 @@ fun WizardProfileContent(
                         actionLabel = if (profileState.logoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
                         bitmap = rememberProfileAssetBitmap(profileState.logoUri),
                         fallback = monogram,
-                        onPick = { logoPicker.launch(arrayOf("image/png", "image/jpeg", "image/webp")) },
+                        onPick = {
+                            try {
+                                logoPicker.launch("image/*")
+                            } catch (_: Exception) {
+                                QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                            }
+                        },
                         onClear = if (profileState.logoUri.isNotBlank()) ({ onProfileChange(profileState.copy(logoUri = "")) }) else null,
                         modifier = Modifier.weight(1f)
                     )
@@ -168,7 +177,13 @@ fun WizardProfileContent(
                         actionLabel = if (profileState.stampUri.isNotBlank()) "تغییر مهر" else "انتخاب مهر",
                         bitmap = rememberProfileAssetBitmap(profileState.stampUri),
                         fallback = "مهر",
-                        onPick = { stampPicker.launch(arrayOf("image/png", "image/webp")) },
+                        onPick = {
+                            try {
+                                stampPicker.launch("image/*")
+                            } catch (_: Exception) {
+                                QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                            }
+                        },
                         onClear = if (profileState.stampUri.isNotBlank()) ({ onProfileChange(profileState.copy(stampUri = "")) }) else null,
                         modifier = Modifier.weight(1f)
                     )
