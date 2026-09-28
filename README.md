@@ -44,7 +44,7 @@
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.7` رابط کاربری بخش همگام‌سازی ابری در ویزارد راه‌اندازی اولیه را با کارت‌های دوگانه آفلاین/آنلاین، انیمیشن‌های روان باز و بسته شدن، و فرایند بازیابی اطلاعات کاربرپسند و جذاب‌تر ارتقا می‌دهد. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
+نسخهٔ `0.56.8` مشکل انتخاب عکس لوگو و مهر را با `SafeImagePickerContract` و کوئری‌های بسته مانیفست حل می‌کند، کارت‌های انتخاب آفلاین/آنلاین در ویزارد را به دو کارت مربعی مینیمال در یک ردیف تبدیل می‌نماید و خطای نیاز به مجوز در همگام‌سازی ابری را با فعال‌سازی خودکار مهلت تست رایگان برطرف می‌سازد. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).

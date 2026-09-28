@@ -7,6 +7,7 @@ import android.util.AtomicFile
 import android.util.Base64
 import com.goldex.companion.data.license.DeviceIdentityManager
 import com.goldex.companion.data.license.LicenseRepository
+import com.goldex.companion.data.license.LicenseResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -110,7 +111,14 @@ class HttpCloudRepository(private val context: Context, val keys: DeviceCloudKey
     override suspend fun verifyCode(challenge: JSONObject, code: String, phone: String): JSONObject {
         val identity = DeviceIdentityManager.getDeviceIdentity(context)
         val public = keys.publicKey()
-        val license = LicenseRepository(context).getCachedInfo()
+        val licenseRepo = LicenseRepository(context)
+        var license = licenseRepo.getCachedInfo()
+        if (license.token == null) {
+            val trialResult = licenseRepo.activateTrial()
+            if (trialResult is LicenseResult.Success) {
+                license = trialResult.info
+            }
+        }
         val token = license.token ?: throw CloudException("LICENSE_REQUIRED",403)
         val id = challenge.getString("challengeId"); val nonce = challenge.getString("nonce")
         val result = raw("auth/otp/verify",JSONObject().put("challengeId",id).put("code",code).put("fingerprint",identity.fingerprint)

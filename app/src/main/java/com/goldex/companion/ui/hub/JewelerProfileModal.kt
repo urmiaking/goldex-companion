@@ -47,6 +47,7 @@ import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.SafeImagePickerContract
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -86,14 +87,14 @@ fun JewelerProfileModal(
 
     var isVisible by remember { mutableStateOf(false) }
 
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val logoPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
             logoUri = localUri
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val stampPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
@@ -312,7 +313,7 @@ fun JewelerProfileModal(
                                             fallback = monogram,
                                             onPick = {
                                                 try {
-                                                    logoPicker.launch("image/*")
+                                                    logoPicker.launch(Unit)
                                                 } catch (_: Exception) {
                                                     QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
                                                 }
@@ -327,7 +328,7 @@ fun JewelerProfileModal(
                                             fallback = "مهر",
                                             onPick = {
                                                 try {
-                                                    stampPicker.launch("image/*")
+                                                    stampPicker.launch(Unit)
                                                 } catch (_: Exception) {
                                                     QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
                                                 }

@@ -32,6 +32,7 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.SafeImagePickerContract
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -50,14 +51,14 @@ fun WizardProfileContent(
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
 
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val logoPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "wizard_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
             onProfileChange(profileState.copy(logoUri = localUri))
         }
     }
-    val stampPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val stampPicker = rememberLauncherForActivityResult(SafeImagePickerContract()) { uri ->
         uri?.let {
             val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
             persistProfileAssetPermission(context, it)
@@ -164,7 +165,7 @@ fun WizardProfileContent(
                         fallback = monogram,
                         onPick = {
                             try {
-                                logoPicker.launch("image/*")
+                                logoPicker.launch(Unit)
                             } catch (_: Exception) {
                                 QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
                             }
@@ -179,7 +180,7 @@ fun WizardProfileContent(
                         fallback = "مهر",
                         onPick = {
                             try {
-                                stampPicker.launch("image/*")
+                                stampPicker.launch(Unit)
                             } catch (_: Exception) {
                                 QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
                             }
