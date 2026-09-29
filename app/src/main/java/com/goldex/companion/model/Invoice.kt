@@ -28,7 +28,7 @@ data class InvoiceItem(
 
 data class Invoice(
     val id: String = UUID.randomUUID().toString(),
-    val invoiceNumber: String = (100000..999999).random().toString(),
+    val invoiceNumber: String = generateBarterInvoiceNumber(),
     val createdAt: Long = System.currentTimeMillis(),
     val customer: Customer? = null,
     val items: List<InvoiceItem> = emptyList(),

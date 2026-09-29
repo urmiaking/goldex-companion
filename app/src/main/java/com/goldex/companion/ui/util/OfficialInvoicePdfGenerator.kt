@@ -69,9 +69,13 @@ object OfficialInvoicePdfGenerator {
 
     fun print(context: Context, invoice: BarterInvoice, settings: AppSettings): Boolean {
         val file = create(context, invoice, settings) ?: return false
+        return print(context, file, invoice.invoiceNumber)
+    }
+
+    fun print(context: Context, file: File, invoiceNumber: String): Boolean = runCatching {
         val printManager = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
         printManager.print(
-            "Qirat-${invoice.invoiceNumber}",
+            "Qirat-$invoiceNumber",
             CachedPdfPrintAdapter(file),
             PrintAttributes.Builder()
                 .setMediaSize(PrintAttributes.MediaSize.ISO_A5.asLandscape())
@@ -79,8 +83,8 @@ object OfficialInvoicePdfGenerator {
                 .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                 .build()
         )
-        return true
-    }
+        true
+    }.getOrDefault(false)
 
     fun create(context: Context, invoice: BarterInvoice, settings: AppSettings): File? {
         val model = OfficialInvoiceDocumentFactory.create(invoice, settings)

@@ -1,6 +1,7 @@
 package com.goldex.companion.model
 
 import com.goldex.companion.domain.invoice.BarterCalculationUseCases
+import com.goldex.companion.domain.reporting.ShamsiCalendarHelper
 import java.util.UUID
 
 enum class CustomerRole(val titleFa: String) {
@@ -124,9 +125,15 @@ data class SettlementPaymentItem(
     val bullionAngNumber: String = ""
 )
 
+fun generateBarterInvoiceNumber(createdAtMillis: Long = System.currentTimeMillis()): String {
+    val shamsiYear = ShamsiCalendarHelper.millisToShamsi(createdAtMillis).first
+    val serial = (100..999).random()
+    return "$shamsiYear$serial"
+}
+
 data class BarterInvoice(
     val id: String = UUID.randomUUID().toString(),
-    val invoiceNumber: String = "${(1403..1404).random()}-${(100..999).random()}",
+    val invoiceNumber: String = generateBarterInvoiceNumber(),
     val createdAt: Long = System.currentTimeMillis(),
     val customer: Customer? = null,
     val customerRole: CustomerRole = CustomerRole.WHOLESALER,
