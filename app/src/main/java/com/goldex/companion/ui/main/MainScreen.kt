@@ -177,6 +177,11 @@ fun MainScreen(
                 if (!OfficialInvoicePdfGenerator.share(context, file, invoiceNumber)) {
                     QiratoToast.show(context, "اشتراک‌گذاری فایل PDF ناموفق بود")
                 }
+            },
+            onPrint = {
+                if (!OfficialInvoicePdfGenerator.print(context, file, invoiceNumber)) {
+                    QiratoToast.show(context, "ارسال به چاپگر با خطا مواجه شد")
+                }
             }
         )
     }
@@ -607,15 +612,19 @@ fun MainScreen(
                                             }
                                             QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
                                         },
-                                        onExportPdfClick = { item ->
+                                        onPrintClick = { item ->
                                             if (!licenseInfo.isLicensed) {
                                                 licenseViewModel.setActivationDialogVisible(true)
-                                                QiratoToast.show(context, "صدور فایل PDF فاکتور نیازمند اشتراک معتبر است.")
+                                                QiratoToast.show(context, "چاپ فاکتور نیازمند اشتراک معتبر است.")
                                             } else {
                                                 val invoice = item.barterInvoice
                                                 if (invoice == null) {
-                                                    QiratoToast.show(context, "اطلاعات کامل فاکتور برای صدور PDF موجود نیست")
-                                                } else openPdfPreview(invoice)
+                                                    QiratoToast.show(context, "اطلاعات کامل فاکتور برای چاپ موجود نیست")
+                                                } else {
+                                                    if (!OfficialInvoicePdfGenerator.print(context, invoice, settingsState.appSettings)) {
+                                                        QiratoToast.show(context, "ارسال به چاپگر با خطا مواجه شد")
+                                                    }
+                                                }
                                             }
                                         }
                                     )

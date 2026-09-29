@@ -63,6 +63,7 @@ import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoicePdfVector
 import com.goldex.companion.ui.invoices.components.InvoicePlusVector
+import com.goldex.companion.ui.invoices.components.InvoicePrintVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.VazirmatnFamily
@@ -75,7 +76,7 @@ fun InvoicesManagementScreen(
     onFilterSelect: (InvoiceFilterTab) -> Unit,
     onNewInvoiceClick: () -> Unit,
     onInvoiceItemClick: (InvoiceListItem) -> Unit,
-    onExportPdfClick: (InvoiceListItem) -> Unit,
+    onPrintClick: (InvoiceListItem) -> Unit,
     onDeleteInvoice: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -161,7 +162,7 @@ fun InvoicesManagementScreen(
                             InvoiceTransactionCard(
                                 item = invoiceItem,
                                 onCardClick = { onInvoiceItemClick(invoiceItem) },
-                                onPdfClick = { onExportPdfClick(invoiceItem) },
+                                onPrintClick = { onPrintClick(invoiceItem) },
                                 onDeleteClick = { pendingDeletion = invoiceItem }
                             )
                         }
@@ -536,7 +537,7 @@ private fun FilterCapsuleItem(
 private fun InvoiceTransactionCard(
     item: InvoiceListItem,
     onCardClick: () -> Unit,
-    onPdfClick: () -> Unit,
+    onPrintClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -756,13 +757,13 @@ private fun InvoiceTransactionCard(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    // PDF Button
+                    // Print Button
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(colors.surfaceElevated)
                             .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                            .clickable(onClick = onPdfClick)
+                            .clickable(onClick = onPrintClick)
                             .padding(horizontal = 9.dp, vertical = 7.dp)
                     ) {
                         Row(
@@ -770,13 +771,13 @@ private fun InvoiceTransactionCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = InvoicePdfVector,
-                                contentDescription = "PDF",
+                                imageVector = InvoicePrintVector,
+                                contentDescription = "چاپ",
                                 tint = colors.textSecondary,
                                 modifier = Modifier.size(13.dp)
                             )
                             Text(
-                                text = "PDF",
+                                text = "چاپ",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.textSecondary,

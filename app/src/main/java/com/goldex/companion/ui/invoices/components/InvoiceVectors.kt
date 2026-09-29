@@ -216,3 +216,41 @@ internal val InvoiceStoreVector: ImageVector = ImageVector.Builder(
         moveTo(9f, 21f); verticalLineTo(13f); horizontalLineTo(15f); verticalLineTo(21f)
     }
 }.build()
+
+internal val InvoicePrintVector: ImageVector = ImageVector.Builder(
+    name = "InvoicePrint",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 1.8f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(6f, 9f); verticalLineTo(3f); horizontalLineTo(18f); verticalLineTo(9f)
+        moveTo(6f, 18f); horizontalLineTo(4f); curveTo(2.9f, 18f, 2f, 17.1f, 2f, 16f); verticalLineTo(11f); curveTo(2f, 9.9f, 2.9f, 9f, 4f, 9f); horizontalLineTo(20f); curveTo(21.1f, 9f, 22f, 9.9f, 22f, 11f); verticalLineTo(16f); curveTo(22f, 17.1f, 21.1f, 18f, 20f, 18f); horizontalLineTo(18f)
+        moveTo(6f, 14f); horizontalLineTo(18f); verticalLineTo(21f); horizontalLineTo(6f); close()
+    }
+}.build()
+
+internal val InvoiceMinusVector: ImageVector = ImageVector.Builder(
+    name = "InvoiceMinus",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(
+        stroke = SolidColor(Color.White),
+        strokeLineWidth = 2.2f,
+        strokeLineCap = StrokeCap.Round,
+        strokeLineJoin = StrokeJoin.Round
+    ) {
+        moveTo(5f, 12f); horizontalLineTo(19f)
+    }
+}.build()
+
+
