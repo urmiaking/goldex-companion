@@ -128,7 +128,7 @@ fun InvoicePdfPreviewModal(
                                     color = colors.textMain
                                 )
                                 Text(
-                                    text = "شماره $invoiceNumber",
+                                    text = "شماره ${PersianNumberFormatter.toPersianDigits(invoiceNumber)}",
                                     fontSize = 11.sp,
                                     color = colors.textMuted
                                 )

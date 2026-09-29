@@ -32,6 +32,7 @@ import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.SignaturePadDialog
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -65,19 +66,16 @@ fun WizardProfileContent(
         }
     }
 
-    val stampOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
-            persistProfileAssetPermission(context, it)
-            onProfileChange(profileState.copy(stampUri = localUri))
-        }
-    }
-    val stampGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "wizard_stamp") ?: it.toString()
-            persistProfileAssetPermission(context, it)
-            onProfileChange(profileState.copy(stampUri = localUri))
-        }
+    var showSignaturePad by remember { mutableStateOf(false) }
+
+    if (showSignaturePad) {
+        SignaturePadDialog(
+            onDismiss = { showSignaturePad = false },
+            onSignatureSaved = { uri ->
+                onProfileChange(profileState.copy(signatureUri = uri))
+                showSignaturePad = false
+            }
+        )
     }
 
     val monogram = remember(profileState.galleryName) {
@@ -124,7 +122,7 @@ fun WizardProfileContent(
             )
         }
 
-        // Logo & Commercial Stamp Upload Box Card
+        // Logo & Digital Signature Box Card
         LuxuryCard(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(14.dp)
@@ -154,13 +152,13 @@ fun WizardProfileContent(
                     }
                     Column {
                         Text(
-                            text = "لوگو و مهر تجاری واحد صنفی",
+                            text = "لوگو و امضای دیجیتال واحد صنفی",
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain
                         )
                         Text(
-                            text = "نمایش خودکار در سربرگ فاکتورهای رسمی و اسناد چاپی",
+                            text = "نمایش خودکار در سربرگ و بخش تأیید فاکتورهای رسمی",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Normal,
                             color = colors.textMuted
@@ -192,22 +190,12 @@ fun WizardProfileContent(
                         modifier = Modifier.weight(1f)
                     )
                     ProfileBrandAssetTile(
-                        title = "مهر تجاری",
-                        actionLabel = if (profileState.stampUri.isNotBlank()) "تغییر مهر" else "انتخاب مهر",
-                        bitmap = rememberProfileAssetBitmap(profileState.stampUri),
-                        fallback = "مهر",
-                        onPick = {
-                            try {
-                                stampOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
-                            } catch (_: Exception) {
-                                try {
-                                    stampGetContentPicker.launch("image/*")
-                                } catch (_: Exception) {
-                                    QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
-                                }
-                            }
-                        },
-                        onClear = if (profileState.stampUri.isNotBlank()) ({ onProfileChange(profileState.copy(stampUri = "")) }) else null,
+                        title = "امضای دیجیتال زرگر",
+                        actionLabel = if (profileState.signatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
+                        bitmap = rememberProfileAssetBitmap(profileState.signatureUri),
+                        fallback = "امضا",
+                        onPick = { showSignaturePad = true },
+                        onClear = if (profileState.signatureUri.isNotBlank()) ({ onProfileChange(profileState.copy(signatureUri = "")) }) else null,
                         modifier = Modifier.weight(1f)
                     )
                 }

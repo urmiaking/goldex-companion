@@ -85,7 +85,8 @@ class SettingsViewModel(
         phone: String,
         address: String,
         logoUri: String,
-        stampUri: String
+        signatureUri: String = "",
+        stampUri: String = ""
     ) {
         val updated = _uiState.value.appSettings.copy(
             galleryName = galleryName,
@@ -95,6 +96,7 @@ class SettingsViewModel(
             galleryAddress = address,
             galleryLicense = "صنف طلا و جواهر: $unionCode",
             invoiceLogoUri = logoUri,
+            invoiceSignatureUri = signatureUri,
             invoiceStampUri = stampUri
         )
         updateSettings(updated)

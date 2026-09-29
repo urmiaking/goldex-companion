@@ -18,6 +18,7 @@ data class WizardProfileState(
     val phone: String = "",
     val address: String = "",
     val logoUri: String = "",
+    val signatureUri: String = "",
     val stampUri: String = ""
 )
 

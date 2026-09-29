@@ -313,7 +313,7 @@ fun MainScreen(
         JewelerProfileModal(
             settings = settingsState.appSettings,
             onDismiss = { settingsViewModel.setJewelerProfileModalVisible(false) },
-            onSaveProfile = { galleryName, managerName, unionCode, phone, address, logoUri, stampUri ->
+            onSaveProfile = { galleryName, managerName, unionCode, phone, address, logoUri, signatureUri ->
                 settingsViewModel.updateJewelerProfile(
                     galleryName = galleryName,
                     managerName = managerName,
@@ -321,7 +321,7 @@ fun MainScreen(
                     phone = phone,
                     address = address,
                     logoUri = logoUri,
-                    stampUri = stampUri
+                    signatureUri = signatureUri
                 )
                 QiratoToast.show(context, "اطلاعات بنکداری و پروانه زرگری ذخیره شد")
             }
