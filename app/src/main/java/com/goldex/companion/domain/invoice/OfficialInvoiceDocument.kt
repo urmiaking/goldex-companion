@@ -1,6 +1,7 @@
 package com.goldex.companion.domain.invoice
 
 import com.goldex.companion.data.AppSettings
+import com.goldex.companion.domain.reporting.ShamsiCalendarHelper
 import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
@@ -57,8 +58,9 @@ data class OfficialInvoiceDocument(
 
 object OfficialInvoiceDocumentFactory {
     fun create(invoice: BarterInvoice, settings: AppSettings): OfficialInvoiceDocument {
-        val formatter = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US)
-        val (date, time) = formatter.format(Date(invoice.createdAt)).split(" ")
+        val (shamsiYear, shamsiMonth, shamsiDay) = ShamsiCalendarHelper.millisToShamsi(invoice.createdAt)
+        val shamsiDateStr = "$shamsiYear/${shamsiMonth.toString().padStart(2, '0')}/${shamsiDay.toString().padStart(2, '0')}"
+        val timeStr = SimpleDateFormat("HH:mm", Locale.US).format(Date(invoice.createdAt))
         val salesRows = invoice.salesItems.map { it.toRow(isReceived = false) }
         val receivedRows = invoice.receivedItems.map { it.toRow(isReceived = true) }
         val craftedItems = invoice.salesItems.filterIsInstance<CraftedGoldItem>()
@@ -72,17 +74,17 @@ object OfficialInvoiceDocumentFactory {
         return OfficialInvoiceDocument(
             fileName = "Qirat_Invoice_${invoice.invoiceNumber}.pdf",
             invoiceNumber = invoice.invoiceNumber,
-            issuedDate = PersianNumberFormatter.toPersianDigits(date),
-            issuedTime = PersianNumberFormatter.toPersianDigits(time),
+            issuedDate = PersianNumberFormatter.toPersianDigits(shamsiDateStr),
+            issuedTime = PersianNumberFormatter.toPersianDigits(timeStr),
             trackingCode = invoice.trackingCode(),
             sellerName = settings.galleryName,
             sellerManager = settings.managerName,
             sellerLicense = settings.galleryLicense,
-            sellerPhone = settings.galleryPhone,
+            sellerPhone = PersianNumberFormatter.toPersianDigits(settings.galleryPhone),
             sellerAddress = settings.galleryAddress,
             buyerName = invoice.customer?.name?.ifBlank { "مشتری عمومی" } ?: "مشتری عمومی",
-            buyerPhone = invoice.customer?.phone?.ifBlank { "ثبت نشده" } ?: "ثبت نشده",
-            buyerNationalId = invoice.customer?.nationalId?.ifBlank { "ثبت نشده" } ?: "ثبت نشده",
+            buyerPhone = if (invoice.customer?.phone.isNullOrBlank()) "ثبت نشده" else PersianNumberFormatter.toPersianDigits(invoice.customer!!.phone),
+            buyerNationalId = if (invoice.customer?.nationalId.isNullOrBlank()) "ثبت نشده" else PersianNumberFormatter.toPersianDigits(invoice.customer!!.nationalId),
             buyerRole = invoice.customerRole.titleFa,
             spotPrice18k = invoice.spotPrice18k,
             rows = salesRows + receivedRows,

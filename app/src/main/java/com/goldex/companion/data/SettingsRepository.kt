@@ -23,6 +23,7 @@ data class AppSettings(
     val galleryLicense: String = "",
     val invoiceLogoUri: String = "",
     val invoiceStampUri: String = "",
+    val invoiceSignatureUri: String = "",
     val isBiometricLockEnabled: Boolean = false,
     val isBiometricTipDismissed: Boolean = false,
     val hasCompletedOnboarding: Boolean = false
@@ -82,6 +83,7 @@ class SettingsRepository(context: Context) : SettingsStore {
             galleryLicense = prefs.getString("key_gallery_license", "") ?: "",
             invoiceLogoUri = prefs.getString("key_invoice_logo_uri", "") ?: "",
             invoiceStampUri = prefs.getString("key_invoice_stamp_uri", "") ?: "",
+            invoiceSignatureUri = prefs.getString("key_invoice_signature_uri", "") ?: "",
             isBiometricLockEnabled = prefs.getBoolean("key_biometric_lock", false),
             isBiometricTipDismissed = prefs.getBoolean("key_biometric_tip_dismissed", false),
             hasCompletedOnboarding = prefs.getBoolean("key_has_completed_onboarding", false) || businessDao.marker("onboarding-complete") != null
@@ -92,7 +94,11 @@ class SettingsRepository(context: Context) : SettingsStore {
                 val asset=businessDao.asset(name) ?: return ""
                 return if(asset.remoteId==json.optString(field)) asset.localUri else ""
             }
-            com.goldex.companion.data.sync.SyncJson.applyBusiness(local,json).copy(invoiceLogoUri=assetUri("logo","logoAssetId"),invoiceStampUri=assetUri("stamp","stampAssetId"))
+            com.goldex.companion.data.sync.SyncJson.applyBusiness(local,json).copy(
+                invoiceLogoUri=assetUri("logo","logoAssetId"),
+                invoiceStampUri=assetUri("stamp","stampAssetId"),
+                invoiceSignatureUri=assetUri("signature","signatureAssetId")
+            )
         } ?: local
     }
 
@@ -106,10 +112,21 @@ class SettingsRepository(context: Context) : SettingsStore {
         synchronized(this) {
             syncUnit.transaction {
                 val payload = com.goldex.companion.data.sync.SyncJson.business(newSettings)
-                for ((name, uri) in listOf("logo" to newSettings.invoiceLogoUri, "stamp" to newSettings.invoiceStampUri)) {
+                for ((name, uri) in listOf(
+                    "logo" to newSettings.invoiceLogoUri,
+                    "stamp" to newSettings.invoiceStampUri,
+                    "signature" to newSettings.invoiceSignatureUri
+                )) {
                     val old = businessDao.asset(name)
                     if (old != null && old.localUri == uri) {
-                        if (old.remoteId.isNotBlank()) payload.put(if (name == "logo") "logoAssetId" else "stampAssetId", old.remoteId)
+                        if (old.remoteId.isNotBlank()) {
+                            val assetKey = when (name) {
+                                "logo" -> "logoAssetId"
+                                "stamp" -> "stampAssetId"
+                                else -> "signatureAssetId"
+                            }
+                            payload.put(assetKey, old.remoteId)
+                        }
                     } else businessDao.asset(com.goldex.companion.data.sync.AssetMetadata(name, uri))
                 }
                 businessDao.business(com.goldex.companion.data.sync.BusinessSettings(payload = payload.toString()))
@@ -118,6 +135,7 @@ class SettingsRepository(context: Context) : SettingsStore {
             prefs.edit()
                 .putString("key_invoice_logo_uri", newSettings.invoiceLogoUri)
                 .putString("key_invoice_stamp_uri", newSettings.invoiceStampUri)
+                .putString("key_invoice_signature_uri", newSettings.invoiceSignatureUri)
                 .apply()
             _settings.value = loadSettingsInternal()
         }

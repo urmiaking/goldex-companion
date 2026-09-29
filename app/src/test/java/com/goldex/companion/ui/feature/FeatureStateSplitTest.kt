@@ -172,13 +172,13 @@ class FeatureStateSplitTest {
             phone = "۰۲۱۱۲۳۴",
             address = "بازار تهران",
             logoUri = "content://profile/logo",
-            stampUri = "content://profile/stamp"
+            signatureUri = "file://profile/signature.png"
         )
 
         assertEquals("گالری قیراط", persisted.galleryName)
         assertEquals("صنف طلا و جواهر: ۱۲۳۴", persisted.galleryLicense)
         assertEquals("content://profile/logo", persisted.invoiceLogoUri)
-        assertEquals("content://profile/stamp", persisted.invoiceStampUri)
+        assertEquals("file://profile/signature.png", persisted.invoiceSignatureUri)
         assertFalse(viewModel.uiState.value.isJewelerProfileModalVisible)
     }
 

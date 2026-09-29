@@ -47,6 +47,7 @@ import com.goldex.companion.data.AppSettings
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.ProfileBrandAssetTile
 import com.goldex.companion.ui.components.QiratoToast
+import com.goldex.companion.ui.components.SignaturePadDialog
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
@@ -68,7 +69,7 @@ fun JewelerProfileModal(
         phone: String,
         address: String,
         logoUri: String,
-        stampUri: String
+        signatureUri: String
     ) -> Unit
 ) {
     var galleryName by remember { mutableStateOf(settings.galleryName) }
@@ -77,7 +78,8 @@ fun JewelerProfileModal(
     var phone by remember { mutableStateOf(settings.galleryPhone) }
     var address by remember { mutableStateOf(settings.galleryAddress) }
     var logoUri by remember { mutableStateOf(settings.invoiceLogoUri) }
-    var stampUri by remember { mutableStateOf(settings.invoiceStampUri) }
+    var signatureUri by remember { mutableStateOf(settings.invoiceSignatureUri) }
+    var showSignaturePad by remember { mutableStateOf(false) }
 
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
@@ -98,21 +100,6 @@ fun JewelerProfileModal(
             val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
             persistProfileAssetPermission(context, it)
             logoUri = localUri
-        }
-    }
-
-    val stampOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
-            persistProfileAssetPermission(context, it)
-            stampUri = localUri
-        }
-    }
-    val stampGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "hub_stamp") ?: it.toString()
-            persistProfileAssetPermission(context, it)
-            stampUri = localUri
         }
     }
 
@@ -317,12 +304,12 @@ fun JewelerProfileModal(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Icon(HubCamera, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
-                                        Text("لوگو و مهر تجاری", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                        Text("لوگو و امضای دیجیتال", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                         ProfileBrandAssetTile(
                                             title = "لوگوی واحد صنفی",
-                                            actionLabel = "تغییر لوگو",
+                                            actionLabel = if (logoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
                                             bitmap = rememberProfileAssetBitmap(logoUri),
                                             fallback = monogram,
                                             onPick = {
@@ -340,26 +327,26 @@ fun JewelerProfileModal(
                                             modifier = Modifier.weight(1f)
                                         )
                                         ProfileBrandAssetTile(
-                                            title = "مهر تجاری",
-                                            actionLabel = "انتخاب مهر",
-                                            bitmap = rememberProfileAssetBitmap(stampUri),
-                                            fallback = "مهر",
-                                            onPick = {
-                                                try {
-                                                    stampOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
-                                                } catch (_: Exception) {
-                                                    try {
-                                                        stampGetContentPicker.launch("image/*")
-                                                    } catch (_: Exception) {
-                                                        QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
-                                                    }
-                                                }
-                                            },
-                                            onClear = if (stampUri.isNotBlank()) ({ stampUri = "" }) else null,
+                                            title = "امضای دیجیتال زرگر",
+                                            actionLabel = if (signatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
+                                            bitmap = rememberProfileAssetBitmap(signatureUri),
+                                            fallback = "امضا",
+                                            onPick = { showSignaturePad = true },
+                                            onClear = if (signatureUri.isNotBlank()) ({ signatureUri = "" }) else null,
                                             modifier = Modifier.weight(1f)
                                         )
                                     }
                                 }
+                            }
+
+                            if (showSignaturePad) {
+                                SignaturePadDialog(
+                                    onDismiss = { showSignaturePad = false },
+                                    onSignatureSaved = { uri ->
+                                        signatureUri = uri
+                                        showSignaturePad = false
+                                    }
+                                )
                             }
 
                             // Field 1: Commercial Gallery / Jeweler Name
@@ -601,7 +588,7 @@ fun JewelerProfileModal(
                                         phone.trim(),
                                         address.trim(),
                                         logoUri,
-                                        stampUri
+                                        signatureUri
                                     )
                                     handleDismiss()
                                 },

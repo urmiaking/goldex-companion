@@ -53,7 +53,7 @@ object SyncJson {
         "inventory" to setOf("category","code","createdAt","customKaratValue","grossWeightGrams","id","imageUrl","karat","location","profitPercent","quantity","rfidTag","stoneWeightGrams","taxPercent","title","wagePercent","wageType","wageValue","workshop"),
         "stockAdjustment" to setOf("coinBahar","coinEmami","coinGerami","coinHalf","coinQuarter","gold18","gold24","goldMelt","id","isLive","itemId","itemTitle","lastUpdated","note","ons","quantityChange","reason","source","timestamp","type","usd","weightGrams"),
         "portfolio" to setOf("category","coinType","id","karat","purchaseDate","purchasePriceTotal","quantity","title","weightGrams"),
-        "businessSettings" to setOf("id","galleryName","managerName","unionCode","galleryPhone","galleryAddress","galleryLicense","defaultProfitPercent","defaultTaxPercent","defaultWageType","priceSource","autoSyncRates","logoAssetId","stampAssetId")
+        "businessSettings" to setOf("id","galleryName","managerName","unionCode","galleryPhone","galleryAddress","galleryLicense","defaultProfitPercent","defaultTaxPercent","defaultWageType","priceSource","autoSyncRates","logoAssetId","stampAssetId","signatureAssetId")
     )
     fun preserveUnknown(type: String, old: JSONObject?, fresh: JSONObject?): JSONObject? {
         if(fresh==null || old==null) return fresh
