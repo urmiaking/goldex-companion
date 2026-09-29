@@ -137,4 +137,12 @@ class RoomSyncSafetyTest {
         assertEquals("stock",migrated.inventoryDao().queryAllAdjustments().single().id)
         assertEquals(0,migrated.syncDao().pendingCount()); migrated.close(); context.deleteDatabase(name)
     }
+
+    @Test
+    fun loadSafeProfileBitmap_returnsNullOnBlankOrMissingFile() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        assertNull(com.goldex.companion.ui.components.loadSafeProfileBitmap(context, ""))
+        assertNull(com.goldex.companion.ui.components.loadSafeProfileBitmap(context, "   "))
+        assertNull(com.goldex.companion.ui.components.loadSafeProfileBitmap(context, "file:///non/existent/path.png"))
+    }
 }

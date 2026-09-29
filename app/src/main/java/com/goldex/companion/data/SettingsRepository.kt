@@ -89,15 +89,19 @@ class SettingsRepository(context: Context) : SettingsStore {
             hasCompletedOnboarding = prefs.getBoolean("key_has_completed_onboarding", false) || businessDao.marker("onboarding-complete") != null
         )
         return businessDao.business()?.let {
-            val json=org.json.JSONObject(it.payload)
-            fun assetUri(name: String, field: String): String {
-                val asset=businessDao.asset(name) ?: return ""
-                return if(asset.remoteId==json.optString(field)) asset.localUri else ""
+            val json = org.json.JSONObject(it.payload)
+            fun assetUri(name: String, fallback: String): String {
+                val asset = businessDao.asset(name)
+                return when {
+                    asset != null && asset.localUri.isNotBlank() -> asset.localUri
+                    fallback.isNotBlank() -> fallback
+                    else -> ""
+                }
             }
-            com.goldex.companion.data.sync.SyncJson.applyBusiness(local,json).copy(
-                invoiceLogoUri=assetUri("logo","logoAssetId"),
-                invoiceStampUri=assetUri("stamp","stampAssetId"),
-                invoiceSignatureUri=assetUri("signature","signatureAssetId")
+            com.goldex.companion.data.sync.SyncJson.applyBusiness(local, json).copy(
+                invoiceLogoUri = assetUri("logo", local.invoiceLogoUri),
+                invoiceStampUri = assetUri("stamp", local.invoiceStampUri),
+                invoiceSignatureUri = assetUri("signature", local.invoiceSignatureUri)
             )
         } ?: local
     }

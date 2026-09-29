@@ -2,6 +2,7 @@ package com.goldex.companion.ui.components
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.graphics.Paint as AndroidPaint
 import android.graphics.Path as AndroidPath
 import androidx.compose.foundation.BorderStroke
@@ -407,5 +408,5 @@ private fun exportSignatureToBitmapFile(
     }
     bitmap.recycle()
 
-    signatureFile.toURI().toString()
+    Uri.fromFile(signatureFile).toString()
 }.getOrNull()

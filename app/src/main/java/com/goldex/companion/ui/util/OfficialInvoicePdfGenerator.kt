@@ -386,8 +386,24 @@ object OfficialInvoicePdfGenerator {
         text.draw("امضای متصدی / فروشنده", 95f, top + 45f, 5.4f, INK, Paint.Align.CENTER, true, 100f)
         text.draw(settings.managerName.ifBlank { settings.galleryName }, 95f, top + 56f, 4.8f, MUTED, Paint.Align.CENTER, maxWidth = 100f)
 
-        if (signature != null) {
-            val sigRect = RectF(55f, top + 54f, 135f, top + 84f)
+        if (signature != null && signature.width > 0 && signature.height > 0) {
+            val maxSigW = 80f
+            val maxSigH = 30f
+            val sigAspect = signature.width.toFloat() / signature.height.toFloat()
+            val targetAspect = maxSigW / maxSigH
+            val (sigW, sigH) = if (sigAspect > targetAspect) {
+                maxSigW to (maxSigW / sigAspect)
+            } else {
+                (maxSigH * sigAspect) to maxSigH
+            }
+            val centerX = 95f
+            val centerY = top + 70f
+            val sigRect = RectF(
+                centerX - sigW / 2f,
+                centerY - sigH / 2f,
+                centerX + sigW / 2f,
+                centerY + sigH / 2f
+            )
             canvas.drawBitmap(signature, null, sigRect, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
         }
         canvas.drawLine(40f, top + 85f, 150f, top + 85f, linePaint)
