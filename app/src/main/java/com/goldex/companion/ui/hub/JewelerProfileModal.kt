@@ -50,6 +50,7 @@ import com.goldex.companion.ui.components.QiratoToast
 import com.goldex.companion.ui.components.SignaturePadDialog
 import com.goldex.companion.ui.components.persistBrandAssetLocally
 import com.goldex.companion.ui.components.persistProfileAssetPermission
+import com.goldex.companion.ui.components.rememberBrandImagePicker
 import com.goldex.companion.ui.components.rememberProfileAssetBitmap
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
@@ -88,20 +89,16 @@ fun JewelerProfileModal(
 
     var isVisible by remember { mutableStateOf(false) }
 
-    val logoOpenDocPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
-            persistProfileAssetPermission(context, it)
+    val pickLogo = rememberBrandImagePicker(
+        onImagePicked = { uri ->
+            val localUri = persistBrandAssetLocally(context, uri, "hub_logo") ?: uri.toString()
+            persistProfileAssetPermission(context, uri)
             logoUri = localUri
+        },
+        onError = { msg ->
+            QiratoToast.show(context, msg)
         }
-    }
-    val logoGetContentPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val localUri = persistBrandAssetLocally(context, it, "hub_logo") ?: it.toString()
-            persistProfileAssetPermission(context, it)
-            logoUri = localUri
-        }
-    }
+    )
 
     val handleDismiss: () -> Unit = {
         if (isVisible) {
@@ -312,17 +309,7 @@ fun JewelerProfileModal(
                                             actionLabel = if (logoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
                                             bitmap = rememberProfileAssetBitmap(logoUri),
                                             fallback = monogram,
-                                            onPick = {
-                                                try {
-                                                    logoOpenDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
-                                                } catch (_: Exception) {
-                                                    try {
-                                                        logoGetContentPicker.launch("image/*")
-                                                    } catch (_: Exception) {
-                                                        QiratoToast.show(context, "برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
-                                                    }
-                                                }
-                                            },
+                                            onPick = pickLogo,
                                             onClear = if (logoUri.isNotBlank()) ({ logoUri = "" }) else null,
                                             modifier = Modifier.weight(1f)
                                         )

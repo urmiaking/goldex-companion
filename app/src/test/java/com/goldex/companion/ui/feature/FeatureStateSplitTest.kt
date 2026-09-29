@@ -236,4 +236,15 @@ class FeatureStateSplitTest {
         assertEquals(0.0, emptyState.totalGoldPayableGrams, 0.0001)
         assertEquals(0L, emptyState.totalCashPayableTomans)
     }
+
+    @Test
+    fun appSettingsRetainsSignatureAndLogoUris() {
+        val settings = AppSettings(
+            galleryName = "طلا و جواهر قیراط",
+            invoiceLogoUri = "file:///data/user/0/com.goldex.companion/files/brand_assets/hub_logo.png",
+            invoiceSignatureUri = "file:///data/user/0/com.goldex.companion/files/brand_assets/seller_signature.png"
+        )
+        assertEquals("file:///data/user/0/com.goldex.companion/files/brand_assets/hub_logo.png", settings.invoiceLogoUri)
+        assertEquals("file:///data/user/0/com.goldex.companion/files/brand_assets/seller_signature.png", settings.invoiceSignatureUri)
+    }
 }

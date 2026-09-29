@@ -33,6 +33,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /**
@@ -112,20 +116,90 @@ fun ProfileBrandAssetTile(
 }
 
 /**
+ * Robust image picker composable with multi-level fallback chain:
+ * 1. Modern Android PhotoPicker (ActivityResultContracts.PickVisualMedia)
+ * 2. Native Gallery App (Intent.ACTION_PICK with MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+ * 3. Storage Access Framework (ActivityResultContracts.OpenDocument)
+ * 4. Generic Content Picker (Intent.ACTION_GET_CONTENT)
+ */
+@Composable
+fun rememberBrandImagePicker(
+    onImagePicked: (Uri) -> Unit,
+    onError: (String) -> Unit = {}
+): () -> Unit {
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) onImagePicked(uri)
+    }
+
+    val galleryPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val uri = result.data?.data
+        if (uri != null) onImagePicked(uri)
+    }
+
+    val openDocPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) onImagePicked(uri)
+    }
+
+    return remember(photoPicker, galleryPicker, openDocPicker) {
+        {
+            // 1. Try Modern Android Photo Picker (PickVisualMedia)
+            try {
+                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            } catch (_: Exception) {
+                // 2. Try Standard Gallery App (ACTION_PICK on MediaStore)
+                try {
+                    val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+                        type = "image/*"
+                    }
+                    galleryPicker.launch(pickIntent)
+                } catch (_: Exception) {
+                    // 3. Try SAF Documents / OpenDocument
+                    try {
+                        openDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
+                    } catch (_: Exception) {
+                        // 4. Try ACTION_GET_CONTENT
+                        try {
+                            val getContentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                                type = "image/*"
+                                addCategory(Intent.CATEGORY_OPENABLE)
+                            }
+                            galleryPicker.launch(getContentIntent)
+                        } catch (_: Exception) {
+                            onError("برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Safely decodes a bitmap with inSampleSize and bounded dimensions to prevent OutOfMemoryError and OpenGL texture crashes.
  */
 fun loadSafeProfileBitmap(context: Context, uriValue: String, maxDimension: Int = 512): Bitmap? {
     if (uriValue.isBlank()) return null
     return runCatching {
         fun openStream(): InputStream? {
-            return if (uriValue.startsWith("file://") || uriValue.startsWith("file:/")) {
-                val cleanPath = Uri.parse(uriValue).path ?: uriValue.removePrefix("file://").removePrefix("file:")
-                File(cleanPath).inputStream()
-            } else if (uriValue.startsWith("/") && File(uriValue).exists()) {
-                File(uriValue).inputStream()
-            } else {
-                context.contentResolver.openInputStream(Uri.parse(uriValue))
+            val candidateFile = when {
+                uriValue.startsWith("file:") -> {
+                    val stripped = uriValue.substringAfter("file:").trimStart('/')
+                    File("/$stripped").takeIf { it.exists() }
+                        ?: (runCatching { Uri.parse(uriValue).path?.let { File(it) } }.getOrNull())?.takeIf { it.exists() }
+                }
+                uriValue.startsWith("/") -> File(uriValue).takeIf { it.exists() }
+                else -> null
             }
+            if (candidateFile != null && candidateFile.exists()) {
+                return candidateFile.inputStream()
+            }
+            return runCatching { context.contentResolver.openInputStream(Uri.parse(uriValue)) }.getOrNull()
         }
 
         // First pass: decode bounds only (zero memory allocated)
@@ -182,7 +256,7 @@ fun persistBrandAssetLocally(
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }
         bitmap.recycle()
-        destFile.toURI().toString()
+        Uri.fromFile(destFile).toString()
     }.getOrNull()
 }
 

@@ -621,9 +621,7 @@ fun MainScreen(
                                                 if (invoice == null) {
                                                     QiratoToast.show(context, "اطلاعات کامل فاکتور برای چاپ موجود نیست")
                                                 } else {
-                                                    if (!OfficialInvoicePdfGenerator.print(context, invoice, settingsState.appSettings)) {
-                                                        QiratoToast.show(context, "ارسال به چاپگر با خطا مواجه شد")
-                                                    }
+                                                    openPdfPreview(invoice)
                                                 }
                                             }
                                         }

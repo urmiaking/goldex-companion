@@ -255,38 +255,64 @@ class SyncCoordinator private constructor(private val context: Context) {
     }
     suspend fun devices(): JSONObject = mutex.withLock { api.request("cloud/devices") }
     private suspend fun ensureAssets() {
-        for(name in listOf("logo","stamp")) {
-            val asset=local.dao.asset(name) ?: continue
-            if(asset.localUri.isBlank() || asset.remoteId.isNotBlank()) continue
-            val uri=Uri.parse(asset.localUri)
-            val bytes=context.contentResolver.openInputStream(uri)?.use { stream ->
-                val data=stream.readBytesLimited(5*1024*1024); data
-            } ?: throw CloudException("ASSET_UNAVAILABLE")
-            val mime=context.contentResolver.getType(uri) ?: if(bytes.take(4)==listOf(82.toByte(),73.toByte(),70.toByte(),70.toByte())) "image/webp" else if(bytes.firstOrNull()==(-119).toByte()) "image/png" else "image/jpeg"
-            val hash=sha(bytes)
-            val result=api.request("cloud/assets/upload",JSONObject().put("writerEpoch",local.checkpoint().writerEpoch).put("mime",mime).put("sha256",hash).put("data",Base64.encodeToString(bytes,Base64.NO_WRAP)))
+        for (name in listOf("logo", "stamp", "signature")) {
+            val asset = local.dao.asset(name) ?: continue
+            if (asset.localUri.isBlank() || asset.remoteId.isNotBlank()) continue
+            val uri = Uri.parse(asset.localUri)
+            val bytes = runCatching {
+                if (asset.localUri.startsWith("file:") || asset.localUri.startsWith("/")) {
+                    val path = uri.path ?: asset.localUri.removePrefix("file://").removePrefix("file:")
+                    File(path).inputStream().use { it.readBytesLimited(5 * 1024 * 1024) }
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytesLimited(5 * 1024 * 1024) }
+                }
+            }.getOrNull() ?: continue
+            val mime = context.contentResolver.getType(uri) ?: if (bytes.take(4) == listOf(82.toByte(), 73.toByte(), 70.toByte(), 70.toByte())) "image/webp" else if (bytes.firstOrNull() == (-119).toByte()) "image/png" else "image/jpeg"
+            val hash = sha(bytes)
+            val result = api.request("cloud/assets/upload", JSONObject().put("writerEpoch", local.checkpoint().writerEpoch).put("mime", mime).put("sha256", hash).put("data", Base64.encodeToString(bytes, Base64.NO_WRAP)))
             unit.transaction {
-                val latest=local.dao.asset(name)
-                if(latest?.localUri!=asset.localUri) return@transaction
-                local.dao.asset(asset.copy(sha256=hash,remoteId=result.getString("assetId")))
-                val business=JSONObject(local.dao.business()!!.payload).put(if(name=="logo") "logoAssetId" else "stampAssetId",result.getString("assetId"))
-                local.dao.business(BusinessSettings(payload=business.toString())); unit.changed("businessSettings","business",business)
+                val latest = local.dao.asset(name)
+                if (latest?.localUri != asset.localUri) return@transaction
+                local.dao.asset(asset.copy(sha256 = hash, remoteId = result.getString("assetId")))
+                val assetKey = when (name) {
+                    "logo" -> "logoAssetId"
+                    "stamp" -> "stampAssetId"
+                    else -> "signatureAssetId"
+                }
+                val business = JSONObject(local.dao.business()!!.payload).put(assetKey, result.getString("assetId"))
+                local.dao.business(BusinessSettings(payload = business.toString())); unit.changed("businessSettings", "business", business)
             }
         }
     }
     private suspend fun downloadAssets() {
-        val business=local.dao.business()?.payload?.let(::JSONObject) ?: return
-        for(name in listOf("logo","stamp")) {
-            val remote=business.optString(if(name=="logo") "logoAssetId" else "stampAssetId")
-            if(remote.isBlank()) continue
-            val cached=local.dao.asset(name)
-            if(cached!=null && cached.remoteId==remote && cached.localUri.isNotBlank() && runCatching { context.contentResolver.openInputStream(Uri.parse(cached.localUri))?.use { true } == true }.getOrDefault(false)) continue
-            val result=api.request("cloud/assets/download",JSONObject().put("assetId",remote))
-            val bytes=Base64.decode(result.getString("data"),Base64.DEFAULT)
-            require(bytes.size<=5*1024*1024 && sha(bytes)==result.getString("sha256"))
-            val file=File(context.filesDir,"cloud-assets/$remote"); file.parentFile!!.mkdirs(); file.writeBytes(bytes)
-            local.dao.asset(AssetMetadata(name,Uri.fromFile(file).toString(),result.getString("sha256"),remote))
-            context.getSharedPreferences("qirat_settings_prefs",Context.MODE_PRIVATE).edit().putString(if(name=="logo") "key_invoice_logo_uri" else "key_invoice_stamp_uri",Uri.fromFile(file).toString()).apply()
+        val business = local.dao.business()?.payload?.let(::JSONObject) ?: return
+        for (name in listOf("logo", "stamp", "signature")) {
+            val assetKey = when (name) {
+                "logo" -> "logoAssetId"
+                "stamp" -> "stampAssetId"
+                else -> "signatureAssetId"
+            }
+            val remote = business.optString(assetKey)
+            if (remote.isBlank()) continue
+            val cached = local.dao.asset(name)
+            val exists = if (cached?.localUri?.startsWith("file:") == true || cached?.localUri?.startsWith("/") == true) {
+                val path = Uri.parse(cached.localUri).path ?: cached.localUri.removePrefix("file://").removePrefix("file:")
+                File(path).exists()
+            } else {
+                runCatching { cached?.localUri?.let { context.contentResolver.openInputStream(Uri.parse(it))?.use { true } } == true }.getOrDefault(false)
+            }
+            if (cached != null && cached.remoteId == remote && cached.localUri.isNotBlank() && exists) continue
+            val result = api.request("cloud/assets/download", JSONObject().put("assetId", remote))
+            val bytes = Base64.decode(result.getString("data"), Base64.DEFAULT)
+            require(bytes.size <= 5 * 1024 * 1024 && sha(bytes) == result.getString("sha256"))
+            val file = File(context.filesDir, "cloud-assets/$remote"); file.parentFile!!.mkdirs(); file.writeBytes(bytes)
+            local.dao.asset(AssetMetadata(name, Uri.fromFile(file).toString(), result.getString("sha256"), remote))
+            val prefKey = when (name) {
+                "logo" -> "key_invoice_logo_uri"
+                "stamp" -> "key_invoice_stamp_uri"
+                else -> "key_invoice_signature_uri"
+            }
+            context.getSharedPreferences("qirat_settings_prefs", Context.MODE_PRIVATE).edit().putString(prefKey, Uri.fromFile(file).toString()).apply()
         }
         SettingsRepository.getInstance(context).loadSettings()
     }
