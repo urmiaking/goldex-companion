@@ -9,18 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class ConnectionStatus {
-    ONLINE,      // سبز: متصل و پایدار
-    CONNECTING,  // زرد: در حال ارتباط / همگام‌سازی نرخ‌ها
-    OFFLINE      // قرمز: قطع اتصال اینترنت
-}
-
-class NetworkMonitor(context: Context) {
+class NetworkMonitor(context: Context) : ConnectivityObserver {
     private val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
     private val _status = MutableStateFlow(checkInitialStatus())
-    val status: StateFlow<ConnectionStatus> = _status.asStateFlow()
+    override val status: StateFlow<ConnectionStatus> = _status.asStateFlow()
 
     init {
         try {

@@ -1,6 +1,6 @@
 package com.goldex.companion.ui.main
 
-import android.app.Application
+import androidx.lifecycle.ViewModelProvider
 import android.content.Intent
 import android.widget.Toast
 import com.goldex.companion.ui.components.QiratoToast
@@ -66,36 +66,30 @@ import com.goldex.companion.ui.customers.CustomerStatementScreen
 import com.goldex.companion.ui.customers.modals.AddLedgerEntryModal
 import com.goldex.companion.ui.inventory.InventoryScreen
 import com.goldex.companion.ui.inventory.InventoryViewModel
-import com.goldex.companion.ui.inventory.InventoryViewModelFactory
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
-import com.goldex.companion.ui.invoices.BarterInvoiceViewModelFactory
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
-import com.goldex.companion.ui.invoices.CustomerManagerViewModelFactory
 import com.goldex.companion.ui.invoices.FloatingNewInvoiceButton
 import com.goldex.companion.ui.invoices.InvoicesManagementScreen
 import com.goldex.companion.ui.invoices.InvoicesSubScreen
 import com.goldex.companion.ui.invoices.InvoicePdfPreviewModal
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
-import com.goldex.companion.ui.invoices.InvoiceManagerViewModelFactory
 import com.goldex.companion.ui.util.OfficialInvoicePdfGenerator
 import com.goldex.companion.ui.portfolio.PortfolioManagerViewModel
-import com.goldex.companion.ui.portfolio.PortfolioManagerViewModelFactory
 import com.goldex.companion.ui.rates.LiveRatesScreen
 import com.goldex.companion.ui.rates.MarketRatesUiState
 import com.goldex.companion.ui.rates.MarketRateDetailScreen
 import com.goldex.companion.model.MarketRateDetailState
 import com.goldex.companion.model.MarketRateItemType
 import com.goldex.companion.ui.settings.SettingsViewModel
-import com.goldex.companion.ui.settings.SettingsViewModelFactory
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.goldGradient
 import com.goldex.companion.ui.update.UpdateViewModel
 import com.goldex.companion.ui.wizard.OnboardingWizardScreen
+import com.goldex.companion.ui.wizard.OnboardingViewModel
 import com.goldex.companion.ui.wizard.WizardLicenseChoice
 import com.goldex.companion.ui.license.LicenseViewModel
-import com.goldex.companion.ui.license.LicenseViewModelFactory
 import com.goldex.companion.ui.security.AppLockViewModel
 import com.goldex.companion.ui.license.LicenseActivationModal
 import com.goldex.companion.ui.reporting.ReportingScreen
@@ -104,9 +98,6 @@ import com.goldex.companion.ui.reporting.ShamsiDateRangePickerDialog
 import com.goldex.companion.ui.reporting.reportingShareText
 import com.goldex.companion.domain.reporting.ReportingBreakdownType
 import com.goldex.companion.ui.reporting.ReportingViewModel
-import com.goldex.companion.ui.reporting.ReportingViewModelFactory
-import com.goldex.companion.data.PortfolioItem
-import com.goldex.companion.data.PortfolioCategory
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.CoinType
 import java.io.File
@@ -114,24 +105,25 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    mainViewModel: MainViewModel = viewModel(),
+    mainViewModel: MainViewModel,
+    viewModelFactory: ViewModelProvider.Factory,
     appLockViewModel: AppLockViewModel? = null
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as Application
 
-    val customerViewModel: CustomerManagerViewModel = viewModel(factory = CustomerManagerViewModelFactory(app))
-    val invoiceViewModel: InvoiceManagerViewModel = viewModel(factory = InvoiceManagerViewModelFactory(app))
-    val portfolioViewModel: PortfolioManagerViewModel = viewModel(factory = PortfolioManagerViewModelFactory(app))
-    val settingsViewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(app))
-    val updateViewModel: UpdateViewModel = viewModel()
-    val karatConvertViewModel: KaratConvertViewModel = viewModel()
-    val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel(factory = BarterInvoiceViewModelFactory(app))
-    val licenseViewModel: LicenseViewModel = viewModel(factory = LicenseViewModelFactory(app))
-    val inventoryViewModel: InventoryViewModel = viewModel(factory = InventoryViewModelFactory(app))
-    val reportingViewModel: ReportingViewModel = viewModel(factory = ReportingViewModelFactory(app))
+    val customerViewModel: CustomerManagerViewModel = viewModel(factory = viewModelFactory)
+    val invoiceViewModel: InvoiceManagerViewModel = viewModel(factory = viewModelFactory)
+    val portfolioViewModel: PortfolioManagerViewModel = viewModel(factory = viewModelFactory)
+    val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
+    val updateViewModel: UpdateViewModel = viewModel(factory = viewModelFactory)
+    val karatConvertViewModel: KaratConvertViewModel = viewModel(factory = viewModelFactory)
+    val barterInvoiceViewModel: BarterInvoiceViewModel = viewModel(factory = viewModelFactory)
+    val licenseViewModel: LicenseViewModel = viewModel(factory = viewModelFactory)
+    val inventoryViewModel: InventoryViewModel = viewModel(factory = viewModelFactory)
+    val reportingViewModel: ReportingViewModel = viewModel(factory = viewModelFactory)
 
-    val cloudViewModel: CloudSyncViewModel = viewModel()
+    val onboardingViewModel: OnboardingViewModel = viewModel(factory = viewModelFactory)
+    val cloudViewModel: CloudSyncViewModel = viewModel(factory = viewModelFactory)
     val cloudState by cloudViewModel.state.collectAsState()
     var showCloudSettings by remember { mutableStateOf(false) }
     val mainUiState by mainViewModel.uiState.collectAsState()
@@ -1164,223 +1156,25 @@ fun MainScreen(
                             }
                         }
                     },
-                    onFinish = { targetTab, updatedSettings, initialInventory, licenseState ->
-                        try {
-                        if (cloudState.restoredGeneration == 0L) {
-                        com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(context).transaction {
-                        settingsViewModel.updateSettings(updatedSettings)
-                        mainViewModel.applySettingsDefaults(
-                            updatedSettings.defaultProfitPercent,
-                            updatedSettings.defaultTaxPercent,
-                            updatedSettings.defaultWageType
+                    onFinish = { targetTab, updatedSettings, initialInventory, _ ->
+                        val completed = onboardingViewModel.complete(
+                            updatedSettings, initialInventory,
+                            restoredFromCloud = cloudState.restoredGeneration > 0L
                         )
-
-                        // Save initial inventory items into Inventory and Portfolio if entered
-                        val vitrinWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinWeight) ?: 0.0
-                        val vitrinOjrat = PersianNumberFormatter.parseToCleanDouble(initialInventory.vitrinOjrat) ?: 0.0
-                        if (vitrinWeight > 0.0) {
-                            val galleryTitle = updatedSettings.galleryName.ifBlank { "گالری" }
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "VITRIN-01",
-                                    title = "مصنوعات ویترین ($galleryTitle)",
-                                    category = InventoryCategory.SETS,
-                                    location = "سینی شماره ۱ ویترین اصلی",
-                                    grossWeightGrams = vitrinWeight,
-                                    karat = Karat.K18,
-                                    customKaratValue = 750,
-                                    workshop = galleryTitle,
-                                    wageType = WageType.PERCENTAGE,
-                                    wagePercent = vitrinOjrat,
-                                    wageValue = vitrinOjrat,
-                                    profitPercent = updatedSettings.defaultProfitPercent.toDoubleOrNull() ?: 7.0,
-                                    taxPercent = updatedSettings.defaultTaxPercent.toDoubleOrNull() ?: 9.0,
-                                    quantity = 1
-                                )
+                        settingsViewModel.loadSettings()
+                        if (completed) {
+                            inventoryViewModel.loadItems()
+                            portfolioViewModel.loadPortfolio()
+                            val applied = settingsViewModel.uiState.value.appSettings
+                            mainViewModel.applySettingsDefaults(
+                                applied.defaultProfitPercent, applied.defaultTaxPercent, applied.defaultWageType
                             )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "مصنوعات ویترین ($galleryTitle)",
-                                    category = PortfolioCategory.GOLD,
-                                    weightGrams = vitrinWeight,
-                                    karat = Karat.K18,
-                                    purchasePriceTotal = 0L,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
+                            mainViewModel.setWizardVisible(false)
+                            mainViewModel.selectTab(targetTab)
+                            QiratoToast.show(context, "پیکربندی اولیه با موفقیت انجام شد")
+                        } else {
+                            QiratoToast.show(context, onboardingViewModel.state.value.errorMessage.orEmpty())
                         }
-
-                        val meltWeight = PersianNumberFormatter.parseToCleanDouble(initialInventory.meltWeight) ?: 0.0
-                        val meltAyarInt = PersianNumberFormatter.parseToCleanLong(initialInventory.meltAyar)?.toInt() ?: 750
-                        if (meltWeight > 0.0) {
-                            val meltKarat = if (meltAyarInt >= 900) Karat.K21 else Karat.K18
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "MELT-01",
-                                    title = "طلای آبشده گاوصندوق",
-                                    category = InventoryCategory.MISC,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = meltWeight,
-                                    karat = meltKarat,
-                                    customKaratValue = meltAyarInt,
-                                    workshop = "ری‌گیری و ذوب",
-                                    wageType = WageType.PERCENTAGE,
-                                    wagePercent = 0.0,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0,
-                                    quantity = 1
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "طلای آبشده گاوصندوق",
-                                    category = PortfolioCategory.GOLD,
-                                    weightGrams = meltWeight,
-                                    karat = meltKarat,
-                                    purchasePriceTotal = 0L,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        if (initialInventory.coinTamam > 0) {
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "COIN-EMAMI",
-                                    title = "تمام بهار آزادی (طرح جدید)",
-                                    category = InventoryCategory.COINS,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = 8.133,
-                                    karat = Karat.K21,
-                                    customKaratValue = 900,
-                                    quantity = initialInventory.coinTamam,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "تمام بهار آزادی (طرح جدید)",
-                                    category = PortfolioCategory.COIN,
-                                    quantity = initialInventory.coinTamam,
-                                    coinType = CoinType.EMAMI,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        if (initialInventory.coinNim > 0) {
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "COIN-NIM",
-                                    title = "نیم سکه بهار آزادی",
-                                    category = InventoryCategory.COINS,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = 4.066,
-                                    karat = Karat.K21,
-                                    customKaratValue = 900,
-                                    quantity = initialInventory.coinNim,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "نیم سکه بهار آزادی",
-                                    category = PortfolioCategory.COIN,
-                                    quantity = initialInventory.coinNim,
-                                    coinType = CoinType.HALF,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        if (initialInventory.coinRob > 0) {
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "COIN-ROB",
-                                    title = "ربع سکه بهار آزادی",
-                                    category = InventoryCategory.COINS,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = 2.033,
-                                    karat = Karat.K21,
-                                    customKaratValue = 900,
-                                    quantity = initialInventory.coinRob,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "ربع سکه بهار آزادی",
-                                    category = PortfolioCategory.COIN,
-                                    quantity = initialInventory.coinRob,
-                                    coinType = CoinType.QUARTER,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        if (initialInventory.coinQadim > 0) {
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "COIN-QADIM",
-                                    title = "تمام بهار آزادی (طرح قدیم)",
-                                    category = InventoryCategory.COINS,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = 8.133,
-                                    karat = Karat.K21,
-                                    customKaratValue = 900,
-                                    quantity = initialInventory.coinQadim,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "تمام بهار آزادی (طرح قدیم)",
-                                    category = PortfolioCategory.COIN,
-                                    quantity = initialInventory.coinQadim,
-                                    coinType = CoinType.BAHAR,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        if (initialInventory.coinGerami > 0) {
-                            inventoryViewModel.addItem(
-                                InventoryItem(
-                                    code = "COIN-GERAMI",
-                                    title = "سکه یک گرمی بانکی",
-                                    category = InventoryCategory.COINS,
-                                    location = "گاوصندوق اصلی",
-                                    grossWeightGrams = 1.01,
-                                    karat = Karat.K21,
-                                    customKaratValue = 900,
-                                    quantity = initialInventory.coinGerami,
-                                    profitPercent = 0.0,
-                                    taxPercent = 0.0
-                                )
-                            )
-                            portfolioViewModel.addPortfolioItem(
-                                PortfolioItem(
-                                    title = "سکه یک گرمی بانکی",
-                                    category = PortfolioCategory.COIN,
-                                    quantity = initialInventory.coinGerami,
-                                    coinType = CoinType.GERAMI,
-                                    purchaseDate = "موجودی اول دوره"
-                                )
-                            )
-                        }
-
-                        com.goldex.companion.data.local.db.GoldexDatabaseProvider.getDatabase(context).syncDao().checkpoint(com.goldex.companion.data.sync.SyncCheckpoint(id = "onboarding-complete"))
-                        }
-                        }
-                        settingsViewModel.completeOnboarding()
-                        mainViewModel.setWizardVisible(false)
-                        mainViewModel.selectTab(targetTab)
-                        QiratoToast.show(context, "پیکربندی اولیه با موفقیت انجام شد")
-                        } catch (_: Exception) { settingsViewModel.loadSettings(); QiratoToast.show(context, "راه‌اندازی انجام نشد؛ داده‌های قبلی محفوظ است") }
                     },
                     onSkip = {
                         settingsViewModel.completeOnboarding()

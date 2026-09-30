@@ -1,15 +1,15 @@
 package com.goldex.companion.ui.main
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.ConnectionStatus
-import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.MarketHistoryStore
+import com.goldex.companion.data.MarketCacheReader
+import com.goldex.companion.data.MarketSourceInitializer
+import com.goldex.companion.data.ConnectivityObserver
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.data.MarketRatesStore
-import com.goldex.companion.data.NetworkMonitor
 import com.goldex.companion.data.PriceSource
-import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import com.goldex.companion.model.*
@@ -18,6 +18,7 @@ import com.goldex.companion.model.PriceBasisTab
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.calculator.screens.MeltUiState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,12 +111,17 @@ data class MainUiState(
 
 typealias CalculatorUiState = MainUiState
 
-class MainViewModel(application: Application) : AndroidViewModel(application), JewelryActions {
+class MainViewModel(
+    private val settingsRepository: SettingsStore,
+    private val marketRatesRepository: MarketRatesStore,
+    private val marketHistoryRepository: MarketHistoryStore,
+    private val marketCache: MarketCacheReader,
+    private val marketSourceInitializer: MarketSourceInitializer,
+    private val networkMonitor: ConnectivityObserver,
+    private val workDispatcher: CoroutineDispatcher = Dispatchers.IO
+) : ViewModel(), JewelryActions {
 
-    private val settingsRepository: SettingsStore = SettingsRepository.getInstance(application.applicationContext)
     private val themePreference = ThemePreference(settingsRepository)
-    private val marketRatesRepository: MarketRatesStore = GoldMarketRepository
-    private val networkMonitor = NetworkMonitor(application.applicationContext)
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -123,17 +129,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     private var autoRefreshJob: Job? = null
 
     init {
-        GoldMarketRepository.init(application.applicationContext)
         loadInitialState()
         observeNetwork()
     }
 
     private fun loadInitialState() {
         val s = settingsRepository.loadSettings()
-        val cachedRates = GoldMarketRepository.getCachedRates()
+        val cachedRates = marketCache.getCachedRates()
         val initialRates = cachedRates ?: MarketRates()
-        val cachedTodayCandles = GoldMarketRepository.getCachedTodayCandlesForBoard()
-        val cachedDashboardCharts = GoldMarketRepository.getCachedDashboardGold18Charts()
+        val cachedTodayCandles = marketCache.getCachedTodayCandlesForBoard()
+        val cachedDashboardCharts = marketCache.getCachedDashboardGold18Charts()
 
         _uiState.update {
             it.copy(
@@ -153,7 +158,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
                 dashboardGold18Charts = cachedDashboardCharts
             )
         }
-        GoldMarketRepository.setSourceSilently(s.priceSource)
+        marketSourceInitializer.setSourceSilently(s.priceSource)
         calculateAll()
 
         if (s.autoSyncRates || cachedRates == null) {
@@ -210,7 +215,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     private var historyLoadingJob: Job? = null
 
     fun openRateDetail(type: MarketRateItemType) {
-        val cached = GoldMarketRepository.getCachedAllHorizonsHistory(type)
+        val cached = marketCache.getCachedAllHorizonsHistory(type)
         val hasData = cached.values.any { it.isNotEmpty() }
         _uiState.update {
             it.copy(
@@ -227,9 +232,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun loadRateHistory(type: MarketRateItemType) {
         historyLoadingJob?.cancel()
-        historyLoadingJob = viewModelScope.launch(Dispatchers.IO) {
+        historyLoadingJob = viewModelScope.launch(workDispatcher) {
             val preferred = _uiState.value.rates.source
-            val history = GoldMarketRepository.getAllHorizonsHistory(type, preferred)
+            val history = marketHistoryRepository.getAllHorizonsHistory(type, preferred)
             _uiState.update {
                 it.copy(
                     rateDetailHistory = history,
@@ -244,9 +249,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun loadDashboardGold18History() {
         dashboardHistoryJob?.cancel()
-        dashboardHistoryJob = viewModelScope.launch(Dispatchers.IO) {
+        dashboardHistoryJob = viewModelScope.launch(workDispatcher) {
             val preferred = _uiState.value.rates.source
-            val history = GoldMarketRepository.getAllHorizonsHistory(MarketRateItemType.GOLD_18K, preferred)
+            val history = marketHistoryRepository.getAllHorizonsHistory(MarketRateItemType.GOLD_18K, preferred)
             val charts = history.mapValues { (horizon, candles) ->
                 MarketHistoryConverter.toTrendChartData(candles, horizon, _uiState.value.rates.gold18)
             }
@@ -256,12 +261,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     fun loadTodayCandlesForBoard() {
         boardCandlesJob?.cancel()
-        boardCandlesJob = viewModelScope.launch(Dispatchers.IO) {
+        boardCandlesJob = viewModelScope.launch(workDispatcher) {
             val preferred = _uiState.value.rates.source
             val types = MarketRateItemType.values()
             val candlesMap = mutableMapOf<MarketRateItemType, List<MarketCandle>>()
             for (type in types) {
-                val candles = GoldMarketRepository.getHistory(type, TimeHorizon.TODAY, preferred)
+                val candles = marketHistoryRepository.getHistory(type, TimeHorizon.TODAY, preferred)
                 if (candles.isNotEmpty()) {
                     candlesMap[type] = candles
                 }
@@ -396,7 +401,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
 
     private fun startAutoRatesRefresh() {
         autoRefreshJob?.cancel()
-        autoRefreshJob = viewModelScope.launch(Dispatchers.IO) {
+        autoRefreshJob = viewModelScope.launch(workDispatcher) {
             while (isActive) {
                 delay(60_000L)
                 if (_uiState.value.autoSyncPrice && _uiState.value.connectionStatus == ConnectionStatus.ONLINE) {
@@ -407,7 +412,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     fun refreshRatesSilently() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(workDispatcher) {
             try {
                 val newRates = marketRatesRepository.refreshRates()
                 applyFetchedRates(newRates)
@@ -418,7 +423,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), J
     }
 
     fun refreshRates() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(workDispatcher) {
             _uiState.update { it.copy(isRefreshingRates = true) }
             try {
                 val newRates = marketRatesRepository.refreshRates()

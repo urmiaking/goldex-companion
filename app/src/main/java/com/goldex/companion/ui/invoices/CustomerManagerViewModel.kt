@@ -1,9 +1,6 @@
 package com.goldex.companion.ui.invoices
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.CustomerLedgerFilterTab
@@ -410,15 +407,5 @@ class CustomerManagerViewModel(
                 selectedCustomer = if (it.selectedCustomer?.id == customerId) null else it.selectedCustomer
             )
         }
-    }
-}
-
-class CustomerManagerViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = CustomerRepository(application.applicationContext)
-        return CustomerManagerViewModel(repository, com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(application)) as T
     }
 }

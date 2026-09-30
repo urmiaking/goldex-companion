@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.security.AndroidBiometricAuthManager
 import com.goldex.companion.ui.main.MainScreen
 import com.goldex.companion.ui.main.MainViewModel
@@ -22,9 +21,11 @@ import com.goldex.companion.ui.theme.GoldExCompanionTheme
 
 class MainActivity : FragmentActivity() {
 
+    private val container get() = (application as GoldexApplication).container
+
     private val appLockViewModel: AppLockViewModel by viewModels {
         AppLockViewModelFactory(
-            SettingsRepository.getInstance(applicationContext),
+            container.settings,
             AndroidBiometricAuthManager(applicationContext) { this }
         )
     }
@@ -32,7 +33,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val viewModel: MainViewModel = viewModel()
+            val viewModel: MainViewModel = viewModel(factory = container.viewModelFactory)
             val uiState by viewModel.uiState.collectAsState()
             val appLockState by appLockViewModel.uiState.collectAsState()
 
@@ -49,6 +50,7 @@ class MainActivity : FragmentActivity() {
                     } else {
                         MainScreen(
                             mainViewModel = viewModel,
+                            viewModelFactory = container.viewModelFactory,
                             appLockViewModel = appLockViewModel
                         )
                     }

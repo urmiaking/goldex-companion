@@ -2,7 +2,7 @@
 
 دستیار جامع، هوشمند و فوق‌مدرن ویژه طلافروشان، معامله‌گران و سرمایه‌گذاران بازار طلا، سکه و ارز بر پایه Jetpack Compose با طراحی چشم‌نواز Stitch ("Persian Sovereign Aurum")، حالت شب و روز و پشتیبانی کامل راست‌به‌چپ (RTL).
 
-## 🚀 قابلیت‌های کلیدی نسخه جدید (v0.55.6)
+## 🚀 قابلیت‌های کلیدی
 - **بهبود ویزارد راه‌اندازی اولیه (Onboarding Wizard):** امکان آپلود مستقیم نشان تجاری (لوگو) و مهر رسمی واحد صنفی در مرحله ثبت مشخصات گالری، حذف عبارات سامانه مودیان، و نمایش نشان ثبت‌شده در کارت خلاصه نهایی.
 - **گزارش‌های مالی و ترازنامه زرگری:** گزارش عملکرد فروش، تراز وزنی انبار، مانده طرف‌حساب‌ها و مالیات ارزش‌افزوده با انتخاب بازه زمانی و فصل جاری شمسی؛ صفحه‌های تخصصی با سربرگ، فیلتر، کارت‌های تیره و حرکت اعداد هماهنگ با مرکز گزارشات بازطراحی شده‌اند.
 - **مدیریت پیشرفته انبار و ویترین طلا (Gold Inventory & Showcase):**
@@ -38,13 +38,25 @@
 ## 🛠 مشخصات فنی
 - **Target SDK:** 34 | **Min SDK:** 24 | **Java Version:** 17
 - **UI Framework:** Jetpack Compose (Material 3 Adaptive Themes)
-- **Architecture:** Modular MVVM + StateFlow + Kotlin Coroutines + Clean Feature Boundaries
+- **Architecture:** Android host + Kotlin Multiplatform core (Android/JVM), MVVM, StateFlow, constructor injection and repository ports
 - **Signer:** Persistent 2048-bit RSA Keystore (Seamless in-place APK updates)
 - **CI/CD:** GitHub Actions Automation Loop with Protected Repository Secrets
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.9` مشکل خطای انتخاب لوگو و مهر را با بازگردانی قرارداد استاندارد `OpenDocument` و پشتیبان `GetContent` برطرف می‌کند و نشان وضعیت همگام‌سازی ابری در نوار ابزار اصلی (AppBar) را با بج‌های رنگی اختصاصی (آبی برای همگام‌سازی، سبز برای تایید، قرمز برای خطا) و انیمیشن انتقال نرم و رفع چرخش ناخواسته آیکن تیک بازطراحی می‌نماید. بررسی کامپایل و تست‌های واحد محلی انجام می‌شوند؛ GitHub Actions فقط APK را می‌سازد، امضا و منتشر می‌کند.
+نسخهٔ `0.56.14` هستهٔ محاسبات و مدل‌ها را بین Android و JVM مشترک می‌کند و ثبت دوبارهٔ موجودی اولیه هنگام اجرای مجدد راه‌اندازی را متوقف می‌کند. ظاهر فارسی، فرمول‌ها، داده‌های ذخیره‌شده و هویت نصب حفظ می‌شوند. این مرحله آماده‌سازی مهاجرت است؛ نسخهٔ Windows یا iOS هنوز منتشر نشده است. بررسی کامپایل و تست‌ها محلی انجام می‌شوند؛ GitHub Actions فقط APK Android را می‌سازد، امضا و منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).
+
+## راه‌اندازی توسعه
+
+JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` یا `sdk.dir` در فایل محلی و ثبت‌نشدهٔ `local.properties` مشخص کنید. پروژه را در Android Studio باز کنید و Gradle sync را انجام دهید.
+
+```powershell
+.\gradlew.bat compileDebugKotlin --no-build-cache --no-daemon -q
+.\gradlew.bat testDebugUnitTest --no-daemon -q
+.\gradlew.bat :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q
+```
+
+`app` میزبان Android و `core` محل مدل‌ها، قراردادها و منطق مشترک است. برای ساخت Windows در مرحلهٔ بعد باید میزبان دسکتاپ، آداپتورهای ذخیره‌سازی/شبکه/فایل و بسته‌بندی آن اضافه شوند. جزئیات مرزها و محدودیت‌های فعلی در [ADR 0006](docs/adr/0006-shared-core-and-platform-boundaries.md) آمده است.

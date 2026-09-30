@@ -86,19 +86,7 @@ fun validateWizardFinancial(financial: WizardFinancialState): WizardFinancialErr
     )
 }
 
-data class WizardInventoryState(
-    val vitrinWeight: String = "",
-    val vitrinOjrat: String = "",
-    val meltWeight: String = "",
-    val meltAyar: String = "750",
-    val coinTamam: Int = 0,
-    val coinNim: Int = 0,
-    val coinRob: Int = 0,
-    val coinQadim: Int = 0,
-    val coinGerami: Int = 0,
-    val cashTankhah: String = "",
-    val bankBalances: String = ""
-)
+typealias WizardInventoryState = com.goldex.companion.domain.onboarding.OpeningInventoryInput
 
 enum class WizardLicenseChoice {
     TRIAL,

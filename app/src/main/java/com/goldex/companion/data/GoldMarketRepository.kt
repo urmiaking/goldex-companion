@@ -25,7 +25,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
+object GoldMarketRepository : MarketRatesStore, MarketHistoryStore, MarketCacheReader, MarketSourceInitializer {
     private var historyCache = MarketHistoryCache.getInstance()
     private var ratesCache: MarketRatesCache? = null
 
@@ -48,19 +48,19 @@ object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
         }
     }
 
-    fun getCachedRates(): MarketRates? {
+    override fun getCachedRates(): MarketRates? {
         return ratesCache?.getRates() ?: if (_rates.value.gold18 > 0L) _rates.value else null
     }
 
-    fun getCachedAllHorizonsHistory(type: MarketRateItemType): Map<TimeHorizon, List<MarketCandle>> {
+    override fun getCachedAllHorizonsHistory(type: MarketRateItemType): Map<TimeHorizon, List<MarketCandle>> {
         return historyCache.getAllCachedHorizons(type)
     }
 
-    fun getCachedTodayCandlesForBoard(): Map<MarketRateItemType, List<MarketCandle>> {
+    override fun getCachedTodayCandlesForBoard(): Map<MarketRateItemType, List<MarketCandle>> {
         return historyCache.getCachedTodayCandles()
     }
 
-    fun getCachedDashboardGold18Charts(): Map<TimeHorizon, TrendChartData> {
+    override fun getCachedDashboardGold18Charts(): Map<TimeHorizon, TrendChartData> {
         val basePrice = _rates.value.gold18
         val history = historyCache.getAllCachedHorizons(MarketRateItemType.GOLD_18K)
         return history.mapValues { (horizon, candles) ->
@@ -76,7 +76,7 @@ object GoldMarketRepository : MarketRatesStore, MarketHistoryStore {
         ratesCache?.putItemSummaries(summaries)
     }
 
-    fun setSourceSilently(source: PriceSource) {
+    override fun setSourceSilently(source: PriceSource) {
         _currentSource.value = source
     }
 

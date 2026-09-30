@@ -1,9 +1,6 @@
 package com.goldex.companion.ui.invoices
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.goldex.companion.data.InvoiceRepository
 import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.model.Invoice
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,15 +43,5 @@ class InvoiceManagerViewModel(
     fun deleteInvoice(id: String) {
         repository.deleteInvoice(id)
         _uiState.update { it.copy(savedInvoices = repository.getInvoices()) }
-    }
-}
-
-class InvoiceManagerViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = InvoiceRepository(application.applicationContext)
-        return InvoiceManagerViewModel(repository) as T
     }
 }

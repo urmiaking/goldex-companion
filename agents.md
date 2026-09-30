@@ -35,19 +35,21 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 - The workflow source of truth is `.github/workflows/build-and-release.yml`.
 - Feature branches (`feature/<name>`) and Git Worktrees must be used for feature development and parallel agent workflows (see `.agents/rules/git-worktree-and-branching.md`).
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.
-- Before a change is complete, verify compilation and unit tests locally.
+- Before a change is complete, verify compilation and unit tests locally. For shared-core changes also run `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`; keep JVM tests local, not in the release workflow.
 - Do not claim a build or test passed unless its output is available.
 
 ## 3. Current technology constraints
 
 These are current implementation constraints, not permanent bans on future architecture:
 
-- One Android `app` module.
+- Android `app` host plus Kotlin Multiplatform `core` with Android/JVM targets; shared domain/models/ports belong in `core/src/commonMain`.
 - Jetpack Compose and Material 3.
 - Kotlin coroutines and `StateFlow`.
 - `HttpURLConnection` and `org.json` for the current network layer.
-- SharedPreferences/JSON for current small local datasets.
-- No Hilt, Room, Retrofit, OkHttp, Ktor, or navigation-compose is currently installed.
+- Room 2.6.1 version 2 for financial records, business settings and transactional sync outbox; SharedPreferences for device preferences/market cache and retained legacy JSON import backups.
+- WorkManager 2.9.0 is installed for cloud retry. No Hilt, Koin, Retrofit, OkHttp, Ktor, or navigation-compose is installed.
+- AndroidAppContainer owns construction; feature ViewModels receive dependencies through constructors. Do not restore Context, Application or repository singleton construction in feature state holders.
+- Shared platform services use `platform/` expect/actual adapters; Java implementations belong in `jvmSharedMain`, never commonMain.
 
 Agents may propose or introduce a replacement only when the feature's scale justifies it, the migration is explicit, and existing behavior/data remain compatible. Do not add a framework merely for fashion or to satisfy a generic clean-architecture template.
 
@@ -79,6 +81,7 @@ Already-established migration seams must be reused:
 - Portfolio UI emits explicit add/delete callbacks rather than creating its own ViewModel.
 - Karat conversion state belongs in `ui/calculator/KaratConvertViewModel.kt`; the global ViewModel must not regain those fields or events.
 - JSON persistence changes must use and extend `data/PersistenceJsonCodecs.kt` with compatibility tests.
+- Opening inventory belongs in `core domain/onboarding/OpeningInventory.kt`; completion uses `CompleteOnboardingUseCase` and the existing transactional onboarding checkpoint. Composables must not seed stores directly or duplicate inventory when the wizard reopens.
 
 ## 5. State and event rules
 
