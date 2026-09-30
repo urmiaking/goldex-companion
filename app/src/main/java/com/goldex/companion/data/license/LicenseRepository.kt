@@ -18,19 +18,19 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-class LicenseRepository(private val context: Context) {
+class LicenseRepository(private val context: Context) : LicenseStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _licenseInfo = MutableStateFlow(loadCachedLicense())
-    val licenseInfo: StateFlow<LicenseInfo> = _licenseInfo.asStateFlow()
+    override val licenseInfo: StateFlow<LicenseInfo> = _licenseInfo.asStateFlow()
 
-    fun getCachedInfo(): LicenseInfo = _licenseInfo.value
+    override fun getCachedInfo(): LicenseInfo = _licenseInfo.value
 
     /**
      * فعال‌سازی مهلت تست ۱۴ روزه رایگان
      */
-    suspend fun activateTrial(): LicenseResult = withContext(Dispatchers.IO) {
+    override suspend fun activateTrial(): LicenseResult = withContext(Dispatchers.IO) {
         val identity = DeviceIdentityManager.getDeviceIdentity(context)
         val payload = JSONObject().apply {
             put("fingerprint", identity.fingerprint)
@@ -84,7 +84,7 @@ class LicenseRepository(private val context: Context) {
     /**
      * فعال‌سازی با کد لایسنس دائمی (مثلاً QIR-XXXX-XXXX)
      */
-    suspend fun activateCode(code: String): LicenseResult = withContext(Dispatchers.IO) {
+    override suspend fun activateCode(code: String): LicenseResult = withContext(Dispatchers.IO) {
         val cleanCode = code.trim().uppercase()
         if (cleanCode.length < 5) {
             return@withContext LicenseResult.Error("کد اشتراک وارد شده معتبر نیست.")
@@ -132,7 +132,7 @@ class LicenseRepository(private val context: Context) {
     /**
      * استعلام آخرین وضعیت لایسنس و همگام‌سازی تاریخ سرور
      */
-    suspend fun syncStatus(): LicenseResult = withContext(Dispatchers.IO) {
+    override suspend fun syncStatus(): LicenseResult = withContext(Dispatchers.IO) {
         val identity = DeviceIdentityManager.getDeviceIdentity(context)
         val payload = JSONObject().apply {
             put("fingerprint", identity.fingerprint)

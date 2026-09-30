@@ -1,9 +1,6 @@
 package com.goldex.companion.ui.inventory
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.goldex.companion.data.InventoryRepository
 import com.goldex.companion.data.InventoryStore
 import com.goldex.companion.model.InventoryCategory
 import com.goldex.companion.model.InventoryItem
@@ -128,15 +125,5 @@ class InventoryViewModel(
         repository.adjustStock(adjustment)
         loadItems()
         closeAdjustModal()
-    }
-}
-
-class InventoryViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = InventoryRepository(application.applicationContext)
-        return InventoryViewModel(repository) as T
     }
 }

@@ -2,7 +2,7 @@
 
 ## 1. Purpose and architectural stance
 
-GoldEx Companion is a production-oriented Android application implemented incrementally by vertical feature slices. It is currently a single `app` module using Jetpack Compose, Kotlin coroutines, `StateFlow`, local persistence, and HTTP market-rate integrations.
+GoldEx Companion is a production-oriented Android application implemented incrementally by vertical feature slices. It has an Android `app` host and a Kotlin Multiplatform `core` module with Android and JVM targets. The host uses Jetpack Compose, Kotlin coroutines, `StateFlow`, Room/local preferences, and HTTP market-rate integrations.
 
 The architecture must support two truths:
 
@@ -14,7 +14,9 @@ Do not perform a broad rewrite to satisfy this document. Migrations are incremen
 ## 2. Current runtime architecture
 
 ```text
+GoldexApplication -> AndroidAppContainer (process-lifetime adapters and ViewModel factory)
 MainActivity
+  -> injected ViewModels
   -> GoldExCompanionTheme
   -> AppLockScreen (when locked)
   -> MainViewModel (App Shell, Market Rates & Calculator Core)
@@ -32,7 +34,7 @@ MainActivity
        -> ReportingScreen (ReportingViewModel & explicit callbacks)
        -> MoreHubScreen (AppSettings & explicit callbacks)
        -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
-       -> OnboardingWizardScreen (WizardUiState & SettingsStore integration)
+       -> OnboardingWizardScreen (WizardUiState & OnboardingViewModel events)
        -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog, AddInventoryItemModal, AdjustStockModal)
 
 Feature ViewModels & State Holders:
@@ -46,16 +48,22 @@ Feature ViewModels & State Holders:
   -> SettingsViewModel (SettingsStore)
   -> UpdateViewModel (AppUpdateChecker)
   -> KaratConvertViewModel (GoldCalculationUseCases)
-  -> MainViewModel (MarketRatesStore, MarketHistoryStore, SettingsStore, Navigation & Calculator Core)
+  -> MainViewModel (market/cache/source/connectivity ports, SettingsStore, injected work dispatcher)
+  -> LicenseViewModel (LicenseStore)
+  -> CloudSyncViewModel (Android SyncCoordinator)
+  -> OnboardingViewModel (CompleteOnboardingUseCase)
 
-model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
-domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation, ReportingUseCases) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
-data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), Room database (GoldexDatabase, DAOs, Entities, Mappers) with automatic zero-data-loss SharedPreferences JSON migration (DataMigrationManager), and multiplatform-ready Repository delegation contracts.
+core/commonMain model/ -> domain data types, calculations, formatting, market history & candlestick models, invoice aggregation
+core/commonMain domain/ -> calculation policies (GoldCalculationUseCases, BarterCalculationUseCases, InvoiceLedgerSyncUseCase, PortfolioValuation, ReportingUseCases) and security contracts (BiometricAuthManager, BiometricStatus, BiometricAuthResult, AppLockState)
+app data/ -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market history (iSignal/TGJU fallback), 2-tier MarketRatesCache & MarketHistoryCache (in-memory + SharedPreferences disk persistence), Room database (GoldexDatabase, DAOs, Entities, Mappers) with automatic zero-data-loss SharedPreferences JSON migration (DataMigrationManager), and multiplatform-ready Repository delegation contracts.
 ```
 
 ### Current source of truth
 
-- Entry point: `app/src/main/java/com/goldex/companion/MainActivity.kt`
+- Entry points: `GoldexApplication.kt` and `MainActivity.kt` under `app/src/main/java/com/goldex/companion/`; `app/AndroidAppContainer.kt` is the composition root.
+- Shared ownership: paths below in `domain/` and `model/` refer to `core/src/commonMain/kotlin/com/goldex/companion/`. Repository ports, AppSettings, PortfolioModels, MarketRates and LicenseModels also live in commonMain with their existing package names. Android implementations and all `ui/` paths remain under the Android source root.
+- Platform services: `core/commonMain platform/` defines time, ID, decimal and local-calendar boundaries; `core/jvmSharedMain` provides the existing Java behavior to Android/JVM.
+- Opening inventory: `domain/onboarding/OpeningInventory.kt` owns the unchanged seed policy; `CompleteOnboardingUseCase.kt` owns completion, the shared transaction and repeat protection. `data/local/RoomOnboardingCheckpoint.kt` adapts the existing marker without a schema change. A restored account bypasses all seed/profile writes; a repeated wizard edits settings without duplicating stock.
 - App shell & coordinator: `ui/main/MainViewModel.kt` & `ui/main/MainScreen.kt` (with backward compatibility bridges in `ui/calculator/`)
 - Feature ViewModels & Components: `ui/invoices/`, `ui/portfolio/`, `ui/settings/`, `ui/update/`, `ui/calculator/`, `ui/wizard/`, `ui/license/`
 - Barter Invoicing Screen: `ui/invoices/BarterInvoiceScreen.kt` & `ui/invoices/modals/AddInvoiceItemModal.kt`
@@ -73,19 +81,22 @@ data/  -> HTTP integrations, AndroidBiometricAuthManager, multi-provider market 
 - Integrations: `data/`
 - Design tokens: `ui/theme/`. Dark-mode custom colors and Material 3 roles share the Stitch charcoal/slate/champagne palette; `docs/stitch/dark-mode/` stores the source dashboard HTML, screenshot, and role mapping. Dashboard vault gradients and market-gain labels select theme-aware tokens without changing financial state or the light palette.
 - Floating input labels: `ui/components/GoldOutlinedTextField.kt` wraps the Material outlined field for `GoldInputField`, customer forms, and legacy settings. Labels are passed directly to Material with no painted background; the native outline cutout remains in use. Keyboard, formatting, validation, and field colors stay owned by the callers.
-- Tests: `app/src/test/` for local unit checks; `app/src/androidTest/` includes the floating-label transparency pixel regression for light/dark themes and focus/error/disabled states (requires an Android device).
+- Tests: `core/src/commonTest/` for portable compatibility/onboarding checks, `core/src/jvmSharedTest/` for existing domain tests executed on both Android and JVM, and `app/src/test/` for Android repository, migration, rollback and ViewModel checks; `app/src/androidTest/` includes the floating-label transparency pixel regression for light/dark themes and focus/error/disabled states (requires an Android device).
 - Release workflow: `.github/workflows/build-and-release.yml`
 
 The code is authoritative when this document and implementation disagree. Update this document when a structural decision changes.
 
 ## 3. Feature ownership model
 
-New work must be organized around a feature owner, even while the project remains one Gradle module.
+New work must be organized around a feature owner. Pure behavior belongs in `core`; platform adapters and presentation currently belong in `app`.
 
 ```text
-ui/<feature>/       Screens, components, UI state projection
-domain/<feature>/   Use cases, policies, pure business calculations
-data/<feature>/     Repository implementations, local/remote data sources
+app ui/<feature>/          Screens, components, feature state
+core domain/<feature>/     Use cases, policies, pure business calculations
+core data/                 Existing repository ports and shared data models
+app data/<feature>/        Repository implementations, local/remote sources
+app app/                   Android composition root
+core platform/             expect services + platform actual adapters
 ```
 
 The current `model/` and `data/` packages remain valid during migration. Do not move files merely for aesthetic consistency. Move a file when ownership is unclear, isolated testing is needed, or a feature is being extracted.
@@ -162,7 +173,8 @@ interface MarketRatesRepository {
 Current implementations may remain:
 
 - `HttpURLConnection` plus `org.json` for market providers
-- `SharedPreferences` plus JSON for small MVP data
+- Room version 2 for business records/settings and transactional cloud outbox; the existing migration retains old JSON backups
+- `SharedPreferences` for device preferences and market caches; `PersistenceJsonCodecs` remains Android-owned while JSON contracts are tested
 
 For every new repository:
 
@@ -175,7 +187,7 @@ For every new repository:
 
 ### Persistence migration
 
-SharedPreferences JSON is acceptable for early MVP datasets. It rewrites complete collections and has no schema migration mechanism, so it must not become an invisible permanent contract.
+The business-record migration to Room is already implemented. Legacy SharedPreferences JSON remains a compatibility/import source and backup. It rewrites complete collections and must not become a new primary store for growing financial datasets.
 
 Introduce Room or another durable local database when:
 
@@ -245,6 +257,8 @@ The test pyramid is:
 4. Compose tests for critical workflows and accessibility semantics.
 5. Cloud release verification for signed artifacts.
 
+Local gates are `./gradlew compileDebugKotlin --no-build-cache --no-daemon -q`, `./gradlew testDebugUnitTest --no-daemon -q`, and `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`. Common metadata compilation prevents importing host classes into shared business code; the boundary task additionally rejects platform imports. JVM artifacts/tests are never packaged in the Android APK.
+
 Every vertical feature ships with its smallest meaningful test slice. Do not wait for a complete database or backend before testing production behavior.
 
 ## 12. Architectural change protocol
@@ -270,9 +284,9 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`.
 - Customer, portfolio, and invoice JSON compatibility is centralized in `data/PersistenceJsonCodecs.kt` and covered by pure compatibility tests.
 - Independent feature ViewModels (`CustomerManagerViewModel`, `InvoiceManagerViewModel`, `PortfolioManagerViewModel`, `SettingsViewModel`, `UpdateViewModel`, `KaratConvertViewModel`) are fully wired into the UI and coordinate directly with dialogs and preview cards.
-- The root composition shell has been extracted into `MainViewModel` and `MainScreen`, dropping the primary coordinator size by ~50% (from ~810 to ~420 lines).
+- The root composition shell lives in `MainViewModel` and `MainScreen`. MainViewModel retains shell/market/calculator state; it is a migration seam rather than a claim that all feature state has been separated.
 - Calculator and tool composables (`JewelryTab`, `CoinBubbleScreen`, `MeltCalcScreen`, `MoreHubScreen`) are decoupled from concrete ViewModels, depending only on focused UI state data classes and callback interfaces (`JewelryActions`).
-- Backward compatibility typealiases (`GoldCalculatorViewModel`, `GoldCalculatorScreen`, `CalculatorUiState`) ensure zero external breakage.
+- Compatibility typealiases `GoldCalculatorViewModel` and `CalculatorUiState` remain. The legacy `GoldCalculatorScreen` bridge now requires the same injected ViewModel factory as MainScreen; both in-repository entry points are updated.
 - Release signing credentials are securely configured using protected GitHub Actions repository secrets.
 - Phase 2 formally completed: Dashboard, Live Rates, and dedicated Stitch calculator screens (`KaratConvertScreen`, `CoinBubbleScreen`, `MeltCalcScreen`, `StandardFormulasScreen`) are fully established.
 - Standardized two-action dialog button layout across all modals and dialogs (Cancel on right, Save/Confirm on left in RTL) governed by `.agents/rules/dialog-button-layout.md`.
@@ -286,9 +300,15 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - The four specialized reporting entries open dedicated RTL pages with the gateway's header, date chips, screen transition, dark summary cards, and animated changing figures. Sales, VAT, and stock movements use the selected period, including a Persian-calendar current-quarter option; inventory and customer balance totals remain explicitly labeled as current recorded balances. The profit page labels wage plus recorded seller profit rather than claiming net operating profit, since expense records are not available. VAT shows recorded invoice tax and the configured default rate separately. Stitch source HTML and screenshots are kept under `docs/stitch/reporting/` as visual references.
 - Production persistence migration to Room database (`GoldexDatabase`, Room DAOs, independent database entities, type converters, and mappers) fully established. Clean Architecture Ports & Adapters separation isolates domain models (`Customer`, `BarterInvoice`, `InventoryItem`, etc.) completely from database annotations. Zero-data-loss automated migration (`DataMigrationManager`) migrates existing SharedPreferences JSON on first launch inside an atomic SQLite transaction while preserving legacy files as immutable safety backups.
 
+- Migration preparation in 0.56.14: the shared core compiles Kotlin common metadata and JVM tests, the Android host consumes it, ViewModel construction is centralized, and opening-inventory writes moved out of Compose. See ADR 0006.
+
 ## 14. Known current compromises
 
 - The market layer contains provider-specific HTTP and parsing code.
+- ViewModel/presentation code, Room 2.6.1, WorkManager, cloud coordinator/JSON form state, PDF/files and biometrics remain Android-owned. A JVM-tested core is not yet a Windows application.
+- Repository methods remain synchronous and Room permits main-thread queries; changing threading is a separate migration.
+- Native iOS actual services, common UI, desktop packaging and other platform signing are not implemented.
+- Existing Double money fields and large-number formatting semantics remain unchanged for compatibility.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 
 These are tracked migration items, not reasons to break existing features through a broad rewrite.

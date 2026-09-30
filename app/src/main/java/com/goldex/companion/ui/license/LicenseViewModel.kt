@@ -1,12 +1,9 @@
 package com.goldex.companion.ui.license
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.license.LicenseInfo
-import com.goldex.companion.data.license.LicenseRepository
+import com.goldex.companion.data.license.LicenseStore
 import com.goldex.companion.data.license.LicenseResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,8 +19,7 @@ data class LicenseUiState(
     val successMessage: String? = null
 )
 
-class LicenseViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = LicenseRepository(application.applicationContext)
+class LicenseViewModel(private val repository: LicenseStore) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         LicenseUiState(licenseInfo = repository.getCachedInfo())
@@ -116,15 +112,5 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.syncStatus()
         }
-    }
-}
-
-class LicenseViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LicenseViewModel::class.java)) {
-            return LicenseViewModel(application) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

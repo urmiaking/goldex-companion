@@ -1,11 +1,7 @@
 package com.goldex.companion.ui.invoices
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.CustomerStore
-import com.goldex.companion.data.InvoiceRepository
 import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase
 import com.goldex.companion.domain.invoice.InvoiceDeletionUseCase
@@ -23,7 +19,6 @@ import com.goldex.companion.model.InvoiceCardAction
 import com.goldex.companion.model.InvoiceFilterTab
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.InvoiceStatus
-import com.goldex.companion.data.GoldMarketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,14 +67,15 @@ data class BarterInvoiceUiState(
 class BarterInvoiceViewModel(
     private val invoiceStore: InvoiceStore? = null,
     private val customerStore: CustomerStore? = null,
-    private val syncUnit: com.goldex.companion.data.sync.SyncUnitOfWork? = null
+    private val syncUnit: com.goldex.companion.data.sync.SyncUnitOfWork? = null,
+    private val currentGold18: () -> Long = { 0L }
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BarterInvoiceUiState())
     val uiState: StateFlow<BarterInvoiceUiState> = _uiState.asStateFlow()
 
     init {
-        val defaultSpot = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 0L
+        val defaultSpot = currentGold18().takeIf { it > 0 } ?: 0L
         val savedBarterInvoices = invoiceStore?.getBarterInvoices() ?: emptyList()
         val initialItems = createInvoiceList(savedBarterInvoices)
         _uiState.update { current ->
@@ -105,7 +101,7 @@ class BarterInvoiceViewModel(
     }
 
     fun openNewInvoice(customSpotPrice: Long? = null) {
-        val liveRate = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
+        val liveRate = currentGold18().takeIf { it > 0 } ?: 23_360_000L
         val rateToUse = customSpotPrice ?: (if (_uiState.value.invoice.spotPrice18k > 0L) _uiState.value.invoice.spotPrice18k else liveRate)
         _uiState.update {
             it.copy(
@@ -119,7 +115,7 @@ class BarterInvoiceViewModel(
     }
 
     fun openInvoiceDetails(item: InvoiceListItem) {
-        val liveRate = GoldMarketRepository.rates.value.gold18.takeIf { it > 0 } ?: 23_360_000L
+        val liveRate = currentGold18().takeIf { it > 0 } ?: 23_360_000L
         val invoiceToEdit = item.barterInvoice ?: BarterInvoice(
             invoiceNumber = item.invoiceNumber,
             customer = Customer(name = item.customerName),
@@ -212,6 +208,7 @@ class BarterInvoiceViewModel(
 
     fun submitAndSaveCurrentInvoice() {
         val currentInv = _uiState.value.invoice
+        val thirdPartyCustomer = currentInv.thirdPartyCustomer
 
         try {
             invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit).save(currentInv) }
@@ -230,8 +227,8 @@ class BarterInvoiceViewModel(
                 isSuccessSnackbarVisible = true,
                 statusMessage = if (state.isEditingExistingInvoice) {
                     "فاکتور ${currentInv.cleanInvoiceNumber} با موفقیت ویرایش شد"
-                } else if (currentInv.settlementMethod == SettlementMethod.TRANSFER && currentInv.thirdPartyCustomer != null) {
-                    "فاکتور ${currentInv.cleanInvoiceNumber} ثبت و تهاتر با ${currentInv.thirdPartyCustomer.name} با موفقیت اعمال شد"
+                } else if (currentInv.settlementMethod == SettlementMethod.TRANSFER && thirdPartyCustomer != null) {
+                    "فاکتور ${currentInv.cleanInvoiceNumber} ثبت و تهاتر با ${thirdPartyCustomer.name} با موفقیت اعمال شد"
                 } else {
                     "فاکتور ${currentInv.cleanInvoiceNumber} با موفقیت ثبت گردید"
                 }
@@ -477,15 +474,3 @@ class BarterInvoiceViewModel(
         }
     }
 }
-
-class BarterInvoiceViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val invoiceStore = InvoiceRepository(application.applicationContext)
-        val customerStore = CustomerRepository(application.applicationContext)
-        return BarterInvoiceViewModel(invoiceStore, customerStore, com.goldex.companion.data.local.db.GoldexDatabaseProvider.getSyncUnit(application)) as T
-    }
-}
-

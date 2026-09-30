@@ -1,7 +1,6 @@
 package com.goldex.companion.ui.sync
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.goldex.companion.data.sync.*
 import com.goldex.companion.model.PersianNumberFormatter
@@ -10,8 +9,7 @@ import kotlinx.coroutines.flow.*
 import org.json.JSONObject
 
 data class CloudFormState(val challenge: JSONObject? = null, val requestedAtMillis: Long = 0, val phone: String = "", val busy: Boolean = false, val error: String = "", val review: JSONObject? = null, val devices: JSONObject? = null, val backupPath: String? = null)
-class CloudSyncViewModel(application: Application) : AndroidViewModel(application) {
-    val coordinator=SyncCoordinator.get(application)
+class CloudSyncViewModel(val coordinator: SyncCoordinator) : ViewModel() {
     val state=coordinator.state
     private val _form=MutableStateFlow(CloudFormState())
     val form=_form.asStateFlow()

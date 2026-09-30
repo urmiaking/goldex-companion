@@ -4,7 +4,6 @@ import com.goldex.companion.data.local.db.GoldexDatabase
 import org.json.*
 import java.util.UUID
 
-interface SyncUnitOfWork { fun <T> transaction(action: () -> T): T }
 
 /** Nested repository writes share one financial group and one SQLite transaction. */
 class RoomSyncUnitOfWork(private val db: GoldexDatabase) : SyncUnitOfWork {

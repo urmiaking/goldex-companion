@@ -38,8 +38,8 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 137
-        versionName = "0.56.13"
+        versionCode = 138
+        versionName = "0.56.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -95,6 +95,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
     implementation(composeBom)
@@ -120,6 +121,7 @@ dependencies {
     androidTestImplementation("androidx.room:room-testing:$roomVersion")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("org.robolectric:robolectric:4.12.2")
     testImplementation("androidx.test:core:1.5.0")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

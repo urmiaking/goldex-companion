@@ -1,15 +1,9 @@
 package com.goldex.companion.ui.reporting
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.goldex.companion.data.CustomerRepository
 import com.goldex.companion.data.CustomerStore
-import com.goldex.companion.data.InventoryRepository
 import com.goldex.companion.data.InventoryStore
-import com.goldex.companion.data.InvoiceRepository
 import com.goldex.companion.data.InvoiceStore
-import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.domain.reporting.ReportingBreakdownType
 import com.goldex.companion.domain.reporting.ReportingDetailsUseCase
@@ -147,26 +141,5 @@ class ReportingViewModel(
         if (visible) {
             loadData()
         }
-    }
-}
-
-class ReportingViewModelFactory(
-    private val app: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(ReportingViewModel::class.java)) {
-            val invoiceStore = InvoiceRepository(app)
-            val customerStore = CustomerRepository(app)
-            val inventoryStore = InventoryRepository(app)
-            val settingsStore = SettingsRepository(app)
-            return ReportingViewModel(
-                invoiceStore = invoiceStore,
-                customerStore = customerStore,
-                inventoryStore = inventoryStore,
-                settingsStore = settingsStore
-            ) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class ${modelClass.name}")
     }
 }

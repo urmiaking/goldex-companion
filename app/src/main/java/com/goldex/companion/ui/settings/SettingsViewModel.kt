@@ -1,14 +1,11 @@
 package com.goldex.companion.ui.settings
 
-import android.app.Application
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.data.PriceSource
-import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.SettingsStore
 import com.goldex.companion.model.WageType
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,15 +123,5 @@ class SettingsViewModel(
         _uiState.update {
             it.copy(appSettings = it.appSettings.copy(hasCompletedOnboarding = completed))
         }
-    }
-}
-
-class SettingsViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = SettingsRepository.getInstance(application.applicationContext)
-        return SettingsViewModel(repository) as T
     }
 }

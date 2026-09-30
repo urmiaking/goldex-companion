@@ -1,10 +1,7 @@
 package com.goldex.companion.ui.portfolio
 
-import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.goldex.companion.data.PortfolioItem
-import com.goldex.companion.data.PortfolioRepository
 import com.goldex.companion.data.PortfolioStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,15 +43,5 @@ class PortfolioManagerViewModel(
     fun updatePortfolioItem(item: PortfolioItem) {
         repository.addItem(item)
         _uiState.update { it.copy(portfolioItems = repository.getItems()) }
-    }
-}
-
-class PortfolioManagerViewModelFactory(
-    private val application: Application
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val repository = PortfolioRepository(application.applicationContext)
-        return PortfolioManagerViewModel(repository) as T
     }
 }
