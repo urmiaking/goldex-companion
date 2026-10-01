@@ -44,7 +44,7 @@
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.14` هستهٔ محاسبات و مدل‌ها را بین Android و JVM مشترک می‌کند و ثبت دوبارهٔ موجودی اولیه هنگام اجرای مجدد راه‌اندازی را متوقف می‌کند. ظاهر فارسی، فرمول‌ها، داده‌های ذخیره‌شده و هویت نصب حفظ می‌شوند. این مرحله آماده‌سازی مهاجرت است؛ نسخهٔ Windows یا iOS هنوز منتشر نشده است. بررسی کامپایل و تست‌ها محلی انجام می‌شوند؛ GitHub Actions فقط APK Android را می‌سازد، امضا و منتشر می‌کند.
+نسخهٔ `0.56.15` تکمیل مرحلهٔ آماده‌سازی مهاجرت است: هستهٔ محاسبات و مدل‌ها بین Android و JVM مشترک است، ثبت دوبارهٔ موجودی اولیه متوقف شده و فرم‌های فاکتور نرخ‌ها را از ورودی مشخص دریافت می‌کنند. ظاهر فارسی، فرمول‌ها، داده‌های ذخیره‌شده و هویت نصب حفظ می‌شوند. نسخهٔ Windows یا iOS هنوز منتشر نشده است. بررسی کامپایل و تست‌ها محلی انجام می‌شوند؛ GitHub Actions فقط APK Android را می‌سازد، امضا و منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).

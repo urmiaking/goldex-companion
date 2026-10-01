@@ -73,7 +73,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterBalance
 import com.goldex.companion.model.BarterInvoice
@@ -116,6 +116,7 @@ import java.util.UUID
 @Composable
 fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
+    marketRates: MarketRates,
     customerList: List<Customer> = emptyList(),
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
@@ -381,6 +382,7 @@ fun BarterInvoiceScreen(
             if (uiState.isItemModalVisible) {
                 AddInvoiceItemModal(
                     spotPrice18k = invoice.spotPrice18k,
+                    marketRates = marketRates,
                     defaultCategory = uiState.targetCategory,
                     existingItem = uiState.editingItem,
                     defaultProfitPercent = defaultProfitPercent,
@@ -394,6 +396,7 @@ fun BarterInvoiceScreen(
             if (uiState.isRateEditDialogVisible) {
                 EditRateDialog(
                     currentRate = invoice.spotPrice18k,
+                    liveRate = marketRates.gold18,
                     onDismiss = { onSetRateEditDialogVisible(false) },
                     onConfirm = onUpdateSpotPrice
                 )
@@ -1642,12 +1645,12 @@ private fun SettlementSection(
 @Composable
 private fun EditRateDialog(
     currentRate: Long,
+    liveRate: Long,
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit
 ) {
     val colors = LocalGoldExColors.current
     var rateStr by remember { mutableStateOf(currentRate.toString()) }
-    val liveRate = GoldMarketRepository.rates.value.gold18
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
