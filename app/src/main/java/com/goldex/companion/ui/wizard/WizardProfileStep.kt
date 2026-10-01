@@ -54,7 +54,11 @@ fun WizardProfileContent(
 
     val pickLogo = rememberBrandImagePicker(
         onImagePicked = { uri ->
-            val localUri = persistBrandAssetLocally(context, uri, "wizard_logo") ?: uri.toString()
+            val localUri = persistBrandAssetLocally(context, uri, "wizard_logo")
+            if (localUri == null) {
+                QiratoToast.show(context, "تصویر انتخاب‌شده قابل خواندن یا ذخیره نیست؛ تصویر دیگری انتخاب کنید.")
+                return@rememberBrandImagePicker
+            }
             persistProfileAssetPermission(context, uri)
             onProfileChange(profileState.copy(logoUri = localUri))
         },
