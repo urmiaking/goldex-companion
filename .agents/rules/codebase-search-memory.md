@@ -1,8 +1,9 @@
-# Codebase Exploration & Search Policy (Codebase Memory MCP & Fallback)
+# Precise Code Search Policy (Codebase Memory MCP & Graphify)
 
 ## 1. Core Principle
 - **No Repetitive Terminal Grep Loops**: Do NOT run repetitive loops of `git grep`, `rg`, or `findstr` via `run_command` to locate files, symbols, or text across the project. This causes terminal latency, high token usage, and severe task delays.
-- **Primary Search Engine**: ALWAYS prioritize **`codebase-memory-mcp`** via `call_mcp_tool`. The knowledge graph is already parsed and provides sub-second AST-enriched search, symbol tracing, and caller/callee graphs.
+- **Primary Engine for Exact Code Search**: Prioritize **`codebase-memory-mcp`** through its exposed MCP tools (or `call_mcp_tool` on hosts that use that dispatcher) for symbols, literal text, callers/callees, and exact source inspection.
+- **Complementary Architecture Exploration**: Follow [Graphify exploration](graphify-exploration.md) for architecture, multi-feature impact, migration boundaries, and relationships between code and documentation. Use Graphify to orient the task, then codebase-memory MCP to verify the concrete owner and implementation. Localized fixes do not require two equivalent searches or a full Graphify build.
 
 ---
 
@@ -86,3 +87,5 @@ If and only if:
   ```
 - Or use `view_file` directly on the known package/directory.
 - **NEVER** fall back into an unguided loop of consecutive terminal grep commands across the whole repository.
+- Check `check_index_coverage` for cited paths and scopes behind negative or exhaustive claims; paginate truncated graph results. Neither tool's missing results prove a symbol, dependency, or behavior is absent.
+- If Graphify is unavailable, continue with codebase-memory MCP and targeted documentation reads; if codebase-memory MCP is unavailable, Graphify can narrow the relevant files before scoped source inspection. State the limitation instead of inventing relationships or claiming complete coverage.

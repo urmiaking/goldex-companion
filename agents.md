@@ -202,18 +202,21 @@ Each ADR contains context, decision, consequences, and revisit conditions.
 ## 13. Change protocol
 
 ### 13.1 Codebase exploration and search policy
+- **Use complementary graph tools according to the task**: `codebase-memory-mcp` owns precise code discovery and source inspection; Graphify owns broader architecture, cross-feature relationships, and connections between code, docs, and ADRs. Evaluate this routing at the start of every task; use both when the task spans both concerns. See `.agents/rules/graphify-exploration.md`.
+- **Graphify is required for architectural work**: For architecture questions, multi-feature changes, persistence/sync/module migrations, or code-to-documentation comparisons, load the installed Graphify skill, check `graphify-out/graph.json` in the current checkout, and query a current graph before choosing an implementation boundary. Build a missing graph or incrementally refresh a stale one within the relevant safe scope. For a small localized fix, use codebase-memory MCP first and consult an existing Graphify graph when broader context is needed; do not rebuild the whole repository for every task.
 - Never run repetitive terminal grep/find loops (`git grep`, `rg`, `findstr`) to discover code.
-- Prioritize `codebase-memory-mcp` via `call_mcp_tool`:
+- Prioritize `codebase-memory-mcp` for precise code inspection through its exposed MCP tools (or `call_mcp_tool` on hosts that use that dispatcher):
   1. Check index freshness with `list_projects` or `index_status`; if the repository is unindexed or has large external updates, trigger `index_repository(repo_path="...", mode="fast")` before proceeding.
   2. Use `search_code` for high-speed AST-enriched keyword and text search (sub-second results for both Persian and English terms).
   3. Use `search_graph` for symbol and composable discovery.
   4. Use `trace_path` to locate callers and callees before editing.
   5. Use `get_code_snippet` to inspect specific implementations without reading large files.
-- **Graceful Fallback**: Fall back to targeted, scoped `git grep` or directory view only if `codebase-memory-mcp` is unavailable or when searching non-code assets (e.g. Android XML, Gradle scripts, docs). See `.agents/rules/codebase-search-memory.md`.
+- **Graceful Fallback**: Fall back to targeted, scoped `git grep` or directory view if `codebase-memory-mcp` is unavailable, when searching non-code assets (e.g. Android XML, Gradle scripts, docs), or to inspect skipped/partially parsed ranges identified by index coverage. See `.agents/rules/codebase-search-memory.md`.
+- **Evidence and freshness**: Graphify clusters and inferred edges guide investigation; confirm behavior and directed callers/callees with codebase-memory MCP and current source. Missing graph matches do not prove absence. Keep graphs scoped to the current worktree, exclude secrets/customer data, and report unavailable tools or incomplete coverage without blocking useful work.
 
 Before editing:
 
-1. Find the concrete behavior owner and nearby tests/call sites using `codebase-memory-mcp`.
+1. Choose the graph tools for the task using section 13.1; use Graphify when required to establish the broader boundary, then find the concrete behavior owner and nearby tests/call sites using `codebase-memory-mcp`.
 2. Check for uncommitted user work.
 3. State one falsifiable hypothesis and one focused validation.
 4. Make the smallest compatible edit.
@@ -223,7 +226,8 @@ After editing:
 1. Run focused validation immediately.
 2. Repair only the touched behavior before widening scope.
 3. Confirm no persisted data, signing identity, or design token was unintentionally changed.
-4. Report changed files, validation performed, and any remaining CI-only verification.
+4. Refresh affected Graphify inputs when a graph exists; after code/docs changes, use the installed skill's incremental update workflow and report any refresh failure or intentionally deferred expensive rebuild. Do not create a new graph solely because a localized fix changed a file.
+5. Report changed files, validation performed, graph coverage/freshness limitations relevant to the conclusion, and any remaining CI-only verification.
 
 ## 14. Forensic release checklist
 
