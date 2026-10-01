@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.goldex.companion.ui.sync.*
 import com.goldex.companion.R
 import com.goldex.companion.data.ConnectionStatus
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.calculator.AppTab
 import com.goldex.companion.ui.calculator.KaratConvertViewModel
@@ -107,6 +108,7 @@ import java.io.File
 fun MainScreen(
     mainViewModel: MainViewModel,
     viewModelFactory: ViewModelProvider.Factory,
+    marketRates: MarketRates,
     appLockViewModel: AppLockViewModel? = null
 ) {
     val context = LocalContext.current
@@ -932,6 +934,7 @@ fun MainScreen(
             ) {
                 BarterInvoiceScreen(
                     uiState = barterUiState,
+                    marketRates = marketRates,
                     customerList = customerState.customerList,
                     onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
                     onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,

@@ -54,7 +54,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.goldex.companion.data.GoldMarketRepository
 import com.goldex.companion.data.MarketRates
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -99,6 +98,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AddInvoiceItemModal(
     spotPrice18k: Long,
+    marketRates: MarketRates,
     defaultCategory: InvoiceItemCategory = InvoiceItemCategory.CRAFTED,
     existingItem: BarterItem? = null,
     defaultProfitPercent: String = "7",
@@ -339,6 +339,7 @@ fun AddInvoiceItemModal(
                                         InvoiceItemCategory.COIN -> {
                                             BankCoinForm(
                                                 existingItem = existingItem as? BankCoinItem,
+                                                rates = marketRates,
                                                 onDismiss = handleDismiss,
                                                 onConfirm = { item ->
                                                     onSaveItem(item)
@@ -1388,11 +1389,11 @@ private fun getCoinMarketPrice(rates: MarketRates, coinType: CoinType): Long {
 @Composable
 private fun BankCoinForm(
     existingItem: BankCoinItem?,
+    rates: MarketRates,
     onDismiss: () -> Unit,
     onConfirm: (BankCoinItem) -> Unit
 ) {
     val colors = LocalGoldExColors.current
-    val rates by GoldMarketRepository.rates.collectAsState()
 
     var selectedCoin by remember { mutableStateOf(existingItem?.coinType ?: CoinType.EMAMI) }
     var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "") }

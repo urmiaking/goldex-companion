@@ -36,6 +36,7 @@ class MainActivity : FragmentActivity() {
             val viewModel: MainViewModel = viewModel(factory = container.viewModelFactory)
             val uiState by viewModel.uiState.collectAsState()
             val appLockState by appLockViewModel.uiState.collectAsState()
+            val marketRates by container.marketRates.collectAsState()
 
             GoldExCompanionTheme(isDarkTheme = uiState.isDarkTheme) {
                 Surface(
@@ -51,6 +52,7 @@ class MainActivity : FragmentActivity() {
                         MainScreen(
                             mainViewModel = viewModel,
                             viewModelFactory = container.viewModelFactory,
+                            marketRates = marketRates,
                             appLockViewModel = appLockViewModel
                         )
                     }

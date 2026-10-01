@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.goldex.companion.data.GoldMarketRepository
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.data.NetworkMonitor
 import com.goldex.companion.data.SettingsRepository
 import com.goldex.companion.data.license.LicenseRepository
@@ -24,6 +25,7 @@ import com.goldex.companion.ui.reporting.ReportingViewModel
 import com.goldex.companion.ui.settings.SettingsViewModel
 import com.goldex.companion.ui.sync.CloudSyncViewModel
 import com.goldex.companion.ui.update.UpdateViewModel
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Android composition root. Uses the existing providers, database and migration path.
@@ -41,6 +43,9 @@ class AndroidAppContainer(context: Context) {
     private val connectivity by lazy { NetworkMonitor(applicationContext) }
     private val license by lazy { LicenseRepository(applicationContext) }
     private val cloud by lazy { SyncCoordinator.get(applicationContext) }
+
+    /** The host collects the existing quote stream; forms receive immutable snapshots. */
+    val marketRates: StateFlow<MarketRates> get() = market.rates
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
