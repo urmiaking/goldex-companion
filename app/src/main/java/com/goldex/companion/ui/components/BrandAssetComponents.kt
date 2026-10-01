@@ -1,5 +1,7 @@
 package com.goldex.companion.ui.components
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -8,6 +10,7 @@ import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.net.URI
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,9 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
@@ -116,65 +118,34 @@ fun ProfileBrandAssetTile(
 }
 
 /**
- * Robust image picker composable with multi-level fallback chain:
- * 1. Modern Android PhotoPicker (ActivityResultContracts.PickVisualMedia)
- * 2. Native Gallery App (Intent.ACTION_PICK with MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
- * 3. Storage Access Framework (ActivityResultContracts.OpenDocument)
- * 4. Generic Content Picker (Intent.ACTION_GET_CONTENT)
+ * One registered launcher shared by the document picker and OEM-compatible fallbacks.
  */
 @Composable
 fun rememberBrandImagePicker(
     onImagePicked: (Uri) -> Unit,
     onError: (String) -> Unit = {}
 ): () -> Unit {
-    val photoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) onImagePicked(uri)
-    }
-
-    val galleryPicker = rememberLauncherForActivityResult(
+    val context = LocalContext.current
+    val currentOnError = rememberUpdatedState(onError)
+    val picker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val uri = result.data?.data
-        if (uri != null) onImagePicked(uri)
+        if (result.resultCode == Activity.RESULT_OK) {
+            val uri = result.data?.data ?: result.data?.clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.uri
+            if (uri != null) onImagePicked(uri)
+        }
     }
 
-    val openDocPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) onImagePicked(uri)
-    }
-
-    return remember(photoPicker, galleryPicker, openDocPicker) {
+    return remember(context, picker) {
         {
-            // 1. Try Modern Android Photo Picker (PickVisualMedia)
             try {
-                photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            } catch (_: Exception) {
-                // 2. Try Standard Gallery App (ACTION_PICK on MediaStore)
-                try {
-                    val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
-                        type = "image/*"
-                    }
-                    galleryPicker.launch(pickIntent)
-                } catch (_: Exception) {
-                    // 3. Try SAF Documents / OpenDocument
-                    try {
-                        openDocPicker.launch(arrayOf("image/*", "image/png", "image/jpeg", "image/webp"))
-                    } catch (_: Exception) {
-                        // 4. Try ACTION_GET_CONTENT
-                        try {
-                            val getContentIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                                type = "image/*"
-                                addCategory(Intent.CATEGORY_OPENABLE)
-                            }
-                            galleryPicker.launch(getContentIntent)
-                        } catch (_: Exception) {
-                            onError("برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
-                        }
-                    }
-                }
+                launchBrandImagePicker(context) { picker.launch(it) }
+            } catch (_: ActivityNotFoundException) {
+                currentOnError.value("برنامه‌ای جهت انتخاب تصویر پیدا نشد.")
+            } catch (_: SecurityException) {
+                currentOnError.value("دسترسی به انتخاب تصویر امکان‌پذیر نیست.")
+            } catch (_: IllegalStateException) {
+                currentOnError.value("انتخاب تصویر آماده نیست؛ صفحه را دوباره باز کنید.")
             }
         }
     }
@@ -184,16 +155,15 @@ fun rememberBrandImagePicker(
  * Safely decodes a bitmap with inSampleSize and bounded dimensions to prevent OutOfMemoryError and OpenGL texture crashes.
  */
 fun loadSafeProfileBitmap(context: Context, uriValue: String, maxDimension: Int = 512): Bitmap? {
-    if (uriValue.isBlank()) return null
+    if (uriValue.isBlank() || maxDimension <= 0) return null
     return runCatching {
         fun openStream(): InputStream? {
             val candidateFile = when {
                 uriValue.startsWith("file:") -> {
-                    val stripped = uriValue.substringAfter("file:").trimStart('/')
-                    File("/$stripped").takeIf { it.exists() }
+                    runCatching { File(URI(uriValue)) }.getOrNull()?.takeIf { it.exists() }
                         ?: (runCatching { Uri.parse(uriValue).path?.let { File(it) } }.getOrNull())?.takeIf { it.exists() }
                 }
-                uriValue.startsWith("/") -> File(uriValue).takeIf { it.exists() }
+                File(uriValue).isAbsolute -> File(uriValue).takeIf { it.exists() }
                 else -> null
             }
             if (candidateFile != null && candidateFile.exists()) {
@@ -204,7 +174,9 @@ fun loadSafeProfileBitmap(context: Context, uriValue: String, maxDimension: Int 
 
         // First pass: decode bounds only (zero memory allocated)
         val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openStream()?.use { BitmapFactory.decodeStream(it, null, boundsOptions) } ?: return null
+        val boundsStream = openStream() ?: return null
+        boundsStream.use { BitmapFactory.decodeStream(it, null, boundsOptions) }
+        // Bounds-only decoding returns null even for a valid image; validate its dimensions instead.
         if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) return null
 
         // Calculate power-of-two inSampleSize
