@@ -21,10 +21,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.AppSettings
+import com.goldex.companion.BuildConfig
+import com.goldex.companion.R
 import com.goldex.companion.data.license.LicenseInfo
 import com.goldex.companion.data.license.LicenseStatus
 import com.goldex.companion.model.PersianNumberFormatter
@@ -979,13 +983,19 @@ fun MoreHubScreen(
             )
 
             // App Version Badge
-            Text(
-                text = "قیراط - نگارش ۲.۴.۰ پرو (ویژه بنکداران و فروشگاه‌های طلا و جواهر)",
-                fontSize = 10.5.sp,
-                color = colors.textMuted
-            )
+            AppVersionFooter()
         }
     }
+}
+
+@Composable
+internal fun AppVersionFooter() {
+    Text(
+        text = "${stringResource(R.string.app_name)} • نسخه ${PersianNumberFormatter.toPersianDigits(BuildConfig.VERSION_NAME)}",
+        fontSize = 12.sp,
+        color = LocalGoldExColors.current.textSecondary,
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable
