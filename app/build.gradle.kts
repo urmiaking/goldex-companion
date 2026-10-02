@@ -38,8 +38,8 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 140
-        versionName = "0.56.16"
+        versionCode = 141
+        versionName = "0.56.17"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -105,6 +105,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
+    // MainActivity hosts Activity Result APIs; biometric's transitive Fragment 1.2.5 rejects their request codes.
+    implementation("androidx.fragment:fragment:1.6.2")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("org.json:json:20240303")
 
