@@ -201,6 +201,13 @@ Each ADR contains context, decision, consequences, and revisit conditions.
 
 ## 13. Change protocol
 
+### 13.0 Read rules and complete delivery
+
+- Before repository exploration or edits, read this file and all applicable rules under `.agents/rules/`, including rules marked `always_on`; read relevant referenced workflows as well.
+- [Task issue lifecycle](.agents/rules/task-issue-lifecycle.md) is mandatory: create a GitHub issue before code changes and keep it open until cloud CI succeeds and the APK release is published.
+- Complete [the branch/worktree workflow](.agents/rules/git-worktree-and-branching.md): local verification, documentation, commit, push, merge to `main`, release with [Persian notes](.agents/rules/release-changelog.md), issue closure with the release link, and cleanup of the task's branch/worktree.
+- Do not report a task as complete at the local-commit stage when the required delivery steps remain.
+
 ### 13.1 Codebase exploration and search policy
 - **Use complementary graph tools according to the task**: `codebase-memory-mcp` owns precise code discovery and source inspection; Graphify owns broader architecture, cross-feature relationships, and connections between code, docs, and ADRs. Evaluate this routing at the start of every task; use both when the task spans both concerns. See `.agents/rules/graphify-exploration.md`.
 - **Graphify is required for architectural work**: For architecture questions, multi-feature changes, persistence/sync/module migrations, or code-to-documentation comparisons, load the installed Graphify skill, check `graphify-out/graph.json` in the current checkout, and query a current graph before choosing an implementation boundary. Build a missing graph or incrementally refresh a stale one within the relevant safe scope. For a small localized fix, use codebase-memory MCP first and consult an existing Graphify graph when broader context is needed; do not rebuild the whole repository for every task.

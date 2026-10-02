@@ -38,8 +38,8 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 143
-        versionName = "0.56.19"
+        versionCode = 144
+        versionName = "0.56.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
