@@ -20,9 +20,12 @@ import java.util.concurrent.TimeUnit
 
 enum class SyncStatus { DISABLED, AUTH_REQUIRED, PENDING, SYNCING, SYNCED, OFFLINE, LICENSE_REQUIRED, CONFLICT, RESTORE_REQUIRED, WRITER_CHANGED, ERROR }
 
+const val TRIAL_STORAGE_QUOTA_BYTES = 52_428_800L // 50 MB
+const val PERMANENT_STORAGE_QUOTA_BYTES = 5_368_709_120L // 5 GB
+
 data class SyncStorageInfo(
     val usedBytes: Long = 0L,
-    val quotaBytes: Long = 52_428_800L, // 50 MB default
+    val quotaBytes: Long = TRIAL_STORAGE_QUOTA_BYTES,
     val tier: String = "TRIAL",
     val isWifiOnlyAssets: Boolean = true
 ) {
@@ -64,11 +67,33 @@ class SyncCoordinator private constructor(private val context: Context) {
         // Force business-settings import before the first snapshot.
         val settings = SettingsRepository.getInstance(context).loadSettings()
         val initialShopName = settings.galleryName.ifBlank { settings.managerName }.ifBlank { "حساب تجاری زرگری مروارید" }
+        val licenseRepo = LicenseRepository(context)
+        val isLifetime = licenseRepo.getCachedInfo().isLifetime
+        val initialQuota = if (isLifetime) PERMANENT_STORAGE_QUOTA_BYTES else TRIAL_STORAGE_QUOTA_BYTES
+        val initialTier = if (isLifetime) "PERMANENT" else "TRIAL"
         _state.update {
             it.copy(
                 shopName = initialShopName,
-                storage = it.storage.copy(isWifiOnlyAssets = preferences.getBoolean("wifi_only_assets", true))
+                storage = it.storage.copy(
+                    quotaBytes = initialQuota,
+                    tier = initialTier,
+                    isWifiOnlyAssets = preferences.getBoolean("wifi_only_assets", true)
+                )
             )
+        }
+        scope.launch {
+            licenseRepo.licenseInfo.collect { lic ->
+                if (lic.isLifetime) {
+                    _state.update { s ->
+                        s.copy(
+                            storage = s.storage.copy(
+                                quotaBytes = PERMANENT_STORAGE_QUOTA_BYTES,
+                                tier = "PERMANENT"
+                            )
+                        )
+                    }
+                }
+            }
         }
         unit.onCommit={ _state.update { if(it.enabled && it.status==SyncStatus.SYNCED) it.copy(status=SyncStatus.PENDING) else it }; requestSync() }
         unit.writeAllowed={ !preferences.getBoolean("writerInvalid",false) && !preferences.getBoolean("transferInProgress",false) }
@@ -86,11 +111,22 @@ class SyncCoordinator private constructor(private val context: Context) {
     }
 
     private fun updateStorageFromInfo(info: JSONObject) {
-        val storageObj = info.optJSONObject("storage") ?: return
+        val storageObj = info.optJSONObject("storage")
+        val isLifetime = LicenseRepository(context).getCachedInfo().isLifetime
+        if (storageObj == null) {
+            if (isLifetime && _state.value.storage.quotaBytes < PERMANENT_STORAGE_QUOTA_BYTES) {
+                _state.update { it.copy(storage = it.storage.copy(quotaBytes = PERMANENT_STORAGE_QUOTA_BYTES, tier = "PERMANENT")) }
+            }
+            return
+        }
+        val serverTier = storageObj.optString("tier", if (isLifetime) "PERMANENT" else "TRIAL")
+        val serverQuota = storageObj.optLong("quotaBytes", if (isLifetime) PERMANENT_STORAGE_QUOTA_BYTES else TRIAL_STORAGE_QUOTA_BYTES)
+        val finalTier = if (isLifetime || serverTier.equals("PERMANENT", ignoreCase = true)) "PERMANENT" else serverTier
+        val finalQuota = if (isLifetime) maxOf(serverQuota, PERMANENT_STORAGE_QUOTA_BYTES) else serverQuota
         val storageInfo = SyncStorageInfo(
             usedBytes = storageObj.optLong("usedBytes", _state.value.storage.usedBytes),
-            quotaBytes = storageObj.optLong("quotaBytes", _state.value.storage.quotaBytes),
-            tier = storageObj.optString("tier", _state.value.storage.tier),
+            quotaBytes = finalQuota,
+            tier = finalTier,
             isWifiOnlyAssets = preferences.getBoolean("wifi_only_assets", true)
         )
         _state.update { it.copy(storage = storageInfo) }

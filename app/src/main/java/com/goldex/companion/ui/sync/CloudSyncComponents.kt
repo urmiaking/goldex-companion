@@ -520,12 +520,6 @@ fun CloudServerMetricsCard(
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textMain
                         )
-                        Text(
-                            text = "سخت‌افزاری فعال",
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.profitGreen
-                        )
                     }
                 }
             }
@@ -588,7 +582,7 @@ fun CloudServerMetricsCard(
                         color = colors.textMuted
                     )
                     Text(
-                        text = if (storage.tier.equals("PERMANENT", ignoreCase = true)) "بایگانی نامحدود" else "نسخه آزمایشی (۵۰ مگابایت)",
+                        text = if (storage.tier.equals("PERMANENT", ignoreCase = true)) "نسخه دائمی (۵ گیگابایت)" else "نسخه آزمایشی (۵۰ مگابایت)",
                         fontSize = 10.5.sp,
                         color = colors.textMuted
                     )
@@ -1953,17 +1947,6 @@ fun CloudSettingsModal(onDismiss: () -> Unit, canDismiss: Boolean = true, conten
                         border = BorderStroke(1.dp, Brush.verticalGradient(listOf(colors.goldPrimary.copy(alpha = 0.6f), colors.border.copy(alpha = 0.3f))))
                     ) {
                         Column(Modifier.navigationBarsPadding()) {
-                            // Top Subtle Gold Gradient Accent Bar
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(3.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(Color.Transparent, colors.goldPrimary.copy(alpha = 0.8f), Color.Transparent)
-                                        )
-                                    )
-                            )
                             // Handle Bar (Bottom Sheet Anchor)
                             Box(
                                 Modifier
