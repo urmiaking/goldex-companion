@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
@@ -31,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
@@ -45,6 +48,11 @@ import com.goldex.companion.ui.hub.HubCloud
 import com.goldex.companion.ui.hub.HubCloudDownload
 import com.goldex.companion.ui.hub.HubCloudOff
 import com.goldex.companion.ui.hub.HubDevices
+import com.goldex.companion.ui.hub.HubCloudSync
+import com.goldex.companion.ui.hub.HubCopy
+import com.goldex.companion.ui.hub.HubArrowRight
+import com.goldex.companion.ui.hub.HubPhoneInTalk
+import com.goldex.companion.ui.hub.HubShieldCheck
 import com.goldex.companion.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -288,8 +296,8 @@ fun CloudSettingsContent(
         modifier = modifier
             .fillMaxWidth()
             .then(scrollModifier)
-            .padding(if (scrollable) 20.dp else 0.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(if (scrollable) 16.dp else 0.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         CloudConnectionToggle(state.enabled, !form.busy && !state.busy, viewModel::setEnabled)
 
@@ -343,7 +351,7 @@ fun CloudSettingsContent(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("🎁", fontSize = 16.sp)
+                            Icon(HubShieldCheck, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
                             Text(
                                 text = "دورهٔ آزمایشی ۱۴ روزه رایگان",
                                 fontWeight = FontWeight.Bold,
@@ -358,6 +366,7 @@ fun CloudSettingsContent(
                         )
                         GoldButton(
                             text = "فعال‌سازی دورهٔ آزمایشی",
+                            icon = HubShieldCheck,
                             onClick = viewModel::activateTrial,
                             isLoading = form.busy,
                             enabled = !form.busy,
@@ -366,93 +375,22 @@ fun CloudSettingsContent(
                         )
                     }
                 }
-            } else {
-                GoldButton(
-                    text = if (state.busy || form.busy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی اکنون",
-                    onClick = viewModel::sync,
-                    isLoading = state.busy || form.busy || state.status == SyncStatus.SYNCING,
-                    enabled = !state.busy && !form.busy,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (state.status == SyncStatus.CONFLICT) {
-                    GoldButton(
-                        text = "مقایسهٔ نسخه‌های کل گروه",
-                        onClick = viewModel::reviewConflict,
-                        isSecondary = true,
-                        enabled = !form.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (state.status in listOf(SyncStatus.RESTORE_REQUIRED, SyncStatus.CONFLICT)) {
-                    GoldButton(
-                        text = "بررسی و بازیابی نسخهٔ ابری",
-                        onClick = { confirm = "restore" },
-                        isSecondary = true,
-                        enabled = !form.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (state.status == SyncStatus.WRITER_CHANGED) {
-                    GoldButton(
-                        text = "انتقال نویسندگی به این دستگاه",
-                        onClick = { confirm = "takeover" },
-                        isSecondary = false,
-                        enabled = !form.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    GoldButton(
-                        text = "تأیید تازهٔ شماره برای انتقال",
-                        onClick = viewModel::reauthenticate,
-                        isSecondary = true,
-                        enabled = !form.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (state.status == SyncStatus.SYNCED) {
-                    GoldButton(
-                        text = "انتقال به دستگاه دیگر",
-                        icon = HubDevices,
-                        onClick = viewModel::listDevices,
-                        isSecondary = true,
-                        enabled = !form.busy,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                GoldButton(
-                    text = "خروج از حساب",
-                    onClick = { confirm = "logout" },
-                    isSecondary = true,
-                    enabled = !form.busy && !state.busy,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
 
-        if (state.phone.isNotBlank() || state.readOnly) {
-            GoldButton(
-                text = "ذخیرهٔ پشتیبان محلی و اختلاف‌ها",
-                icon = HubCloudDownload,
-                onClick = viewModel::exportBackup,
-                isSecondary = true,
-                enabled = !form.busy && !state.busy,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        if (state.readOnly || state.phone.isNotBlank() || state.status == SyncStatus.WRITER_CHANGED) {
-            GoldButton(
-                text = "جداسازی داده برای اتصال به حساب دیگر",
-                onClick = { confirm = "detach" },
-                isSecondary = true,
-                enabled = !form.busy && !state.busy,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        CloudAccountActions(
+            state = state,
+            formBusy = form.busy,
+            onSync = viewModel::sync,
+            onReviewConflict = viewModel::reviewConflict,
+            onRestore = { confirm = "restore" },
+            onTakeover = { confirm = "takeover" },
+            onReauthenticate = viewModel::reauthenticate,
+            onListDevices = viewModel::listDevices,
+            onExportBackup = viewModel::exportBackup,
+            onLogout = { confirm = "logout" },
+            onDetach = { confirm = "detach" }
+        )
 
         if (form.error.isNotBlank()) {
             Surface(
@@ -606,6 +544,154 @@ fun CloudSettingsContent(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Keeps recovery actions visible while account maintenance stays collapsed by default. */
+@Composable
+internal fun CloudAccountActions(
+    state: SyncUiState,
+    formBusy: Boolean,
+    onSync: () -> Unit,
+    onReviewConflict: () -> Unit,
+    onRestore: () -> Unit,
+    onTakeover: () -> Unit,
+    onReauthenticate: () -> Unit,
+    onListDevices: () -> Unit,
+    onExportBackup: () -> Unit,
+    onLogout: () -> Unit,
+    onDetach: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    val signedIn = state.enabled && state.phone.isNotBlank() && state.status != SyncStatus.AUTH_REQUIRED
+    val hasBackup = state.phone.isNotBlank() || state.readOnly
+    val canDetach = state.readOnly || state.phone.isNotBlank() || state.status == SyncStatus.WRITER_CHANGED
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable(state.phone) { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (signedIn) {
+            GoldButton(
+                text = if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی اکنون",
+                icon = HubCloudSync,
+                onClick = onSync,
+                isLoading = state.busy || formBusy || state.status == SyncStatus.SYNCING,
+                enabled = !state.busy && !formBusy,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (state.status == SyncStatus.CONFLICT) {
+                CloudActionRow("مقایسهٔ نسخه‌های کل گروه", HubCopy, !formBusy, onReviewConflict)
+            }
+            if (state.status in listOf(SyncStatus.RESTORE_REQUIRED, SyncStatus.CONFLICT)) {
+                CloudActionRow("بررسی و بازیابی نسخهٔ ابری", HubCloudDownload, !formBusy, onRestore)
+            }
+            if (state.status == SyncStatus.WRITER_CHANGED) {
+                GoldButton(
+                    text = "انتقال نویسندگی به این دستگاه",
+                    icon = HubDevices,
+                    onClick = onTakeover,
+                    enabled = !formBusy,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                CloudActionRow("تأیید تازهٔ شماره برای انتقال", HubPhoneInTalk, !formBusy, onReauthenticate)
+            }
+        }
+
+        if (signedIn || hasBackup || canDetach) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = colors.surfaceElevated,
+                border = colors.hairlineBorder,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(role = Role.Button) { expanded = !expanded }
+                            .semantics { stateDescription = if (expanded) "باز" else "بسته" }
+                            .heightIn(min = 48.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
+                        Text(
+                            "گزینه‌های بیشتر",
+                            color = colors.textMain,
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = colors.textMuted,
+                            modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
+                        )
+                    }
+                    if (expanded) {
+                        HorizontalDivider(color = colors.border)
+                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (signedIn && state.status == SyncStatus.SYNCED) {
+                                CloudActionRow("انتقال به دستگاه دیگر", HubDevices, !formBusy, onListDevices)
+                            }
+                            if (hasBackup) {
+                                CloudActionRow("ذخیرهٔ پشتیبان محلی و اختلاف‌ها", HubCloudDownload, !formBusy && !state.busy, onExportBackup)
+                            }
+                            if (canDetach || signedIn) {
+                                HorizontalDivider(color = colors.border)
+                            }
+                            if (canDetach) {
+                                CloudActionRow(
+                                    "جداسازی داده برای اتصال به حساب دیگر", HubCloudOff,
+                                    !formBusy && !state.busy, onDetach
+                                )
+                            }
+                            if (signedIn) {
+                                CloudActionRow("خروج از حساب", HubArrowRight, !formBusy && !state.busy, onLogout, caution = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A wrapping label and a 48dp minimum touch target keep compact actions usable at large font sizes. */
+@Composable
+private fun CloudActionRow(
+    text: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    caution: Boolean = false
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = ButtonShape,
+        color = colors.surfaceElevated,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                icon, contentDescription = null,
+                tint = if (!enabled) colors.textMuted else if (caution) colors.syncWarning else colors.goldPrimary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text,
+                color = if (!enabled) colors.textMuted else colors.textMain,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -1104,7 +1190,7 @@ fun CloudConnectionToggle(enabled: Boolean, interactive: Boolean, onChange: (Boo
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -1153,13 +1239,14 @@ fun CloudAccountSummary(state: SyncUiState) {
     }
 
     Surface(shape = RoundedCornerShape(16.dp), color = colors.surfaceElevated, border = BorderStroke(0.6.dp, colors.border)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -1197,10 +1284,6 @@ fun CloudAccountSummary(state: SyncUiState) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("شمارهٔ حساب", color = colors.textMuted, style = MaterialTheme.typography.bodySmall)
                 Text(PersianNumberFormatter.toPersianDigits(state.phone), color = colors.textMain, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("تغییرات در انتظار", color = colors.textMuted, style = MaterialTheme.typography.bodySmall)
-                Text(PersianNumberFormatter.toPersianDigits(state.pending), color = colors.textMain, style = MaterialTheme.typography.bodySmall)
             }
             Text(
                 if (state.lastSuccessAt > 0) "آخرین اتصال: ${PersianNumberFormatter.toPersianDigits(SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.US).format(Date(state.lastSuccessAt)))}" else "هنوز همگام‌سازی انجام نشده",
@@ -1280,16 +1363,16 @@ fun CloudSettingsModal(onDismiss: () -> Unit, canDismiss: Boolean = true, conten
                 val availableHeight=maxHeight*.88f
                 AnimatedVisibility(visible=visible,enter=if(reduced) EnterTransition.None else LuxuryMotion.ModalEnter,
                     exit=if(reduced) ExitTransition.None else LuxuryMotion.ModalExit) {
-                    Surface(Modifier.fillMaxWidth().heightIn(max=availableHeight)
+                    Surface(Modifier.widthIn(max=600.dp).fillMaxWidth().heightIn(max=availableHeight)
                         .clickable(interactionSource=remember { MutableInteractionSource() },indication=null,onClick={}),
                         shape=RoundedCornerShape(topStart=32.dp,topEnd=32.dp),color=colors.surface,
                         border=BorderStroke(1.dp,Brush.verticalGradient(listOf(colors.goldPrimary.copy(alpha=.6f),colors.border.copy(alpha=.3f))))) {
                         Column(Modifier.navigationBarsPadding()) {
                             Box(Modifier.padding(top=12.dp).size(40.dp,4.dp).clip(ButtonShape).background(colors.goldBorder).align(Alignment.CenterHorizontally))
-                            Row(Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=16.dp),verticalAlignment=Alignment.CenterVertically,
+                            Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,
                                 horizontalArrangement=Arrangement.spacedBy(12.dp)) {
                                 Box(Modifier.size(44.dp).clip(ButtonShape).background(colors.goldContainer),contentAlignment=Alignment.Center) {
-                                    Icon(HubCloudDownload,null,tint=colors.goldPrimary,modifier=Modifier.size(24.dp))
+                                    Icon(HubCloudSync,null,tint=colors.goldPrimary,modifier=Modifier.size(24.dp))
                                 }
                                 Column(Modifier.weight(1f)) {
                                     Text("همگام‌سازی ابری",color=colors.textMain,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
@@ -1301,10 +1384,6 @@ fun CloudSettingsModal(onDismiss: () -> Unit, canDismiss: Boolean = true, conten
                             }
                             HorizontalDivider(color=colors.goldBorder.copy(alpha=.4f))
                             Box(Modifier.weight(1f,false)) { content() }
-                            if(canDismiss) {
-                                HorizontalDivider(color=colors.border)
-                                GoldButton("بستن",onClick=dismiss,isSecondary=true,modifier=Modifier.fillMaxWidth().padding(20.dp))
-                            }
                         }
                     }
                 }

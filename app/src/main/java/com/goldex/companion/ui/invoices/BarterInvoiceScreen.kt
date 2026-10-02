@@ -1567,15 +1567,6 @@ private fun SettlementSection(
                 }
             }
 
-            // Button: Register / Add Payment Step (Opens modal)
-            GoldButton(
-                text = "ثبت پرداخت",
-                onClick = onOpenAddPaymentModal,
-                icon = InvoicePlusVector,
-                isSecondary = invoice.payments.isNotEmpty(),
-                modifier = Modifier.fillMaxWidth()
-            )
-
             HorizontalDivider(color = colors.border.copy(alpha = 0.5f), thickness = 0.6.dp)
 
             // Notes field directly on screen
