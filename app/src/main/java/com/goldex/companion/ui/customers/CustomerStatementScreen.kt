@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.goldex.companion.domain.customers.balanceEffect
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.LedgerDirection
 import com.goldex.companion.model.LedgerEntryType
@@ -275,8 +276,8 @@ fun CustomerStatementScreen(
                                         )
                                     }
 
-                                    val isDebtor = customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L
-                                    val isCreditor = customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L
+                                    val isDebtor = customer.goldDebtGrams > 1e-10 || customer.cashDebtTomans > 0L
+                                    val isCreditor = customer.goldDebtGrams < -1e-10 || customer.cashDebtTomans < 0L
 
                                     val heroStatusText = if (isDebtor) "بدهکار به ما"
                                     else if (isCreditor) "بستانکار"
@@ -327,19 +328,19 @@ fun CustomerStatementScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 Text(
-                                                    text = "${PersianNumberFormatter.formatWeight(abs(customer.goldDebtGrams))} گرم",
+                                                    text = "${PersianNumberFormatter.formatAccountWeight(abs(customer.goldDebtGrams))} گرم",
                                                     fontSize = 14.sp,
                                                     fontWeight = FontWeight.Black,
                                                     color = when {
-                                                        customer.goldDebtGrams > 0.0001 -> Color(0xFFFB7185)
-                                                        customer.goldDebtGrams < -0.0001 -> Color(0xFF34D399)
+                                                        customer.goldDebtGrams > 1e-10 -> Color(0xFFFB7185)
+                                                        customer.goldDebtGrams < -1e-10 -> Color(0xFF34D399)
                                                         else -> Color(0xFFFFE088)
                                                     },
                                                     fontFamily = VazirmatnFamily
                                                 )
-                                                if (customer.goldDebtGrams > 0.0001 || customer.goldDebtGrams < -0.0001) {
-                                                    val goldStatusText = if (customer.goldDebtGrams > 0.0001) "بدهکار" else "بستانکار"
-                                                    val goldStatusColor = if (customer.goldDebtGrams > 0.0001) Color(0xFFFB7185) else Color(0xFF34D399)
+                                                if (customer.goldDebtGrams > 1e-10 || customer.goldDebtGrams < -1e-10) {
+                                                    val goldStatusText = if (customer.goldDebtGrams > 1e-10) "بدهکار" else "بستانکار"
+                                                    val goldStatusColor = if (customer.goldDebtGrams > 1e-10) Color(0xFFFB7185) else Color(0xFF34D399)
                                                     Surface(
                                                         shape = RoundedCornerShape(4.dp),
                                                         color = goldStatusColor.copy(alpha = 0.15f)
@@ -583,7 +584,7 @@ fun CustomerStatementScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     GoldButton(
-                        text = "ثبت دریافت / پرداخت جدید",
+                        text = "تسویه حساب / ثبت دریافت و پرداخت",
                         icon = Icons.Default.Add,
                         onClick = onOpenAddEntry,
                         modifier = Modifier.fillMaxWidth()
@@ -792,6 +793,16 @@ private fun StatementTransactionCard(
                 .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
+            transaction.settlement?.let { settlement ->
+                Text(
+                    text = "اثر تسویه: ${PersianNumberFormatter.formatWeight(settlement.goldDeltaGrams)} گرم • ${PersianNumberFormatter.formatPrice(settlement.cashDeltaTomans)} تومان",
+                    color = colors.textSecondary, fontFamily = VazirmatnFamily, fontSize = 12.sp
+                )
+                if (settlement.rateTomans > 0) Text(
+                    text = "نرخ ثبت‌شدهٔ ۱۸ عیار: ${PersianNumberFormatter.formatPrice(settlement.rateTomans)} تومان • ${settlement.rateSource}",
+                    color = colors.textMuted, fontFamily = VazirmatnFamily, fontSize = 12.sp
+                )
+            }
             // Row 1: Header - Icon + Title & Doc/Date + Direction Badge + Edit/Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -900,20 +911,22 @@ private fun StatementTransactionCard(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(colors.surfaceElevated)
-                            .clickable(onClick = onEditClick),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "ویرایش سند",
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(12.dp)
-                        )
+                    if (transaction.settlement == null) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceElevated)
+                                .clickable(enabled = transaction.settlement == null, onClick = onEditClick),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "ویرایش سند",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                     }
 
                     Box(
@@ -1039,13 +1052,13 @@ private fun StatementTransactionCard(
                 if (isGold) {
                     val bal = computedGoldBalance
                     val statusText = when {
-                        bal > 0.0001 -> "بدهکار"
-                        bal < -0.0001 -> "بستانکار"
+                        bal > 1e-10 -> "بدهکار"
+                        bal < -1e-10 -> "بستانکار"
                         else -> "تسویه‌شده"
                     }
                     val statusColor = when {
-                        bal > 0.0001 -> colors.errorRed
-                        bal < -0.0001 -> colors.profitGreen
+                        bal > 1e-10 -> colors.errorRed
+                        bal < -1e-10 -> colors.profitGreen
                         else -> colors.textMuted
                     }
                     Row(
@@ -1053,7 +1066,7 @@ private fun StatementTransactionCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "${PersianNumberFormatter.formatWeight(abs(bal))} گرم",
+                            text = "${PersianNumberFormatter.formatAccountWeight(abs(bal))} گرم",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = statusColor,
@@ -1140,24 +1153,9 @@ fun calculateRunningBalances(
     for (tx in sortedNewestFirst) {
         resultMap[tx.id] = Pair(currentGold, currentCash)
 
-        when (tx.type) {
-            LedgerEntryType.GOLD_WEIGHT -> {
-                val delta = if (tx.direction == LedgerDirection.PAY) {
-                    tx.equivalent750WeightGrams
-                } else {
-                    -tx.equivalent750WeightGrams
-                }
-                currentGold -= delta
-            }
-            LedgerEntryType.CASH_RIAL -> {
-                val delta = if (tx.direction == LedgerDirection.PAY) {
-                    tx.amountTomans
-                } else {
-                    -tx.amountTomans
-                }
-                currentCash -= delta
-            }
-        }
+        val effect = tx.balanceEffect()
+        currentGold -= effect.goldGrams
+        currentCash -= effect.cashTomans
     }
 
     return resultMap

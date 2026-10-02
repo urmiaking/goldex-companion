@@ -15,7 +15,7 @@ class CloudMigrationDeviceTest {
             execSQL("INSERT INTO portfolio_items VALUES ('stable', 'test', 'GOLD', 0.001, 'K18', 1, NULL, 9007199254740993, '')")
             close()
         }
-        migration.runMigrationsAndValidate("cloud-migration",2,true,SYNC_MIGRATION_1_2).apply {
+        migration.runMigrationsAndValidate("cloud-migration",3,true,SYNC_MIGRATION_1_2,com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3).apply {
             query("SELECT id,purchasePriceTotal FROM portfolio_items").use {
                 check(it.moveToFirst()); assertEquals("stable",it.getString(0)); assertEquals(9007199254740993L,it.getLong(1))
             }

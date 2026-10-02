@@ -16,6 +16,8 @@ import com.goldex.companion.data.sync.SyncCoordinator
 import com.goldex.companion.ui.calculator.KaratConvertViewModel
 import com.goldex.companion.ui.inventory.InventoryViewModel
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
+import com.goldex.companion.ui.customers.CustomerSettlementViewModel
+import com.goldex.companion.domain.customers.RecordCustomerSettlementUseCase
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.InvoiceManagerViewModel
 import com.goldex.companion.ui.license.LicenseViewModel
@@ -52,6 +54,7 @@ class AndroidAppContainer(context: Context) {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val instance: ViewModel = when (modelClass) {
                 MainViewModel::class.java -> MainViewModel(settings, market, market, market, market, connectivity)
+                CustomerSettlementViewModel::class.java -> CustomerSettlementViewModel(customers, invoices, RecordCustomerSettlementUseCase(customers, invoices, syncUnit)) { market.rates.value }
                 CustomerManagerViewModel::class.java -> CustomerManagerViewModel(customers, syncUnit)
                 InvoiceManagerViewModel::class.java -> InvoiceManagerViewModel(invoices)
                 PortfolioManagerViewModel::class.java -> PortfolioManagerViewModel(portfolio)

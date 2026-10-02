@@ -100,6 +100,10 @@ data class CoinBubbleResult(
 )
 
 object PersianNumberFormatter {
+    /** A small financial remainder must not be displayed as a zero account balance. */
+    fun formatAccountWeight(weightGrams: Double): String =
+        if (kotlin.math.abs(weightGrams) in 1e-10..0.000999999999) "کمتر از ۰٫۰۰۱" else formatWeight(weightGrams)
+
     private val persianDigits = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
 
     fun toPersianDigits(input: String): String {

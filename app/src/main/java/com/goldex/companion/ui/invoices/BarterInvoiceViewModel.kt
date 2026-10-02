@@ -1,6 +1,7 @@
 package com.goldex.companion.ui.invoices
 
 import androidx.lifecycle.ViewModel
+import com.goldex.companion.domain.customers.invoiceOutstanding
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase
@@ -145,7 +146,11 @@ class BarterInvoiceViewModel(
                 currentInv.thirdPartyTransferAmount > 0L ||
                 currentInv.thirdPartyTransferWeight18k > 0.0
 
-        val isSettled = if (currentInv.balance.isSettled) {
+        val recordedEntries = if (currentInv.syncWithLedger) customerStore?.getTransactionsByInvoiceId(currentInv.id).orEmpty() else emptyList()
+        val outstanding = recordedEntries.takeIf { it.isNotEmpty() }?.let(::invoiceOutstanding)
+        val isSettled = if (outstanding != null) {
+            outstanding.isSettled
+        } else if (currentInv.balance.isSettled) {
             true
         } else if (currentInv.payments.isNotEmpty()) {
             currentInv.isFullySettled
@@ -185,10 +190,13 @@ class BarterInvoiceViewModel(
             createdAtText = "کد فاکتور: ${currentInv.cleanInvoiceNumber} • همین الان",
             status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
             statusDetail = if (isSettled) {
-                if (currentInv.balance.isSettled && !hasAnyPayment) "تسویه با تهاتر اقلام"
+                if (recordedEntries.any { it.settlement != null }) "تسویه کامل"
+                else if (currentInv.balance.isSettled && !hasAnyPayment) "تسویه با تهاتر اقلام"
                 else if (currentInv.payments.size > 1) "تسویه چندمرحله‌ای کامل"
                 else if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه"
                 else "تسویه نقدی کامل"
+            } else if (outstanding != null) {
+                "مانده: ${PersianNumberFormatter.formatAccountWeight(kotlin.math.abs(outstanding.goldGrams))} گرم • ${PersianNumberFormatter.formatPrice(kotlin.math.abs(outstanding.cashTomans))} تومان"
             } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
                 "مانده: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} ت"
             } else if (!hasAnyPayment) {
@@ -247,7 +255,7 @@ class BarterInvoiceViewModel(
     }
 
     fun setLiveRate(rate: Long) {
-        if (rate > 0) {
+        if (rate > 0 && !_uiState.value.isEditingExistingInvoice) {
             _uiState.update { it.copy(invoice = it.invoice.copy(spotPrice18k = rate)) }
         }
     }

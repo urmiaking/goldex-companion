@@ -78,6 +78,7 @@ fun InvoicesManagementScreen(
     onInvoiceItemClick: (InvoiceListItem) -> Unit,
     onPrintClick: (InvoiceListItem) -> Unit,
     onDeleteInvoice: (String) -> Unit,
+    onSettleInvoice: (InvoiceListItem) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var pendingDeletion by remember { mutableStateOf<InvoiceListItem?>(null) }
@@ -165,6 +166,13 @@ fun InvoicesManagementScreen(
                                 onPrintClick = { onPrintClick(invoiceItem) },
                                 onDeleteClick = { pendingDeletion = invoiceItem }
                             )
+                            if (invoiceItem.status == InvoiceStatus.PARTIALLY_PAID && invoiceItem.barterInvoice?.customer != null && invoiceItem.barterInvoice?.syncWithLedger == true) {
+                                com.goldex.companion.ui.components.GoldButton(
+                                    text = "تسویهٔ مانده با نرخ روز / دلخواه",
+                                    onClick = { onSettleInvoice(invoiceItem) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }

@@ -759,12 +759,12 @@ private fun CustomerLedgerCard(
 
                 // Status & Last Activity
                 Column(horizontalAlignment = Alignment.End) {
-                    val statusText = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) "بدهکار"
-                    else if (customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L) "بستانکار"
+                    val statusText = if (customer.goldDebtGrams > 1e-10 || customer.cashDebtTomans > 0L) "بدهکار"
+                    else if (customer.goldDebtGrams < -1e-10 || customer.cashDebtTomans < 0L) "بستانکار"
                     else "تسویه‌شده"
 
-                    val statusColor = if (customer.goldDebtGrams > 0.001 || customer.cashDebtTomans > 0L) colors.errorRed
-                    else if (customer.goldDebtGrams < -0.001 || customer.cashDebtTomans < 0L) colors.profitGreen
+                    val statusColor = if (customer.goldDebtGrams > 1e-10 || customer.cashDebtTomans > 0L) colors.errorRed
+                    else if (customer.goldDebtGrams < -1e-10 || customer.cashDebtTomans < 0L) colors.profitGreen
                     else colors.textMuted
 
                     Surface(
@@ -813,17 +813,17 @@ private fun CustomerLedgerCard(
                         )
                         val goldBal = customer.goldDebtGrams
                         val goldColor = when {
-                            goldBal > 0.0001 -> colors.errorRed
-                            goldBal < -0.0001 -> colors.profitGreen
+                            goldBal > 1e-10 -> colors.errorRed
+                            goldBal < -1e-10 -> colors.profitGreen
                             else -> colors.textMain
                         }
                         val goldStatus = when {
-                            goldBal > 0.0001 -> " (بدهکار)"
-                            goldBal < -0.0001 -> " (بستانکار)"
+                            goldBal > 1e-10 -> " (بدهکار)"
+                            goldBal < -1e-10 -> " (بستانکار)"
                             else -> ""
                         }
                         Text(
-                            text = "${PersianNumberFormatter.formatWeight(abs(goldBal))} گرم$goldStatus",
+                            text = "${PersianNumberFormatter.formatAccountWeight(abs(goldBal))} گرم$goldStatus",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = goldColor,

@@ -69,6 +69,8 @@ import com.goldex.companion.ui.inventory.InventoryScreen
 import com.goldex.companion.ui.inventory.InventoryViewModel
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
+import com.goldex.companion.ui.customers.CustomerSettlementViewModel
+import com.goldex.companion.ui.customers.modals.CustomerSettlementModal
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
 import com.goldex.companion.ui.invoices.FloatingNewInvoiceButton
 import com.goldex.companion.ui.invoices.InvoicesManagementScreen
@@ -113,6 +115,8 @@ fun MainScreen(
 ) {
     val context = LocalContext.current
 
+    val settlementViewModel: CustomerSettlementViewModel = viewModel(factory = viewModelFactory)
+    val settlementState by settlementViewModel.state.collectAsState()
     val customerViewModel: CustomerManagerViewModel = viewModel(factory = viewModelFactory)
     val invoiceViewModel: InvoiceManagerViewModel = viewModel(factory = viewModelFactory)
     val portfolioViewModel: PortfolioManagerViewModel = viewModel(factory = viewModelFactory)
@@ -239,6 +243,23 @@ fun MainScreen(
                 mainViewModel.setSelectedCustomer(it)
                 barterInvoiceViewModel.setCustomer(it)
             }
+        )
+    }
+
+    settlementState.customer?.let { customer ->
+        CustomerSettlementModal(
+            state = settlementState, actions = settlementViewModel,
+            onConfirm = {
+                if (!licenseInfo.isLicensed) {
+                    licenseViewModel.setActivationDialogVisible(true)
+                    QiratoToast.show(context, "ثبت تسویه نیازمند اشتراک معتبر است.")
+                } else if (settlementViewModel.confirm()) {
+                    customerViewModel.refreshAfterSettlement()
+                    barterInvoiceViewModel.reloadInvoices()
+                    QiratoToast.show(context, "تسویه ثبت شد و ماندهٔ حساب به‌روز شد")
+                }
+            },
+            onIndependentEntry = { settlementViewModel.close(); customerViewModel.openAddLedgerEntry(customer) }
         )
     }
 
@@ -600,6 +621,7 @@ fun MainScreen(
                                             }
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
+                                        onSettleInvoice = { item -> item.barterInvoice?.customer?.let { settlementViewModel.open(it, item.id) } },
                                         onDeleteInvoice = { invoiceId ->
                                             if (barterInvoiceViewModel.deleteInvoice(invoiceId)) {
                                                 customerViewModel.loadCustomers()
@@ -992,7 +1014,7 @@ fun MainScreen(
                     onSearchQueryChange = { customerViewModel.setSearchQuery(it) },
                     onFilterSelect = { customerViewModel.setLedgerFilter(it) },
                     onOpenStatement = { customerViewModel.openCustomerStatement(it) },
-                    onOpenAddEntry = { customerViewModel.openAddLedgerEntry(it) },
+                    onOpenAddEntry = { if (kotlin.math.abs(it.goldDebtGrams) > 1e-10 || it.cashDebtTomans != 0L) settlementViewModel.open(it) else customerViewModel.openAddLedgerEntry(it) },
                     onAddNewCustomer = { customerViewModel.setAddCustomerDialogVisible(true) },
                     onBack = { customerViewModel.closeCustomerLedger() }
                 )
@@ -1013,9 +1035,9 @@ fun MainScreen(
                         allTransactions = customerState.activeCustomerTransactions,
                         selectedFilter = customerState.selectedStatementFilter,
                         onFilterSelect = { customerViewModel.setStatementFilter(it) },
-                        onOpenAddEntry = { customerViewModel.openAddLedgerEntry(statementCustomer) },
-                        onEditTransaction = { customerViewModel.openEditLedgerEntry(it) },
-                        onDeleteTransaction = { customerViewModel.deleteLedgerEntry(it) },
+                        onOpenAddEntry = { if (kotlin.math.abs(statementCustomer.goldDebtGrams) > 1e-10 || statementCustomer.cashDebtTomans != 0L) settlementViewModel.open(statementCustomer) else customerViewModel.openAddLedgerEntry(statementCustomer) },
+                        onEditTransaction = { if (it.settlement == null) customerViewModel.openEditLedgerEntry(it) },
+                        onDeleteTransaction = { customerViewModel.deleteLedgerEntry(it); barterInvoiceViewModel.reloadInvoices() },
                         onBack = { customerViewModel.closeCustomerStatement() }
                     )
                 }
