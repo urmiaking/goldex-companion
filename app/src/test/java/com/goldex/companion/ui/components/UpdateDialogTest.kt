@@ -92,4 +92,3 @@ class UpdateDialogTest {
         compose.waitForIdle()
     }
 }
-
