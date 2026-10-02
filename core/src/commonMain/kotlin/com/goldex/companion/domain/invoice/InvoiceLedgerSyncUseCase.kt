@@ -1,5 +1,8 @@
 package com.goldex.companion.domain.invoice
 
+import com.goldex.companion.domain.customers.applyEffect
+import com.goldex.companion.domain.customers.balanceEffect
+
 import com.goldex.companion.platform.LocalCalendar
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.Customer
@@ -547,26 +550,7 @@ object InvoiceLedgerSyncUseCase {
         currentCustomer: Customer
     ): Customer {
         var customer = currentCustomer
-        transactions.forEach { tx ->
-            when (tx.type) {
-                LedgerEntryType.GOLD_WEIGHT -> {
-                    val delta = if (tx.direction == LedgerDirection.PAY) {
-                        tx.equivalent750WeightGrams
-                    } else {
-                        -tx.equivalent750WeightGrams
-                    }
-                    customer = customer.copy(goldDebtGrams = customer.goldDebtGrams - delta)
-                }
-                LedgerEntryType.CASH_RIAL -> {
-                    val delta = if (tx.direction == LedgerDirection.PAY) {
-                        tx.amountTomans
-                    } else {
-                        -tx.amountTomans
-                    }
-                    customer = customer.copy(cashDebtTomans = customer.cashDebtTomans - delta)
-                }
-            }
-        }
+        transactions.forEach { tx -> customer = customer.applyEffect(tx.balanceEffect(), reverse = true) }
         return customer
     }
 }
