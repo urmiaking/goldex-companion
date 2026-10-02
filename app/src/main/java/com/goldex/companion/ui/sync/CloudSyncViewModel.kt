@@ -50,4 +50,5 @@ class CloudSyncViewModel(val coordinator: SyncCoordinator) : ViewModel() {
     fun releaseWriter(id: String)=action { coordinator.releaseWriter(id); closeReview() }
     fun logout()=action { coordinator.logout() }
     fun deferOnboarding(value: Boolean)=coordinator.deferForOnboarding(value)
+    fun setWifiOnlyAssets(value: Boolean)=coordinator.setWifiOnlyAssets(value)
 }

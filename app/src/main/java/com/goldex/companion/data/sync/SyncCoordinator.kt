@@ -19,9 +19,31 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 enum class SyncStatus { DISABLED, AUTH_REQUIRED, PENDING, SYNCING, SYNCED, OFFLINE, LICENSE_REQUIRED, CONFLICT, RESTORE_REQUIRED, WRITER_CHANGED, ERROR }
-data class SyncUiState(val enabled: Boolean = false, val status: SyncStatus = SyncStatus.DISABLED,
-    val pending: Int = 0, val lastSuccessAt: Long = 0, val phone: String = "", val message: String = "",
-    val busy: Boolean = false, val restoredGeneration: Long = 0, val readOnly: Boolean = false)
+
+data class SyncStorageInfo(
+    val usedBytes: Long = 0L,
+    val quotaBytes: Long = 52_428_800L, // 50 MB default
+    val tier: String = "TRIAL",
+    val isWifiOnlyAssets: Boolean = true
+) {
+    val freeBytes: Long get() = (quotaBytes - usedBytes).coerceAtLeast(0L)
+    val progress: Float get() = if (quotaBytes > 0) (usedBytes.toFloat() / quotaBytes).coerceIn(0f, 1f) else 0f
+}
+
+data class SyncUiState(
+    val enabled: Boolean = false,
+    val status: SyncStatus = SyncStatus.DISABLED,
+    val pending: Int = 0,
+    val lastSuccessAt: Long = 0,
+    val phone: String = "",
+    val message: String = "",
+    val busy: Boolean = false,
+    val restoredGeneration: Long = 0,
+    val readOnly: Boolean = false,
+    val storage: SyncStorageInfo = SyncStorageInfo(),
+    val shopName: String = "",
+    val pingMs: Int = 32
+)
 
 class SyncCoordinator private constructor(private val context: Context) {
     private val preferences = context.getSharedPreferences("qirato_cloud_preferences",Context.MODE_PRIVATE)
@@ -40,7 +62,14 @@ class SyncCoordinator private constructor(private val context: Context) {
     init {
         preferences.edit().putBoolean("transferInProgress",false).apply()
         // Force business-settings import before the first snapshot.
-        SettingsRepository.getInstance(context)
+        val settings = SettingsRepository.getInstance(context).loadSettings()
+        val initialShopName = settings.galleryName.ifBlank { settings.managerName }.ifBlank { "حساب تجاری زرگری مروارید" }
+        _state.update {
+            it.copy(
+                shopName = initialShopName,
+                storage = it.storage.copy(isWifiOnlyAssets = preferences.getBoolean("wifi_only_assets", true))
+            )
+        }
         unit.onCommit={ _state.update { if(it.enabled && it.status==SyncStatus.SYNCED) it.copy(status=SyncStatus.PENDING) else it }; requestSync() }
         unit.writeAllowed={ !preferences.getBoolean("writerInvalid",false) && !preferences.getBoolean("transferInProgress",false) }
         scope.launch { local.dao.observePending().collect { count ->
@@ -49,6 +78,22 @@ class SyncCoordinator private constructor(private val context: Context) {
         scope.launch { network.status.collect { if(it==ConnectionStatus.OFFLINE && _state.value.enabled) _state.update { s -> s.copy(status=SyncStatus.OFFLINE) } else requestSync() } }
         scope.launch { @OptIn(FlowPreview::class) triggers.debounce(1000).collect { if(!onboarding) sync() } }
         setEnabled(_state.value.enabled)
+    }
+
+    fun setWifiOnlyAssets(value: Boolean) {
+        preferences.edit().putBoolean("wifi_only_assets", value).apply()
+        _state.update { it.copy(storage = it.storage.copy(isWifiOnlyAssets = value)) }
+    }
+
+    private fun updateStorageFromInfo(info: JSONObject) {
+        val storageObj = info.optJSONObject("storage") ?: return
+        val storageInfo = SyncStorageInfo(
+            usedBytes = storageObj.optLong("usedBytes", _state.value.storage.usedBytes),
+            quotaBytes = storageObj.optLong("quotaBytes", _state.value.storage.quotaBytes),
+            tier = storageObj.optString("tier", _state.value.storage.tier),
+            isWifiOnlyAssets = preferences.getBoolean("wifi_only_assets", true)
+        )
+        _state.update { it.copy(storage = storageInfo) }
     }
     fun deferForOnboarding(value: Boolean) { onboarding=value; if(!value) requestSync() }
     fun setEnabled(enabled: Boolean) {
@@ -78,6 +123,7 @@ class SyncCoordinator private constructor(private val context: Context) {
             if(e.code=="LICENSE_REQUIRED") { _state.update { it.copy(status=SyncStatus.LICENSE_REQUIRED) }; return@withLock }
             throw e
         }
+        updateStorageFromInfo(info)
         val status=when {
             !info.getBoolean("isWriter") -> SyncStatus.WRITER_CHANGED
             !cp.initialized && info.getBoolean("initialized") -> SyncStatus.RESTORE_REQUIRED
@@ -97,6 +143,7 @@ class SyncCoordinator private constructor(private val context: Context) {
             val session=keys.read() ?: throw CloudException("AUTH_REQUIRED",401)
             _state.update { it.copy(phone=session.optString("phone")) }
             val bootstrap=api.request("cloud/bootstrap")
+            updateStorageFromInfo(bootstrap)
             if(!bootstrap.getBoolean("isWriter")) throw CloudException("WRITER_CHANGED",409)
             var cp=local.checkpoint()
             if(cp.workspaceId.isNotEmpty() && cp.workspaceId!=bootstrap.getString("workspaceId")) throw CloudException("ACCOUNT_SWITCH_REQUIRES_BACKUP")
@@ -179,6 +226,7 @@ class SyncCoordinator private constructor(private val context: Context) {
         _state.update { it.copy(busy=true,status=SyncStatus.SYNCING) }
         try {
             val info=api.request("cloud/bootstrap")
+            updateStorageFromInfo(info)
             if(!info.getBoolean("isWriter")) throw CloudException("WRITER_CHANGED",409)
             val cut=local.checkpoint().nextSequence
             local.backup()
@@ -325,6 +373,7 @@ class SyncCoordinator private constructor(private val context: Context) {
         fun get(context: Context): SyncCoordinator = instance ?: synchronized(this) { instance ?: SyncCoordinator(context.applicationContext).also { instance=it } }
         fun sha(bytes: ByteArray)=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
         fun message(code: String)=when(code) {
+            "STORAGE_QUOTA_EXCEEDED" -> "سقف مجاز فضای ابری پر شده است. لطفاً برای ارتقای حجم به ۵ گیگابایت، لایسنس دائمی تهیه کنید."
             "AUTH_REQUIRED" -> "برای اتصال به ابر وارد حساب شوید"
             "LICENSE_REQUIRED" -> "همگام‌سازی به مجوز معتبر نیاز دارد"
             "OTP_INVALID" -> "کد ورود صحیح نیست"

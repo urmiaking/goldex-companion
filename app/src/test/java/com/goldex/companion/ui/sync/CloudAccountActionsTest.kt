@@ -39,7 +39,7 @@ class CloudAccountActionsTest {
         for (theme in listOf(false, true)) {
             compose.runOnIdle { dark.value = theme }
             compose.onNodeWithText("خروج از حساب").assertDoesNotExist()
-            compose.onNodeWithText("همگام‌سازی اکنون").performClick()
+            compose.onNodeWithText("همگام‌سازی دستی همین حالا").performClick()
             compose.onNodeWithText("گزینه‌های بیشتر").performClick()
             assertEquals(listOf("sync"), events)
             for ((label, event) in listOf(
@@ -82,11 +82,20 @@ class CloudAccountActionsTest {
             busy.value = false
             state.value = SyncUiState(enabled = false, readOnly = true, status = SyncStatus.AUTH_REQUIRED)
         }
-        compose.onNodeWithText("همگام‌سازی اکنون").assertDoesNotExist()
+        compose.onNodeWithText("همگام‌سازی دستی همین حالا").assertDoesNotExist()
         compose.onNodeWithText("گزینه‌های بیشتر").performScrollTo().performClick()
         compose.onNodeWithText("خروج از حساب").assertDoesNotExist()
         compose.onNodeWithText("ذخیرهٔ پشتیبان محلی و اختلاف‌ها").performScrollTo().assertIsEnabled().performClick()
         assertEquals(listOf("backup"), events)
+    }
+
+    @Test fun storageAndBackupFormatting() {
+        assertEquals("۰ بایت", formatBytesPersian(0))
+        assertEquals("۵۰۰ بایت", formatBytesPersian(500))
+        assertEquals("۱.۵ مگابایت", formatBytesPersian((1.5 * 1024 * 1024).toLong()))
+        assertEquals("۵۰ مگابایت", formatBytesPersian(50L * 1024 * 1024))
+        assertEquals("۵ گیگابایت", formatBytesPersian(5L * 1024 * 1024 * 1024))
+        assertEquals("هنوز انجام نشده", formatLastBackupPersian(0))
     }
 
     @Test @Config(qualifiers = "w800dp-h360dp-land")

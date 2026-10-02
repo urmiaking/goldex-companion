@@ -42,18 +42,22 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.data.sync.*
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.calculator.CalcReceiptLong
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.hub.HubArrowRight
+import com.goldex.companion.ui.hub.HubCamera
 import com.goldex.companion.ui.hub.HubCloud
 import com.goldex.companion.ui.hub.HubCloudDownload
 import com.goldex.companion.ui.hub.HubCloudOff
-import com.goldex.companion.ui.hub.HubDevices
 import com.goldex.companion.ui.hub.HubCloudSync
 import com.goldex.companion.ui.hub.HubCopy
-import com.goldex.companion.ui.hub.HubArrowRight
+import com.goldex.companion.ui.hub.HubDevices
+import com.goldex.companion.ui.hub.HubMenuBook
 import com.goldex.companion.ui.hub.HubPhoneInTalk
 import com.goldex.companion.ui.hub.HubShieldCheck
+import com.goldex.companion.ui.hub.HubShowcase
 import com.goldex.companion.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -72,6 +76,56 @@ fun SyncStatus.title()=when(this) {
     SyncStatus.RESTORE_REQUIRED -> "بازیابی اطلاعات لازم است"
     SyncStatus.WRITER_CHANGED -> "دستگاه نویسنده تغییر کرده است"
     SyncStatus.ERROR -> "ارتباط با ابر ناموفق بود"
+}
+
+fun formatBytesPersian(bytes: Long): String {
+    if (bytes <= 0) return "۰ بایت"
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    val gb = mb * 1024.0
+    return when {
+        bytes >= gb -> {
+            val v = bytes / gb
+            if (v % 1.0 == 0.0) {
+                "${PersianNumberFormatter.toPersianDigits(v.toLong())} گیگابایت"
+            } else {
+                "${PersianNumberFormatter.formatDouble(v, 2).trimEnd('۰').trimEnd('.').trimEnd('٫')} گیگابایت"
+            }
+        }
+        bytes >= mb -> {
+            val v = bytes / mb
+            if (v % 1.0 == 0.0) {
+                "${PersianNumberFormatter.toPersianDigits(v.toLong())} مگابایت"
+            } else {
+                "${PersianNumberFormatter.formatDouble(v, 1).trimEnd('۰').trimEnd('.').trimEnd('٫')} مگابایت"
+            }
+        }
+        bytes >= kb -> {
+            val v = bytes / kb
+            if (v % 1.0 == 0.0) {
+                "${PersianNumberFormatter.toPersianDigits(v.toLong())} کیلوبایت"
+            } else {
+                "${PersianNumberFormatter.formatDouble(v, 1).trimEnd('۰').trimEnd('.').trimEnd('٫')} کیلوبایت"
+            }
+        }
+        else -> "${PersianNumberFormatter.toPersianDigits(bytes)} بایت"
+    }
+}
+
+fun formatLastBackupPersian(timestamp: Long): String {
+    if (timestamp <= 0) return "هنوز انجام نشده"
+    val now = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = timestamp }
+    val isToday = now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
+            now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.US)
+    val timeStr = PersianNumberFormatter.toPersianDigits(timeFormat.format(Date(timestamp)))
+    return if (isToday) {
+        "امروز، $timeStr"
+    } else {
+        val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.US)
+        "${PersianNumberFormatter.toPersianDigits(dateFormat.format(Date(timestamp)))}، $timeStr"
+    }
 }
 
 @Composable
@@ -266,6 +320,457 @@ fun CloudSyncButton(state: SyncUiState, reducedMotion: Boolean? = null, onClick:
 }
 
 @Composable
+fun CloudMasterSyncCard(
+    enabled: Boolean,
+    shopName: String,
+    interactive: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(colors.goldContainer, colors.goldPrimary)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = HubCloudSync,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "همگام‌سازی خودکار",
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = shopName.ifBlank { "حساب تجاری زرگری مروارید" },
+                            fontWeight = FontWeight.Medium,
+                            color = colors.goldPrimary,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggle,
+                    enabled = interactive,
+                    modifier = Modifier.semantics { contentDescription = "همگام‌سازی خودکار" },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = colors.goldPrimary,
+                        uncheckedThumbColor = colors.textMuted,
+                        uncheckedTrackColor = colors.surface
+                    )
+                )
+            }
+            HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.6.dp)
+            Text(
+                text = "پشتیبان‌گیری امن و آنی فاکتورها و دفاتر معین با رمزنگاری اختصاصی.",
+                color = colors.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                lineHeight = 18.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun CloudServerMetricsCard(
+    state: SyncUiState,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val storage = state.storage
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(0.6.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = HubShieldCheck,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "شاخص‌های سرور خزانه مرکزی",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textMain
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(colors.profitGreen)
+                    )
+                    Text(
+                        text = "پینگ: ms ${PersianNumberFormatter.toPersianDigits(state.pingMs)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.profitGreen
+                    )
+                }
+            }
+
+            // 2-Column Metrics Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Metric 1: Last backup (Right side in RTL)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surface,
+                    border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.5f)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "آخرین پشتیبان‌گیری",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = formatLastBackupPersian(state.lastSuccessAt),
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textMain
+                        )
+                    }
+                }
+
+                // Metric 2: Encryption (Left side in RTL)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surface,
+                    border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.5f)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "رمزنگاری داده‌ها",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = "سرتاسری AES-۲۵۶",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "سخت‌افزاری فعال",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.profitGreen
+                        )
+                    }
+                }
+            }
+
+            // Storage Metrics Section
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "فضای ابری",
+                        fontSize = 11.5.sp,
+                        color = colors.textSecondary
+                    )
+                    Text(
+                        text = "${formatBytesPersian(storage.usedBytes)} از ${formatBytesPersian(storage.quotaBytes)}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textMain
+                    )
+                }
+
+                val progressFraction = if (storage.quotaBytes > 0) {
+                    (storage.usedBytes.toFloat() / storage.quotaBytes.toFloat()).coerceIn(0.01f, 1f)
+                } else 0f
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(CircleShape)
+                        .background(colors.surface)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = progressFraction)
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(colors.goldSecondary, colors.goldPrimary)
+                                )
+                            )
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${formatBytesPersian(storage.freeBytes)} آزاد",
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted
+                    )
+                    Text(
+                        text = if (storage.tier.equals("PERMANENT", ignoreCase = true)) "بایگانی نامحدود" else "نسخه آزمایشی (۵۰ مگابایت)",
+                        fontSize = 10.5.sp,
+                        color = colors.textMuted
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CloudSyncPreferencesList(
+    wifiOnly: Boolean,
+    onToggleWifiOnly: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "دفاتر و داده‌های تحت پوشش همگام‌سازی",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textSecondary,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        SyncPreferenceItem(
+            icon = CalcReceiptLong,
+            title = "فاکتورها و معاملات",
+            subtitle = "خرید، فروش و مظنه"
+        )
+
+        SyncPreferenceItem(
+            icon = HubMenuBook,
+            title = "دفاتر معین و حساب‌ها",
+            subtitle = "بدهکاران و بستانکاران"
+        )
+
+        SyncPreferenceItem(
+            icon = HubShowcase,
+            title = "تراز وزنی و ویترین",
+            subtitle = "موجودی ۷۵۰ و مسکوکات"
+        )
+
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = colors.surfaceElevated,
+            border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(colors.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = HubCamera,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "تصاویر اتیکت و فاکتور",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "فقط با Wi-Fi",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.goldPrimary
+                        )
+                    }
+                }
+                Switch(
+                    checked = wifiOnly,
+                    onCheckedChange = onToggleWifiOnly,
+                    modifier = Modifier.semantics { contentDescription = "همگام‌سازی تصاویر فقط با Wi-Fi" },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = colors.goldPrimary,
+                        uncheckedThumbColor = colors.textMuted,
+                        uncheckedTrackColor = colors.surface
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SyncPreferenceItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(colors.surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textMain
+                    )
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.sp,
+                        color = colors.textSecondary
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(colors.profitGreen.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = colors.profitGreen,
+                    modifier = Modifier.size(15.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun CloudSettingsContent(
     viewModel: CloudSyncViewModel,
     modifier: Modifier = Modifier,
@@ -298,13 +803,22 @@ fun CloudSettingsContent(
             .fillMaxWidth()
             .then(scrollModifier)
             .padding(if (scrollable) 16.dp else 0.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        CloudConnectionToggle(state.enabled, !form.busy && !state.busy, viewModel::setEnabled)
+        CloudMasterSyncCard(
+            enabled = state.enabled,
+            shopName = state.shopName,
+            interactive = !form.busy && !state.busy,
+            onToggle = viewModel::setEnabled
+        )
 
         if (state.enabled) {
             if (state.phone.isNotBlank() && state.status != SyncStatus.AUTH_REQUIRED) {
-                CloudAccountSummary(state)
+                CloudServerMetricsCard(state = state)
+                CloudSyncPreferencesList(
+                    wifiOnly = state.storage.isWifiOnlyAssets,
+                    onToggleWifiOnly = viewModel::setWifiOnlyAssets
+                )
             }
 
             if (state.message.isNotBlank()) {
@@ -573,11 +1087,20 @@ internal fun CloudAccountActions(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (signedIn) {
             GoldButton(
-                text = if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی اکنون",
+                text = if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی دستی همین حالا",
                 icon = HubCloudSync,
                 onClick = onSync,
                 isLoading = state.busy || formBusy || state.status == SyncStatus.SYNCING,
                 enabled = !state.busy && !formBusy,
+                modifier = Modifier.fillMaxWidth()
+            )
+            GoldButton(
+                text = "دریافت نسخه پشتیبان آفلاین (Excel / JSON)",
+                icon = HubCloudDownload,
+                onClick = onExportBackup,
+                isLoading = false,
+                enabled = !state.busy && !formBusy,
+                isSecondary = true,
                 modifier = Modifier.fillMaxWidth()
             )
             if (state.status == SyncStatus.CONFLICT) {
@@ -658,6 +1181,28 @@ internal fun CloudAccountActions(
                     }
                 }
             }
+        }
+
+        // Security Micro-Trust Footer
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = colors.profitGreen,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "مطابق با استاندارد امنیت اتحادیه طلا و جواهر و بانک مرکزی",
+                fontSize = 11.sp,
+                color = colors.textMuted
+            )
         }
     }
 }
@@ -1348,49 +1893,141 @@ fun CloudSignInForm(phone: String, code: String, form: CloudFormState, onPhoneCh
     }
 }
 
-/** Matches the bottom-anchored settings modals (TaxProfitModal / PriceSourceModal). */
+/** Matches the bottom-anchored settings modals with Stitch luxury styling. */
 @Composable
 fun CloudSettingsModal(onDismiss: () -> Unit, canDismiss: Boolean = true, content: @Composable () -> Unit) {
-    val colors=LocalGoldExColors.current
-    val context=LocalContext.current
-    val reduced=Settings.Global.getFloat(context.contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE,1f)==0f
+    val colors = LocalGoldExColors.current
+    val context = LocalContext.current
+    val reduced = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     var visible by remember { mutableStateOf(false) }
-    val scope=rememberCoroutineScope()
-    val dismiss: () -> Unit = { if(canDismiss && visible) scope.launch {
-        visible=false
-        if(!reduced) delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
-        onDismiss()
-    }; Unit }
-    LaunchedEffect(Unit) { visible=true }
-    val scrim by animateFloatAsState(if(visible) .65f else 0f,tween(if(reduced) 0 else LuxuryMotion.DURATION_MODAL_ENTER),label="cloud_scrim")
-    Dialog(onDismissRequest=dismiss,properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)) {
+    val scope = rememberCoroutineScope()
+    val dismiss: () -> Unit = {
+        if (canDismiss && visible) scope.launch {
+            visible = false
+            if (!reduced) delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+            onDismiss()
+        }
+    }
+    LaunchedEffect(Unit) { visible = true }
+    val scrim by animateFloatAsState(if (visible) 0.65f else 0f, tween(if (reduced) 0 else LuxuryMotion.DURATION_MODAL_ENTER), label = "cloud_scrim")
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_anim")
+    val pulseAlpha by if (!reduced) {
+        infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse_alpha"
+        )
+    } else {
+        remember { mutableFloatStateOf(1f) }
+    }
+
+    Dialog(onDismissRequest = dismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black.copy(alpha=scrim)).imePadding()
-                .clickable(interactionSource=remember { MutableInteractionSource() },indication=null,onClick=dismiss),contentAlignment=Alignment.BottomCenter) {
-                val availableHeight=maxHeight*.88f
-                AnimatedVisibility(visible=visible,enter=if(reduced) EnterTransition.None else LuxuryMotion.ModalEnter,
-                    exit=if(reduced) ExitTransition.None else LuxuryMotion.ModalExit) {
-                    Surface(Modifier.widthIn(max=600.dp).fillMaxWidth().heightIn(max=availableHeight)
-                        .clickable(interactionSource=remember { MutableInteractionSource() },indication=null,onClick={}),
-                        shape=RoundedCornerShape(topStart=32.dp,topEnd=32.dp),color=colors.surface,
-                        border=BorderStroke(1.dp,Brush.verticalGradient(listOf(colors.goldPrimary.copy(alpha=.6f),colors.border.copy(alpha=.3f))))) {
+            BoxWithConstraints(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrim))
+                    .imePadding()
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = dismiss),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                val availableHeight = maxHeight * 0.90f
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = if (reduced) EnterTransition.None else LuxuryMotion.ModalEnter,
+                    exit = if (reduced) ExitTransition.None else LuxuryMotion.ModalExit
+                ) {
+                    Surface(
+                        Modifier
+                            .widthIn(max = 600.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = availableHeight)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = {}),
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                        color = colors.surface,
+                        border = BorderStroke(1.dp, Brush.verticalGradient(listOf(colors.goldPrimary.copy(alpha = 0.6f), colors.border.copy(alpha = 0.3f))))
+                    ) {
                         Column(Modifier.navigationBarsPadding()) {
-                            Box(Modifier.padding(top=12.dp).size(40.dp,4.dp).clip(ButtonShape).background(colors.goldBorder).align(Alignment.CenterHorizontally))
-                            Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically,
-                                horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                                Box(Modifier.size(44.dp).clip(ButtonShape).background(colors.goldContainer),contentAlignment=Alignment.Center) {
-                                    Icon(HubCloudSync,null,tint=colors.goldPrimary,modifier=Modifier.size(24.dp))
+                            // Top Subtle Gold Gradient Accent Bar
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color.Transparent, colors.goldPrimary.copy(alpha = 0.8f), Color.Transparent)
+                                        )
+                                    )
+                            )
+                            // Handle Bar (Bottom Sheet Anchor)
+                            Box(
+                                Modifier
+                                    .padding(top = 10.dp, bottom = 6.dp)
+                                    .size(48.dp, 4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.goldBorder.copy(alpha = 0.6f))
+                                    .align(Alignment.CenterHorizontally)
+                            )
+                            // Modal Header with Pulse Dot
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(colors.goldContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(HubCloudSync, null, tint = colors.goldPrimary, modifier = Modifier.size(24.dp))
+                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(7.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.profitGreen.copy(alpha = pulseAlpha))
+                                            )
+                                            Text(
+                                                "همگام‌سازی ابری و پشتیبان‌گیری",
+                                                color = colors.textMain,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Text(
+                                            "بایگانی امن و خودکار فاکتورها، حساب‌های معین و دفاتر",
+                                            color = colors.textSecondary,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
-                                Column(Modifier.weight(1f)) {
-                                    Text("همگام‌سازی ابری",color=colors.textMain,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
-                                    Text("حساب و اتصال اطلاعات شما",color=colors.textMuted,style=MaterialTheme.typography.bodySmall)
-                                }
-                                if(canDismiss) IconButton(onClick=dismiss,modifier=Modifier.size(48.dp)) {
-                                    Icon(Icons.Default.Close,"بستن همگام‌سازی ابری",tint=colors.textMuted)
+                                if (canDismiss) {
+                                    IconButton(onClick = dismiss, modifier = Modifier.size(40.dp)) {
+                                        Icon(Icons.Default.Close, "بستن همگام‌سازی ابری", tint = colors.textMuted)
+                                    }
                                 }
                             }
-                            HorizontalDivider(color=colors.goldBorder.copy(alpha=.4f))
-                            Box(Modifier.weight(1f,false)) { content() }
+                            HorizontalDivider(color = colors.goldBorder.copy(alpha = 0.35f))
+                            Box(Modifier.weight(1f, false)) { content() }
                         }
                     }
                 }
