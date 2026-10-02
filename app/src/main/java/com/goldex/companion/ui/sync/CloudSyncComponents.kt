@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -599,9 +600,10 @@ internal fun CloudAccountActions(
 
         if (signedIn || hasBackup || canDetach) {
             Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = colors.surfaceElevated,
-                border = colors.hairlineBorder,
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surface,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                shadowElevation = if (colors.isDark) 0.dp else 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
@@ -620,6 +622,8 @@ internal fun CloudAccountActions(
                             "گزینه‌های بیشتر",
                             color = colors.textMain,
                             style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
                         Icon(
@@ -1260,7 +1264,9 @@ fun CloudAccountSummary(state: SyncUiState) {
                         text = state.status.title(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,
-                        color = statusColor
+                        color = statusColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -1271,9 +1277,10 @@ fun CloudAccountSummary(state: SyncUiState) {
                         border = BorderStroke(0.5.dp, colors.goldBorder)
                     ) {
                         Text(
-                            text = "${PersianNumberFormatter.toPersianDigits(state.pending)} تغییر در صف",
+                            text = "${PersianNumberFormatter.toPersianDigits(state.pending)} تغییر",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
+                            maxLines = 1,
                             color = colors.goldPrimary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
