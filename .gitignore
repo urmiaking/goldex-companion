@@ -13,3 +13,5 @@ stitch_specs/
 *.hprof
 /output/
 .worktrees/
+graphify-out/
+**/graphify-out/
