@@ -61,14 +61,23 @@ class InvoiceCardSettlementTest {
             }
         }
 
+        // Verify status badge is displayed (not replaced by settle button)
+        compose.onNodeWithText("تسویه نشده").assertExists()
+
+        // Verify final amount row is displayed in the middle container
+        compose.onNodeWithText("مبلغ نهایی پرداختی:").assertExists()
+
         // Verify remaining row is displayed
         compose.onNodeWithText("مانده فاکتور:").assertExists()
-        compose.onNodeWithText("۵۰,۰۰۰,۰۰۰ تومان").assertExists()
 
-        // Verify quick settle button is displayed in place of static chip
-        val settleButton = compose.onNodeWithText("تسویه مانده")
+        // Verify quick settle button is displayed between print and details in the bottom actions row
+        val settleButton = compose.onNodeWithText("تسویه حساب")
         settleButton.assertExists()
         settleButton.performClick()
         assertTrue("onSettleClick callback must be invoked when clicking settle button", settleClicked)
+
+        // Verify print and details buttons also exist
+        compose.onNodeWithText("چاپ").assertExists()
+        compose.onNodeWithText("مشاهده جزییات").assertExists()
     }
 }
