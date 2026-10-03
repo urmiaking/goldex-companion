@@ -265,7 +265,7 @@ fun UpdateDialog(
                                                 color = colors.textMuted
                                             )
                                             Text(
-                                                text = "نسخه نصب‌شده: ${PersianNumberFormatter.toPersianDigits(BuildConfig.VERSION_NAME)}",
+                                                text = PersianNumberFormatter.toPersianDigits(BuildConfig.VERSION_NAME),
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.textMain
@@ -305,13 +305,13 @@ fun UpdateDialog(
                                         }
                                         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                             Text(
-                                                text = "نسخه هدف",
+                                                text = "نسخه جدید",
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = colors.goldPrimary
                                             )
                                             Text(
-                                                text = "نسخه جدید: ${PersianNumberFormatter.toPersianDigits(updateInfo.latestVersion.removePrefix("v"))}",
+                                                text = PersianNumberFormatter.toPersianDigits(updateInfo.latestVersion.removePrefix("v")),
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary

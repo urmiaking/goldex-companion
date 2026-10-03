@@ -164,15 +164,9 @@ fun InvoicesManagementScreen(
                                 item = invoiceItem,
                                 onCardClick = { onInvoiceItemClick(invoiceItem) },
                                 onPrintClick = { onPrintClick(invoiceItem) },
-                                onDeleteClick = { pendingDeletion = invoiceItem }
+                                onDeleteClick = { pendingDeletion = invoiceItem },
+                                onSettleClick = { onSettleInvoice(invoiceItem) }
                             )
-                            if (invoiceItem.status == InvoiceStatus.PARTIALLY_PAID && invoiceItem.barterInvoice?.customer != null && invoiceItem.barterInvoice?.syncWithLedger == true) {
-                                com.goldex.companion.ui.components.GoldButton(
-                                    text = "تسویهٔ مانده با نرخ روز / دلخواه",
-                                    onClick = { onSettleInvoice(invoiceItem) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
                         }
                     }
                 }
@@ -542,11 +536,12 @@ private fun FilterCapsuleItem(
  * 4. Invoice Transaction Card matching Stitch Screen 6
  */
 @Composable
-private fun InvoiceTransactionCard(
+fun InvoiceTransactionCard(
     item: InvoiceListItem,
     onCardClick: () -> Unit,
     onPrintClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onSettleClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -570,7 +565,7 @@ private fun InvoiceTransactionCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Top Row: Avatar + Name & Code + Status Badge
+            // Top Row: Avatar + Name & Code + Status Badge or Quick Settle Action
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -642,25 +637,62 @@ private fun InvoiceTransactionCard(
                     }
                 }
 
-                // Status Badge
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(badgeBg)
-                        .border(0.8.dp, badgeBorder, RoundedCornerShape(50))
-                        .padding(horizontal = 9.dp, vertical = 3.5.dp)
-                ) {
-                    Text(
-                        text = item.statusDetail,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = badgeTextColor,
-                        fontFamily = VazirmatnFamily
-                    )
+                // Status Badge or Quick Settle Action Button
+                val barterInv = item.barterInvoice
+                val canSettle = item.status == InvoiceStatus.PARTIALLY_PAID &&
+                        barterInv?.customer != null &&
+                        barterInv.syncWithLedger &&
+                        onSettleClick != null
+
+                if (canSettle) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = colors.goldContainer,
+                        border = BorderStroke(1.dp, colors.goldPrimary),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable { onSettleClick?.invoke() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = InvoiceCheckVector,
+                                contentDescription = "تسویه مانده",
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "تسویه مانده",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(badgeBg)
+                            .border(0.8.dp, badgeBorder, RoundedCornerShape(50))
+                            .padding(horizontal = 9.dp, vertical = 3.5.dp)
+                    ) {
+                        Text(
+                            text = item.statusDetail,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = badgeTextColor,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
                 }
             }
 
-            // Middle Box: Items Summary and Weight/Wages
+            // Middle Box: Items Summary, Weight/Wages, and Outstanding Balance Row
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -724,6 +756,48 @@ private fun InvoiceTransactionCard(
                             },
                             fontFamily = VazirmatnFamily
                         )
+                    }
+
+                    val remaining = item.remainingDetail
+                    if (remaining != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(0.6.dp)
+                                .background(colors.border.copy(alpha = 0.6f))
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFF59E0B))
+                                )
+                                Text(
+                                    text = "مانده فاکتور:",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                            Text(
+                                text = PersianNumberFormatter.toPersianDigits(remaining),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF59E0B),
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
                     }
                 }
             }

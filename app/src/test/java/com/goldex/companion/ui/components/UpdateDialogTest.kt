@@ -65,8 +65,10 @@ class UpdateDialogTest {
         val download = compose.onNodeWithText("دانلود و نصب").assertIsDisplayed()
         assertTrue("Cancel must be to the right of download in RTL",
             later.fetchSemanticsNode().boundsInRoot.left > download.fetchSemanticsNode().boundsInRoot.left)
-        compose.onNodeWithText("نسخه جدید: ۹.۱.۰").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("نسخه نصب‌شده: ${PersianNumberFormatter.toPersianDigits(BuildConfig.VERSION_NAME)}")
+        compose.onNodeWithText("نسخه جدید").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("۹.۱.۰").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("نسخه فعلی").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(PersianNumberFormatter.toPersianDigits(BuildConfig.VERSION_NAME))
             .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(notes).performTouchInput { swipeUp() }
         later.assertIsDisplayed()
