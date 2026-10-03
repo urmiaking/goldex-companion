@@ -147,7 +147,8 @@ fun MainScreen(
     val licenseInfo = licenseUiState.licenseInfo
 
     if (showCloudSettings) CloudSettingsDialog(cloudViewModel, onDismiss = { showCloudSettings = false })
-    LaunchedEffect(mainUiState.isWizardVisible) { cloudViewModel.deferOnboarding(mainUiState.isWizardVisible) }
+    val isWizardActive = !settingsState.appSettings.hasCompletedOnboarding || mainUiState.isWizardVisible
+    LaunchedEffect(isWizardActive) { cloudViewModel.deferOnboarding(isWizardActive) }
     LaunchedEffect(cloudState.restoredGeneration) {
         if (cloudState.restoredGeneration > 0) {
             customerViewModel.loadCustomers(); invoiceViewModel.loadInvoices(); portfolioViewModel.loadPortfolio()

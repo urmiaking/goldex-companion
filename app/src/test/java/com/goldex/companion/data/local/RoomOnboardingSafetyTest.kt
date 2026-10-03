@@ -93,4 +93,29 @@ class RoomOnboardingSafetyTest {
         assertEquals(firstPortfolio, portfolio.getItems())
         assertEquals(queued, db.syncDao().pendingCount())
     }
+
+    @Test fun onboardingCompletionWithCloudLoginPreservesAndStagesLocalWizardData() {
+        val useCase = CompleteOnboardingUseCase(settings, inventory, portfolio, checkpoint, unit)
+        val input = OpeningInventoryInput(vitrinWeight = "۵٫۵۰۰", coinTamam = 1)
+        val wizardSettings = AppSettings(
+            galleryName = "طلافروشی نمونه",
+            managerName = "مدیر آزمایشی",
+            unionCode = "۱۲۳۴۵",
+            defaultProfitPercent = "۷",
+            defaultTaxPercent = "۹"
+        )
+        // Normal cloud login without backup restoration passes restoredFromCloud = false
+        useCase.complete(wizardSettings, input, restoredFromCloud = false)
+        val savedSettings = settings.loadSettings()
+        assertEquals("طلافروشی نمونه", savedSettings.galleryName)
+        assertEquals("مدیر آزمایشی", savedSettings.managerName)
+        assertEquals("۱۲۳۴۵", savedSettings.unionCode)
+        assertEquals("۷", savedSettings.defaultProfitPercent)
+        assertEquals("۹", savedSettings.defaultTaxPercent)
+        assertTrue(savedSettings.hasCompletedOnboarding)
+        assertEquals(2, inventory.getItems().size)
+        assertEquals(2, portfolio.getItems().size)
+        assertTrue(checkpoint.hasSeededOpeningInventory())
+        assertEquals(1, db.syncDao().pendingCount())
+    }
 }
