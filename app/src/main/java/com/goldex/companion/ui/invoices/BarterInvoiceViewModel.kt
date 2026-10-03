@@ -181,6 +181,22 @@ class BarterInvoiceViewModel(
             }
         }
 
+        val remainingDetail = if (isSettled) null
+        else if (outstanding != null) {
+            val parts = mutableListOf<String>()
+            if (kotlin.math.abs(outstanding.goldGrams) > 1e-10) {
+                parts.add("${PersianNumberFormatter.formatAccountWeight(kotlin.math.abs(outstanding.goldGrams))} گرم طلا")
+            }
+            if (outstanding.cashTomans != 0L) {
+                parts.add("${PersianNumberFormatter.formatPrice(kotlin.math.abs(outstanding.cashTomans))} تومان")
+            }
+            if (parts.isEmpty()) "۰ تومان" else parts.joinToString(" • ")
+        } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
+            "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} تومان"
+        } else if (!hasAnyPayment) {
+            "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(netAmount.toDouble())} تومان"
+        } else null
+
         return InvoiceListItem(
             id = currentInv.id,
             invoiceNumber = currentInv.cleanInvoiceNumber,
@@ -195,13 +211,7 @@ class BarterInvoiceViewModel(
                 else if (currentInv.payments.size > 1) "تسویه چندمرحله‌ای کامل"
                 else if (currentInv.settlementMethod == SettlementMethod.TRANSFER) "تسویه با حواله سه‌طرفه"
                 else "تسویه نقدی کامل"
-            } else if (outstanding != null) {
-                "مانده: ${PersianNumberFormatter.formatAccountWeight(kotlin.math.abs(outstanding.goldGrams))} گرم • ${PersianNumberFormatter.formatPrice(kotlin.math.abs(outstanding.cashTomans))} تومان"
-            } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
-                "مانده: ${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} ت"
-            } else if (!hasAnyPayment) {
-                "نسیه (مانده دفتری)"
-            } else "در انتظار پرداخت",
+            } else "تسویه نشده",
             itemsSummary = (currentInv.salesItems + currentInv.receivedItems).joinToString(" + ") { it.title }.ifBlank { "اقلام طلا و مسکوکات" },
             itemsCountText = "اقلام فاکتور (${com.goldex.companion.model.PersianNumberFormatter.toPersianDigits((currentInv.salesItems.size + currentInv.receivedItems.size).toString())} قلم):",
             line1Detail = "وزن کل: ${com.goldex.companion.model.PersianNumberFormatter.formatWeight(currentInv.salesItems.sumOf { it.equivalent18kWeight })} گرم",
@@ -210,6 +220,7 @@ class BarterInvoiceViewModel(
             amountLabel = "مبلغ نهایی فاکتور:",
             actionButtonText = "مشاهده جزییات",
             actionType = InvoiceCardAction.VIEW_DETAILS,
+            remainingDetail = remainingDetail,
             barterInvoice = currentInv
         )
     }

@@ -234,6 +234,7 @@ data class InvoiceListItem(
     val amountLabel: String = "مبلغ نهایی پرداختی:",
     val actionButtonText: String = "مشاهده جزییات",
     val actionType: InvoiceCardAction = InvoiceCardAction.VIEW_DETAILS,
+    val remainingDetail: String? = null,
     val barterInvoice: BarterInvoice? = null
 ) {
     val cleanInvoiceNumber: String

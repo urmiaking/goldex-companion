@@ -638,6 +638,8 @@ fun AddInvoicePaymentModal(
                                                     onValueChange = { bullionAngNumber = it },
                                                     label = "شماره انگ و آزمایشگاه",
                                                     trailingText = "اختیاری",
+                                                    keyboardType = KeyboardType.Text,
+                                                    useThousandsSeparator = false,
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
 
