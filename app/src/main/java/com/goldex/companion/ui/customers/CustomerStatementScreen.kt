@@ -793,16 +793,6 @@ private fun StatementTransactionCard(
                 .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            transaction.settlement?.let { settlement ->
-                Text(
-                    text = "اثر تسویه: ${PersianNumberFormatter.formatWeight(settlement.goldDeltaGrams)} گرم • ${PersianNumberFormatter.formatPrice(settlement.cashDeltaTomans)} تومان",
-                    color = colors.textSecondary, fontFamily = VazirmatnFamily, fontSize = 12.sp
-                )
-                if (settlement.rateTomans > 0) Text(
-                    text = "نرخ ثبت‌شدهٔ ۱۸ عیار: ${PersianNumberFormatter.formatPrice(settlement.rateTomans)} تومان • ${settlement.rateSource}",
-                    color = colors.textMuted, fontFamily = VazirmatnFamily, fontSize = 12.sp
-                )
-            }
             // Row 1: Header - Icon + Title & Doc/Date + Direction Badge + Edit/Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -974,6 +964,7 @@ private fun StatementTransactionCard(
                             }
                             MethodChip(text = methodLabel, isGold = isGold)
 
+                            val stl = transaction.settlement
                             val detailsText = if (isGold && transaction.scaleWeightGrams > 0.0) {
                                 buildString {
                                     append("ترازو: ${PersianNumberFormatter.formatWeight(transaction.scaleWeightGrams)}")
@@ -994,6 +985,8 @@ private fun StatementTransactionCard(
                                         append("پیگیری: ${PersianNumberFormatter.toPersianDigits(transaction.trackingCode)}")
                                     }
                                 }
+                            } else if (stl != null && stl.rateTomans > 0L) {
+                                "نرخ ۱۸ عیار: ${PersianNumberFormatter.formatPrice(stl.rateTomans)} ت"
                             } else ""
 
                             if (detailsText.isNotBlank()) {

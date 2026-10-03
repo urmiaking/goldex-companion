@@ -228,4 +228,16 @@ class CustomerSettlementIntegrationTest {
         assertEquals(-50_000_000L, customers.getCustomers().single().cashDebtTomans)
         assertTrue(invoiceOutstanding(customers.getTransactionsByInvoiceId("invoice")).isSettled)
     }
+
+    @Test fun invoiceSettlementAppendsPaymentItemToBarterInvoice() {
+        val invoice = BarterInvoice(id = "inv-settle", customer = customer)
+        invoices.saveBarterInvoice(invoice)
+        customers.addTransaction(LedgerTransaction(customerId = customer.id, invoiceId = "inv-settle", direction = LedgerDirection.PAY,
+            equivalent750WeightGrams = 10.0))
+        val tx = record.record(request().copy(invoiceId = "inv-settle"), customer, scope)
+        val updated = invoices.getBarterInvoices().first { it.id == "inv-settle" }
+        assertEquals(1, updated.payments.size)
+        assertEquals(tx.id, updated.payments.single().id)
+        assertEquals(500_000_000L, updated.payments.single().amountTomans)
+    }
 }

@@ -27,7 +27,10 @@ class SaveBarterInvoiceUseCase(private val invoices: InvoiceStore, private val c
                 if (allEntries.isNotEmpty()) customers.deleteTransactionsByInvoiceId(invoice.id)
                 settlements.forEach(customers::addTransaction)
                 if (invoice.syncWithLedger) {
-                    val result = InvoiceLedgerSyncUseCase.generateLedgerSync(invoice, reversed)
+                    val settlementIds = settlements.map { it.id }.toSet()
+                    val unsyncedPayments = invoice.payments.filterNot { it.id in settlementIds }
+                    val invoiceForSync = if (invoice.payments.isNotEmpty()) invoice.copy(payments = unsyncedPayments) else invoice
+                    val result = InvoiceLedgerSyncUseCase.generateLedgerSync(invoiceForSync, reversed)
                     result.transactionsToCreate.forEach(customers::addTransaction)
                     customers.updateCustomer(result.updatedCustomer)
                 } else if (entries.isNotEmpty()) customers.updateCustomer(reversed)

@@ -69,6 +69,7 @@ import com.goldex.companion.ui.inventory.InventoryScreen
 import com.goldex.companion.ui.inventory.InventoryViewModel
 import com.goldex.companion.ui.invoices.BarterInvoiceScreen
 import com.goldex.companion.ui.invoices.BarterInvoiceViewModel
+import com.goldex.companion.ui.invoices.modals.AddInvoicePaymentModal
 import com.goldex.companion.ui.customers.CustomerSettlementViewModel
 import com.goldex.companion.ui.customers.modals.CustomerSettlementModal
 import com.goldex.companion.ui.invoices.CustomerManagerViewModel
@@ -261,6 +262,27 @@ fun MainScreen(
                 }
             },
             onIndependentEntry = { settlementViewModel.close(); customerViewModel.openAddLedgerEntry(customer) }
+        )
+    }
+
+    barterUiState.settlementShortcutInvoice?.let { targetInvoice ->
+        AddInvoicePaymentModal(
+            invoice = targetInvoice,
+            balance = targetInvoice.balance,
+            customerList = customerState.customerList,
+            invoicesList = barterUiState.invoicesList,
+            existingPayment = null,
+            onDismiss = { barterInvoiceViewModel.closeSettlementShortcut() },
+            onConfirm = { payment ->
+                if (!licenseInfo.isLicensed) {
+                    licenseViewModel.setActivationDialogVisible(true)
+                    QiratoToast.show(context, "ثبت پرداخت تسویه نیازمند اشتراک معتبر است.")
+                } else {
+                    barterInvoiceViewModel.recordPaymentForInvoice(targetInvoice.id, payment)
+                    customerViewModel.loadCustomers()
+                    QiratoToast.show(context, "پرداخت تسویه با موفقیت ثبت شد ✓")
+                }
+            }
         )
     }
 
@@ -622,7 +644,7 @@ fun MainScreen(
                                             }
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
-                                        onSettleInvoice = { item -> item.barterInvoice?.customer?.let { settlementViewModel.open(it, item.id) } },
+                                        onSettleInvoice = { item -> item.barterInvoice?.let { barterInvoiceViewModel.openSettlementShortcut(it) } },
                                         onDeleteInvoice = { invoiceId ->
                                             if (barterInvoiceViewModel.deleteInvoice(invoiceId)) {
                                                 customerViewModel.loadCustomers()

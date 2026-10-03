@@ -182,6 +182,29 @@ class RecordCustomerSettlementUseCase(
         )
         customers.addTransaction(tx)
         customers.updateCustomer(preview.customerAfter.copy(lastActivityTime = "لحظاتی پیش"))
+        if (invoice != null) {
+            val paymentItem = if (request.paymentType == LedgerEntryType.GOLD_WEIGHT) {
+                SettlementPaymentItem(
+                    id = request.id,
+                    method = SettlementMethod.BULLION,
+                    amountTomans = preview.paymentValueTomans,
+                    goldWeight18k = preview.equivalent750Grams,
+                    bullionKarat = request.karat,
+                    bullionAngNumber = "",
+                    description = "تسویه طلایی (سند ${tx.cleanDocumentNumber})"
+                )
+            } else {
+                SettlementPaymentItem(
+                    id = request.id,
+                    method = if (request.paymentMethod.contains("پوز") || request.paymentMethod.contains("کارتخوان")) SettlementMethod.POS else SettlementMethod.TRANSFER,
+                    amountTomans = preview.paymentValueTomans,
+                    trackingCode = request.trackingCode,
+                    description = "تسویه ${request.paymentMethod} (سند ${tx.cleanDocumentNumber})"
+                )
+            }
+            val updatedPayments = invoice.payments.filterNot { it.id == paymentItem.id } + paymentItem
+            invoices.saveBarterInvoice(invoice.copy(payments = updatedPayments))
+        }
         tx
     }
 }

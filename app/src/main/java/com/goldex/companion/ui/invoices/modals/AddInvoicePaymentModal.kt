@@ -133,7 +133,11 @@ fun AddInvoicePaymentModal(
 
     // POS inputs
     var posStr by remember(existingPayment) {
-        mutableStateOf(if (existingPayment?.method == SettlementMethod.POS && existingPayment.amountTomans > 0) existingPayment.amountTomans.toString() else "")
+        mutableStateOf(
+            if (existingPayment?.method == SettlementMethod.POS && existingPayment.amountTomans > 0) existingPayment.amountTomans.toString()
+            else if (existingPayment == null && remainingBalance > 0L) remainingBalance.toString()
+            else ""
+        )
     }
     var trackingCode by remember(existingPayment) {
         mutableStateOf(if (existingPayment?.method == SettlementMethod.POS) existingPayment.trackingCode else "")
