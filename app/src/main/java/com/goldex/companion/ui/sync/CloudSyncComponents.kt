@@ -1502,7 +1502,7 @@ fun WizardCloudSyncSection(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 GoldButton(
-                                    text = "صرف‌نظر و شروع تازه",
+                                    text = "شروع تازه",
                                     onClick = { viewModel.chooseLocal() },
                                     isSecondary = true,
                                     enabled = !form.busy && !state.busy,
@@ -1670,7 +1670,7 @@ fun WizardCloudSyncSection(
                     Text(
                         text = when (confirm) {
                             "restore" -> "بازیابی اطلاعات از حساب ابری"
-                            "local" -> "صرف‌نظر و شروع تازه"
+                            "local" -> "شروع تازه"
                             else -> "خروج از حساب ابری"
                         },
                         style = MaterialTheme.typography.titleMedium,

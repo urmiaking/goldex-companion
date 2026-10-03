@@ -10,9 +10,15 @@ object SyncJson {
     fun numericStrings(value: Any?): Any? = when (value) {
         is JSONObject -> JSONObject().also { result -> value.keys().forEach { result.put(it, numericStrings(value.get(it))) } }
         is JSONArray -> JSONArray().also { result -> (0 until value.length()).forEach { result.put(numericStrings(value.get(it))) } }
+        is BigDecimal -> value.toPlainString()
         is Double -> { require(value.isFinite()); BigDecimal.valueOf(value).toPlainString() }
         is Float -> { require(value.isFinite()); BigDecimal(value.toString()).toPlainString() }
         is Number -> value.toString()
+        is String -> {
+            if (value.isNotEmpty() && (value.contains('e') || value.contains('E')) && (value.first().isDigit() || value.first() == '-')) {
+                runCatching { BigDecimal(value).toPlainString() }.getOrDefault(value)
+            } else value
+        }
         else -> value
     }
     fun record(value: Any): JSONObject {
