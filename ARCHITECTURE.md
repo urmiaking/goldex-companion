@@ -309,6 +309,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Production persistence migration to Room database (`GoldexDatabase`, Room DAOs, independent database entities, type converters, and mappers) fully established. Clean Architecture Ports & Adapters separation isolates domain models (`Customer`, `BarterInvoice`, `InventoryItem`, etc.) completely from database annotations. Zero-data-loss automated migration (`DataMigrationManager`) migrates existing SharedPreferences JSON on first launch inside an atomic SQLite transaction while preserving legacy files as immutable safety backups.
 
 - Migration preparation in 0.56.14: the shared core compiles Kotlin common metadata and JVM tests, the Android host consumes it, ViewModel construction is centralized, and opening-inventory writes moved out of Compose. See ADR 0006.
+- Cloud onboarding synchronization invariant: During the onboarding wizard, cloud sync is deferred (`deferOnboarding(isWizardActive)`) so that initial shop settings and opening inventory are committed to Room before initial cloud upload. `restoredGeneration` is exclusively reserved for full backup restorations (`restore()`) rather than normal syncs, preventing premature or empty initial cloud snapshots from bypassing user-entered wizard setup data.
 
 ## 14. Known current compromises
 

@@ -169,7 +169,7 @@ class SyncCoordinator private constructor(private val context: Context) {
         _state.update { it.copy(status=status,readOnly=preferences.getBoolean("writerInvalid",false)) }
         if(!onboarding) requestSync()
     }
-    suspend fun logout() = mutex.withLock { setEnabled(false); api.logout(); _state.update { it.copy(phone="",status=SyncStatus.DISABLED) } }
+    suspend fun logout() = mutex.withLock { setEnabled(false); api.logout(); _state.update { it.copy(phone="",status=SyncStatus.DISABLED,restoredGeneration=0) } }
     fun showError(e: Exception) { _state.update { it.copy(message=message((e as? CloudException)?.code ?: "SERVER_ERROR"),busy=false) } }
     suspend fun sync(): Boolean = mutex.withLock {
         if(!_state.value.enabled || onboarding) return@withLock true
@@ -231,7 +231,7 @@ class SyncCoordinator private constructor(private val context: Context) {
             } while(result.getBoolean("hasMore"))
             downloadAssets()
             val now=System.currentTimeMillis(); local.dao.checkpoint(local.checkpoint().copy(lastSuccessAt=now))
-            _state.update { it.copy(status=if(local.dao.pendingCount()==0) SyncStatus.SYNCED else SyncStatus.PENDING,busy=false,pending=local.dao.pendingCount(),lastSuccessAt=now,restoredGeneration=it.restoredGeneration+1) }
+            _state.update { it.copy(status=if(local.dao.pendingCount()==0) SyncStatus.SYNCED else SyncStatus.PENDING,busy=false,pending=local.dao.pendingCount(),lastSuccessAt=now) }
             true
         } catch(e: CancellationException) { throw e }
         catch(e: Exception) {
@@ -303,7 +303,7 @@ class SyncCoordinator private constructor(private val context: Context) {
             local.dao.business()?.let { val json=JSONObject(it.payload); json.remove("logoAssetId"); json.remove("stampAssetId"); local.dao.business(it.copy(payload=json.toString())) }
         }
         preferences.edit().putBoolean("writerInvalid",false).apply()
-        _state.update { it.copy(phone="",status=SyncStatus.DISABLED,readOnly=false,message="پشتیبان ساخته شد؛ دادهٔ محلی از حساب جدا شد") }
+        _state.update { it.copy(phone="",status=SyncStatus.DISABLED,readOnly=false,restoredGeneration=0,message="پشتیبان ساخته شد؛ دادهٔ محلی از حساب جدا شد") }
     }
     suspend fun reviewConflict(): JSONObject = mutex.withLock {
         val item = local.dao.first() ?: throw CloudException("NO_CONFLICT")

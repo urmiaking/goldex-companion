@@ -1503,7 +1503,7 @@ fun WizardCloudSyncSection(
                             ) {
                                 GoldButton(
                                     text = "شروع تازه",
-                                    onClick = { viewModel.chooseLocal() },
+                                    onClick = { confirm = "local" },
                                     isSecondary = true,
                                     enabled = !form.busy && !state.busy,
                                     modifier = Modifier.weight(1f)
@@ -1599,6 +1599,27 @@ fun WizardCloudSyncSection(
                 } else if (state.status !in listOf(SyncStatus.RESTORE_REQUIRED, SyncStatus.CONFLICT)) {
                     CloudAccountSummary(state)
 
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer.copy(alpha = 0.25f),
+                        border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("✓", fontSize = 16.sp, color = colors.profitGreen, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "حساب ابری متصل شد. پس از فشردن دکمه «ورود به داشبورد قیراط»، اطلاعات این راه‌اندازی به صورت خودکار در فضای ابری بارگذاری و همگام‌سازی خواهند شد.",
+                                fontSize = 11.sp,
+                                color = colors.textSecondary,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1608,14 +1629,7 @@ fun WizardCloudSyncSection(
                             onClick = { confirm = "logout" },
                             isSecondary = true,
                             enabled = !form.busy && !state.busy,
-                            modifier = Modifier.weight(1f)
-                        )
-                        GoldButton(
-                            text = if (state.busy || form.busy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی اکنون",
-                            onClick = viewModel::sync,
-                            isLoading = state.busy || form.busy || state.status == SyncStatus.SYNCING,
-                            enabled = !state.busy && !form.busy,
-                            modifier = Modifier.weight(1.5f)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -1680,7 +1694,7 @@ fun WizardCloudSyncSection(
                     Text(
                         text = when (confirm) {
                             "restore" -> "اطلاعات موجود روی سرور ابری بر روی این دستگاه بازیابی و جایگزین خواهد شد. آیا ادامه می‌دهید؟"
-                            "local" -> "آیا مایلید نسخه ابری قبلی را نادیده گرفته و به عنوان اطلاعات جدید ادامه دهید؟"
+                            "local" -> "نسخهٔ ابری قبلی نادیده گرفته شده و اتصال قطع می‌شود تا اطلاعات محلی جدیدی که در مراحل راه‌اندازی وارد کرده‌اید حفظ گردند. آیا ادامه می‌دهید؟"
                             else -> "سینک خاموش می‌شود و ارتباط با حساب ابری قطع خواهد شد."
                         },
                         color = colors.textSecondary,
@@ -1704,8 +1718,14 @@ fun WizardCloudSyncSection(
                                 confirm = ""
                                 when (action) {
                                     "restore" -> viewModel.restore()
-                                    "local" -> viewModel.chooseLocal()
-                                    else -> viewModel.logout()
+                                    "local" -> {
+                                        viewModel.detach()
+                                        isOnlineSelected = false
+                                    }
+                                    else -> {
+                                        viewModel.logout()
+                                        isOnlineSelected = false
+                                    }
                                 }
                             },
                             modifier = Modifier.weight(1f)
