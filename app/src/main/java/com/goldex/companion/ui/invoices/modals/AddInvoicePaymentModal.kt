@@ -60,6 +60,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.BarterBalance
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.Customer
+import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.model.SettlementPaymentItem
@@ -164,7 +165,11 @@ fun AddInvoicePaymentModal(
 
     // BULLION inputs
     var bullionWeightStr by remember(existingPayment) {
-        mutableStateOf(if (existingPayment?.method == SettlementMethod.BULLION && existingPayment.goldWeight18k > 0.0) existingPayment.goldWeight18k.toString() else "")
+        mutableStateOf(
+            if (existingPayment?.method == SettlementMethod.BULLION && existingPayment.goldWeight18k > 0.0) existingPayment.goldWeight18k.toString()
+            else if (existingPayment == null && invoice.remainingBalanceGold18k > 0.001) String.format(Locale.US, "%.3f", invoice.remainingBalanceGold18k)
+            else ""
+        )
     }
     var bullionKaratStr by remember(existingPayment) {
         mutableStateOf(if (existingPayment?.method == SettlementMethod.BULLION && existingPayment.bullionKarat > 0) existingPayment.bullionKarat.toString() else "750")
@@ -327,7 +332,11 @@ fun AddInvoicePaymentModal(
                                         fontFamily = VazirmatnFamily
                                     )
                                     Text(
-                                        text = "صافی کل: ${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان • مانده: ${PersianNumberFormatter.formatTomans(remainingBalance)} تومان",
+                                        text = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                            "صافی کل: ${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار • مانده: ${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
+                                        } else {
+                                            "صافی کل: ${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان • مانده: ${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
+                                        },
                                         fontSize = 11.sp,
                                         color = colors.goldPrimary,
                                         fontWeight = FontWeight.SemiBold,
@@ -421,6 +430,22 @@ fun AddInvoicePaymentModal(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        val isWholesaler = invoice.customerRole == CustomerRole.WHOLESALER
+                                        val totalPaidWeight = if (invoice.payments.isNotEmpty()) {
+                                            invoice.payments.sumOf { p ->
+                                                if (p.goldWeight18k > 0.0) p.goldWeight18k
+                                                else if (invoice.spotPrice18k > 0L) p.amountTomans.toDouble() / invoice.spotPrice18k
+                                                else 0.0
+                                            }
+                                        } else {
+                                            when (invoice.settlementMethod) {
+                                                SettlementMethod.BULLION -> invoice.bullionWeight * (invoice.bullionKarat.toDouble() / 750.0)
+                                                SettlementMethod.TRANSFER -> if (invoice.thirdPartyTransferWeight18k > 0.0) invoice.thirdPartyTransferWeight18k else if (invoice.spotPrice18k > 0L) invoice.thirdPartyTransferAmount.toDouble() / invoice.spotPrice18k else 0.0
+                                                SettlementMethod.POS -> if (invoice.spotPrice18k > 0L) invoice.cashPosAmount.toDouble() / invoice.spotPrice18k else 0.0
+                                                SettlementMethod.LEDGER -> 0.0
+                                            }
+                                        }
+
                                         Column(horizontalAlignment = Alignment.Start) {
                                             Text(
                                                 text = "صافی فاکتور",
@@ -430,7 +455,11 @@ fun AddInvoicePaymentModal(
                                             )
                                             Spacer(Modifier.height(2.dp))
                                             Text(
-                                                text = "${PersianNumberFormatter.formatTomans(absNetPayableLong)} ت",
+                                                text = if (isWholesaler) {
+                                                    "${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم"
+                                                } else {
+                                                    "${PersianNumberFormatter.formatTomans(absNetPayableLong)} ت"
+                                                },
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.textMain,
@@ -454,10 +483,14 @@ fun AddInvoicePaymentModal(
                                             )
                                             Spacer(Modifier.height(2.dp))
                                             Text(
-                                                text = "${PersianNumberFormatter.formatTomans(totalPaid)} ت",
+                                                text = if (isWholesaler) {
+                                                    "${PersianNumberFormatter.formatWeight(totalPaidWeight)} گرم"
+                                                } else {
+                                                    "${PersianNumberFormatter.formatTomans(totalPaid)} ت"
+                                                },
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (totalPaid > 0) colors.profitGreen else colors.textMuted,
+                                                color = if ((if (isWholesaler) totalPaidWeight > 0.0 else totalPaid > 0)) colors.profitGreen else colors.textMuted,
                                                 fontFamily = VazirmatnFamily
                                             )
                                         }
@@ -478,7 +511,11 @@ fun AddInvoicePaymentModal(
                                             )
                                             Spacer(Modifier.height(2.dp))
                                             Text(
-                                                text = "${PersianNumberFormatter.formatTomans(remainingBalance)} ت",
+                                                text = if (isWholesaler) {
+                                                    "${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم"
+                                                } else {
+                                                    "${PersianNumberFormatter.formatTomans(remainingBalance)} ت"
+                                                },
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Black,
                                                 color = colors.goldPrimary,
@@ -519,6 +556,39 @@ fun AddInvoicePaymentModal(
                                                         keyboardType = KeyboardType.Number,
                                                         modifier = Modifier.weight(1f)
                                                     )
+                                                }
+
+                                                if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                                    val posAmount = posStr.toLongOrNull() ?: 0L
+                                                    val eqGold = if (invoice.spotPrice18k > 0L) posAmount.toDouble() / invoice.spotPrice18k else 0.0
+                                                    Surface(
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        color = colors.goldContainer.copy(alpha = 0.4f),
+                                                        border = BorderStroke(0.6.dp, colors.goldBorder),
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Text(
+                                                                text = "معادل طلای ۱۸ عیار تسویه‌شده:",
+                                                                fontSize = 11.sp,
+                                                                color = colors.textSecondary,
+                                                                fontFamily = VazirmatnFamily
+                                                            )
+                                                            Text(
+                                                                text = "${PersianNumberFormatter.formatWeight(eqGold)} گرم ۱۸ عیار",
+                                                                fontSize = 12.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = colors.goldPrimary,
+                                                                fontFamily = VazirmatnFamily
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -790,7 +860,12 @@ fun AddInvoicePaymentModal(
                                 }
 
                                 // Quick Auto-Fill remaining balance button
-                                if (remainingBalance > 0L) {
+                                val hasRemaining = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                    invoice.remainingBalanceGold18k > 0.001 || remainingBalance > 0L
+                                } else {
+                                    remainingBalance > 0L
+                                }
+                                if (hasRemaining) {
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
                                         color = colors.goldContainer.copy(alpha = 0.35f),
@@ -806,18 +881,22 @@ fun AddInvoicePaymentModal(
                                                             transferAmountStr = remainingBalance.toString()
                                                             transferWeightStr = ""
                                                         } else {
-                                                            if (invoice.spotPrice18k > 0) {
-                                                                val w = remainingBalance.toDouble() / invoice.spotPrice18k
-                                                                transferWeightStr = String.format(Locale.US, "%.3f", w)
-                                                            }
+                                                            val w = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.remainingBalanceGold18k > 0.001) {
+                                                                invoice.remainingBalanceGold18k
+                                                            } else if (invoice.spotPrice18k > 0) {
+                                                                remainingBalance.toDouble() / invoice.spotPrice18k
+                                                            } else 0.0
+                                                            transferWeightStr = String.format(Locale.US, "%.3f", w)
                                                             transferAmountStr = ""
                                                         }
                                                     }
                                                     SettlementMethod.BULLION -> {
-                                                        if (invoice.spotPrice18k > 0) {
-                                                            val w = remainingBalance.toDouble() / invoice.spotPrice18k
-                                                            bullionWeightStr = String.format(Locale.US, "%.3f", w)
-                                                        }
+                                                        val w = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.remainingBalanceGold18k > 0.001) {
+                                                            invoice.remainingBalanceGold18k
+                                                        } else if (invoice.spotPrice18k > 0) {
+                                                            remainingBalance.toDouble() / invoice.spotPrice18k
+                                                        } else 0.0
+                                                        bullionWeightStr = String.format(Locale.US, "%.3f", w)
                                                     }
                                                 }
                                             }
@@ -837,7 +916,11 @@ fun AddInvoicePaymentModal(
                                                 fontFamily = VazirmatnFamily
                                             )
                                             Text(
-                                                text = "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان",
+                                                text = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                                    "${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
+                                                } else {
+                                                    "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
+                                                },
                                                 fontSize = 11.5.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary,
@@ -877,11 +960,15 @@ fun AddInvoicePaymentModal(
                                             val newPayment: SettlementPaymentItem? = when (selectedChannel) {
                                                 SettlementMethod.POS -> {
                                                     val amt = posStr.toLongOrNull() ?: 0L
+                                                    val eqGold = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.spotPrice18k > 0L) {
+                                                        amt.toDouble() / invoice.spotPrice18k
+                                                    } else 0.0
                                                     if (amt > 0) {
                                                         SettlementPaymentItem(
                                                             id = existingPayment?.id ?: UUID.randomUUID().toString(),
                                                             method = SettlementMethod.POS,
                                                             amountTomans = amt,
+                                                            goldWeight18k = eqGold,
                                                             trackingCode = trackingCode.trim()
                                                         )
                                                     } else null
@@ -916,7 +1003,10 @@ fun AddInvoicePaymentModal(
                                                 }
                                                 SettlementMethod.TRANSFER -> {
                                                     val amt = if (!transferIsGoldMode) (transferAmountStr.toLongOrNull() ?: 0L) else 0L
-                                                    val w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
+                                                    var w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
+                                                    if (!transferIsGoldMode && invoice.customerRole == CustomerRole.WHOLESALER && invoice.spotPrice18k > 0L && amt > 0L) {
+                                                        w = amt.toDouble() / invoice.spotPrice18k
+                                                    }
                                                     if (amt > 0L || w > 0.0) {
                                                         SettlementPaymentItem(
                                                             id = existingPayment?.id ?: UUID.randomUUID().toString(),

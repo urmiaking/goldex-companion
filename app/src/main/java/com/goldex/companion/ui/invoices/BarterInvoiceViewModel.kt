@@ -193,9 +193,17 @@ class BarterInvoiceViewModel(
             }
             if (parts.isEmpty()) "۰ تومان" else parts.joinToString(" • ")
         } else if (currentInv.payments.isNotEmpty() && currentInv.remainingBalanceTomans > 0L) {
-            "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} تومان"
+            if (currentInv.customerRole == CustomerRole.WHOLESALER && currentInv.remainingBalanceGold18k > 0.001) {
+                "${PersianNumberFormatter.formatWeight(currentInv.remainingBalanceGold18k)} گرم طلا ۱۸"
+            } else {
+                "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(currentInv.remainingBalanceTomans.toDouble())} تومان"
+            }
         } else if (!hasAnyPayment) {
-            "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(netAmount.toDouble())} تومان"
+            if (currentInv.customerRole == CustomerRole.WHOLESALER && currentInv.balance.net18kWeightDelta > 0.001) {
+                "${PersianNumberFormatter.formatWeight(currentInv.balance.net18kWeightDelta)} گرم طلا ۱۸"
+            } else {
+                "${com.goldex.companion.model.PersianNumberFormatter.formatPrice(netAmount.toDouble())} تومان"
+            }
         } else null
 
         return InvoiceListItem(
@@ -309,7 +317,14 @@ class BarterInvoiceViewModel(
     }
 
     fun setCustomer(customer: Customer?) {
-        _uiState.update { it.copy(invoice = it.invoice.copy(customer = customer)) }
+        val suggestedRole = if (customer != null) {
+            if (customer.role.contains("همکار") || customer.role.contains("بنکدار")) CustomerRole.WHOLESALER
+            else if (customer.role.contains("عادی") || customer.role.contains("مصرف")) CustomerRole.RETAIL
+            else _uiState.value.invoice.customerRole
+        } else {
+            _uiState.value.invoice.customerRole
+        }
+        _uiState.update { it.copy(invoice = it.invoice.copy(customer = customer, customerRole = suggestedRole)) }
     }
 
     fun setCustomerRole(role: CustomerRole) {

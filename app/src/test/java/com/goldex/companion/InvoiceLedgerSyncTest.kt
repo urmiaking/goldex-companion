@@ -396,10 +396,11 @@ class InvoiceLedgerSyncTest {
         assertEquals(LedgerDirection.RECEIVE, result.transactionsToCreate[2].direction)
         assertEquals(15_000_000L, result.transactionsToCreate[2].amountTomans)
 
-        // Net gold: 40 - 25 = 15.0g
-        assertEquals(15.0, result.updatedCustomer.goldDebtGrams, 0.001)
-        // Net cash: 0 - 15M = -15M (customer paid 15M cash)
-        assertEquals(-15_000_000L, result.updatedCustomer.cashDebtTomans)
+        // Net gold: 40 - 25 - (15M / spotPrice18k)
+        val expectedGoldDebt = 15.0 - (15_000_000.0 / invoice.spotPrice18k)
+        assertEquals(expectedGoldDebt, result.updatedCustomer.goldDebtGrams, 0.001)
+        // Net cash: 0 (cash payment was converted to gold debt reduction at invoice spot rate)
+        assertEquals(0L, result.updatedCustomer.cashDebtTomans)
     }
 
     @Test
