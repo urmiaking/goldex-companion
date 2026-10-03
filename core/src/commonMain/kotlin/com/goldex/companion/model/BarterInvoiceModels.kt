@@ -190,11 +190,38 @@ data class BarterInvoice(
             return (netPayable - totalPaymentsAmount).coerceAtLeast(0L)
         }
 
+    val remainingBalanceGold18k: Double
+        get() {
+            val netWeight = balance.net18kWeightDelta
+            if (netWeight <= 0.001) return 0.0
+            val totalPaymentsWeight = if (payments.isNotEmpty()) {
+                payments.sumOf { p ->
+                    if (p.goldWeight18k > 0.0) p.goldWeight18k
+                    else if (spotPrice18k > 0L) p.amountTomans.toDouble() / spotPrice18k
+                    else 0.0
+                }
+            } else {
+                when (settlementMethod) {
+                    SettlementMethod.BULLION -> bullionWeight * (bullionKarat.toDouble() / 750.0)
+                    SettlementMethod.TRANSFER -> if (thirdPartyTransferWeight18k > 0.0) thirdPartyTransferWeight18k else if (spotPrice18k > 0L) thirdPartyTransferAmount.toDouble() / spotPrice18k else 0.0
+                    SettlementMethod.POS -> if (spotPrice18k > 0L) cashPosAmount.toDouble() / spotPrice18k else 0.0
+                    SettlementMethod.LEDGER -> 0.0
+                }
+            }
+            return (netWeight - totalPaymentsWeight).coerceAtLeast(0.0)
+        }
+
     val isFullySettled: Boolean
         get() {
-            val netPayable = balance.netPayableAmount.toLong()
-            if (netPayable <= 0L) return true
-            return totalPaymentsAmount >= netPayable
+            return if (customerRole == CustomerRole.WHOLESALER) {
+                val netWeight = balance.net18kWeightDelta
+                if (netWeight <= 0.001) true
+                else remainingBalanceGold18k <= 0.001
+            } else {
+                val netPayable = balance.netPayableAmount.toLong()
+                if (netPayable <= 0L) true
+                else totalPaymentsAmount >= netPayable
+            }
         }
 }
 

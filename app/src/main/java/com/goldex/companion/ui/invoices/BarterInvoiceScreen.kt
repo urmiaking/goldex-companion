@@ -118,6 +118,7 @@ fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
     marketRates: MarketRates,
     customerList: List<Customer> = emptyList(),
+    onSetCustomerRole: (CustomerRole) -> Unit = {},
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
     onSetLedgerAmount: (Long) -> Unit = {},
@@ -267,6 +268,8 @@ fun BarterInvoiceScreen(
                 // 2. Customer & Counterparty Card (Simplified)
                 CustomerAndAccountCard(
                     customer = invoice.customer,
+                    customerRole = invoice.customerRole,
+                    onSetCustomerRole = onSetCustomerRole,
                     onChangeCustomerClick = onOpenCustomerPicker
                 )
 
@@ -294,7 +297,8 @@ fun BarterInvoiceScreen(
 
                 // 5. Barter Balance & Net Settlement Overview
                 BarterBalanceCard(
-                    balance = invoice.balance
+                    balance = invoice.balance,
+                    customerRole = invoice.customerRole
                 )
 
                 // 6. Settlement & Payment Methods Section
@@ -546,6 +550,8 @@ private fun InvoiceMetaAndRateCard(
 @Composable
 private fun CustomerAndAccountCard(
     customer: Customer?,
+    customerRole: CustomerRole,
+    onSetCustomerRole: (CustomerRole) -> Unit,
     onChangeCustomerClick: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
@@ -580,7 +586,7 @@ private fun CustomerAndAccountCard(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "مشخصات طرف حساب",
+                        text = "مشخصات طرف حساب و نوع فاکتور",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain,
@@ -598,6 +604,60 @@ private fun CustomerAndAccountCard(
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                     fontFamily = VazirmatnFamily
                 )
+            }
+
+            // Customer Role Selector (Retail vs Wholesaler)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.surfaceElevated,
+                border = BorderStroke(0.6.dp, colors.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val isRetail = customerRole == CustomerRole.RETAIL
+                    // Retail Option
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (isRetail) colors.goldPrimary else Color.Transparent)
+                            .clickable { onSetCustomerRole(CustomerRole.RETAIL) }
+                            .padding(vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "💳 فروش ریالی (مشتری)",
+                            fontSize = 11.sp,
+                            fontWeight = if (isRetail) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isRetail) Color.White else colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+
+                    // Wholesaler Option
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (!isRetail) colors.goldPrimary else Color.Transparent)
+                            .clickable { onSetCustomerRole(CustomerRole.WHOLESALER) }
+                            .padding(vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "⚖️ تهاتر وزنی (همکار)",
+                            fontSize = 11.sp,
+                            fontWeight = if (!isRetail) FontWeight.Bold else FontWeight.Medium,
+                            color = if (!isRetail) Color.White else colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                }
             }
 
             // Customer Details Interactive Card
@@ -684,7 +744,8 @@ private fun CustomerAndAccountCard(
 // ---------------------------------------------------------------------------
 @Composable
 private fun BarterBalanceCard(
-    balance: com.goldex.companion.model.BarterBalance
+    balance: com.goldex.companion.model.BarterBalance,
+    customerRole: CustomerRole = CustomerRole.WHOLESALER
 ) {
     val colors = LocalGoldExColors.current
 
@@ -732,7 +793,7 @@ private fun BarterBalanceCard(
                     border = BorderStroke(0.6.dp, colors.profitGreen.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        text = "تسویه ترکیبی ریالی-وزنی",
+                        text = if (customerRole == CustomerRole.WHOLESALER) "تراز وزنی طلا (همکار)" else "تسویه ریالی (مشتری)",
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.profitGreen,
@@ -932,42 +993,82 @@ private fun BarterBalanceCard(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(1.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AnimatedPriceText(
-                                amount = kotlin.math.abs(balance.netPayableAmount),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                color = colors.goldPrimary
-                            )
-                            Text(
-                                text = " تومان",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "معادل: ",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
-                            AnimatedNumberText(
-                                text = PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta)),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textSecondary
-                            )
-                            Text(
-                                text = " گرم ۱۸ عیار",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textSecondary,
-                                fontFamily = VazirmatnFamily
-                            )
+                        if (customerRole == CustomerRole.WHOLESALER) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AnimatedNumberText(
+                                    text = PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta)),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = colors.goldPrimary
+                                )
+                                Text(
+                                    text = " گرم ۱۸ عیار",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "معادل: ",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                AnimatedPriceText(
+                                    amount = kotlin.math.abs(balance.netPayableAmount),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary
+                                )
+                                Text(
+                                    text = " تومان",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AnimatedPriceText(
+                                    amount = kotlin.math.abs(balance.netPayableAmount),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = colors.goldPrimary
+                                )
+                                Text(
+                                    text = " تومان",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "معادل: ",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                AnimatedNumberText(
+                                    text = PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta)),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary
+                                )
+                                Text(
+                                    text = " گرم ۱۸ عیار",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
                         }
                     }
                 }
@@ -1363,7 +1464,7 @@ private fun SettlementSection(
                 color = colors.surfaceElevated,
                 border = BorderStroke(
                     0.8.dp,
-                    if (remainingBalance == 0L && invoice.payments.isNotEmpty()) colors.profitGreen.copy(alpha = 0.5f)
+                    if (invoice.isFullySettled) colors.profitGreen.copy(alpha = 0.5f)
                     else colors.goldBorder.copy(alpha = 0.4f)
                 ),
                 modifier = Modifier.fillMaxWidth()
@@ -1372,6 +1473,22 @@ private fun SettlementSection(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val isWholesaler = invoice.customerRole == CustomerRole.WHOLESALER
+                    val totalPaidWeight = if (invoice.payments.isNotEmpty()) {
+                        invoice.payments.sumOf { p ->
+                            if (p.goldWeight18k > 0.0) p.goldWeight18k
+                            else if (invoice.spotPrice18k > 0L) p.amountTomans.toDouble() / invoice.spotPrice18k
+                            else 0.0
+                        }
+                    } else {
+                        when (invoice.settlementMethod) {
+                            SettlementMethod.BULLION -> invoice.bullionWeight * (invoice.bullionKarat.toDouble() / 750.0)
+                            SettlementMethod.TRANSFER -> if (invoice.thirdPartyTransferWeight18k > 0.0) invoice.thirdPartyTransferWeight18k else if (invoice.spotPrice18k > 0L) invoice.thirdPartyTransferAmount.toDouble() / invoice.spotPrice18k else 0.0
+                            SettlementMethod.POS -> if (invoice.spotPrice18k > 0L) invoice.cashPosAmount.toDouble() / invoice.spotPrice18k else 0.0
+                            SettlementMethod.LEDGER -> 0.0
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1384,7 +1501,11 @@ private fun SettlementSection(
                             fontFamily = VazirmatnFamily
                         )
                         Text(
-                            text = "${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان",
+                            text = if (isWholesaler) {
+                                "${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار"
+                            } else {
+                                "${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain,
@@ -1404,10 +1525,14 @@ private fun SettlementSection(
                             fontFamily = VazirmatnFamily
                         )
                         Text(
-                            text = "${PersianNumberFormatter.formatTomans(totalPaid)} تومان",
+                            text = if (isWholesaler) {
+                                "${PersianNumberFormatter.formatWeight(totalPaidWeight)} گرم ۱۸ عیار"
+                            } else {
+                                "${PersianNumberFormatter.formatTomans(totalPaid)} تومان"
+                            },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (totalPaid > 0) colors.profitGreen else colors.textMuted,
+                            color = if ((if (isWholesaler) totalPaidWeight > 0.0 else totalPaid > 0L)) colors.profitGreen else colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
                     }
@@ -1420,13 +1545,13 @@ private fun SettlementSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (remainingBalance == 0L && invoice.payments.isNotEmpty()) "وضعیت تسویه:" else "مانده پرداخت‌نشده (نسیه/دفتری):",
+                            text = if (invoice.isFullySettled) "وضعیت تسویه:" else "مانده پرداخت‌نشده (نسیه/دفتری):",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain,
                             fontFamily = VazirmatnFamily
                         )
-                        if (remainingBalance == 0L && invoice.payments.isNotEmpty()) {
+                        if (invoice.isFullySettled) {
                             Text(
                                 text = "تسویه کامل شد ✓",
                                 fontSize = 12.5.sp,
@@ -1436,7 +1561,11 @@ private fun SettlementSection(
                             )
                         } else {
                             Text(
-                                text = "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان",
+                                text = if (isWholesaler) {
+                                    "${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
+                                } else {
+                                    "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
+                                },
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = colors.goldPrimary,

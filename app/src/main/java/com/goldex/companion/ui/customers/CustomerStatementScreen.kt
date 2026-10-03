@@ -1042,18 +1042,84 @@ private fun StatementTransactionCard(
                     fontFamily = VazirmatnFamily
                 )
 
-                if (isGold) {
+                val hasGold = abs(computedGoldBalance) > 1e-4
+                val hasCash = abs(computedCashBalance) > 0L
+
+                if (hasGold && hasCash) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Gold Balance Pill
+                        val goldColor = if (computedGoldBalance > 1e-4) colors.errorRed else colors.profitGreen
+                        val goldStatus = if (computedGoldBalance > 1e-4) "بدهکار" else "بستانکار"
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                text = "${PersianNumberFormatter.formatAccountWeight(abs(computedGoldBalance))} گرم",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = goldColor,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = goldColor.copy(alpha = 0.12f),
+                                border = BorderStroke(0.5.dp, goldColor.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = goldStatus,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = goldColor,
+                                    fontFamily = VazirmatnFamily,
+                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "•",
+                            fontSize = 10.sp,
+                            color = colors.textMuted
+                        )
+
+                        // Cash Balance Pill
+                        val cashColor = if (computedCashBalance > 0L) colors.errorRed else colors.profitGreen
+                        val cashStatus = if (computedCashBalance > 0L) "بدهکار" else "بستانکار"
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                text = "${PersianNumberFormatter.formatPrice(abs(computedCashBalance))} ت",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = cashColor,
+                                fontFamily = VazirmatnFamily
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = cashColor.copy(alpha = 0.12f),
+                                border = BorderStroke(0.5.dp, cashColor.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = cashStatus,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = cashColor,
+                                    fontFamily = VazirmatnFamily,
+                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                } else if (hasGold) {
                     val bal = computedGoldBalance
-                    val statusText = when {
-                        bal > 1e-10 -> "بدهکار"
-                        bal < -1e-10 -> "بستانکار"
-                        else -> "تسویه‌شده"
-                    }
-                    val statusColor = when {
-                        bal > 1e-10 -> colors.errorRed
-                        bal < -1e-10 -> colors.profitGreen
-                        else -> colors.textMuted
-                    }
+                    val statusText = if (bal > 1e-4) "بدهکار" else "بستانکار"
+                    val statusColor = if (bal > 1e-4) colors.errorRed else colors.profitGreen
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1080,18 +1146,10 @@ private fun StatementTransactionCard(
                             )
                         }
                     }
-                } else {
+                } else if (hasCash) {
                     val bal = computedCashBalance
-                    val statusText = when {
-                        bal > 0L -> "بدهکار"
-                        bal < 0L -> "بستانکار"
-                        else -> "تسویه‌شده"
-                    }
-                    val statusColor = when {
-                        bal > 0L -> colors.errorRed
-                        bal < 0L -> colors.profitGreen
-                        else -> colors.textMuted
-                    }
+                    val statusText = if (bal > 0L) "بدهکار" else "بستانکار"
+                    val statusColor = if (bal > 0L) colors.errorRed else colors.profitGreen
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1117,6 +1175,21 @@ private fun StatementTransactionCard(
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }
+                    }
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = colors.profitGreen.copy(alpha = 0.12f),
+                        border = BorderStroke(0.5.dp, colors.profitGreen.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = "تسویه‌شده (تراز صفر)",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.profitGreen,
+                            fontFamily = VazirmatnFamily,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }

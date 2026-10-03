@@ -532,6 +532,7 @@ fun AddCustomerDialog(
     var phone by remember { mutableStateOf("") }
     var nationalId by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf("مشتری عادی (مصرف‌کننده)") }
     var hasError by remember { mutableStateOf(false) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -578,6 +579,24 @@ fun AddCustomerDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
+                    }
+
+                    // Counterparty Role Selector
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "نوع طرف حساب:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textSecondary
+                        )
+                        LuxurySegmentedControl(
+                            items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
+                            selectedItem = selectedRole,
+                            onItemSelected = { selectedRole = it },
+                            label = { it },
+                            modifier = Modifier.fillMaxWidth(),
+                            height = 36.dp
+                        )
                     }
 
                     // Name (Required)
@@ -690,7 +709,8 @@ fun AddCustomerDialog(
                                         name = name.trim(),
                                         phone = phone.trim(),
                                         nationalId = nationalId.trim(),
-                                        note = note.trim()
+                                        note = note.trim(),
+                                        role = selectedRole
                                     )
                                     onSaveCustomer(customer)
                                 }
@@ -711,10 +731,12 @@ fun EditCustomerDialog(
     onSaveCustomer: (Customer) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val initialRole = if (customer.role.contains("همکار") || customer.role.contains("بنکدار")) "همکار و بنکدار" else "مشتری عادی (مصرف‌کننده)"
     var name by remember { mutableStateOf(customer.name) }
     var phone by remember { mutableStateOf(customer.phone) }
     var nationalId by remember { mutableStateOf(customer.nationalId) }
     var note by remember { mutableStateOf(customer.note) }
+    var selectedRole by remember { mutableStateOf(initialRole) }
     var hasError by remember { mutableStateOf(false) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -761,6 +783,24 @@ fun EditCustomerDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
+                    }
+
+                    // Counterparty Role Selector
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "نوع طرف حساب:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textSecondary
+                        )
+                        LuxurySegmentedControl(
+                            items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
+                            selectedItem = selectedRole,
+                            onItemSelected = { selectedRole = it },
+                            label = { it },
+                            modifier = Modifier.fillMaxWidth(),
+                            height = 36.dp
+                        )
                     }
 
                     // Name
@@ -873,7 +913,8 @@ fun EditCustomerDialog(
                                         name = name.trim(),
                                         phone = phone.trim(),
                                         nationalId = nationalId.trim(),
-                                        note = note.trim()
+                                        note = note.trim(),
+                                        role = selectedRole
                                     )
                                     onSaveCustomer(updated)
                                 }
