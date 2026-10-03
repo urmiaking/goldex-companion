@@ -772,7 +772,7 @@ fun InvoiceTransactionCard(
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFFF59E0B))
+                                        .background(Color(0xFFDC2626))
                                 )
                                 Text(
                                     text = "مانده فاکتور:",
@@ -786,7 +786,7 @@ fun InvoiceTransactionCard(
                                 text = PersianNumberFormatter.toPersianDigits(remaining),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFF59E0B),
+                                color = Color(0xFFDC2626),
                                 fontFamily = VazirmatnFamily
                             )
                         }
@@ -858,10 +858,9 @@ fun InvoiceTransactionCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0x26DFB35A))
-                                .border(1.dp, Color(0x66DFB35A), RoundedCornerShape(12.dp))
+                                .background(Color(0xFF059669))
                                 .clickable { onSettleClick?.invoke() }
-                                .padding(horizontal = 10.dp, vertical = 7.dp)
+                                .padding(horizontal = 11.dp, vertical = 7.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -870,14 +869,14 @@ fun InvoiceTransactionCard(
                                 Icon(
                                     imageVector = InvoiceCheckVector,
                                     contentDescription = "تسویه حساب",
-                                    tint = colors.goldPrimary,
+                                    tint = Color.White,
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
                                     text = "تسویه حساب",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = colors.goldPrimary,
+                                    color = Color.White,
                                     fontFamily = VazirmatnFamily
                                 )
                             }
