@@ -53,7 +53,8 @@ fun <T> LuxurySegmentedControl(
     height: Dp = 38.dp,
     containerColor: Color? = null,
     activePillColor: Color? = null,
-    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    isItemEnabled: (T) -> Boolean = { true }
 ) {
     val colors = LocalGoldExColors.current
     val selectedIndex = items.indexOf(selectedItem).coerceAtLeast(0)
@@ -102,6 +103,7 @@ fun <T> LuxurySegmentedControl(
             Row(modifier = Modifier.fillMaxSize()) {
                 items.forEach { item ->
                     val isSelected = item == selectedItem
+                    val itemEnabled = isItemEnabled(item)
                     val animatedTextColor by animateColorAsState(
                         targetValue = if (isSelected) colors.goldPrimary else colors.textMuted,
                         label = "segmentedTextColor"
@@ -113,7 +115,8 @@ fun <T> LuxurySegmentedControl(
                             .fillMaxHeight()
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null
+                                indication = null,
+                                enabled = itemEnabled
                             ) { onItemSelected(item) },
                         contentAlignment = Alignment.Center
                     ) {
@@ -122,7 +125,7 @@ fun <T> LuxurySegmentedControl(
                             fontFamily = VazirmatnFamily,
                             fontSize = fontSize,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = animatedTextColor,
+                            color = if (itemEnabled) animatedTextColor else colors.textMuted.copy(alpha = 0.35f),
                             textAlign = TextAlign.Center
                         )
                     }
