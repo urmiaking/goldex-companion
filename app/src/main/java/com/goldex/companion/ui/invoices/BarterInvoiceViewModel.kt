@@ -43,7 +43,8 @@ data class BarterInvoiceUiState(
     val searchQuery: String = "",
     val selectedFilter: InvoiceFilterTab = InvoiceFilterTab.ALL,
     val invoicesList: List<InvoiceListItem> = emptyList(),
-    val isEditingExistingInvoice: Boolean = false
+    val isEditingExistingInvoice: Boolean = false,
+    val settlementShortcutInvoice: BarterInvoice? = null
 ) {
     val balance: BarterBalance get() = invoice.balance
 
@@ -261,6 +262,42 @@ class BarterInvoiceViewModel(
                 invoice = it.invoice.copy(
                     payments = payments
                 )
+            )
+        }
+    }
+
+    fun openSettlementShortcut(invoice: BarterInvoice) {
+        val fresh = invoiceStore?.getBarterInvoices()?.firstOrNull { it.id == invoice.id } ?: invoice
+        _uiState.update { it.copy(settlementShortcutInvoice = fresh) }
+    }
+
+    fun closeSettlementShortcut() {
+        _uiState.update { it.copy(settlementShortcutInvoice = null) }
+    }
+
+    fun recordPaymentForInvoice(invoiceId: String, payment: SettlementPaymentItem) {
+        val currentInvoice = invoiceStore?.getBarterInvoices()?.firstOrNull { it.id == invoiceId }
+            ?: _uiState.value.invoicesList.firstOrNull { it.id == invoiceId }?.barterInvoice
+            ?: _uiState.value.settlementShortcutInvoice
+            ?: return
+        val updatedPayments = currentInvoice.payments + payment
+        val updatedInvoice = currentInvoice.copy(payments = updatedPayments)
+        try {
+            invoiceStore?.let {
+                com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit).save(updatedInvoice)
+            }
+        } catch (_: Exception) {
+            _uiState.update { it.copy(statusMessage = "ثبت پرداخت تسویه با خطا مواجه شد") }
+            return
+        }
+        val savedInvoices = invoiceStore?.getBarterInvoices().orEmpty()
+        _uiState.update { state ->
+            state.copy(
+                settlementShortcutInvoice = null,
+                invoicesList = createInvoiceList(savedInvoices),
+                invoice = if (state.invoice.id == updatedInvoice.id) updatedInvoice else state.invoice,
+                isSuccessSnackbarVisible = true,
+                statusMessage = "پرداخت فاکتور ${updatedInvoice.cleanInvoiceNumber} با موفقیت ثبت شد ✓"
             )
         }
     }
