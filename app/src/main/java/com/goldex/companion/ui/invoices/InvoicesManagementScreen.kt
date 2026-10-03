@@ -637,62 +637,25 @@ fun InvoiceTransactionCard(
                     }
                 }
 
-                // Status Badge or Quick Settle Action Button
-                val barterInv = item.barterInvoice
-                val canSettle = item.status == InvoiceStatus.PARTIALLY_PAID &&
-                        barterInv?.customer != null &&
-                        barterInv.syncWithLedger &&
-                        onSettleClick != null
-
-                if (canSettle) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = colors.goldContainer,
-                        border = BorderStroke(1.dp, colors.goldPrimary),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .clickable { onSettleClick?.invoke() }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = InvoiceCheckVector,
-                                contentDescription = "تسویه مانده",
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = "تسویه مانده",
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(badgeBg)
-                            .border(0.8.dp, badgeBorder, RoundedCornerShape(50))
-                            .padding(horizontal = 9.dp, vertical = 3.5.dp)
-                    ) {
-                        Text(
-                            text = item.statusDetail,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = badgeTextColor,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
+                // Status Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(badgeBg)
+                        .border(0.8.dp, badgeBorder, RoundedCornerShape(50))
+                        .padding(horizontal = 9.dp, vertical = 3.5.dp)
+                ) {
+                    Text(
+                        text = item.statusDetail,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeTextColor,
+                        fontFamily = VazirmatnFamily
+                    )
                 }
             }
 
-            // Middle Box: Items Summary, Weight/Wages, and Outstanding Balance Row
+            // Middle Box: Items Summary, Weight/Wages, Final Amount, and Outstanding Balance Row
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -758,6 +721,35 @@ fun InvoiceTransactionCard(
                         )
                     }
 
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(0.6.dp)
+                            .background(colors.border.copy(alpha = 0.6f))
+                    )
+
+                    // Final Invoice Amount Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = item.amountLabel,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.finalAmount,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            unit = "تومان"
+                        )
+                    }
+
                     val remaining = item.remainingDetail
                     if (remaining != null) {
                         Box(
@@ -792,7 +784,7 @@ fun InvoiceTransactionCard(
                             }
                             Text(
                                 text = PersianNumberFormatter.toPersianDigits(remaining),
-                                fontSize = 11.sp,
+                                fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFF59E0B),
                                 fontFamily = VazirmatnFamily
@@ -802,43 +794,36 @@ fun InvoiceTransactionCard(
                 }
             }
 
-            // RTL order: total price, flexible space, delete, PDF, details.
+            val barterInv = item.barterInvoice
+            val canSettle = item.status == InvoiceStatus.PARTIALLY_PAID &&
+                    barterInv?.customer != null &&
+                    barterInv.syncWithLedger &&
+                    onSettleClick != null
+
+            // Bottom Actions Row: Delete on Right (start in RTL), Print / Settle / Details on Left (end in RTL)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                // Delete Icon Button (RTL Start = Right)
+                IconButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    Text(
-                        text = item.amountLabel,
-                        fontSize = 10.sp,
-                        color = colors.textMuted,
-                        fontFamily = VazirmatnFamily
-                    )
-                    AnimatedPriceText(
-                        amount = item.finalAmount,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Black,
-                        color = colors.textMain,
-                        unit = "تومان"
+                    Icon(
+                        imageVector = InvoiceTrashVector,
+                        contentDescription = "حذف فاکتور ${PersianNumberFormatter.toPersianDigits(item.invoiceNumber)}",
+                        tint = colors.errorRed.copy(alpha = 0.85f),
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
+                // Action Buttons Group (RTL End = Left)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onDeleteClick, modifier = Modifier.size(48.dp)) {
-                        Icon(
-                            imageVector = InvoiceTrashVector,
-                            contentDescription = "حذف فاکتور ${PersianNumberFormatter.toPersianDigits(item.invoiceNumber)}",
-                            tint = colors.errorRed,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                     // Print Button
                     Box(
                         modifier = Modifier
@@ -846,7 +831,7 @@ fun InvoiceTransactionCard(
                             .background(colors.surfaceElevated)
                             .border(1.dp, colors.border, RoundedCornerShape(12.dp))
                             .clickable(onClick = onPrintClick)
-                            .padding(horizontal = 9.dp, vertical = 7.dp)
+                            .padding(horizontal = 10.dp, vertical = 7.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -868,7 +853,38 @@ fun InvoiceTransactionCard(
                         }
                     }
 
-                    // Primary Action Button
+                    // Settlement Action Button (placed between Print and Details)
+                    if (canSettle) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0x26DFB35A))
+                                .border(1.dp, Color(0x66DFB35A), RoundedCornerShape(12.dp))
+                                .clickable { onSettleClick?.invoke() }
+                                .padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = InvoiceCheckVector,
+                                    contentDescription = "تسویه حساب",
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "تسویه حساب",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+                    }
+
+                    // Primary Action Button (Details)
                     val (actionBg, actionText) = when (item.status) {
                         InvoiceStatus.SETTLED -> Pair(
                             Color(0xFF8C6F16),
