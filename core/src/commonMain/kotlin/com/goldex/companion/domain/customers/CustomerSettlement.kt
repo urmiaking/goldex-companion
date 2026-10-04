@@ -68,8 +68,26 @@ data class SettlementRequest(
     val invoiceId: String? = null,
     val paymentMethod: String = "حواله بانکی / پایا",
     val trackingCode: String = "",
-    val note: String = ""
+    val note: String = "",
+    val documentNumber: String? = null
 )
+
+fun generateSettlementDocumentNumber(existingDocumentNumbers: Collection<String> = emptySet()): String {
+    val used = existingDocumentNumbers.map { it.trim().removePrefix("IR-").removePrefix("IR") }.toSet()
+    val maxNumeric = used.mapNotNull { it.toIntOrNull() }.filter { it in 1000..99999 }.maxOrNull()
+    if (maxNumeric != null && (maxNumeric + 1).toString() !in used && (maxNumeric + 1) <= 99999) {
+        return (maxNumeric + 1).toString()
+    }
+    repeat(100) {
+        val candidate = (1000..9999).random().toString()
+        if (candidate !in used) return candidate
+    }
+    repeat(100) {
+        val candidate = (10000..99999).random().toString()
+        if (candidate !in used) return candidate
+    }
+    return (1000..9999).random().toString()
+}
 
 data class SettlementPreview(
     val effect: LedgerEffect,
@@ -165,8 +183,11 @@ class RecordCustomerSettlementUseCase(
         require(scope == expectedScope) { "ماندهٔ فاکتور تغییر کرده؛ فرم را دوباره باز کنید" }
         val preview = CustomerSettlementPolicy.preview(customer, request, scope)
         val now = SystemClock.nowMillis()
+        val existingTx = customers.getTransactions(customer.id)
+        val docNum = request.documentNumber?.trim()?.takeIf { it.isNotEmpty() }
+            ?: generateSettlementDocumentNumber(existingTx.map { it.documentNumber })
         val tx = LedgerTransaction(
-            id = request.id, customerId = customer.id, documentNumber = now.toString(),
+            id = request.id, customerId = customer.id, documentNumber = docNum,
             title = if (request.offsetExistingCredit) "تهاتر ماندهٔ طلا و تومان" else "تسویهٔ ${if (request.targetType == LedgerEntryType.GOLD_WEIGHT) "ماندهٔ طلایی" else "ماندهٔ تومانی"}",
             dateTime = LocalCalendar.formatDateTime("yyyy/MM/dd HH:mm", now), timestamp = now,
             type = request.paymentType, direction = if (preview.isReceiving) LedgerDirection.RECEIVE else LedgerDirection.PAY,

@@ -35,7 +35,7 @@ MainActivity
        -> MoreHubScreen (AppSettings & explicit callbacks)
        -> InvoicesManagementScreen & BarterInvoiceScreen (BarterInvoiceViewModel)
        -> OnboardingWizardScreen (WizardUiState & OnboardingViewModel events)
-       -> Dialogs (CustomerPickerDialog, InvoiceManagerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog, AddInventoryItemModal, AdjustStockModal)
+       -> Dialogs (CustomerPickerDialog, TaxProfitModal, PriceSourceModal, JewelerProfileModal, UpdateDialog, AddInventoryItemModal, AdjustStockModal)
 
 Feature ViewModels & State Holders:
   -> AppLockViewModel (SettingsStore, BiometricAuthManager)

@@ -1143,33 +1143,48 @@ internal fun CloudAccountActions(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
+                        val chevronRotation by animateFloatAsState(
+                            targetValue = if (expanded) 180f else 0f,
+                            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+                            label = "chevronRotation"
+                        )
                         Icon(
                             Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
                             tint = colors.textMuted,
-                            modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f)
+                            modifier = Modifier.size(20.dp).rotate(chevronRotation)
                         )
                     }
-                    if (expanded) {
-                        HorizontalDivider(color = colors.border)
-                        Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (signedIn && state.status == SyncStatus.SYNCED) {
-                                CloudActionRow("انتقال به دستگاه دیگر", HubDevices, !formBusy, onListDevices)
-                            }
-                            if (hasBackup) {
-                                CloudActionRow("ذخیرهٔ پشتیبان محلی و اختلاف‌ها", HubCloudDownload, !formBusy && !state.busy, onExportBackup)
-                            }
-                            if (canDetach || signedIn) {
-                                HorizontalDivider(color = colors.border)
-                            }
-                            if (canDetach) {
-                                CloudActionRow(
-                                    "جداسازی داده برای اتصال به حساب دیگر", HubCloudOff,
-                                    !formBusy && !state.busy, onDetach
-                                )
-                            }
-                            if (signedIn) {
-                                CloudActionRow("خروج از حساب", HubArrowRight, !formBusy && !state.busy, onLogout, caution = true)
+                    AnimatedVisibility(
+                        visible = expanded,
+                        enter = expandVertically(
+                            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
+                        ) + fadeIn(animationSpec = tween(durationMillis = 200)),
+                        exit = shrinkVertically(
+                            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                        ) + fadeOut(animationSpec = tween(durationMillis = 150))
+                    ) {
+                        Column {
+                            HorizontalDivider(color = colors.border)
+                            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (signedIn && state.status == SyncStatus.SYNCED) {
+                                    CloudActionRow("انتقال به دستگاه دیگر", HubDevices, !formBusy, onListDevices)
+                                }
+                                if (hasBackup) {
+                                    CloudActionRow("ذخیرهٔ پشتیبان محلی و اختلاف‌ها", HubCloudDownload, !formBusy && !state.busy, onExportBackup)
+                                }
+                                if (canDetach || signedIn) {
+                                    HorizontalDivider(color = colors.border)
+                                }
+                                if (canDetach) {
+                                    CloudActionRow(
+                                        "جداسازی داده برای اتصال به حساب دیگر", HubCloudOff,
+                                        !formBusy && !state.busy, onDetach
+                                    )
+                                }
+                                if (signedIn) {
+                                    CloudActionRow("خروج از حساب", HubArrowRight, !formBusy && !state.busy, onLogout, caution = true)
+                                }
                             }
                         }
                     }

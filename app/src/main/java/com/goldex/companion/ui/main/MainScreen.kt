@@ -336,15 +336,6 @@ fun MainScreen(
         )
     }
 
-    // Invoice Manager & Archive Modal
-    if (invoiceState.isInvoiceManagerVisible) {
-        InvoiceManagerDialog(
-            invoices = invoiceState.savedInvoices,
-            settings = settingsState.appSettings,
-            onDismiss = { invoiceViewModel.setInvoiceManagerVisible(false) },
-            onDeleteInvoice = { invoiceViewModel.deleteInvoice(it) }
-        )
-    }
 
     // Jeweler Profile Modal
     if (settingsState.isJewelerProfileModalVisible) {
@@ -709,7 +700,13 @@ fun MainScreen(
                                                 settingsViewModel.toggleBiometricLock(enabled)
                                             }
                                         },
-                                        onCheckForUpdates = { updateViewModel.checkForUpdates(manual = true) },
+                                        onCheckForUpdates = {
+                                            updateViewModel.checkForUpdates(manual = true) { isAvailable ->
+                                                if (!isAvailable) {
+                                                    QiratoToast.show(context, "آخرین نسخه نصب شده است")
+                                                }
+                                            }
+                                        },
                                         onNavigateLedger = {
                                             customerViewModel.openCustomerLedger()
                                         },
@@ -724,10 +721,6 @@ fun MainScreen(
                                         },
                                         onNavigateCoinBubble = {
                                             mainViewModel.setCoinBubbleVisible(true)
-                                        },
-                                        onNavigateInvoices = {
-                                            invoiceViewModel.loadInvoices()
-                                            invoiceViewModel.setInvoiceManagerVisible(true)
                                         },
                                         onNavigateReporting = {
                                             reportingViewModel.setReportingVisible(true)
