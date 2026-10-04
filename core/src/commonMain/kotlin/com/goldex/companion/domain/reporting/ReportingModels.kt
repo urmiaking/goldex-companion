@@ -159,5 +159,6 @@ data class ReportingUiState(
     val activeBreakdown: ReportingBreakdownType? = null,
     val isReportingVisible: Boolean = false,
     val isCustomDateDialogVisible: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val error: String? = null
 )

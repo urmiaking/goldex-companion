@@ -9,6 +9,8 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class InvoiceDeletionUseCaseTest {
+    @get:org.junit.Rule val featureMain = com.goldex.companion.ui.FeatureMainDispatcherRule()
+
     private val opening = Customer(id = "customer", name = "مشتری", goldDebtGrams = 4.125, cashDebtTomans = -80_000L)
     private val sale = MeltGoldItem(weight = 10.0, spotPrice = 1_000_000L, totalPayable = 10_000_000.0, equivalent18kWeight = 10.0)
     private fun invoice(role: CustomerRole = CustomerRole.RETAIL, payments: List<SettlementPaymentItem> = emptyList()) =
@@ -162,12 +164,12 @@ class InvoiceDeletionUseCaseTest {
     fun viewModelClearsDeletedEditorAndPreservesSearchAndFilter() {
         val saved = invoice()
         val store = MemoryInvoiceStore(saved)
-        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)))
+        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)), workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         viewModel.openInvoiceDetails(viewModel.uiState.value.invoicesList.single())
         viewModel.setSearchQuery("مشتری")
         viewModel.setSelectedFilter(InvoiceFilterTab.PENDING)
         viewModel.openEditItemModal(sale, true)
-        assertTrue(viewModel.deleteInvoice(saved.id))
+        run { var deleted = false; viewModel.deleteInvoice(saved.id) { deleted = it }; assertTrue(deleted) }
         val state = viewModel.uiState.value
         assertTrue(state.invoicesList.isEmpty())
         assertEquals(InvoicesSubScreen.LIST, state.subScreen)
@@ -178,16 +180,16 @@ class InvoiceDeletionUseCaseTest {
         assertTrue(state.isSuccessSnackbarVisible)
         assertEquals("مشتری", state.searchQuery)
         assertEquals(InvoiceFilterTab.PENDING, state.selectedFilter)
-        assertFalse(viewModel.deleteInvoice(saved.id))
+        run { var deleted = true; viewModel.deleteInvoice(saved.id) { deleted = it }; assertFalse(deleted) }
     }
 
     @Test
     fun failedDeletionKeepsCardAndEditorAndShowsFailure() {
         val saved = invoice()
         val store = MemoryInvoiceStore(saved).apply { failDeleteOnce = true }
-        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)))
+        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)), workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         viewModel.openInvoiceDetails(viewModel.uiState.value.invoicesList.single())
-        assertFalse(viewModel.deleteInvoice(saved.id))
+        run { var deleted = true; viewModel.deleteInvoice(saved.id) { deleted = it }; assertFalse(deleted) }
         assertEquals(saved, viewModel.uiState.value.invoice)
         assertEquals(saved.id, viewModel.uiState.value.invoicesList.single().id)
         assertEquals(InvoicesSubScreen.EDITOR, viewModel.uiState.value.subScreen)
@@ -203,12 +205,12 @@ class InvoiceDeletionUseCaseTest {
         val remaining = source.copy(id = "remaining", thirdPartyTransferAmount = 1_000_000L)
         val store = MemoryInvoiceStore(source, remaining, target)
         val ledger = MemoryCustomerStore(listOf(opening))
-        val viewModel = BarterInvoiceViewModel(store, ledger)
+        val viewModel = BarterInvoiceViewModel(store, ledger, workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         fun targetAmount(vm: BarterInvoiceViewModel) = vm.uiState.value.invoicesList.first { it.id == target.id }.finalAmount
         assertEquals(7_000_000L, targetAmount(viewModel))
-        assertTrue(viewModel.deleteInvoice(source.id))
+        run { var deleted = false; viewModel.deleteInvoice(source.id) { deleted = it }; assertTrue(deleted) }
         assertEquals(9_000_000L, targetAmount(viewModel))
-        assertEquals(9_000_000L, targetAmount(BarterInvoiceViewModel(store, ledger)))
+        assertEquals(9_000_000L, targetAmount(BarterInvoiceViewModel(store, ledger, workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)))
         assertEquals(target, store.getBarterInvoices().first { it.id == target.id })
     }
 
@@ -218,12 +220,12 @@ class InvoiceDeletionUseCaseTest {
         val source = target.copy(id = "source", settlementMethod = SettlementMethod.TRANSFER,
             thirdPartyInvoiceId = target.id, thirdPartyTransferAmount = 2_000_000L, syncWithLedger = false)
         val store = MemoryInvoiceStore(source, target)
-        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)))
+        val viewModel = BarterInvoiceViewModel(store, MemoryCustomerStore(listOf(opening)), workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         viewModel.openInvoiceDetails(viewModel.uiState.value.invoicesList.first { it.id == source.id })
         viewModel.submitAndSaveCurrentInvoice()
         viewModel.submitAndSaveCurrentInvoice()
         assertEquals(8_000_000L, viewModel.uiState.value.invoicesList.first { it.id == target.id }.finalAmount)
-        assertTrue(viewModel.deleteInvoice(source.id))
+        run { var deleted = false; viewModel.deleteInvoice(source.id) { deleted = it }; assertTrue(deleted) }
         assertEquals(10_000_000L, viewModel.uiState.value.invoicesList.single().finalAmount)
     }
 

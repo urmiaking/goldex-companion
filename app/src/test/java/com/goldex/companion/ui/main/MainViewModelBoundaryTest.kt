@@ -65,7 +65,7 @@ class MainViewModelBoundaryTest {
     }
 
     @Test fun barterInvoiceUsesInjectedMarketQuote() {
-        val vm = BarterInvoiceViewModel(currentGold18 = { 3_000_000L })
+        val vm = BarterInvoiceViewModel(currentGold18 = { 3_000_000L }, workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         viewModels.put("barter", vm)
         assertEquals(3_000_000L, vm.uiState.value.invoice.spotPrice18k)
         vm.openNewInvoice(customSpotPrice = 4_000_000L)

@@ -8,9 +8,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,10 +28,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import com.goldex.companion.ui.components.InvoiceDeletionConfirmationDialog
 import com.goldex.companion.ui.invoices.components.InvoiceTrashVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -79,23 +81,14 @@ fun InvoicesManagementScreen(
     onPrintClick: (InvoiceListItem) -> Unit,
     onDeleteInvoice: (String) -> Unit,
     onSettleInvoice: (InvoiceListItem) -> Unit = {},
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var pendingDeletion by remember { mutableStateOf<InvoiceListItem?>(null) }
     val invoices = uiState.filteredInvoices
     val allInvoices = uiState.invoicesList
 
-    val settledCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.SETTLED } }
-    val pendingCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.PARTIALLY_PAID } }
-    val workshopCount = remember(allInvoices) { allInvoices.count { it.status == InvoiceStatus.WORKSHOP } }
-    val totalGoldWeightGrams = remember(allInvoices) {
-        allInvoices.sumOf { item ->
-            item.barterInvoice?.balance?.totalSales18kWeight ?: 0.0
-        }
-    }
-    val totalTurnoverMillionTomans = remember(allInvoices) {
-        allInvoices.sumOf { it.finalAmount } / 1_000_000L
-    }
+    val summary = uiState.summary
 
     pendingDeletion?.let { selected ->
         InvoiceDeletionConfirmationDialog(
@@ -109,71 +102,69 @@ fun InvoicesManagementScreen(
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = 6.dp),
+        LazyColumn(
+            modifier = modifier.fillMaxSize().testTag("invoice-list"),
+            contentPadding = PaddingValues(top = 6.dp, bottom = 164.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. KPI Overview Banner (Screen 6 Hero Section)
-            InvoicesKpiOverviewBanner(
-                totalInvoicesCount = allInvoices.size,
-                totalGoldWeightGrams = totalGoldWeightGrams,
-                totalTurnoverMillionTomans = totalTurnoverMillionTomans
-            )
-
-            // 2. Search Bar
-            InvoiceSearchBar(
-                query = uiState.searchQuery,
-                onQueryChange = onSearchQueryChange
-            )
-
-            // 3. Filter Capsules
-            FilterCapsulesRow(
-                selectedFilter = uiState.selectedFilter,
-                allCount = allInvoices.size,
-                settledCount = settledCount,
-                pendingCount = pendingCount,
-                workshopCount = workshopCount,
-                onSelectFilter = onFilterSelect
-            )
-
-            // 4. Invoices List with smooth animation on filter and query change
-            AnimatedContent(
-                targetState = uiState.selectedFilter to invoices.isEmpty(),
-                transitionSpec = {
-                    (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                },
-                label = "invoicesListFilterTransition"
-            ) { (_, isEmpty) ->
-                if (isEmpty) {
-                    EmptyInvoicesCard(
-                        onResetSearch = {
-                            onSearchQueryChange("")
-                            onFilterSelect(InvoiceFilterTab.ALL)
-                        },
-                        onNewInvoiceClick = onNewInvoiceClick
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        invoices.forEach { invoiceItem ->
-                            InvoiceTransactionCard(
-                                item = invoiceItem,
-                                onCardClick = { onInvoiceItemClick(invoiceItem) },
-                                onPrintClick = { onPrintClick(invoiceItem) },
-                                onDeleteClick = { pendingDeletion = invoiceItem },
-                                onSettleClick = { onSettleInvoice(invoiceItem) }
-                            )
-                        }
-                    }
+            if (uiState.isLoading || uiState.error != null) {
+                item(key = "loadStatus", contentType = "loadStatus") {
+                    com.goldex.companion.ui.components.RecordListStatus(uiState.isLoading, uiState.error, onRetry)
                 }
             }
 
-            // The parent content already accounts for the floating dock; keep only a compact breathing space.
-            Spacer(modifier = Modifier.height(24.dp))
+            item(key = "overview", contentType = "overview") {
+                // 1. KPI Overview Banner (Screen 6 Hero Section)
+                InvoicesKpiOverviewBanner(
+                    totalInvoicesCount = allInvoices.size,
+                    totalGoldWeightGrams = summary.goldWeight,
+                    totalTurnoverMillionTomans = summary.turnoverMillionTomans
+                )
+
+            }
+
+            item(key = "search", contentType = "search") {
+                // 2. Search Bar
+                InvoiceSearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = onSearchQueryChange
+                )
+
+            }
+
+            item(key = "filters", contentType = "filters") {
+                // 3. Filter Capsules
+                FilterCapsulesRow(
+                    selectedFilter = uiState.selectedFilter,
+                    allCount = allInvoices.size,
+                    settledCount = summary.settled,
+                    pendingCount = summary.pending,
+                    workshopCount = summary.workshop,
+                    onSelectFilter = onFilterSelect
+                )
+
+            }
+
+            if (invoices.isEmpty() && !uiState.isLoading && uiState.error == null) {
+                item(key = "empty", contentType = "empty") {
+                    EmptyInvoicesCard(
+                        onResetSearch = { onSearchQueryChange(""); onFilterSelect(InvoiceFilterTab.ALL) },
+                        onNewInvoiceClick = onNewInvoiceClick
+                    )
+                }
+            } else {
+                items(invoices, key = { "invoice-list:${it.id}" }, contentType = { "invoice" }) { invoiceItem ->
+                    InvoiceTransactionCard(
+                        item = invoiceItem,
+                        onCardClick = { onInvoiceItemClick(invoiceItem) },
+                        onPrintClick = { onPrintClick(invoiceItem) },
+                        onDeleteClick = { pendingDeletion = invoiceItem },
+                        onSettleClick = { onSettleInvoice(invoiceItem) }
+                    )
+                }
+            }
+            // Content padding keeps the final row clear of the floating actions.
+            item(key = "footer", contentType = "footer") { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }

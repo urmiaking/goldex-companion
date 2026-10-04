@@ -144,6 +144,10 @@ fun MainScreen(
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
     val licenseUiState by licenseViewModel.uiState.collectAsState()
     val inventoryState by inventoryViewModel.uiState.collectAsState()
+    LaunchedEffect(customerState.error, inventoryState.error, barterUiState.error) {
+        (customerState.error ?: inventoryState.error ?: barterUiState.error)?.let { QiratoToast.show(context, it) }
+    }
+
     val reportingUiState by reportingViewModel.uiState.collectAsState()
     val licenseInfo = licenseUiState.licenseInfo
 
@@ -240,10 +244,11 @@ fun MainScreen(
     if (customerState.isAddCustomerDialogVisible) {
         AddCustomerDialog(
             onDismiss = { customerViewModel.setAddCustomerDialogVisible(false) },
-            onSaveCustomer = {
-                customerViewModel.addCustomer(it, autoSelect = true)
-                mainViewModel.setSelectedCustomer(it)
-                barterInvoiceViewModel.setCustomer(it)
+            onSaveCustomer = { customer ->
+                customerViewModel.addCustomer(customer, autoSelect = true) {
+                    mainViewModel.setSelectedCustomer(customer)
+                    barterInvoiceViewModel.setCustomer(customer)
+                }
             }
         )
     }
@@ -255,10 +260,12 @@ fun MainScreen(
                 if (!licenseInfo.isLicensed) {
                     licenseViewModel.setActivationDialogVisible(true)
                     QiratoToast.show(context, "ثبت تسویه نیازمند اشتراک معتبر است.")
-                } else if (settlementViewModel.confirm()) {
-                    customerViewModel.refreshAfterSettlement()
-                    barterInvoiceViewModel.reloadInvoices()
-                    QiratoToast.show(context, "تسویه ثبت شد و ماندهٔ حساب به‌روز شد")
+                } else {
+                    settlementViewModel.confirm {
+                        customerViewModel.refreshAfterSettlement()
+                        barterInvoiceViewModel.reloadInvoices()
+                        QiratoToast.show(context, "تسویه ثبت شد و ماندهٔ حساب به‌روز شد")
+                    }
                 }
             },
             onIndependentEntry = { settlementViewModel.close(); customerViewModel.openAddLedgerEntry(customer) }
@@ -278,9 +285,10 @@ fun MainScreen(
                     licenseViewModel.setActivationDialogVisible(true)
                     QiratoToast.show(context, "ثبت پرداخت تسویه نیازمند اشتراک معتبر است.")
                 } else {
-                    barterInvoiceViewModel.recordPaymentForInvoice(targetInvoice.id, payment)
-                    customerViewModel.loadCustomers()
-                    QiratoToast.show(context, "پرداخت تسویه با موفقیت ثبت شد ✓")
+                    barterInvoiceViewModel.recordPaymentForInvoice(targetInvoice.id, payment) {
+                        customerViewModel.loadCustomers()
+                        QiratoToast.show(context, "پرداخت تسویه با موفقیت ثبت شد ✓")
+                    }
                 }
             }
         )
@@ -298,13 +306,14 @@ fun MainScreen(
                     QiratoToast.show(context, "ثبت سند در دفتر معین نیازمند اشتراک معتبر است.")
                 } else {
                     val isEditing = customerState.editingLedgerTransaction != null
-                    customerViewModel.saveLedgerEntry(tx)
-                    val msg = if (isEditing) {
-                        "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
-                    } else {
-                        "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                    customerViewModel.saveLedgerEntry(tx) {
+                        val msg = if (isEditing) {
+                            "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} با موفقیت ویرایش شد"
+                        } else {
+                            "سند شماره ${PersianNumberFormatter.toPersianDigits(tx.documentNumber)} در دفتر معین ثبت شد"
+                        }
+                        QiratoToast.show(context, msg)
                     }
-                    QiratoToast.show(context, msg)
                 }
             }
         )
@@ -450,15 +459,9 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(top = paddingValues.calculateTopPadding())
-                            .verticalScroll(scrollState)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Live Rates Ticker
-                        LiveRatesTicker(
-                            rates = mainUiState.rates
-                        )
-
                         // 5 Main System Destinations via AnimatedContent
                         AnimatedContent(
                             targetState = mainUiState.selectedTab,
@@ -483,270 +486,268 @@ fun MainScreen(
                                 )
                             },
                             label = "mainDestinationTransition",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clipToBounds()
+                            modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds()
                         ) { destination ->
-                            when (destination) {
-                                AppTab.HOME -> {
-                                    val inventoryWeight = inventoryState.totalGoldWeight18k
-                                    val inventoryValuation = if (mainUiState.rates.gold18 > 0) {
-                                        (inventoryWeight * mainUiState.rates.gold18).toLong()
-                                    } else 0L
+                            MainDestinationViewport(destination, scrollState, mainUiState.rates) {
+                                when (destination) {
+                                    AppTab.HOME -> {
+                                        val inventoryWeight = inventoryState.totalGoldWeight18k
+                                        val inventoryValuation = if (mainUiState.rates.gold18 > 0) {
+                                            (inventoryWeight * mainUiState.rates.gold18).toLong()
+                                        } else 0L
 
-                                    DashboardScreen(
-                                        uiState = DashboardUiState(
-                                            appSettings = settingsState.appSettings,
-                                            rates = mainUiState.rates,
-                                            savedInvoiceCount = barterUiState.invoicesList.size,
-                                            gold18Charts = mainUiState.dashboardGold18Charts,
-                                            licenseInfo = licenseInfo,
-                                            totalInventoryWeight18k = inventoryWeight,
-                                            totalInventoryValuationTomans = inventoryValuation,
-                                            recentInvoices = barterUiState.invoicesList.take(5)
-                                        ),
-                                        onNavigateCalculator = {
-                                            mainViewModel.selectTab(AppTab.CALCULATOR)
-                                        },
-                                        onNavigateInvoices = {
-                                            barterInvoiceViewModel.navigateBackToList()
-                                            mainViewModel.selectTab(AppTab.INVOICES)
-                                        },
-                                        onNavigateConvert = {
-                                            mainViewModel.setKaratConvertVisible(true)
-                                        },
-                                        onNavigateCoinBubble = {
-                                            mainViewModel.setCoinBubbleVisible(true)
-                                        },
-                                        onNavigateMelt = {
-                                            mainViewModel.setMeltVisible(true)
-                                        },
-                                        onNavigateLedger = {
-                                            customerViewModel.openCustomerLedger()
-                                        },
-                                        onNavigateInventory = {
-                                            inventoryViewModel.setInventoryVisible(true)
-                                        },
-                                        onOpenLicenseActivation = {
-                                            licenseViewModel.setActivationDialogVisible(true)
-                                        },
-                                        onEnableBiometricLock = {
-                                            if (appLockViewModel != null) {
-                                                appLockViewModel.toggleBiometricLock(true) { success, message ->
-                                                    if (success) {
-                                                        settingsViewModel.loadSettings()
+                                        DashboardScreen(
+                                            uiState = DashboardUiState(
+                                                appSettings = settingsState.appSettings,
+                                                rates = mainUiState.rates,
+                                                savedInvoiceCount = barterUiState.invoicesList.size,
+                                                gold18Charts = mainUiState.dashboardGold18Charts,
+                                                licenseInfo = licenseInfo,
+                                                totalInventoryWeight18k = inventoryWeight,
+                                                totalInventoryValuationTomans = inventoryValuation,
+                                                recentInvoices = barterUiState.invoicesList.take(5)
+                                            ),
+                                            onNavigateCalculator = {
+                                                mainViewModel.selectTab(AppTab.CALCULATOR)
+                                            },
+                                            onNavigateInvoices = {
+                                                barterInvoiceViewModel.navigateBackToList()
+                                                mainViewModel.selectTab(AppTab.INVOICES)
+                                            },
+                                            onNavigateConvert = {
+                                                mainViewModel.setKaratConvertVisible(true)
+                                            },
+                                            onNavigateCoinBubble = {
+                                                mainViewModel.setCoinBubbleVisible(true)
+                                            },
+                                            onNavigateMelt = {
+                                                mainViewModel.setMeltVisible(true)
+                                            },
+                                            onNavigateLedger = {
+                                                customerViewModel.openCustomerLedger()
+                                            },
+                                            onNavigateInventory = {
+                                                inventoryViewModel.setInventoryVisible(true)
+                                            },
+                                            onOpenLicenseActivation = {
+                                                licenseViewModel.setActivationDialogVisible(true)
+                                            },
+                                            onEnableBiometricLock = {
+                                                if (appLockViewModel != null) {
+                                                    appLockViewModel.toggleBiometricLock(true) { success, message ->
+                                                        if (success) {
+                                                            settingsViewModel.loadSettings()
+                                                        }
+                                                        if (!message.isNullOrBlank()) {
+                                                            QiratoToast.show(context, message)
+                                                        }
                                                     }
-                                                    if (!message.isNullOrBlank()) {
-                                                        QiratoToast.show(context, message)
+                                                } else {
+                                                    settingsViewModel.toggleBiometricLock(true)
+                                                }
+                                            },
+                                            onDismissBiometricTip = {
+                                                settingsViewModel.dismissBiometricTip()
+                                            }
+                                        )
+                                    }
+
+                                    AppTab.RATES -> {
+                                        LiveRatesScreen(
+                                            uiState = MarketRatesUiState(
+                                                rates = mainUiState.rates,
+                                                isRefreshing = mainUiState.isRefreshingRates,
+                                                todayCandlesByType = mainUiState.todayCandlesByType
+                                            ),
+                                            onRefresh = { mainViewModel.refreshRates() },
+                                            onNavigateCalculator = {
+                                                mainViewModel.selectTab(AppTab.CALCULATOR)
+                                            },
+                                            onNavigateRateDetail = { rateType ->
+                                                mainViewModel.openRateDetail(rateType)
+                                            }
+                                        )
+                                    }
+
+                                    AppTab.CALCULATOR -> {
+                                        JewelryTab(
+                                            viewModel = mainViewModel,
+                                            uiState = mainUiState.toJewelryUiState(),
+                                            onAddToInvoice = {
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                                                } else {
+                                                    val res = mainUiState.jewelryResult
+                                                    val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                                        PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                                        mainUiState.priceBasisTab
+                                                    ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
+
+                                                    if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
+                                                        barterInvoiceViewModel.openNewInvoice(currentSpot)
+                                                    }
+
+                                                    if (res != null) {
+                                                        val customKarat = PersianNumberFormatter.parseToCleanLong(mainUiState.karatInput)?.toInt() ?: 750
+                                                        val wageInputVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.wageInput) ?: 0.0
+                                                        val profitVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.profitPercentInput) ?: 0.0
+                                                        val taxVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.taxPercentInput) ?: 0.0
+
+                                                        val barterItem = BarterCalculationUseCases.calculateCraftedItem(
+                                                            title = mainUiState.itemTitleInput.ifBlank { "دستبند و زیورآلات ساخته شده" },
+                                                            karat = mainUiState.selectedKarat,
+                                                            customKaratValue = customKarat,
+                                                            grossWeight = res.grossWeight,
+                                                            stoneWeight = res.stoneWeight,
+                                                            spotPrice18k = currentSpot,
+                                                            wageType = mainUiState.wageType,
+                                                            wageInput = wageInputVal,
+                                                            profitPercent = profitVal,
+                                                            taxPercent = taxVal
+                                                        )
+                                                        barterInvoiceViewModel.addSalesItem(barterItem)
+                                                        mainViewModel.addItemToInvoice()
+                                                        mainViewModel.selectTab(AppTab.INVOICES)
+                                                        QiratoToast.show(context, "قطعه به سبد فاکتور افزوده شد ✓")
+                                                    } else {
+                                                        mainViewModel.addItemToInvoice()
+                                                        mainViewModel.selectTab(AppTab.INVOICES)
                                                     }
                                                 }
-                                            } else {
-                                                settingsViewModel.toggleBiometricLock(true)
                                             }
-                                        },
-                                        onDismissBiometricTip = {
-                                            settingsViewModel.dismissBiometricTip()
-                                        }
-                                    )
-                                }
+                                        )
+                                    }
 
-                                AppTab.RATES -> {
-                                    LiveRatesScreen(
-                                        uiState = MarketRatesUiState(
-                                            rates = mainUiState.rates,
-                                            isRefreshing = mainUiState.isRefreshingRates,
-                                            todayCandlesByType = mainUiState.todayCandlesByType
-                                        ),
-                                        onRefresh = { mainViewModel.refreshRates() },
-                                        onNavigateCalculator = {
-                                            mainViewModel.selectTab(AppTab.CALCULATOR)
-                                        },
-                                        onNavigateRateDetail = { rateType ->
-                                            mainViewModel.openRateDetail(rateType)
-                                        }
-                                    )
-                                }
-
-                                AppTab.CALCULATOR -> {
-                                    JewelryTab(
-                                        viewModel = mainViewModel,
-                                        uiState = mainUiState.toJewelryUiState(),
-                                        onAddToInvoice = {
-                                            if (!licenseInfo.isLicensed) {
-                                                licenseViewModel.setActivationDialogVisible(true)
-                                                QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
-                                            } else {
-                                                val res = mainUiState.jewelryResult
-                                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
-                                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
-                                                    mainUiState.priceBasisTab
-                                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-
-                                                if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
+                                    AppTab.INVOICES -> {
+                                        InvoicesManagementScreen(
+                                            uiState = barterUiState,
+                                            onRetry = barterInvoiceViewModel::reloadInvoices,
+                                            onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
+                                            onFilterSelect = barterInvoiceViewModel::setSelectedFilter,
+                                            onNewInvoiceClick = {
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                                                } else {
+                                                    val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
+                                                        PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
+                                                        mainUiState.priceBasisTab
+                                                    ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
                                                     barterInvoiceViewModel.openNewInvoice(currentSpot)
                                                 }
-
-                                                if (res != null) {
-                                                    val customKarat = PersianNumberFormatter.parseToCleanLong(mainUiState.karatInput)?.toInt() ?: 750
-                                                    val wageInputVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.wageInput) ?: 0.0
-                                                    val profitVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.profitPercentInput) ?: 0.0
-                                                    val taxVal = PersianNumberFormatter.parsePersianOrEnglish(mainUiState.taxPercentInput) ?: 0.0
-
-                                                    val barterItem = BarterCalculationUseCases.calculateCraftedItem(
-                                                        title = mainUiState.itemTitleInput.ifBlank { "دستبند و زیورآلات ساخته شده" },
-                                                        karat = mainUiState.selectedKarat,
-                                                        customKaratValue = customKarat,
-                                                        grossWeight = res.grossWeight,
-                                                        stoneWeight = res.stoneWeight,
-                                                        spotPrice18k = currentSpot,
-                                                        wageType = mainUiState.wageType,
-                                                        wageInput = wageInputVal,
-                                                        profitPercent = profitVal,
-                                                        taxPercent = taxVal
-                                                    )
-                                                    barterInvoiceViewModel.addSalesItem(barterItem)
-                                                    mainViewModel.addItemToInvoice()
-                                                    mainViewModel.selectTab(AppTab.INVOICES)
-                                                    QiratoToast.show(context, "قطعه به سبد فاکتور افزوده شد ✓")
-                                                } else {
-                                                    mainViewModel.addItemToInvoice()
-                                                    mainViewModel.selectTab(AppTab.INVOICES)
+                                            },
+                                            onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
+                                            onSettleInvoice = { item -> item.barterInvoice?.let { inv ->
+                                                if (inv.syncWithLedger && inv.customer != null) settlementViewModel.open(requireNotNull(inv.customer), inv.id)
+                                                else barterInvoiceViewModel.openSettlementShortcut(inv)
+                                            } },
+                                            onDeleteInvoice = { invoiceId ->
+                                                barterInvoiceViewModel.deleteInvoice(invoiceId) { deleted ->
+                                                    if (deleted) customerViewModel.loadCustomers()
+                                                    QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
                                                 }
-                                            }
-                                        }
-                                    )
-                                }
-
-                                AppTab.INVOICES -> {
-                                    InvoicesManagementScreen(
-                                        uiState = barterUiState,
-                                        onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
-                                        onFilterSelect = barterInvoiceViewModel::setSelectedFilter,
-                                        onNewInvoiceClick = {
-                                            if (!licenseInfo.isLicensed) {
-                                                licenseViewModel.setActivationDialogVisible(true)
-                                                QiratoToast.show(context, "جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
-                                            } else {
-                                                val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
-                                                    PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
-                                                    mainUiState.priceBasisTab
-                                                ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-                                                barterInvoiceViewModel.openNewInvoice(currentSpot)
-                                            }
-                                        },
-                                        onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
-                                        onSettleInvoice = { item -> item.barterInvoice?.let { inv ->
-                                            if (inv.syncWithLedger && inv.customer != null) settlementViewModel.open(requireNotNull(inv.customer), inv.id)
-                                            else barterInvoiceViewModel.openSettlementShortcut(inv)
-                                        } },
-                                        onDeleteInvoice = { invoiceId ->
-                                            if (barterInvoiceViewModel.deleteInvoice(invoiceId)) {
-                                                customerViewModel.loadCustomers()
-                                            }
-                                            QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
-                                        },
-                                        onPrintClick = { item ->
-                                            if (!licenseInfo.isLicensed) {
-                                                licenseViewModel.setActivationDialogVisible(true)
-                                                QiratoToast.show(context, "چاپ فاکتور نیازمند اشتراک معتبر است.")
-                                            } else {
-                                                val invoice = item.barterInvoice
-                                                if (invoice == null) {
-                                                    QiratoToast.show(context, "اطلاعات کامل فاکتور برای چاپ موجود نیست")
+                                            },
+                                            onPrintClick = { item ->
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "چاپ فاکتور نیازمند اشتراک معتبر است.")
                                                 } else {
-                                                    openPdfPreview(invoice)
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-
-                                AppTab.MORE -> {
-                                    MoreHubScreen(
-                                        onOpenCloudSettings = { showCloudSettings = true },
-                                        cloudEnabled = cloudState.enabled,
-                                        cloudStatus = cloudState.status.title(),
-                                        onToggleCloud = { enabled ->
-                                            if (enabled) {
-                                                if (cloudState.phone.isBlank() || cloudState.status == com.goldex.companion.data.sync.SyncStatus.AUTH_REQUIRED) {
-                                                    showCloudSettings = true
-                                                } else {
-                                                    cloudViewModel.setEnabled(true)
-                                                }
-                                            } else {
-                                                cloudViewModel.setEnabled(false)
-                                            }
-                                        },
-                                        settings = settingsState.appSettings,
-                                        customerCount = customerState.customerList.size,
-                                        inventoryWeight = inventoryState.totalGoldWeight18k,
-                                        isDarkTheme = mainUiState.isDarkTheme,
-                                        licenseInfo = licenseInfo,
-                                        onOpenLicenseActivation = {
-                                            licenseViewModel.setActivationDialogVisible(true)
-                                        },
-                                        onToggleTheme = mainViewModel::toggleTheme,
-                                        onToggleBiometricLock = { enabled ->
-                                            if (appLockViewModel != null) {
-                                                appLockViewModel.toggleBiometricLock(enabled) { success, message ->
-                                                    if (success) {
-                                                        settingsViewModel.loadSettings()
-                                                    }
-                                                    if (!message.isNullOrBlank()) {
-                                                        QiratoToast.show(context, message)
+                                                    val invoice = item.barterInvoice
+                                                    if (invoice == null) {
+                                                        QiratoToast.show(context, "اطلاعات کامل فاکتور برای چاپ موجود نیست")
+                                                    } else {
+                                                        openPdfPreview(invoice)
                                                     }
                                                 }
-                                            } else {
-                                                settingsViewModel.toggleBiometricLock(enabled)
                                             }
-                                        },
-                                        onCheckForUpdates = {
-                                            updateViewModel.checkForUpdates(manual = true) { isAvailable ->
-                                                if (!isAvailable) {
-                                                    QiratoToast.show(context, "آخرین نسخه نصب شده است")
+                                        )
+                                    }
+
+                                    AppTab.MORE -> {
+                                        MoreHubScreen(
+                                            onOpenCloudSettings = { showCloudSettings = true },
+                                            cloudEnabled = cloudState.enabled,
+                                            cloudStatus = cloudState.status.title(),
+                                            onToggleCloud = { enabled ->
+                                                if (enabled) {
+                                                    if (cloudState.phone.isBlank() || cloudState.status == com.goldex.companion.data.sync.SyncStatus.AUTH_REQUIRED) {
+                                                        showCloudSettings = true
+                                                    } else {
+                                                        cloudViewModel.setEnabled(true)
+                                                    }
+                                                } else {
+                                                    cloudViewModel.setEnabled(false)
                                                 }
+                                            },
+                                            settings = settingsState.appSettings,
+                                            customerCount = customerState.customerList.size,
+                                            inventoryWeight = inventoryState.totalGoldWeight18k,
+                                            isDarkTheme = mainUiState.isDarkTheme,
+                                            licenseInfo = licenseInfo,
+                                            onOpenLicenseActivation = {
+                                                licenseViewModel.setActivationDialogVisible(true)
+                                            },
+                                            onToggleTheme = mainViewModel::toggleTheme,
+                                            onToggleBiometricLock = { enabled ->
+                                                if (appLockViewModel != null) {
+                                                    appLockViewModel.toggleBiometricLock(enabled) { success, message ->
+                                                        if (success) {
+                                                            settingsViewModel.loadSettings()
+                                                        }
+                                                        if (!message.isNullOrBlank()) {
+                                                            QiratoToast.show(context, message)
+                                                        }
+                                                    }
+                                                } else {
+                                                    settingsViewModel.toggleBiometricLock(enabled)
+                                                }
+                                            },
+                                            onCheckForUpdates = {
+                                                updateViewModel.checkForUpdates(manual = true) { isAvailable ->
+                                                    if (!isAvailable) {
+                                                        QiratoToast.show(context, "آخرین نسخه نصب شده است")
+                                                    }
+                                                }
+                                            },
+                                            onNavigateLedger = {
+                                                customerViewModel.openCustomerLedger()
+                                            },
+                                            onNavigateMelt = {
+                                                mainViewModel.setMeltVisible(true)
+                                            },
+                                            onNavigateInventory = {
+                                                inventoryViewModel.setInventoryVisible(true)
+                                            },
+                                            onNavigateConvert = {
+                                                mainViewModel.setKaratConvertVisible(true)
+                                            },
+                                            onNavigateCoinBubble = {
+                                                mainViewModel.setCoinBubbleVisible(true)
+                                            },
+                                            onNavigateReporting = {
+                                                reportingViewModel.setReportingVisible(true)
+                                            },
+                                            onOpenTaxProfitModal = {
+                                                settingsViewModel.setTaxProfitModalVisible(true)
+                                            },
+                                            onOpenPriceSourceModal = {
+                                                settingsViewModel.setPriceSourceModalVisible(true)
+                                            },
+                                            onOpenJewelerProfile = {
+                                                settingsViewModel.setJewelerProfileModalVisible(true)
+                                            },
+                                            onNavigateStandardFormulas = {
+                                                mainViewModel.setStandardFormulasVisible(true)
+                                            },
+                                            onOpenOnboardingWizard = {
+                                                mainViewModel.setWizardVisible(true)
                                             }
-                                        },
-                                        onNavigateLedger = {
-                                            customerViewModel.openCustomerLedger()
-                                        },
-                                        onNavigateMelt = {
-                                            mainViewModel.setMeltVisible(true)
-                                        },
-                                        onNavigateInventory = {
-                                            inventoryViewModel.setInventoryVisible(true)
-                                        },
-                                        onNavigateConvert = {
-                                            mainViewModel.setKaratConvertVisible(true)
-                                        },
-                                        onNavigateCoinBubble = {
-                                            mainViewModel.setCoinBubbleVisible(true)
-                                        },
-                                        onNavigateReporting = {
-                                            reportingViewModel.setReportingVisible(true)
-                                        },
-                                        onOpenTaxProfitModal = {
-                                            settingsViewModel.setTaxProfitModalVisible(true)
-                                        },
-                                        onOpenPriceSourceModal = {
-                                            settingsViewModel.setPriceSourceModalVisible(true)
-                                        },
-                                        onOpenJewelerProfile = {
-                                            settingsViewModel.setJewelerProfileModalVisible(true)
-                                        },
-                                        onNavigateStandardFormulas = {
-                                            mainViewModel.setStandardFormulasVisible(true)
-                                        },
-                                        onOpenOnboardingWizard = {
-                                            mainViewModel.setWizardVisible(true)
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
-                            }
+                                }
                         }
-
-                        // Clearance spacer so content scrolls cleanly above the floating dock
-                        Spacer(modifier = Modifier.height(78.dp))
                     }
 
                     // Floating New Invoice Action Button (Sticky above GlassmorphicDock)
@@ -927,6 +928,7 @@ fun MainScreen(
             ) {
                 InventoryScreen(
                     uiState = inventoryState,
+                    onRetry = inventoryViewModel::loadItems,
                     rates = mainUiState.rates,
                     onBack = { inventoryViewModel.setInventoryVisible(false) },
                     onSelectCategory = inventoryViewModel::selectCategory,
@@ -1016,9 +1018,10 @@ fun MainScreen(
                         QiratoToast.show(context, "ارسال پیامک فاکتور به شماره طرف حساب...")
                     },
                     onFinalSubmit = {
-                        barterInvoiceViewModel.submitAndSaveCurrentInvoice()
-                        customerViewModel.loadCustomers()
-                        QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
+                        barterInvoiceViewModel.submitAndSaveCurrentInvoice {
+                            customerViewModel.loadCustomers()
+                            QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
+                        }
                     },
                     onNavigateBack = {
                         barterInvoiceViewModel.navigateBackToList()
@@ -1037,6 +1040,7 @@ fun MainScreen(
             ) {
                 CustomerLedgerScreen(
                     uiState = customerState,
+                    onRetry = customerViewModel::loadCustomers,
                     onSearchQueryChange = { customerViewModel.setSearchQuery(it) },
                     onFilterSelect = { customerViewModel.setLedgerFilter(it) },
                     onOpenStatement = { customerViewModel.openCustomerStatement(it) },
@@ -1059,11 +1063,15 @@ fun MainScreen(
                         customer = statementCustomer,
                         transactions = customerState.filteredStatementTransactions,
                         allTransactions = customerState.activeCustomerTransactions,
+                        runningBalances = customerState.statementBalances,
+                        isLoading = customerState.isLoading,
+                        error = customerState.error,
+                        onRetry = { customerViewModel.openCustomerStatement(statementCustomer) },
                         selectedFilter = customerState.selectedStatementFilter,
                         onFilterSelect = { customerViewModel.setStatementFilter(it) },
                         onOpenAddEntry = { if (kotlin.math.abs(statementCustomer.goldDebtGrams) > 1e-10 || statementCustomer.cashDebtTomans != 0L) settlementViewModel.open(statementCustomer) else customerViewModel.openAddLedgerEntry(statementCustomer) },
                         onEditTransaction = { if (it.settlement == null) customerViewModel.openEditLedgerEntry(it) },
-                        onDeleteTransaction = { customerViewModel.deleteLedgerEntry(it); barterInvoiceViewModel.reloadInvoices() },
+                        onDeleteTransaction = { customerViewModel.deleteLedgerEntry(it) { barterInvoiceViewModel.reloadInvoices() } },
                         onBack = { customerViewModel.closeCustomerStatement() }
                     )
                 }
@@ -1083,7 +1091,8 @@ fun MainScreen(
                     onOpenBreakdown = reportingViewModel::openBreakdown,
                     onOpenCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(true) },
                     onCloseCustomDateDialog = { reportingViewModel.setCustomDateDialogVisible(false) },
-                    onSubmitCustomRange = reportingViewModel::setCustomDateRange
+                    onSubmitCustomRange = reportingViewModel::setCustomDateRange,
+                    onRetry = reportingViewModel::loadData
                 )
             }
 

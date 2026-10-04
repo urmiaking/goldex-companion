@@ -919,6 +919,10 @@ fun CustomerSettlementModal(
                     }
                 }
 
+                if (state.isLoading) {
+                    com.goldex.companion.ui.components.RecordListStatus(isLoading = true, error = null)
+                }
+
                 // Fixed Sticky Footer (Cancel on Right, Confirm on Left)
                 Column(
                     modifier = Modifier
@@ -955,7 +959,7 @@ fun CustomerSettlementModal(
                                 onClick = onConfirm,
                                 isSecondary = false,
                                 icon = InvoiceCheckVector,
-                                enabled = preview != null && state.error == null,
+                                enabled = preview != null && state.error == null && !state.isLoading && !state.isSaving,
                                 isLoading = state.isSaving,
                                 modifier = Modifier
                                     .weight(1.3f)

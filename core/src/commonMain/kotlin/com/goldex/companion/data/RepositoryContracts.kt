@@ -22,6 +22,8 @@ interface CustomerStore {
     fun deleteTransaction(id: String) {}
     fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransaction> = emptyList()
     fun deleteTransactionsByInvoiceId(invoiceId: String) {}
+    fun getTransactionsByInvoiceIds(invoiceIds: List<String>): List<LedgerTransaction> =
+        invoiceIds.distinct().flatMap { getTransactionsByInvoiceId(it) }
 }
 
 interface InventoryStore {

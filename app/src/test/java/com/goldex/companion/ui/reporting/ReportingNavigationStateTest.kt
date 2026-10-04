@@ -16,6 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReportingNavigationStateTest {
+    @get:org.junit.Rule val featureMain = com.goldex.companion.ui.FeatureMainDispatcherRule()
     @Test
     fun openingAndLeavingReportKeepsGatewayNavigationConsistent() {
         val viewModel = ReportingViewModel(
@@ -40,6 +41,7 @@ class ReportingNavigationStateTest {
                 override fun adjustStock(adjustment: StockAdjustment) = Unit
                 override fun getAdjustments(): List<StockAdjustment> = emptyList()
             },
+            workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
             settingsStore = object : SettingsStore {
                 override val settings: StateFlow<AppSettings> = MutableStateFlow(AppSettings())
                 override fun loadSettings(): AppSettings = settings.value

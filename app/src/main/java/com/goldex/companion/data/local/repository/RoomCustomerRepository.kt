@@ -49,6 +49,9 @@ class RoomCustomerRepository(
         write { ledgerDao.deleteByIdSync(id); sync?.changed("ledger", id, null) }
     }
 
+    override fun getTransactionsByInvoiceIds(invoiceIds: List<String>): List<LedgerTransaction> =
+        invoiceIds.distinct().chunked(500).flatMap { ids -> ledgerDao.queryByInvoiceIds(ids).map { it.toDomain() } }
+
     override fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransaction> {
         return ledgerDao.queryByInvoiceId(invoiceId).map { it.toDomain() }
     }
