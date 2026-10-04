@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.domain.reporting.*
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.RecordListStatus
 import com.goldex.companion.ui.hub.HubArrowRight
 import com.goldex.companion.ui.hub.HubChevronLeft
 import com.goldex.companion.ui.theme.ButtonShape
@@ -44,7 +45,8 @@ fun ReportingScreen(
     onOpenBreakdown: (ReportingBreakdownType) -> Unit,
     onOpenCustomDateDialog: () -> Unit,
     onCloseCustomDateDialog: () -> Unit,
-    onSubmitCustomRange: (startMs: Long, endMs: Long, startShamsi: String, endShamsi: String) -> Unit
+    onSubmitCustomRange: (startMs: Long, endMs: Long, startShamsi: String, endShamsi: String) -> Unit,
+    onRetry: () -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
     val scrollState = rememberScrollState()
@@ -65,6 +67,9 @@ fun ReportingScreen(
             // 1. Period Filter Chips Row
             // ==========================================
             ReportingPeriodFilters(uiState, onSelectPeriod, onOpenCustomDateDialog)
+            if (uiState.isLoading || uiState.error != null) {
+                RecordListStatus(uiState.isLoading, uiState.error, onRetry)
+            }
 
             // ==========================================
             // 2. Hero KPI Vault Card

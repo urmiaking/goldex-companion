@@ -316,10 +316,20 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 
 - The market layer contains provider-specific HTTP and parsing code.
 - ViewModel/presentation code, Room 2.6.1, WorkManager, cloud coordinator/JSON form state, PDF/files and biometrics remain Android-owned. A JVM-tested core is not yet a Windows application.
-- Repository methods remain synchronous and Room permits main-thread queries; changing threading is a separate migration.
+- Repository ports remain synchronous. Invoice, customer/statement, inventory and settlement feature ViewModels execute reads/writes and snapshot projections through a serial coroutine queue on an injected dispatcher (IO by default). Reports load on opening, rather than during shell construction. Room still permits main-thread queries for retained settings/onboarding/portfolio compatibility paths; this is not permission for new list operations to run on Main.
 - Native iOS actual services, common UI, desktop packaging and other platform signing are not implemented.
 - Existing Double money fields and large-number formatting semantics remain unchanged for compatibility.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 
 These are tracked migration items, not reasons to break existing features through a broad rewrite.
+
+### Large financial lists (0.56.35)
+
+Invoice, customer, customer-statement and inventory screens expose individual records as keyed LazyColumn items with reusable content types. A list is never wrapped inside one animated item containing all cards. Each animated main destination owns its scroll container, so outgoing invoice lists retain finite height while switching tabs. Existing cards, RTL, navigation and floating actions are retained.
+
+FeatureWorkQueue serializes feature operations, surfaces failures and supports retry. Synchronous financial transactions run without suspension inside one worker invocation, preserving RoomSyncUnitOfWork's thread-local transaction/outbox context. Success callbacks follow completed persistence; write guards reject repeat submissions while saving. Statement and settlement reads check the current selection/request before publication, including failures, to prevent late results reopening or replacing another customer's screen.
+
+CustomerStore exposes a compatible bulk invoice-ledger read. Room implements it with distinct IDs in batches of 500, using the existing invoiceId index; no entity, schema version or persisted shape changes. Invoice cards use a ledger snapshot and ID-indexed transfer projection instead of per-invoice reads and repeated full-list rewrites. Snapshot totals are built outside composition, filters are cached per immutable state, and historical statement balances belong to core domain/customers/CustomerStatementBalances.kt.
+
+All record snapshots are still loaded into memory. This change bounds composed UI rows and removes Main-thread database work in these features; it does not introduce database paging. See ADR 0009 and docs/testing/large-record-lists.md for coverage and device profiling limits.
 Cloud settings opens from the existing More Hub settings group in a bottom-anchored modal with Stitch luxury styling, featuring top gold accent hairline, animated pulse status indicator, auto-sync master toggle card with shop name, central vault server metrics with latency and AES-256 encryption status, and storage quota progress bar (50 MB trial quota, 5 GB permanent license quota). Sync preferences cover invoices, ledgers, inventory balance, and photo assets with a Wi-Fi-only toggle. CloudAccountActions provides manual sync, offline backup exports, and collapsed maintenance options. See docs/adr/0005-cloud-settings-modal.md.

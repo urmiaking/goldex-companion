@@ -49,6 +49,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -79,6 +80,7 @@ fun CustomerLedgerScreen(
     onOpenAddEntry: (Customer) -> Unit,
     onAddNewCustomer: () -> Unit,
     onBack: () -> Unit,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -189,12 +191,18 @@ fun CustomerLedgerScreen(
         ) { innerPadding ->
             // Scrollable List of Elements
             LazyColumn(
-                modifier = Modifier
+                modifier = Modifier.testTag("customer-list")
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (uiState.isLoading || uiState.error != null) {
+                    item(key = "loadStatus", contentType = "loadStatus") {
+                        com.goldex.companion.ui.components.RecordListStatus(uiState.isLoading, uiState.error, onRetry)
+                    }
+                }
+
                 // Item A: Master Portfolio Ledger Summary Card (Obsidian)
                 item {
                     MasterPortfolioLedgerSummaryCard(uiState = uiState)
@@ -370,54 +378,41 @@ fun CustomerLedgerScreen(
                     }
                 }
 
-                // Items E: Customers Cards with Filter Transition Animation
-                item {
-                    AnimatedContent(
-                        targetState = Pair(uiState.selectedLedgerFilter, customers),
-                        transitionSpec = {
-                            (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                        },
-                        label = "customerListFilterTransition"
-                    ) { (_, list) ->
-                        if (list.isEmpty()) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
+                // Each record is a lazy item; off-screen cards are not composed.
+                if (customers.isEmpty() && !uiState.isLoading && uiState.error == null) {
+                    item(key = "empty", contentType = "empty") {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp)
+                        ) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 24.dp)
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "طرف‌حسابی با این مشخصات یافت نشد",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.textMuted,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                list.forEach { customer ->
-                                    CustomerLedgerCard(
-                                        customer = customer,
-                                        onOpenStatement = { onOpenStatement(customer) },
-                                        onOpenAddEntry = { onOpenAddEntry(customer) }
-                                    )
-                                }
+                                Text(
+                                    text = "طرف‌حسابی با این مشخصات یافت نشد",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
                             }
                         }
+                    }
+                } else {
+                    items(customers, key = { "customer-list:${it.id}" }, contentType = { "CustomerLedgerCard" }) { customer ->
+                        CustomerLedgerCard(
+                            customer = customer,
+                            onOpenStatement = { onOpenStatement(customer) },
+                            onOpenAddEntry = { onOpenAddEntry(customer) }
+                        )
                     }
                 }
 

@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -85,15 +86,15 @@ fun CustomerStatementScreen(
     onEditTransaction: (LedgerTransaction) -> Unit = {},
     onDeleteTransaction: (LedgerTransaction) -> Unit = {},
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    onRetry: () -> Unit = {},
+    isLoading: Boolean = false,
+    error: String? = null,
+    modifier: Modifier = Modifier,
+    runningBalances: Map<String, Pair<Double, Long>> = emptyMap()
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
     var transactionToDelete by remember { mutableStateOf<LedgerTransaction?>(null) }
-
-    val runningBalances = remember(customer, allTransactions) {
-        calculateRunningBalances(customer, allTransactions)
-    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
@@ -226,11 +227,17 @@ fun CustomerStatementScreen(
             ) {
                 // Scrollable List Content with Hero Card & Filters as Header
                 LazyColumn(
-                    modifier = Modifier
+                    modifier = Modifier.testTag("statement-list")
                         .fillMaxSize()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    if (isLoading || error != null) {
+                        item(key = "loadStatus", contentType = "loadStatus") {
+                            com.goldex.companion.ui.components.RecordListStatus(isLoading, error, onRetry)
+                        }
+                    }
+
                     // Item A: Customer Hero Balance Card (Obsidian)
                     item {
                         Surface(
@@ -502,61 +509,51 @@ fun CustomerStatementScreen(
                         }
                     }
 
-                    // Items D: Transactions Timeline with Smooth Filter Transition
-                    item {
-                        AnimatedContent(
-                            targetState = Pair(selectedFilter, transactions),
-                            transitionSpec = {
-                                (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                            },
-                            label = "statementTransactionsTransition"
-                        ) { (_, txList) ->
-                            if (txList.isEmpty()) {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = colors.surfaceElevated,
-                                    border = BorderStroke(0.6.dp, colors.border),
+                    // Each record is a lazy item; off-screen cards are not composed.
+                    if (transactions.isEmpty() && !isLoading && error == null) {
+                        item(key = "empty", contentType = "empty") {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(0.6.dp, colors.border),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            ) {
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(20.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = LedgerReceiptVector,
-                                            contentDescription = null,
-                                            tint = colors.textMuted,
-                                            modifier = Modifier.size(36.dp)
-                                        )
-                                        Text(
-                                            text = "سندی در این دسته‌بندی یافت نشد",
-                                            fontSize = 12.5.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = colors.textMuted,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                    }
-                                }
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    txList.forEach { tx ->
-                                        val balances = runningBalances[tx.id]
-                                        val computedGold = balances?.first ?: tx.resultingGoldBalance
-                                        val computedCash = balances?.second ?: tx.resultingCashBalance
-                                        StatementTransactionCard(
-                                            transaction = tx,
-                                            computedGoldBalance = computedGold,
-                                            computedCashBalance = computedCash,
-                                            onEditClick = { onEditTransaction(tx) },
-                                            onDeleteClick = { transactionToDelete = tx }
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = LedgerReceiptVector,
+                                        contentDescription = null,
+                                        tint = colors.textMuted,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Text(
+                                        text = "سندی در این دسته‌بندی یافت نشد",
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textMuted,
+                                        fontFamily = VazirmatnFamily
+                                    )
                                 }
                             }
+                        }
+                    } else {
+                        items(transactions, key = { "statement-list:${it.id}" }, contentType = { "StatementTransactionCard" }) { tx ->
+                            val balances = runningBalances[tx.id]
+                            val computedGold = balances?.first ?: tx.resultingGoldBalance
+                            val computedCash = balances?.second ?: tx.resultingCashBalance
+                            StatementTransactionCard(
+                                transaction = tx,
+                                computedGoldBalance = computedGold,
+                                computedCashBalance = computedCash,
+                                onEditClick = { onEditTransaction(tx) },
+                                onDeleteClick = { transactionToDelete = tx }
+                            )
                         }
                     }
 
@@ -1202,27 +1199,5 @@ private fun StatementTransactionCard(
  * for every transaction in a customer's statement, based on the customer's authoritative balances.
  * Tracing backwards from the current balance ensures historical integrity and eliminates 0-balance display.
  */
-fun calculateRunningBalances(
-    customer: Customer,
-    allTransactions: List<LedgerTransaction>
-): Map<String, Pair<Double, Long>> {
-    val sortedNewestFirst = allTransactions.sortedWith(
-        compareByDescending<LedgerTransaction> { it.timestamp }
-            .thenByDescending { it.dateTime }
-    )
-
-    var currentGold = customer.goldDebtGrams
-    var currentCash = customer.cashDebtTomans
-
-    val resultMap = mutableMapOf<String, Pair<Double, Long>>()
-
-    for (tx in sortedNewestFirst) {
-        resultMap[tx.id] = Pair(currentGold, currentCash)
-
-        val effect = tx.balanceEffect()
-        currentGold -= effect.goldGrams
-        currentCash -= effect.cashTomans
-    }
-
-    return resultMap
-}
+fun calculateRunningBalances(customer: Customer, allTransactions: List<LedgerTransaction>): Map<String, Pair<Double, Long>> =
+    com.goldex.companion.domain.customers.customerStatementBalances(customer, allTransactions)

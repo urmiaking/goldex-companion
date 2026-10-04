@@ -30,6 +30,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FeatureStateSplitTest {
+    @get:org.junit.Rule val featureMain = com.goldex.companion.ui.FeatureMainDispatcherRule()
+
 
     @Test
     fun customerManagerKeepsSelectionInSyncWhenDeletingSelectedCustomer() {
@@ -52,7 +54,7 @@ class FeatureStateSplitTest {
             override fun deleteTransaction(id: String) { txList.removeIf { it.id == id } }
         }
 
-        val viewModel = CustomerManagerViewModel(fakeStore)
+        val viewModel = CustomerManagerViewModel(fakeStore, workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         val customer = Customer(id = "c-1", name = "رضا")
 
         viewModel.setCustomers(listOf(customer))
@@ -75,7 +77,7 @@ class FeatureStateSplitTest {
             override fun deleteInvoice(id: String) { list.removeIf { it.id == id } }
         }
 
-        val viewModel = InvoiceManagerViewModel(fakeStore)
+        val viewModel = InvoiceManagerViewModel(fakeStore, workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined)
         val invoice = Invoice(id = "inv-1", invoiceNumber = "101")
 
         viewModel.saveInvoice(invoice)

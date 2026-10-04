@@ -20,6 +20,9 @@ interface LedgerTransactionDao {
     @Query("SELECT * FROM ledger_transactions WHERE invoiceId = :invoiceId")
     fun queryByInvoiceId(invoiceId: String): List<LedgerTransactionEntity>
 
+    @Query("SELECT * FROM ledger_transactions WHERE invoiceId IN (:invoiceIds)")
+    fun queryByInvoiceIds(invoiceIds: List<String>): List<LedgerTransactionEntity>
+
     @Query("SELECT * FROM ledger_transactions WHERE invoiceId = :invoiceId")
     suspend fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransactionEntity>
 

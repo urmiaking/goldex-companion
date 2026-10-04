@@ -343,6 +343,8 @@ fun BarterInvoiceScreen(
                     GoldButton(
                         text = "ثبت نهایی و صدور فاکتور رسمی تهاتر",
                         onClick = onFinalSubmit,
+                        enabled = !uiState.isLoading && !uiState.isSaving,
+                        isLoading = uiState.isSaving,
                         icon = InvoiceCheckVector,
                         modifier = Modifier.fillMaxWidth()
                     )

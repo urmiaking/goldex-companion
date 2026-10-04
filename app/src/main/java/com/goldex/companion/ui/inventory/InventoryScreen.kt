@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -139,7 +141,8 @@ fun InventoryScreen(
     onSaveNewItem: (InventoryItem) -> Unit,
     onConfirmAdjustment: (StockAdjustment) -> Unit,
     onDeleteItem: (String) -> Unit,
-    onTransferToInvoice: (InventoryItem) -> Unit
+    onTransferToInvoice: (InventoryItem) -> Unit,
+    onRetry: () -> Unit = {},
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
@@ -258,12 +261,18 @@ fun InventoryScreen(
             }
         ) { innerPadding ->
             LazyColumn(
-                modifier = Modifier
+                modifier = Modifier.testTag("inventory-list")
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (uiState.isLoading || uiState.error != null) {
+                    item(key = "loadStatus", contentType = "loadStatus") {
+                        com.goldex.companion.ui.components.RecordListStatus(uiState.isLoading, uiState.error, onRetry)
+                    }
+                }
+
                 // 1. Vault Master Valuation Card (Dark Sovereign Obsidian Card)
                 item {
                     Box(
@@ -473,76 +482,63 @@ fun InventoryScreen(
                     }
                 }
 
-                // 5. Products List with Filter Transition Animation
-                item {
-                    AnimatedContent(
-                        targetState = Pair(uiState.selectedCategory, itemsList),
-                        transitionSpec = {
-                            (LuxuryMotion.FilterEnter).togetherWith(LuxuryMotion.FilterExit)
-                        },
-                        label = "inventoryFilterTransition"
-                    ) { (_, list) ->
-                        if (list.isEmpty()) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
+                // Each record is a lazy item; off-screen cards are not composed.
+                if (itemsList.isEmpty() && !uiState.isLoading && uiState.error == null) {
+                    item(key = "empty", contentType = "empty") {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 18.dp)
+                        ) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 18.dp)
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text(
-                                        text = "📦",
-                                        fontSize = 32.sp
-                                    )
-                                    Text(
-                                        text = "هیچ طلایی در این دسته‌بندی یافت نشد",
-                                        fontSize = 13.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMain,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                    Text(
-                                        text = "می‌توانید با دکمه زیر محصول جدیدی به ویترین اضافه کنید",
-                                        fontSize = 11.sp,
-                                        color = colors.textMuted,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    GoldButton(
-                                        text = "+ افزودن محصول به این سینی",
-                                        onClick = onOpenAddModal,
-                                        isSecondary = false,
-                                        height = 40.dp
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                list.forEach { item ->
-                                    InventoryItemCard(
-                                        item = item,
-                                        spotPrice18k = spotPrice,
-                                        onTransferToInvoice = { onTransferToInvoice(item) },
-                                        onAdjustStock = { onOpenAdjustModal(item) },
-                                        onPrintTag = {
-                                            QiratoToast.show(context, "اتیکت حرارتی ${item.code} با موفقیت آماده چاپ شد")
-                                        },
-                                        onDelete = { onDeleteItem(item.id) }
-                                    )
-                                }
+                                Text(
+                                    text = "📦",
+                                    fontSize = 32.sp
+                                )
+                                Text(
+                                    text = "هیچ طلایی در این دسته‌بندی یافت نشد",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "می‌توانید با دکمه زیر محصول جدیدی به ویترین اضافه کنید",
+                                    fontSize = 11.sp,
+                                    color = colors.textMuted,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                GoldButton(
+                                    text = "+ افزودن محصول به این سینی",
+                                    onClick = onOpenAddModal,
+                                    isSecondary = false,
+                                    height = 40.dp
+                                )
                             }
                         }
+                    }
+                } else {
+                    items(itemsList, key = { "inventory-list:${it.id}" }, contentType = { "InventoryItemCard" }) { item ->
+                        InventoryItemCard(
+                            item = item,
+                            spotPrice18k = spotPrice,
+                            onTransferToInvoice = { onTransferToInvoice(item) },
+                            onAdjustStock = { onOpenAdjustModal(item) },
+                            onPrintTag = {
+                                QiratoToast.show(context, "اتیکت حرارتی ${item.code} با موفقیت آماده چاپ شد")
+                            },
+                            onDelete = { onDeleteItem(item.id) }
+                        )
                     }
                 }
 

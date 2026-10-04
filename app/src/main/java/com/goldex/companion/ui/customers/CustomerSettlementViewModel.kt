@@ -1,6 +1,10 @@
 package com.goldex.companion.ui.customers
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.goldex.companion.ui.util.FeatureWorkQueue
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceStore
 import com.goldex.companion.data.MarketRates
@@ -36,6 +40,7 @@ data class CustomerSettlementUiState(
     val note: String = "",
     val requestId: String = RandomIdGenerator.newId(),
     val isSaving: Boolean = false,
+    val isLoading: Boolean = false,
     val error: String? = null
 ) {
     val scope: OutstandingBalance get() = if (invoiceId != null) invoices.firstOrNull { it.id == invoiceId }?.balance ?: OutstandingBalance(0.0, 0)
@@ -67,22 +72,38 @@ class CustomerSettlementViewModel(
     private val customers: CustomerStore,
     private val invoices: InvoiceStore,
     private val record: RecordCustomerSettlementUseCase,
+    private val workDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val marketQuote: () -> MarketRates
 ) : ViewModel() {
     private val _state = MutableStateFlow(CustomerSettlementUiState())
     val state = _state.asStateFlow()
 
+    private val work = FeatureWorkQueue(viewModelScope, workDispatcher,
+        onBusy = {},
+        onError = { error -> _state.update { it.copy(isLoading = false, isSaving = false,
+            error = if (error is IllegalArgumentException) error.message else "عملیات تسویه انجام نشد؛ دوباره تلاش کنید") } })
+
     fun open(customer: Customer, invoiceId: String? = null) {
-        val fresh = customers.getCustomers().firstOrNull { it.id == customer.id } ?: return
-        val options = invoices.getBarterInvoices().filter { it.customer?.id == fresh.id && it.syncWithLedger }.mapNotNull {
-            val entries = customers.getTransactionsByInvoiceId(it.id)
-            val balance = invoiceOutstanding(entries)
-            if (entries.isEmpty() || balance.isSettled) null else SettlementInvoiceOption(it.id, it.cleanInvoiceNumber, balance)
+        if (_state.value.isSaving) return
+        val initial = CustomerSettlementUiState(customer = customer, invoiceId = invoiceId, isLoading = true)
+        _state.value = initial
+        work.submit(onSuccess = {
+            if (_state.value.requestId == initial.requestId) { chooseDefaultTarget(); useMarketRate() }
+        }, onFailure = { error ->
+            _state.update { if (it.requestId == initial.requestId) it.copy(isLoading = false,
+                error = if (error is IllegalArgumentException) error.message else "بارگذاری تسویه انجام نشد؛ دوباره تلاش کنید") else it }
+        }) {
+            if (_state.value.requestId != initial.requestId) return@submit
+            val fresh = customers.getCustomers().firstOrNull { it.id == customer.id } ?: error("طرف‌حساب یافت نشد")
+            val saved = invoices.getBarterInvoices().filter { it.customer?.id == fresh.id && it.syncWithLedger }
+            val entriesByInvoice = customers.getTransactionsByInvoiceIds(saved.map { it.id }).groupBy { it.invoiceId }
+            val options = saved.mapNotNull {
+                val entries = entriesByInvoice[it.id].orEmpty()
+                val balance = invoiceOutstanding(entries)
+                if (entries.isEmpty() || balance.isSettled) null else SettlementInvoiceOption(it.id, it.cleanInvoiceNumber, balance)
+            }
+            _state.update { if (it.requestId == initial.requestId) it.copy(customer = fresh, invoices = options, isLoading = false) else it }
         }
-        _state.value = CustomerSettlementUiState(customer = fresh, invoices = options,
-            invoiceId = invoiceId)
-        chooseDefaultTarget()
-        useMarketRate()
     }
 
     fun close() { if (!_state.value.isSaving) _state.value = CustomerSettlementUiState() }
@@ -153,17 +174,12 @@ class CustomerSettlementViewModel(
         } catch (_: Exception) { _state.update { it.copy(error = "برای محاسبهٔ تسویهٔ کامل، نرخ و عیار معتبر وارد کنید") } }
     }
 
-    fun confirm(): Boolean {
-        val s = _state.value
-        if (s.isSaving || s.customer == null || s.preview == null) return false
+    fun confirm(onComplete: () -> Unit = {}) {
+        val snapshot = _state.value
+        if (snapshot.isLoading || snapshot.isSaving || snapshot.customer == null || snapshot.preview == null) return
         _state.update { it.copy(isSaving = true, error = null) }
-        return try {
-            record.record(requireNotNull(s.request), s.customer, s.scope)
-            _state.value = CustomerSettlementUiState()
-            true
-        } catch (e: Exception) {
-            _state.update { it.copy(isSaving = false, error = if (e is IllegalArgumentException) e.message else "ثبت تسویه انجام نشد؛ دوباره تلاش کنید") }
-            false
+        work.submit(onSuccess = { _state.value = CustomerSettlementUiState(); onComplete() }) {
+            record.record(requireNotNull(snapshot.request), snapshot.customer, snapshot.scope)
         }
     }
 

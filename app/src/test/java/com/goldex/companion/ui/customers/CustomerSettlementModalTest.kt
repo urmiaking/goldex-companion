@@ -23,6 +23,8 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], qualifiers = "w360dp-h800dp")
 class CustomerSettlementModalTest {
+    @get:org.junit.Rule val featureMain = com.goldex.companion.ui.FeatureMainDispatcherRule()
+
     @get:Rule val compose = createComposeRule()
 
     @Test fun cashToGoldFormAcceptsCustomRateAndCommitsOnlyAfterPreview() = verifyCashSettlement()
@@ -37,7 +39,7 @@ class CustomerSettlementModalTest {
         val store = MemoryCustomers(Customer(id = "customer", name = "مشتری نمونه", goldDebtGrams = 10.0))
         val invoices = EmptyInvoices()
         val unit = object : SyncUnitOfWork { override fun <T> transaction(action: () -> T): T = action() }
-        val vm = CustomerSettlementViewModel(store, invoices, RecordCustomerSettlementUseCase(store, invoices, unit)) {
+        val vm = CustomerSettlementViewModel(store, invoices, RecordCustomerSettlementUseCase(store, invoices, unit), workDispatcher = kotlinx.coroutines.Dispatchers.Unconfined) {
             MarketRates(gold18 = 100_000_000, isLive = true, lastUpdated = "12:00:00")
         }
         vm.open(store.customer)

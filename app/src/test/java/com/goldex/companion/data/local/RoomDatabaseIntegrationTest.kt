@@ -90,6 +90,9 @@ class RoomDatabaseIntegrationTest {
         override fun queryByInvoiceId(invoiceId: String): List<LedgerTransactionEntity> =
             storage.values.filter { it.invoiceId == invoiceId }
 
+        override fun queryByInvoiceIds(invoiceIds: List<String>): List<LedgerTransactionEntity> =
+            storage.values.filter { it.invoiceId in invoiceIds }
+
         override suspend fun getTransactionsByInvoiceId(invoiceId: String): List<LedgerTransactionEntity> =
             queryByInvoiceId(invoiceId)
 
