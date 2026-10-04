@@ -398,8 +398,11 @@ private fun renderPdfPages(file: File): PdfPreviewState = runCatching {
         PdfRenderer(descriptor).use { renderer ->
             List(renderer.pageCount) { index ->
                 renderer.openPage(index).use { page ->
-                    val scale = 3
-                    Bitmap.createBitmap(page.width * scale, page.height * scale, Bitmap.Config.ARGB_8888).also { bitmap ->
+                    val targetWidth = 2048
+                    val renderScale = (targetWidth.toFloat() / page.width.toFloat()).coerceIn(1.5f, 3.5f)
+                    val outWidth = (page.width * renderScale).toInt()
+                    val outHeight = (page.height * renderScale).toInt()
+                    Bitmap.createBitmap(outWidth, outHeight, Bitmap.Config.ARGB_8888).also { bitmap ->
                         bitmap.eraseColor(AndroidColor.WHITE)
                         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     }

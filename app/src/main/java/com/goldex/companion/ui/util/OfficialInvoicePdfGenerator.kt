@@ -37,8 +37,11 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 
 object OfficialInvoicePdfGenerator {
-    private const val PAGE_WIDTH = 595
-    private const val PAGE_HEIGHT = 420
+    private const val BASE_PAGE_WIDTH = 595f
+    private const val BASE_PAGE_HEIGHT = 420f
+    private const val SCALE = 2f
+    private const val PAGE_WIDTH = (BASE_PAGE_WIDTH * SCALE).toInt()
+    private const val PAGE_HEIGHT = (BASE_PAGE_HEIGHT * SCALE).toInt()
     private const val MARGIN = 22f
     private const val GOLD = 0xFF9A7416.toInt()
     private const val GOLD_LIGHT = 0xFFF5D777.toInt()
@@ -139,8 +142,11 @@ object OfficialInvoicePdfGenerator {
         regularTypeface: Typeface,
         boldTypeface: Typeface
     ) {
+        canvas.save()
+        canvas.scale(SCALE, SCALE)
+
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val typography = PdfTypography(canvas, regularTypeface, boldTypeface)
+        val typography = PdfTypography(canvas, regularTypeface, boldTypeface, SCALE)
         fun box(color: Int, rect: RectF, radius: Float = 0f) {
             paint.style = Paint.Style.FILL
             paint.color = color
@@ -154,7 +160,7 @@ object OfficialInvoicePdfGenerator {
             paint.style = Paint.Style.FILL
         }
 
-        box(PAPER, RectF(0f, 0f, PAGE_WIDTH.toFloat(), PAGE_HEIGHT.toFloat()))
+        box(PAPER, RectF(0f, 0f, BASE_PAGE_WIDTH, BASE_PAGE_HEIGHT))
         drawTopRibbon(canvas, paint)
         drawBrandHeader(canvas, paint, typography, model, settings, logo, ::box, ::outline)
         drawPartyCards(typography, model, settings, ::box, ::outline)
@@ -163,25 +169,27 @@ object OfficialInvoicePdfGenerator {
         if (isLastPage) {
             drawSummaryAndSignatures(canvas, typography, model, settings, signature, ::box, ::outline)
         } else {
-            typography.draw("ادامه اقلام و جمع‌بندی مالی در صفحه بعد", PAGE_WIDTH / 2f, 298f, 6.2f, MUTED, Paint.Align.CENTER, true, 260f)
+            typography.draw("ادامه اقلام و جمع‌بندی مالی در صفحه بعد", BASE_PAGE_WIDTH / 2f, 298f, 6.2f, MUTED, Paint.Align.CENTER, true, 260f)
         }
 
         paint.color = LINE
         paint.strokeWidth = 0.7f
-        canvas.drawLine(MARGIN, 402f, PAGE_WIDTH - MARGIN, 402f, paint)
-        typography.draw("سند رسمی قیراط • ${PersianNumberFormatter.toPersianDigits(model.trackingCode)}", PAGE_WIDTH - MARGIN, 408f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 330f)
+        canvas.drawLine(MARGIN, 402f, BASE_PAGE_WIDTH - MARGIN, 402f, paint)
+        typography.draw("سند رسمی قیراط • \u200E${model.trackingCode}", BASE_PAGE_WIDTH - MARGIN, 408f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 330f)
         typography.draw(
             "صفحه ${PersianNumberFormatter.toPersianDigits(pageNumber.toString())} از ${PersianNumberFormatter.toPersianDigits(pageCount.toString())}",
             MARGIN, 408f, 5.2f, MUTED, Paint.Align.LEFT, maxWidth = 100f
         )
+
+        canvas.restore()
     }
 
     private fun drawTopRibbon(canvas: Canvas, paint: Paint) {
         paint.shader = android.graphics.LinearGradient(
-            MARGIN, 0f, PAGE_WIDTH - MARGIN, 0f,
+            MARGIN, 0f, BASE_PAGE_WIDTH - MARGIN, 0f,
             intArrayOf(GOLD, GOLD_LIGHT, GOLD), null, android.graphics.Shader.TileMode.CLAMP
         )
-        canvas.drawRoundRect(MARGIN, 10f, PAGE_WIDTH - MARGIN, 14f, 2f, 2f, paint)
+        canvas.drawRoundRect(MARGIN, 10f, BASE_PAGE_WIDTH - MARGIN, 14f, 2f, 2f, paint)
         paint.shader = null
     }
 
@@ -195,7 +203,7 @@ object OfficialInvoicePdfGenerator {
         box: (Int, RectF, Float) -> Unit,
         outline: (Int, RectF, Float, Float) -> Unit
     ) {
-        val header = RectF(MARGIN, 21f, PAGE_WIDTH - MARGIN, 69f)
+        val header = RectF(MARGIN, 21f, BASE_PAGE_WIDTH - MARGIN, 69f)
         box(Color.WHITE, header, 8f)
         outline(LINE, header, 8f, 0.7f)
         val logoRect = RectF(527f, 29f, 558f, 60f)
@@ -207,18 +215,18 @@ object OfficialInvoicePdfGenerator {
             text.draw(settings.galleryName.take(2).ifBlank { "قی" }, 542.5f, 40f, 8f, GOLD, Paint.Align.CENTER, true, 24f)
         }
         text.draw(settings.galleryName.ifBlank { "طلافروشی و جواهری" }, 517f, 28f, 9.2f, INK, Paint.Align.RIGHT, true, 122f)
-        text.draw("مدیر: ${settings.managerName.ifBlank { "متصدی واحد" }}", 517f, 43f, 5.7f, MUTED, Paint.Align.RIGHT, maxWidth = 122f)
-        text.draw("پروانه کسب: ${PersianNumberFormatter.toPersianDigits(settings.unionCode)}", 517f, 54f, 5.5f, GOLD, Paint.Align.RIGHT, true, 122f)
+        text.draw("مدیر:\u200F ${settings.managerName.ifBlank { "متصدی واحد" }}", 517f, 43f, 5.7f, MUTED, Paint.Align.RIGHT, maxWidth = 122f)
+        text.draw("پروانه کسب:\u200F ${PersianNumberFormatter.toPersianDigits(settings.unionCode)}", 517f, 54f, 5.5f, GOLD, Paint.Align.RIGHT, true, 122f)
 
         box(0xFFFAF8F2.toInt(), RectF(207f, 28f, 388f, 62f), 7f)
         outline(0x40E2E8F0.toInt(), RectF(207f, 28f, 388f, 62f), 7f, 0.6f)
         text.draw("فاکتور رسمی فروش طلا و جواهر", 297.5f, 31f, 8.2f, INK, Paint.Align.CENTER, true, 165f)
-        text.draw("شماره فاکتور: ${PersianNumberFormatter.toPersianDigits(model.invoiceNumber)}", 297.5f, 46f, 6f, GOLD, Paint.Align.CENTER, true, 165f)
-        text.draw("تاریخ: ${model.issuedDate}  •  ساعت ${model.issuedTime}", 297.5f, 56f, 5.2f, MUTED, Paint.Align.CENTER, maxWidth = 165f)
+        text.draw("شماره فاکتور:\u200F ${PersianNumberFormatter.toPersianDigits(model.invoiceNumber)}", 297.5f, 46f, 6f, GOLD, Paint.Align.CENTER, true, 165f)
+        text.draw("تاریخ:\u200F ${model.issuedDate}  •  ساعت\u200F ${model.issuedTime}", 297.5f, 56f, 5.2f, MUTED, Paint.Align.CENTER, maxWidth = 165f)
 
         text.draw("شناسه پیگیری سند", 34f, 28f, 6f, INK, Paint.Align.LEFT, true, 148f)
-        text.draw(PersianNumberFormatter.toPersianDigits(model.trackingCode), 34f, 42f, 5.4f, GOLD, Paint.Align.LEFT, true, 148f)
-        text.draw("تلفن: ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)}", 34f, 55f, 5.2f, MUTED, Paint.Align.LEFT, maxWidth = 148f)
+        text.draw("\u200E${model.trackingCode}", 34f, 42f, 5.4f, GOLD, Paint.Align.LEFT, true, 148f)
+        text.draw("تلفن:\u200F ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)}", 34f, 55f, 5.2f, MUTED, Paint.Align.LEFT, maxWidth = 148f)
     }
 
     private fun drawPartyCards(
@@ -234,14 +242,14 @@ object OfficialInvoicePdfGenerator {
         box(SOFT_GOLD, RectF(490f, 81f, 563f, 94f), 6f)
         text.draw("فروشنده", 526.5f, 83f, 5.6f, GOLD, Paint.Align.CENTER, true, 65f)
         text.draw(settings.galleryName.ifBlank { "واحد تجاری" }, 563f, 98f, 6.8f, INK, Paint.Align.RIGHT, true, 165f)
-        text.draw("تلفن: ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)}", 315f, 98f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 110f)
-        text.draw("نشانی: ${settings.galleryAddress.ifBlank { "ثبت نشده" }}", 563f, 110f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 248f)
+        text.draw("تلفن:\u200F ${PersianNumberFormatter.toPersianDigits(settings.galleryPhone)}", 315f, 98f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 110f)
+        text.draw("نشانی:\u200F ${settings.galleryAddress.ifBlank { "ثبت نشده" }}", 563f, 110f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 248f)
 
         box(0xFFF1F5F9.toInt(), RectF(209f, 81f, 282f, 94f), 6f)
         text.draw("خریدار", 245.5f, 83f, 5.6f, INK, Paint.Align.CENTER, true, 65f)
         text.draw(model.buyerName, 282f, 98f, 6.8f, INK, Paint.Align.RIGHT, true, 165f)
-        text.draw("تلفن: ${model.buyerPhone}", 34f, 98f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 110f)
-        text.draw("کد ملی: ${model.buyerNationalId}", 282f, 110f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 170f)
+        text.draw("تلفن:\u200F ${model.buyerPhone}", 34f, 98f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 110f)
+        text.draw("کد ملی:\u200F ${model.buyerNationalId}", 282f, 110f, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 170f)
         text.draw(model.buyerRole, 34f, 110f, 5.2f, GOLD, Paint.Align.LEFT, true, 82f)
     }
 
@@ -252,18 +260,18 @@ object OfficialInvoicePdfGenerator {
         box: (Int, RectF, Float) -> Unit,
         outline: (Int, RectF, Float, Float) -> Unit
     ) {
-        val strip = RectF(MARGIN, 129f, PAGE_WIDTH - MARGIN, 151f)
+        val strip = RectF(MARGIN, 129f, BASE_PAGE_WIDTH - MARGIN, 151f)
         box(SOFT_GOLD, strip, 6f)
         outline(0x80E8C96A.toInt(), strip, 6f, 0.65f)
         text.draw("مبنای محاسبه", 558f, 134f, 5.6f, GOLD, Paint.Align.RIGHT, true, 80f)
         text.draw(
-            "نرخ مبنای هر گرم طلای ۱۸ عیار: ${PersianNumberFormatter.formatPrice(model.spotPrice18k.toDouble())} تومان",
+            "نرخ مبنای هر گرم طلای ۱۸ عیار:\u200F ${PersianNumberFormatter.formatPrice(model.spotPrice18k.toDouble())} تومان",
             468f, 134f, 6.2f, INK, Paint.Align.RIGHT, true, 220f
         )
-        text.draw("روش تسویه: ${model.settlementLabel}", 35f, 134f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 170f)
+        text.draw("روش تسویه:\u200F ${model.settlementLabel}", 35f, 134f, 5.7f, MUTED, Paint.Align.LEFT, maxWidth = 170f)
         box(0xFFFFF0B8.toInt(), RectF(207f, 134f, 270f, 146f), 6f)
         text.draw(
-            if (settings.unionCode.isNotBlank()) "پروانه ${PersianNumberFormatter.toPersianDigits(settings.unionCode)}" else "اتحادیه طلا",
+            if (settings.unionCode.isNotBlank()) "پروانه\u200F ${PersianNumberFormatter.toPersianDigits(settings.unionCode)}" else "اتحادیه طلا",
             238.5f, 135f, 4.9f, GOLD, Paint.Align.CENTER, true, 57f
         )
     }
@@ -281,7 +289,7 @@ object OfficialInvoicePdfGenerator {
         val rowHeight = 25f
         // Physical left-to-right edges; logical columns are rendered right-to-left.
         val columns = floatArrayOf(22f, 111f, 170f, 223f, 270f, 319f, 366f, 525f, 573f)
-        val headers = listOf("مبلغ (تومان)", "اجرت / سود", "خالص (g)", "کسر (g)", "ناخالص (g)", "عیار", "شرح قلم و مشخصات", "ردیف")
+        val headers = listOf("مبلغ (تومان)", "اجرت / سود", "خالص (گرم)", "کسر (گرم)", "ناخالص (گرم)", "عیار", "شرح قلم و مشخصات", "ردیف")
         box(0xFFF1F5F9.toInt(), RectF(22f, top, 573f, top + headerHeight), 6f)
         outline(LINE, RectF(22f, top, 573f, top + headerHeight), 6f, 0.7f)
         headers.forEachIndexed { index, header ->
@@ -355,8 +363,8 @@ object OfficialInvoicePdfGenerator {
 
         summaryRows.forEachIndexed { index, item ->
             val y = top + 20f + index * 9.5f
-            text.draw(item.first, 560f, y, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 120f)
-            text.draw(item.second, 315f, y, 5.5f, INK, Paint.Align.LEFT, true, 130f)
+            text.draw(item.first, 560f, y, 5.2f, MUTED, Paint.Align.RIGHT, maxWidth = 115f)
+            text.draw(item.second, 315f, y, 5.5f, INK, Paint.Align.LEFT, true, 135f)
         }
 
         // Final Payable Golden Pill
@@ -372,7 +380,7 @@ object OfficialInvoicePdfGenerator {
             280f, top + 21f, 4.9f, MUTED, Paint.Align.RIGHT, maxWidth = 250f
         )
         if (model.note.isNotBlank()) {
-            text.draw("توضیحات: ${model.note}", 280f, top + 32f, 5f, GOLD, Paint.Align.RIGHT, true, 250f)
+            text.draw("توضیحات:\u200F ${model.note}", 280f, top + 32f, 5f, GOLD, Paint.Align.RIGHT, true, 250f)
         }
 
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = LINE; strokeWidth = 0.7f }
@@ -418,9 +426,12 @@ object OfficialInvoicePdfGenerator {
     private class PdfTypography(
         private val canvas: Canvas,
         private val regularTypeface: Typeface,
-        private val boldTypeface: Typeface
+        private val boldTypeface: Typeface,
+        private val scale: Float = SCALE
     ) {
-        private val paint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG)
+        private val paint = TextPaint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG or Paint.LINEAR_TEXT_FLAG).apply {
+            hinting = Paint.HINTING_OFF
+        }
 
         fun draw(
             value: String,
@@ -432,11 +443,16 @@ object OfficialInvoicePdfGenerator {
             bold: Boolean = false,
             maxWidth: Float
         ) {
-            val width = maxWidth.coerceAtLeast(1f).toInt()
+            val scaledSize = size * scale
+            val scaledMaxWidth = maxWidth * scale
+            val width = scaledMaxWidth.coerceAtLeast(1f).toInt()
             paint.apply {
-                textSize = size
+                textSize = scaledSize
                 this.color = color
                 typeface = if (bold) boldTypeface else regularTypeface
+                hinting = Paint.HINTING_OFF
+                isLinearText = true
+                isSubpixelText = true
             }
             val isRtlText = value.any { it in '\u0600'..'\u06FF' }
             val layoutAlignment = when (align) {
@@ -453,12 +469,13 @@ object OfficialInvoicePdfGenerator {
                 .setEllipsizedWidth(width)
                 .build()
             val left = when (align) {
-                Paint.Align.RIGHT -> x - width
-                Paint.Align.CENTER -> x - width / 2f
+                Paint.Align.RIGHT -> x - maxWidth
+                Paint.Align.CENTER -> x - maxWidth / 2f
                 Paint.Align.LEFT -> x
             }
             canvas.save()
             canvas.translate(left, top)
+            canvas.scale(1f / scale, 1f / scale)
             layout.draw(canvas)
             canvas.restore()
         }
