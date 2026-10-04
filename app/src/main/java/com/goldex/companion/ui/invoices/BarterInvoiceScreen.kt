@@ -1408,6 +1408,7 @@ private fun SettlementSection(
     onSetSyncWithLedger: (Boolean) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    var pendingDeletePayment by remember { mutableStateOf<SettlementPaymentItem?>(null) }
     val netPayableAmount = balance.netPayableAmount
     val absNetPayableLong = kotlin.math.abs(netPayableAmount).toLong()
     val totalPaid = invoice.totalPaymentsAmount
@@ -1668,9 +1669,13 @@ private fun SettlementSection(
                                     }
                                 }
                                 IconButton(
-                                    enabled = pItem.settlement == null,
+                                    enabled = true,
                                     onClick = {
-                                        onSetSettlementPayments(invoice.payments.filterNot { it.id == pItem.id })
+                                        if (pItem.settlement != null) {
+                                            pendingDeletePayment = pItem
+                                        } else {
+                                            onSetSettlementPayments(invoice.payments.filterNot { it.id == pItem.id })
+                                        }
                                     },
                                     modifier = Modifier.size(28.dp)
                                 ) {
@@ -1770,6 +1775,17 @@ private fun SettlementSection(
                 }
             }
         }
+    }
+
+    pendingDeletePayment?.let { itemToDelete ->
+        DeleteSettlementConfirmDialog(
+            paymentItem = itemToDelete,
+            onDismiss = { pendingDeletePayment = null },
+            onConfirm = {
+                pendingDeletePayment = null
+                onSetSettlementPayments(invoice.payments.filterNot { it.id == itemToDelete.id })
+            }
+        )
     }
 }
 
@@ -1889,3 +1905,124 @@ private fun EditRateDialog(
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Delete Settlement Confirmation Dialog
+// ---------------------------------------------------------------------------
+@Composable
+private fun DeleteSettlementConfirmDialog(
+    paymentItem: SettlementPaymentItem,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(1.dp, colors.goldBorder),
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Title
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = InvoiceTrashVector,
+                        contentDescription = null,
+                        tint = Color(0xFFEF5350),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "حذف پرداخت تسویه",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = VazirmatnFamily,
+                        color = colors.textMain
+                    )
+                }
+
+                Text(
+                    text = "این ردیف پرداخت مربوط به یک سند تسویه دفتری است. با حذف آن، سند مربوطه پس از «ثبت نهایی فاکتور» از دفتر حساب مشتری حذف شده و اثر مالی آن بازگردانده خواهد شد.",
+                    fontSize = 12.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 20.sp,
+                    fontFamily = VazirmatnFamily
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.surfaceVariant,
+                    border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "روش: ${paymentItem.method.labelFa}${if (paymentItem.description.isNotBlank()) " • ${paymentItem.description}" else ""}",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        if (paymentItem.amountTomans > 0) {
+                            Text(
+                                text = "مبلغ: ${PersianNumberFormatter.formatTomans(paymentItem.amountTomans)} تومان",
+                                fontSize = 11.sp,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        if (paymentItem.goldWeight18k > 0) {
+                            Text(
+                                text = "وزن معادل: ${PersianNumberFormatter.formatWeight(paymentItem.goldWeight18k)} گرم",
+                                fontSize = 11.sp,
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "توجه: در صورتی که فاکتور را ذخیره نکنید، هیچ تغییری در حساب دفتری مشتری اعمال نخواهد شد.",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFFFA726),
+                    fontFamily = VazirmatnFamily
+                )
+
+                // Invariant: Cancel on Right (first child), Confirm on Left (second child) in RTL
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GoldButton(
+                        text = "انصراف",
+                        onClick = onDismiss,
+                        isSecondary = true,
+                        modifier = Modifier.weight(0.38f)
+                    )
+                    GoldButton(
+                        text = "حذف از فاکتور",
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(0.62f)
+                    )
+                }
+            }
+        }
+    }
+}
+

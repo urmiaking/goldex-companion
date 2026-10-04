@@ -165,7 +165,8 @@ data class BarterInvoice(
     val payments: List<SettlementPaymentItem> = emptyList(),
     val syncWithLedger: Boolean = true,
     // Null preserves the historical role-based contract; never migrate it implicitly.
-    val debtBasis: InvoiceDebtBasis? = null
+    val debtBasis: InvoiceDebtBasis? = null,
+    val deletedSettlementIds: List<String> = emptyList()
 ) {
     val isGoldDebt: Boolean get() = debtBasis == InvoiceDebtBasis.GOLD ||
         (debtBasis == null && customerRole == CustomerRole.WHOLESALER)
