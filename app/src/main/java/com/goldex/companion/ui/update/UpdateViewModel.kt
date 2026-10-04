@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class UpdateUiState(
     val updateInfo: UpdateInfo? = null,
@@ -37,7 +38,7 @@ class UpdateViewModel : ViewModel() {
         }
     }
 
-    fun checkForUpdates(manual: Boolean = false) {
+    fun checkForUpdates(manual: Boolean = false, onResult: ((Boolean) -> Unit)? = null) {
         if (_uiState.value.isCheckingForUpdate) return
 
         if (!manual) {
@@ -51,11 +52,15 @@ class UpdateViewModel : ViewModel() {
             } catch (_: Exception) {
                 null
             }
+            val isAvailable = info?.isAvailable == true
             _uiState.update {
                 it.copy(
                     updateInfo = info,
                     isCheckingForUpdate = false
                 )
+            }
+            withContext(Dispatchers.Main) {
+                onResult?.invoke(isAvailable)
             }
         }
     }

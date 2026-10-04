@@ -68,7 +68,6 @@ fun MoreHubScreen(
     onNavigateInventory: () -> Unit,
     onNavigateConvert: () -> Unit,
     onNavigateCoinBubble: () -> Unit,
-    onNavigateInvoices: () -> Unit,
     onNavigateReporting: () -> Unit = {},
     onOpenTaxProfitModal: () -> Unit,
     onOpenPriceSourceModal: () -> Unit,
@@ -506,18 +505,6 @@ fun MoreHubScreen(
                     iconBg = Color(0xFFD1FAE5),
                     onClick = onNavigateCoinBubble
                 )
-
-                HorizontalDivider(color = colors.border.copy(alpha = 0.3f), thickness = 0.5.dp)
-
-                // Item 3: Invoice management and PDF export
-                HubListRowItem(
-                    title = "مدیریت و خروجی فاکتورها",
-                    subtitle = "مشاهدهٔ فاکتورها و اشتراک‌گذاری PDF",
-                    icon = HubMenuBook,
-                    iconTint = Color(0xFF4F46E5),
-                    iconBg = Color(0xFFE0E7FF),
-                    onClick = onNavigateInvoices
-                )
             }
         }
 
@@ -888,11 +875,11 @@ fun MoreHubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:02155623481"))
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:09905492104"))
                             try {
                                 context.startActivity(intent)
                             } catch (_: Exception) {
-                                Toast.makeText(context, "تماس با پشتیبانی: ۰۲۱-۵۵۶۲۳۴۸۱", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "تماس با پشتیبانی: ۰۹۹۰۵۴۹۲۱۰۴", Toast.LENGTH_SHORT).show()
                             }
                         }
                         .padding(horizontal = 14.dp, vertical = 11.dp),
@@ -927,7 +914,7 @@ fun MoreHubScreen(
                                 color = colors.textMain
                             )
                             Text(
-                                text = "شنبه تا چهارشنبه ۹ تا ۱۹ • پنج‌شنبه‌ها تا ۱۴",
+                                text = "۰۹۹۰۵۴۹۲۱۰۴ • شنبه تا چهارشنبه ۹ تا ۱۹ • پنج‌شنبه‌ها تا ۱۴",
                                 fontSize = 10.5.sp,
                                 color = colors.textMuted
                             )

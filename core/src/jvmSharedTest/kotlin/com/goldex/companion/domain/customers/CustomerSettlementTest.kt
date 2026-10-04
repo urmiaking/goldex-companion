@@ -97,4 +97,25 @@ class CustomerSettlementTest {
         assertEquals(1L, SettlementArithmetic.goldToTomans(0.001, 500))
         assertEquals(0L, SettlementArithmetic.goldToTomans(0.001, 499))
     }
+
+    @Test
+    fun generateSettlementDocumentNumberProducesCleanVoucherNumber() {
+        val number = generateSettlementDocumentNumber(emptyList())
+        val intVal = number.toIntOrNull()
+        assertNotNull(intVal)
+        assertTrue(intVal!! in 1000..9999)
+    }
+
+    @Test
+    fun generateSettlementDocumentNumberContinuesSequenceWhenPresent() {
+        val next = generateSettlementDocumentNumber(listOf("1001", "1002", "1003"))
+        assertEquals("1004", next)
+    }
+
+    @Test
+    fun generateSettlementDocumentNumberIgnoresLegacyLongTimestampAndAvoidsDuplicates() {
+        // Legacy 13-digit timestamp should be ignored rather than overflowing
+        val next = generateSettlementDocumentNumber(listOf("1775282345123", "2050"))
+        assertEquals("2051", next)
+    }
 }
