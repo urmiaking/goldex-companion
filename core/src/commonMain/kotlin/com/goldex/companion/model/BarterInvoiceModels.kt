@@ -10,6 +10,11 @@ enum class CustomerRole(val titleFa: String) {
     RETAIL("مشتری عادی (مصرف‌کننده)")
 }
 
+enum class InvoiceDebtBasis(val titleFa: String) {
+    GOLD("گرمی"),
+    CASH("تومان ثابت")
+}
+
 enum class InvoiceItemCategory(val titleFa: String) {
     CRAFTED("طلای ساخته"),
     SCRAP("متفرقه / کهنه"),
@@ -123,7 +128,8 @@ data class SettlementPaymentItem(
     val date: String = "",
     val thirdPartyCustomerName: String = "",
     val bullionKarat: Int = 750,
-    val bullionAngNumber: String = ""
+    val bullionAngNumber: String = "",
+    val settlement: LedgerSettlement? = null
 )
 
 fun generateBarterInvoiceNumber(createdAtMillis: Long = SystemClock.nowMillis()): String {
@@ -157,19 +163,32 @@ data class BarterInvoice(
     val thirdPartyTrackingCode: String = "",
     val note: String = "",
     val payments: List<SettlementPaymentItem> = emptyList(),
-    val syncWithLedger: Boolean = true
+    val syncWithLedger: Boolean = true,
+    // Null preserves the historical role-based contract; never migrate it implicitly.
+    val debtBasis: InvoiceDebtBasis? = null
 ) {
+    val isGoldDebt: Boolean get() = debtBasis == InvoiceDebtBasis.GOLD ||
+        (debtBasis == null && customerRole == CustomerRole.WHOLESALER)
+    val debtPrincipalGold: Double get() = com.goldex.companion.domain.invoice.InvoiceDebtPolicy.principalGold(this)
     val cleanInvoiceNumber: String
         get() = invoiceNumber.removePrefix("IR-").removePrefix("IR").trim()
 
     val balance: BarterBalance
         get() = BarterCalculationUseCases.calculateBalance(salesItems, receivedItems)
 
+    val totalPaymentsGold18k: Double
+        get() = if (spotPrice18k > 0) com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase.getEffectivePayments(this)
+            .sumOf { com.goldex.companion.domain.invoice.InvoiceDebtPolicy.paymentGold(this, it) } else 0.0
+
     val totalPaymentsAmount: Long
         get() {
             if (payments.isNotEmpty()) {
                 return payments.sumOf { p ->
-                    if (p.method == SettlementMethod.BULLION) {
+                    if (p.settlement != null) {
+                        if (p.settlement.offsetExistingCredit) 0L else p.amountTomans
+                    } else if (p.method == SettlementMethod.LEDGER) {
+                        0L
+                    } else if (p.method == SettlementMethod.BULLION) {
                         ((p.goldWeight18k * spotPrice18k).toLong())
                     } else {
                         p.amountTomans
@@ -178,7 +197,7 @@ data class BarterInvoice(
             }
             return when (settlementMethod) {
                 SettlementMethod.POS -> cashPosAmount
-                SettlementMethod.LEDGER -> ledgerAmount
+                SettlementMethod.LEDGER -> 0L
                 SettlementMethod.TRANSFER -> thirdPartyTransferAmount
                 SettlementMethod.BULLION -> ((bullionWeight * (bullionKarat.toDouble() / 750.0) * spotPrice18k).toLong())
             }
@@ -186,17 +205,25 @@ data class BarterInvoice(
 
     val remainingBalanceTomans: Long
         get() {
+            if (debtBasis != null) {
+                val remaining = com.goldex.companion.domain.invoice.InvoiceDebtPolicy.outstanding(this)
+                return if (isGoldDebt) com.goldex.companion.platform.SettlementArithmetic.goldToTomans(kotlin.math.abs(remaining.goldGrams), spotPrice18k)
+                else kotlin.math.abs(remaining.cashTomans)
+            }
             val netPayable = balance.netPayableAmount.toLong()
             return (netPayable - totalPaymentsAmount).coerceAtLeast(0L)
         }
 
     val remainingBalanceGold18k: Double
         get() {
+            if (debtBasis != null) return kotlin.math.abs(com.goldex.companion.domain.invoice.InvoiceDebtPolicy.outstanding(this).goldGrams)
             val netWeight = balance.net18kWeightDelta
             if (netWeight <= 0.001) return 0.0
             val totalPaymentsWeight = if (payments.isNotEmpty()) {
                 payments.sumOf { p ->
-                    if (p.goldWeight18k > 0.0) p.goldWeight18k
+                    if (p.settlement != null) kotlin.math.abs(p.settlement.invoiceGoldDeltaGrams ?: p.settlement.goldDeltaGrams)
+                    else if (p.method == SettlementMethod.LEDGER) 0.0
+                    else if (p.goldWeight18k > 0.0) p.goldWeight18k
                     else if (spotPrice18k > 0L) p.amountTomans.toDouble() / spotPrice18k
                     else 0.0
                 }
@@ -213,6 +240,7 @@ data class BarterInvoice(
 
     val isFullySettled: Boolean
         get() {
+            if (debtBasis != null) return com.goldex.companion.domain.invoice.InvoiceDebtPolicy.outstanding(this).isSettled
             return if (customerRole == CustomerRole.WHOLESALER) {
                 val netWeight = balance.net18kWeightDelta
                 if (netWeight <= 0.001) true

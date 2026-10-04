@@ -40,5 +40,7 @@ data class BarterInvoiceEntity(
     val thirdPartyTrackingCode: String = "",
     val note: String = "",
     val payments: List<SettlementPaymentItem> = emptyList(),
-    val syncWithLedger: Boolean = true
+    val syncWithLedger: Boolean = true,
+    @androidx.room.ColumnInfo(defaultValue = "''")
+    val debtBasis: String = ""
 )

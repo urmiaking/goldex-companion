@@ -102,7 +102,7 @@ class CustomerSettlementViewModel(
         _state.update { it.copy(targetType = type, offsetExistingCredit = false, error = null) }
     }
     fun selectPayment(type: LedgerEntryType) {
-        _state.update { it.copy(paymentType = type, offsetExistingCredit = false, error = null) }
+        _state.update { it.copy(paymentType = type, paymentMethod = if (type == LedgerEntryType.GOLD_WEIGHT) "شمش / آبشده" else "حواله بانکی / پایا", offsetExistingCredit = false, error = null) }
     }
     fun useMarketRate() {
         val quote = marketQuote()

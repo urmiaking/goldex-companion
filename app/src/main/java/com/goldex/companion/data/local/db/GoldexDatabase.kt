@@ -33,7 +33,7 @@ import com.goldex.companion.data.sync.*
         SyncMetadata::class, SyncOutbox::class, SyncCheckpoint::class, SyncConflict::class,
         BusinessSettings::class, AssetMetadata::class, SyncStaging::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(DatabaseConverters::class)
@@ -61,7 +61,7 @@ abstract class GoldexDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                     .allowMainThreadQueries()
-                    .addMigrations(SYNC_MIGRATION_1_2, com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3)
+                    .addMigrations(SYNC_MIGRATION_1_2, com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3, com.goldex.companion.data.local.db.migration.INVOICE_DEBT_MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance

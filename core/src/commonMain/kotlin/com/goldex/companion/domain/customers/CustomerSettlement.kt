@@ -172,7 +172,9 @@ class RecordCustomerSettlementUseCase(
             type = request.paymentType, direction = if (preview.isReceiving) LedgerDirection.RECEIVE else LedgerDirection.PAY,
             scaleWeightGrams = request.scaleWeightGrams, karat = request.karat,
             equivalent750WeightGrams = preview.equivalent750Grams, amountTomans = preview.paymentValueTomans,
-            paymentMethod = if (request.offsetExistingCredit) "تهاتر دفتری" else request.paymentMethod, trackingCode = request.trackingCode, note = request.note,
+            paymentMethod = if (request.offsetExistingCredit) "تهاتر دفتری" else request.paymentMethod,
+            goldCategory = if (request.paymentType == LedgerEntryType.GOLD_WEIGHT) request.paymentMethod else "",
+            trackingCode = request.trackingCode, note = request.note,
             tagBadge = "تسویه حساب", invoiceId = invoice?.id, invoiceNumber = invoice?.cleanInvoiceNumber,
             resultingGoldBalance = preview.customerAfter.goldDebtGrams, resultingCashBalance = preview.customerAfter.cashDebtTomans,
             settlement = LedgerSettlement(request.targetType, request.rateTomans, request.rateSource, request.rateObservedAt,
@@ -202,7 +204,8 @@ class RecordCustomerSettlementUseCase(
                     description = "تسویه ${request.paymentMethod} (سند ${tx.cleanDocumentNumber})"
                 )
             }
-            val updatedPayments = invoice.payments.filterNot { it.id == paymentItem.id } + paymentItem
+            val updatedPayments = com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase.getEffectivePayments(invoice).filterNot { it.id == paymentItem.id } +
+                paymentItem.copy(settlement = tx.settlement, date = tx.dateTime)
             invoices.saveBarterInvoice(invoice.copy(payments = updatedPayments))
         }
         tx

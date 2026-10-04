@@ -89,7 +89,8 @@ data class CustomerManagerUiState(
 
 class CustomerManagerViewModel(
     private val repository: CustomerStore,
-    private val unit: com.goldex.companion.data.sync.SyncUnitOfWork? = null
+    private val unit: com.goldex.companion.data.sync.SyncUnitOfWork? = null,
+    private val invoices: com.goldex.companion.data.InvoiceStore? = null
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CustomerManagerUiState())
     val uiState: StateFlow<CustomerManagerUiState> = _uiState.asStateFlow()
@@ -185,6 +186,11 @@ class CustomerManagerViewModel(
     private fun deleteLedgerEntryInternal(transaction: LedgerTransaction) {
         val saved = repository.getTransactions(transaction.customerId).firstOrNull { it.id == transaction.id } ?: return
         val customer = requireNotNull(repository.getCustomers().firstOrNull { it.id == saved.customerId })
+        saved.invoiceId?.let { id ->
+            invoices?.getBarterInvoices()?.firstOrNull { it.id == id }?.let { invoice ->
+                invoices.saveBarterInvoice(invoice.copy(payments = invoice.payments.filterNot { it.id == saved.id }))
+            }
+        }
         repository.deleteTransaction(saved.id)
         repository.updateCustomer(customer.applyEffect(saved.balanceEffect(), reverse = true))
     }

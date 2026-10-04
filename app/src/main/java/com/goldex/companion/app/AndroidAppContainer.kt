@@ -55,7 +55,7 @@ class AndroidAppContainer(context: Context) {
             val instance: ViewModel = when (modelClass) {
                 MainViewModel::class.java -> MainViewModel(settings, market, market, market, market, connectivity)
                 CustomerSettlementViewModel::class.java -> CustomerSettlementViewModel(customers, invoices, RecordCustomerSettlementUseCase(customers, invoices, syncUnit)) { market.rates.value }
-                CustomerManagerViewModel::class.java -> CustomerManagerViewModel(customers, syncUnit)
+                CustomerManagerViewModel::class.java -> CustomerManagerViewModel(customers, syncUnit, invoices)
                 InvoiceManagerViewModel::class.java -> InvoiceManagerViewModel(invoices)
                 PortfolioManagerViewModel::class.java -> PortfolioManagerViewModel(portfolio)
                 SettingsViewModel::class.java -> SettingsViewModel(settings)
