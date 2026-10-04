@@ -644,7 +644,10 @@ fun MainScreen(
                                             }
                                         },
                                         onInvoiceItemClick = barterInvoiceViewModel::openInvoiceDetails,
-                                        onSettleInvoice = { item -> item.barterInvoice?.let { barterInvoiceViewModel.openSettlementShortcut(it) } },
+                                        onSettleInvoice = { item -> item.barterInvoice?.let { inv ->
+                                            if (inv.syncWithLedger && inv.customer != null) settlementViewModel.open(requireNotNull(inv.customer), inv.id)
+                                            else barterInvoiceViewModel.openSettlementShortcut(inv)
+                                        } },
                                         onDeleteInvoice = { invoiceId ->
                                             if (barterInvoiceViewModel.deleteInvoice(invoiceId)) {
                                                 customerViewModel.loadCustomers()
@@ -982,6 +985,12 @@ fun MainScreen(
                     marketRates = marketRates,
                     customerList = customerState.customerList,
                     onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
+                    onSetDebtBasis = barterInvoiceViewModel::setDebtBasis,
+                    onOpenDatedSettlement = {
+                        val inv = barterUiState.invoice
+                        if (barterInvoiceViewModel.canOpenDatedSettlement()) inv.customer?.let { settlementViewModel.open(it, inv.id) }
+                        else QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
+                    },
                     onSetSettlementMethod = barterInvoiceViewModel::setSettlementMethod,
                     onSetCashPosAmount = barterInvoiceViewModel::setCashPosAmount,
                     onSetLedgerAmount = barterInvoiceViewModel::setLedgerAmount,

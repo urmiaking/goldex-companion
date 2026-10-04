@@ -23,6 +23,10 @@ Customer accounts contain independent gold (750-equivalent grams) and whole-toma
 - Database downgrade is unsupported: the additive column preserves old rows, but an older app must not open a version-3 database. Cloud protocol stays at 1 with additional metadata. Older clients do not understand cross-unit effects and must not edit/delete these entries. They should be upgraded before sharing this feature across devices; no remote capability negotiation exists yet.
 - Rollback is restore-from-backup with a compatible app; it is not dropping the column or recomputing old customer balances. Before rolling back deployment, retain the version-3 database and export/backup financial records through the existing backup flow. Never discard settlement metadata to imitate legacy records.
 
+## Follow-up
+
+ADR 0008 implements explicit invoice debt basis and rate-preserving dated payment display rows. Its resave and rollback rules supersede the initial role-only creation restriction above.
+
 ## Revisit conditions
 
 Revisit when invoice creation needs an explicit contractual debt basis independent of customer role, formal general-ledger postings/stock receipts are added, common fixed-point gold replaces legacy Double balances, or sync gains client capability negotiation for financial record types.

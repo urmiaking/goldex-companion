@@ -98,7 +98,10 @@ object OfficialInvoiceDocumentFactory {
             } else {
                 invoice.settlementMethod.labelFa
             },
-            note = invoice.note
+            note = listOfNotNull(invoice.note.takeIf { it.isNotBlank() }, invoice.debtBasis?.let {
+                if (invoice.isGoldDebt) "مبنای مانده: گرم طلای ۱۸ عیار؛ تسویه نقدی با نرخ توافقی روز پرداخت"
+                else "مبنای مانده: تومان ثابت"
+            }).joinToString(" • ")
         )
     }
 

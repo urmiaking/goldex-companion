@@ -596,6 +596,7 @@ internal object PersistenceJsonCodecs {
                     createdAt = obj.longValue("createdAt", System.currentTimeMillis()),
                     customer = customer,
                     customerRole = enumOrDefault(obj.stringValue("customerRole"), CustomerRole.WHOLESALER),
+                    debtBasis = obj.stringValue("debtBasis").takeIf { it.isNotBlank() }?.let(com.goldex.companion.model.InvoiceDebtBasis::valueOf),
                     spotPrice18k = obj.longValue("spotPrice18k", 0L),
                     salesItems = decodeBarterItems(obj.optJSONArray("salesItems")),
                     receivedItems = decodeBarterItems(obj.optJSONArray("receivedItems")),
@@ -619,7 +620,7 @@ internal object PersistenceJsonCodecs {
                 )
             }
             invoices
-        }.getOrDefault(emptyList())
+        }.getOrThrow()
     }
 
     fun encodeBarterInvoices(invoices: List<BarterInvoice>): String {
@@ -631,6 +632,7 @@ internal object PersistenceJsonCodecs {
                 put("createdAt", invoice.createdAt)
                 invoice.customer?.let { c -> put("customer", JSONArray(encodeCustomers(listOf(c))).getJSONObject(0)) }
                 put("customerRole", invoice.customerRole.name)
+                put("debtBasis", invoice.debtBasis?.name.orEmpty())
                 put("spotPrice18k", invoice.spotPrice18k)
                 put("salesItems", encodeBarterItems(invoice.salesItems))
                 put("receivedItems", encodeBarterItems(invoice.receivedItems))
@@ -809,7 +811,8 @@ internal object PersistenceJsonCodecs {
                 date = obj.stringValue("date"),
                 thirdPartyCustomerName = obj.stringValue("thirdPartyCustomerName"),
                 bullionKarat = obj.optInt("bullionKarat", 750),
-                bullionAngNumber = obj.stringValue("bullionAngNumber")
+                bullionAngNumber = obj.stringValue("bullionAngNumber"),
+                settlement = if (obj.has("settlement") && !obj.isNull("settlement")) decodeLedgerSettlement(obj.getJSONObject("settlement").toString()) else null
             )
         }
         return items
@@ -829,6 +832,7 @@ internal object PersistenceJsonCodecs {
                 put("thirdPartyCustomerName", p.thirdPartyCustomerName)
                 put("bullionKarat", p.bullionKarat)
                 put("bullionAngNumber", p.bullionAngNumber)
+                p.settlement?.let { put("settlement", JSONObject(encodeLedgerSettlement(it))) }
             })
         }
         return array

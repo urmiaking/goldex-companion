@@ -332,7 +332,7 @@ fun AddInvoicePaymentModal(
                                         fontFamily = VazirmatnFamily
                                     )
                                     Text(
-                                        text = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                        text = if (invoice.isGoldDebt) {
                                             "صافی کل: ${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار • مانده: ${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
                                         } else {
                                             "صافی کل: ${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان • مانده: ${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
@@ -430,7 +430,7 @@ fun AddInvoicePaymentModal(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        val isWholesaler = invoice.customerRole == CustomerRole.WHOLESALER
+                                        val isWholesaler = invoice.isGoldDebt
                                         val totalPaidWeight = if (invoice.payments.isNotEmpty()) {
                                             invoice.payments.sumOf { p ->
                                                 if (p.goldWeight18k > 0.0) p.goldWeight18k
@@ -558,7 +558,7 @@ fun AddInvoicePaymentModal(
                                                     )
                                                 }
 
-                                                if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                                if (invoice.isGoldDebt) {
                                                     val posAmount = posStr.toLongOrNull() ?: 0L
                                                     val eqGold = if (invoice.spotPrice18k > 0L) posAmount.toDouble() / invoice.spotPrice18k else 0.0
                                                     Surface(
@@ -860,7 +860,7 @@ fun AddInvoicePaymentModal(
                                 }
 
                                 // Quick Auto-Fill remaining balance button
-                                val hasRemaining = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                val hasRemaining = if (invoice.isGoldDebt) {
                                     invoice.remainingBalanceGold18k > 0.001 || remainingBalance > 0L
                                 } else {
                                     remainingBalance > 0L
@@ -881,7 +881,7 @@ fun AddInvoicePaymentModal(
                                                             transferAmountStr = remainingBalance.toString()
                                                             transferWeightStr = ""
                                                         } else {
-                                                            val w = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.remainingBalanceGold18k > 0.001) {
+                                                            val w = if (invoice.isGoldDebt && invoice.remainingBalanceGold18k > 0.001) {
                                                                 invoice.remainingBalanceGold18k
                                                             } else if (invoice.spotPrice18k > 0) {
                                                                 remainingBalance.toDouble() / invoice.spotPrice18k
@@ -891,7 +891,7 @@ fun AddInvoicePaymentModal(
                                                         }
                                                     }
                                                     SettlementMethod.BULLION -> {
-                                                        val w = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.remainingBalanceGold18k > 0.001) {
+                                                        val w = if (invoice.isGoldDebt && invoice.remainingBalanceGold18k > 0.001) {
                                                             invoice.remainingBalanceGold18k
                                                         } else if (invoice.spotPrice18k > 0) {
                                                             remainingBalance.toDouble() / invoice.spotPrice18k
@@ -916,7 +916,7 @@ fun AddInvoicePaymentModal(
                                                 fontFamily = VazirmatnFamily
                                             )
                                             Text(
-                                                text = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                                                text = if (invoice.isGoldDebt) {
                                                     "${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
                                                 } else {
                                                     "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
@@ -960,7 +960,7 @@ fun AddInvoicePaymentModal(
                                             val newPayment: SettlementPaymentItem? = when (selectedChannel) {
                                                 SettlementMethod.POS -> {
                                                     val amt = posStr.toLongOrNull() ?: 0L
-                                                    val eqGold = if (invoice.customerRole == CustomerRole.WHOLESALER && invoice.spotPrice18k > 0L) {
+                                                    val eqGold = if (invoice.isGoldDebt && invoice.spotPrice18k > 0L) {
                                                         amt.toDouble() / invoice.spotPrice18k
                                                     } else 0.0
                                                     if (amt > 0) {
@@ -1004,7 +1004,7 @@ fun AddInvoicePaymentModal(
                                                 SettlementMethod.TRANSFER -> {
                                                     val amt = if (!transferIsGoldMode) (transferAmountStr.toLongOrNull() ?: 0L) else 0L
                                                     var w = if (transferIsGoldMode) (transferWeightStr.toDoubleOrNull() ?: 0.0) else 0.0
-                                                    if (!transferIsGoldMode && invoice.customerRole == CustomerRole.WHOLESALER && invoice.spotPrice18k > 0L && amt > 0L) {
+                                                    if (!transferIsGoldMode && invoice.isGoldDebt && invoice.spotPrice18k > 0L && amt > 0L) {
                                                         w = amt.toDouble() / invoice.spotPrice18k
                                                     }
                                                     if (amt > 0L || w > 0.0) {

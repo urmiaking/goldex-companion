@@ -126,7 +126,7 @@ class RoomSyncSafetyTest {
             old.execSQL("INSERT INTO $table (${columns.joinToString(",")}) VALUES (${columns.joinToString(",") { "?" }})",values)
         }
         old.version=1; old.close()
-        val migrated=Room.databaseBuilder(context,GoldexDatabase::class.java,name).addMigrations(SYNC_MIGRATION_1_2, com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3).allowMainThreadQueries().build()
+        val migrated=Room.databaseBuilder(context,GoldexDatabase::class.java,name).addMigrations(SYNC_MIGRATION_1_2, com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3, com.goldex.companion.data.local.db.migration.INVOICE_DEBT_MIGRATION_3_4).allowMainThreadQueries().build()
         assertEquals("stable",migrated.portfolioDao().queryAll().single().id)
         assertEquals(9007199254740993L,migrated.portfolioDao().queryAll().single().purchasePriceTotal)
         assertEquals("customer",migrated.customerDao().queryAll().single().id)

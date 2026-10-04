@@ -218,8 +218,9 @@ class CustomerLedgerTest {
     }
 
     @Test
-    fun multiPaymentSettlementCalculationIsAccurate() {
+    fun cashPaymentsExcludeDeferredLedgerBalance() {
         val invoice = BarterInvoice(
+            customerRole = com.goldex.companion.model.CustomerRole.RETAIL,
             spotPrice18k = 25_000_000L,
             salesItems = listOf(
                 BarterCalculationUseCases.calculateCraftedItem(
@@ -253,9 +254,10 @@ class CustomerLedgerTest {
             )
         )
 
-        assertEquals(300_000_000L, invoice.totalPaymentsAmount)
+        // The 50 million deferred to the ledger has not been paid.
+        assertEquals(250_000_000L, invoice.totalPaymentsAmount)
         val net = invoice.balance.totalSalesAmount.toLong()
-        val expectedRemaining = (net - 300_000_000L).coerceAtLeast(0L)
+        val expectedRemaining = (net - 250_000_000L).coerceAtLeast(0L)
         assertEquals(expectedRemaining, invoice.remainingBalanceTomans)
         assertEquals(expectedRemaining == 0L, invoice.isFullySettled)
     }

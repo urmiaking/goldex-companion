@@ -522,7 +522,7 @@ fun CustomerSettlementModal(
                             items = listOf(LedgerEntryType.GOLD_WEIGHT, LedgerEntryType.CASH_RIAL),
                             selectedItem = state.paymentType,
                             onItemSelected = actions::selectPayment,
-                            label = { if (it == LedgerEntryType.GOLD_WEIGHT) "طلا (گرم ۷۵۰)" else "پول (تومان)" },
+                            label = { if (it == LedgerEntryType.GOLD_WEIGHT) "طلا / شمش" else "پول / سکه" },
                             isItemEnabled = { !state.offsetExistingCredit },
                             height = 38.dp,
                             modifier = Modifier.fillMaxWidth()
@@ -604,7 +604,7 @@ fun CustomerSettlementModal(
                                 GoldInputField(
                                     value = state.amountInput,
                                     onValueChange = actions::setAmount,
-                                    label = if (state.offsetExistingCredit) "مبلغ تهاتر" else "مبلغ پرداخت",
+                                    label = if (state.offsetExistingCredit) "مبلغ تهاتر" else if (state.paymentMethod.startsWith("سکه")) "ارزش توافقی سکه" else "مبلغ پرداخت",
                                     trailingText = "تومان",
                                     modifier = Modifier.testTag("settlementAmount")
                                 )
@@ -647,7 +647,7 @@ fun CustomerSettlementModal(
                                             expanded = methodMenu,
                                             onDismissRequest = { methodMenu = false }
                                         ) {
-                                            listOf("حواله بانکی / پایا", "کارتخوان (POS)", "اسکناس نقد").forEach { method ->
+                                            listOf("حواله بانکی / پایا", "کارتخوان (POS)", "اسکناس نقد", "سکه (ارزش توافقی)").forEach { method ->
                                                 DropdownMenuItem(
                                                     text = { Text(method, fontFamily = VazirmatnFamily) },
                                                     onClick = { actions.setMethod(method); methodMenu = false }
@@ -657,6 +657,12 @@ fun CustomerSettlementModal(
                                     }
                                 }
                             } else {
+                                if (!state.offsetExistingCredit) LuxurySegmentedControl(
+                                    items = listOf("طلای مستعمل", "شمش / آبشده"),
+                                    selectedItem = state.paymentMethod,
+                                    onItemSelected = actions::setMethod, label = { it },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                                 GoldInputField(
                                     value = state.weightInput,
                                     onValueChange = actions::setWeight,
@@ -675,6 +681,9 @@ fun CustomerSettlementModal(
                                 )
                             }
 
+                            if (state.paymentMethod.startsWith("سکه")) Text(
+                                "ارزش مجموع سکه‌ها با توافق طرفین؛ نوع و تعداد را در توضیحات بنویسید. معادل گرمی با نرخ همین تسویه محاسبه می‌شود.",
+                                fontFamily = VazirmatnFamily, fontSize = 11.sp, color = colors.textSecondary)
                             // Quick Fill Auto Calculate Shortcut
                             Surface(
                                 shape = RoundedCornerShape(10.dp),

@@ -119,6 +119,8 @@ fun BarterInvoiceScreen(
     marketRates: MarketRates,
     customerList: List<Customer> = emptyList(),
     onSetCustomerRole: (CustomerRole) -> Unit = {},
+    onSetDebtBasis: (com.goldex.companion.model.InvoiceDebtBasis) -> Unit = {},
+    onOpenDatedSettlement: () -> Unit = {},
     onSetSettlementMethod: (SettlementMethod) -> Unit,
     onSetCashPosAmount: (Long) -> Unit,
     onSetLedgerAmount: (Long) -> Unit = {},
@@ -273,6 +275,23 @@ fun BarterInvoiceScreen(
                     onChangeCustomerClick = onOpenCustomerPicker
                 )
 
+                Surface(shape = RoundedCornerShape(16.dp), color = colors.surface,
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f))) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("مبنای مانده فاکتور", fontFamily = VazirmatnFamily, color = colors.textMain, fontWeight = FontWeight.Bold)
+                        LuxurySegmentedControl(
+                            items = com.goldex.companion.model.InvoiceDebtBasis.entries.toList(),
+                            selectedItem = invoice.debtBasis ?: if (invoice.isGoldDebt) com.goldex.companion.model.InvoiceDebtBasis.GOLD else com.goldex.companion.model.InvoiceDebtBasis.CASH,
+                            onItemSelected = onSetDebtBasis, label = { it.titleFa },
+                            isItemEnabled = { !uiState.isEditingExistingInvoice }, modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(if (uiState.isEditingExistingInvoice) "مبنای قرارداد ثبت‌شده ثابت است؛ پرداخت بعدی با نرخ همان تسویه ثبت می‌شود."
+                            else if (invoice.isGoldDebt) "صافی فاکتور با نرخ صدور به گرم ۱۸ عیار تبدیل می‌شود؛ مانده گرمی ثابت و تسویه نقدی به نرخ روز است."
+                            else "مانده تومان ثابت است؛ نوسان قیمت طلا مبلغ بدهی را تغییر نمی‌دهد.",
+                            fontFamily = VazirmatnFamily, fontSize = 11.sp, color = colors.textSecondary)
+                    }
+                }
+
                 // 3. Sales Items Section (اقلام فروش ما)
                 ItemsSectionCard(
                     sectionNumber = 1,
@@ -297,17 +316,18 @@ fun BarterInvoiceScreen(
 
                 // 5. Barter Balance & Net Settlement Overview
                 BarterBalanceCard(
-                    balance = invoice.balance,
-                    customerRole = invoice.customerRole
+                    balance = if (invoice.debtBasis == com.goldex.companion.model.InvoiceDebtBasis.GOLD && invoice.spotPrice18k > 0) invoice.balance.copy(net18kWeightDelta = invoice.debtPrincipalGold) else invoice.balance,
+                    customerRole = if (invoice.isGoldDebt) CustomerRole.WHOLESALER else CustomerRole.RETAIL
                 )
 
                 // 6. Settlement & Payment Methods Section
                 SettlementSection(
                     invoice = invoice,
                     balance = invoice.balance,
+                    recordedOutstanding = uiState.recordedOutstanding.takeIf { uiState.isEditingExistingInvoice },
                     onOpenAddPaymentModal = {
-                        editingPaymentItem = null
-                        isPaymentModalVisible = true
+                        if (uiState.isEditingExistingInvoice && invoice.syncWithLedger && invoice.customer != null) onOpenDatedSettlement()
+                        else { editingPaymentItem = null; isPaymentModalVisible = true }
                     },
                     onEditPaymentItem = { item ->
                         editingPaymentItem = item
@@ -793,7 +813,7 @@ private fun BarterBalanceCard(
                     border = BorderStroke(0.6.dp, colors.profitGreen.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        text = if (customerRole == CustomerRole.WHOLESALER) "تراز وزنی طلا (همکار)" else "تسویه ریالی (مشتری)",
+                        text = if (customerRole == CustomerRole.WHOLESALER) "مبنای گرمی" else "مبنای تومانی",
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.profitGreen,
@@ -1380,6 +1400,7 @@ private fun ItemRowCard(
 private fun SettlementSection(
     invoice: BarterInvoice,
     balance: BarterBalance,
+    recordedOutstanding: com.goldex.companion.domain.customers.OutstandingBalance?,
     onOpenAddPaymentModal: () -> Unit,
     onEditPaymentItem: (SettlementPaymentItem) -> Unit,
     onSetSettlementPayments: (List<SettlementPaymentItem>) -> Unit,
@@ -1390,7 +1411,9 @@ private fun SettlementSection(
     val netPayableAmount = balance.netPayableAmount
     val absNetPayableLong = kotlin.math.abs(netPayableAmount).toLong()
     val totalPaid = invoice.totalPaymentsAmount
-    val remainingBalance = invoice.remainingBalanceTomans
+    val remainingBalance = recordedOutstanding?.cashTomans?.let { kotlin.math.abs(it) } ?: if (invoice.spotPrice18k > 0 || !invoice.isGoldDebt) invoice.remainingBalanceTomans else 0L
+    val remainingGold = recordedOutstanding?.goldGrams?.let { kotlin.math.abs(it) } ?: if (invoice.spotPrice18k > 0) invoice.remainingBalanceGold18k else 0.0
+    val fullySettled = recordedOutstanding?.isSettled ?: (invoice.spotPrice18k > 0 && invoice.isFullySettled)
 
     Surface(
         shape = RoundedCornerShape(20.dp),
@@ -1464,7 +1487,7 @@ private fun SettlementSection(
                 color = colors.surfaceElevated,
                 border = BorderStroke(
                     0.8.dp,
-                    if (invoice.isFullySettled) colors.profitGreen.copy(alpha = 0.5f)
+                    if (fullySettled) colors.profitGreen.copy(alpha = 0.5f)
                     else colors.goldBorder.copy(alpha = 0.4f)
                 ),
                 modifier = Modifier.fillMaxWidth()
@@ -1473,21 +1496,8 @@ private fun SettlementSection(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val isWholesaler = invoice.customerRole == CustomerRole.WHOLESALER
-                    val totalPaidWeight = if (invoice.payments.isNotEmpty()) {
-                        invoice.payments.sumOf { p ->
-                            if (p.goldWeight18k > 0.0) p.goldWeight18k
-                            else if (invoice.spotPrice18k > 0L) p.amountTomans.toDouble() / invoice.spotPrice18k
-                            else 0.0
-                        }
-                    } else {
-                        when (invoice.settlementMethod) {
-                            SettlementMethod.BULLION -> invoice.bullionWeight * (invoice.bullionKarat.toDouble() / 750.0)
-                            SettlementMethod.TRANSFER -> if (invoice.thirdPartyTransferWeight18k > 0.0) invoice.thirdPartyTransferWeight18k else if (invoice.spotPrice18k > 0L) invoice.thirdPartyTransferAmount.toDouble() / invoice.spotPrice18k else 0.0
-                            SettlementMethod.POS -> if (invoice.spotPrice18k > 0L) invoice.cashPosAmount.toDouble() / invoice.spotPrice18k else 0.0
-                            SettlementMethod.LEDGER -> 0.0
-                        }
-                    }
+                    val isWholesaler = invoice.isGoldDebt
+                    val totalPaidWeight = invoice.totalPaymentsGold18k
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1502,7 +1512,7 @@ private fun SettlementSection(
                         )
                         Text(
                             text = if (isWholesaler) {
-                                "${PersianNumberFormatter.formatWeight(kotlin.math.abs(balance.net18kWeightDelta))} گرم ۱۸ عیار"
+                                "${PersianNumberFormatter.formatWeight(kotlin.math.abs(if (invoice.spotPrice18k > 0) invoice.debtPrincipalGold else 0.0))} گرم ۱۸ عیار"
                             } else {
                                 "${PersianNumberFormatter.formatTomans(absNetPayableLong)} تومان"
                             },
@@ -1545,13 +1555,13 @@ private fun SettlementSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (invoice.isFullySettled) "وضعیت تسویه:" else "مانده پرداخت‌نشده (نسیه/دفتری):",
+                            text = if (fullySettled) "وضعیت تسویه:" else "مانده پرداخت‌نشده (نسیه/دفتری):",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain,
                             fontFamily = VazirmatnFamily
                         )
-                        if (invoice.isFullySettled) {
+                        if (fullySettled) {
                             Text(
                                 text = "تسویه کامل شد ✓",
                                 fontSize = 12.5.sp,
@@ -1562,7 +1572,7 @@ private fun SettlementSection(
                         } else {
                             Text(
                                 text = if (isWholesaler) {
-                                    "${PersianNumberFormatter.formatWeight(invoice.remainingBalanceGold18k)} گرم ۱۸ عیار"
+                                    "${PersianNumberFormatter.formatAccountWeight(remainingGold)} گرم ۱۸ عیار"
                                 } else {
                                     "${PersianNumberFormatter.formatTomans(remainingBalance)} تومان"
                                 },
@@ -1593,7 +1603,7 @@ private fun SettlementSection(
                             border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onEditPaymentItem(pItem) }
+                                .clickable(enabled = pItem.settlement == null) { onEditPaymentItem(pItem) }
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1631,6 +1641,9 @@ private fun SettlementSection(
                                             fontFamily = VazirmatnFamily
                                         )
                                         val pDetail = buildString {
+                                            pItem.settlement?.let { recorded ->
+                                                append("${PersianNumberFormatter.toPersianDigits(pItem.date)} • نرخ ثبت: ${PersianNumberFormatter.formatTomans(recorded.rateTomans)} تومان • ")
+                                            }
                                             if (pItem.amountTomans > 0) append("${PersianNumberFormatter.formatTomans(pItem.amountTomans)} تومان")
                                             if (pItem.goldWeight18k > 0) {
                                                 if (isNotEmpty()) append(" • ")
@@ -1655,6 +1668,7 @@ private fun SettlementSection(
                                     }
                                 }
                                 IconButton(
+                                    enabled = pItem.settlement == null,
                                     onClick = {
                                         onSetSettlementPayments(invoice.payments.filterNot { it.id == pItem.id })
                                     },
@@ -1731,7 +1745,7 @@ private fun SettlementSection(
                             fontFamily = VazirmatnFamily
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        val hint = if (invoice.customerRole == CustomerRole.WHOLESALER) {
+                        val hint = if (invoice.isGoldDebt) {
                             "ثبت مانده وزنی در تراز دفتری همکار"
                         } else {
                             "ثبت مانده پرداخت‌نشده در حساب مشتری"
