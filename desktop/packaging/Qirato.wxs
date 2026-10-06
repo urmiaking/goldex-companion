@@ -8,6 +8,8 @@
     <Property Id="QIRATO_INSTALLER" Value="1" />
     <Condition Message="Qirato installs for the current user only.">NOT ALLUSERS</Condition>
     <Property Id="ARPNOMODIFY" Value="1" />
+    <CustomAction Id="SetInstallLocation" Property="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" />
+    <InstallExecuteSequence><Custom Action="SetInstallLocation" After="CostFinalize">NOT Installed</Custom></InstallExecuteSequence>
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/urmiaking/goldex-companion" />
     <Property Id="ARPPRODUCTICON" Value="QiratoIcon" />
     <Icon Id="QiratoIcon" SourceFile="$(var.Icon)" />

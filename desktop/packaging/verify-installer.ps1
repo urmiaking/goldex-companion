@@ -27,8 +27,18 @@ function Install([string]$Package) {
     if ($result.ExitCode -ne 0) { throw "Installer failed ($($result.ExitCode))" }
 }
 function Products {
-    @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
-        Where-Object { $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -eq 'Qirato' })
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $related = $null
+    try {
+        $related = $installer.RelatedProducts('{A6B3CF2A-A8F7-4CDE-A49A-F8935C6B8306}')
+        foreach ($code in $related) {
+            [pscustomobject]@{PSChildName=[string]$code;DisplayVersion=$installer.ProductInfo($code,'VersionString');
+                AssignmentType=$installer.ProductInfo($code,'AssignmentType')}
+        }
+    } finally {
+        if ($related) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($related) }
+        [void][Runtime.InteropServices.Marshal]::ReleaseComObject($installer)
+    }
 }
 function AssertShortcuts {
     $shell = New-Object -ComObject WScript.Shell
@@ -41,7 +51,10 @@ function AssertShortcuts {
 }
 Install $previous
 $old = @(Products)
-if ($old.Count -ne 1 -or $old[0].DisplayVersion -ne $previousVersion) { throw 'Previous fixture did not register' }
+if ($old.Count -ne 1 -or $old[0].DisplayVersion -ne $previousVersion -or $old[0].AssignmentType -ne '0') {
+    $old | Format-Table PSChildName,DisplayVersion,AssignmentType
+    throw 'Previous per-user fixture did not register'
+}
 AssertShortcuts
 New-Item -ItemType Directory -Path $data -Force | Out-Null
 # This sentinel is outside the install tree and is never parsed as business data.
