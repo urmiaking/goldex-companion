@@ -75,6 +75,7 @@ try {
         if ($install.ExitCode -notin @(0,3010)) { throw "Windows Installer could not upgrade the application (code=$($install.ExitCode))" }
         $log = Join-Path $stage 'runtime.log'
         $verification = Start-Process (Join-Path $root 'Qirato.exe') -ArgumentList '--verify-runtime' -RedirectStandardOutput $log -WindowStyle Hidden -PassThru
+        [void]$verification.Handle # Keep the process handle so Windows PowerShell retains ExitCode.
         if (!$verification.WaitForExit(60000)) { $verification.Kill(); throw 'Installed runtime verification timed out' }
         $verification.WaitForExit() # Drain redirected output before reading the version marker.
         if ($verification.ExitCode -ne 0 -or (Get-Item -LiteralPath $log).Length -gt 65536 -or

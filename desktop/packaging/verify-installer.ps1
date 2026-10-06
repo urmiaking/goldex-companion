@@ -91,6 +91,7 @@ if ($rejected.ExitCode -eq 0 -or (Test-Path -LiteralPath (Join-Path $stage 'read
 $validPlan | Set-Content -LiteralPath $plan -Encoding UTF8
 $helper = Start-Process $shellPath -ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass',
     '-File', ('"'+(Join-Path $stage 'install.ps1')+'"'), '-Plan', ('"'+$plan+'"')) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $stage 'helper-out.log') -RedirectStandardError (Join-Path $stage 'helper-error.log')
+[void]$helper.Handle
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 while (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -and !$helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
 if (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) {
