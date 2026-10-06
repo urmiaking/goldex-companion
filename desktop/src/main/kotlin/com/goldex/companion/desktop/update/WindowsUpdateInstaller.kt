@@ -52,7 +52,7 @@ object WindowsUpdateArchive {
     fun validateBundle(root: Path) {
         require(Files.isRegularFile(root.resolve("Qirato.exe")) && Files.isRegularFile(root.resolve("app/Qirato.cfg")) &&
             Files.isDirectory(root.resolve("runtime"))) { "Incomplete Qirato bundle" }
-        require(Files.list(root).use { stream -> stream.allMatch { it.fileName.toString() in setOf("Qirato.exe", "app", "runtime") } }) { "Unexpected bundle contents" }
+        require(Files.list(root).use { stream -> stream.allMatch { it.fileName.toString() in setOf("Qirato.exe", "app", "runtime", ".qirato-msi") } }) { "Unexpected bundle contents" }
     }
 }
 
@@ -70,7 +70,8 @@ class WindowsUpdateInstaller(
     private val installRoot: Path? = packagedRoot(),
     private val network: WindowsUpdateNetwork = WindowsUpdateNetwork()
 ) : WindowsUpdateGateway {
-    override suspend fun check() = network.check(version)
+    private val packageKind get() = if (installRoot?.let { Files.isRegularFile(it.resolve(".qirato-msi")) } == true) WindowsPackage.MSI else WindowsPackage.ZIP
+    override suspend fun check() = network.check(version, packageKind)
 
     override suspend fun prepare(release: WindowsRelease, progress: (Long, Long) -> Unit, verifying: () -> Unit): PreparedWindowsUpdate = withContext(Dispatchers.IO) {
         val root = checkNotNull(installRoot) { "Run the portable packaged application" }.toAbsolutePath().normalize()
@@ -78,9 +79,17 @@ class WindowsUpdateInstaller(
         require(root.fileName.toString().equals("Qirato", ignoreCase = true) && root.parent != null && root.parent.parent != null)
         require(root.toRealPath() == root && !dataDirectory.toAbsolutePath().normalize().startsWith(root)) { "Unsupported installation path" }
         val staging = Files.createDirectory(root.parent.resolve(".qirato-update-${UUID.randomUUID()}"))
-        val archive = staging.resolve("package.zip")
+        require(release.kind == packageKind) { "Update package does not match installation" }
+        val archive = staging.resolve("package.${release.kind.extension}")
         network.download(release, archive, progress)
         coroutineContext.ensureActive(); verifying()
+        if (release.kind == WindowsPackage.MSI) {
+            val update = PreparedWindowsUpdate(release, root, staging, archive)
+            val (script, plan) = writeHelper(update)
+            runVerification(ProcessBuilder(powershell().toString(), "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass",
+                "-File", script.toString(), "-Plan", plan.toString(), "-ValidateOnly"), staging.resolve("msi-verify.log"))
+            return@withContext update
+        }
         val extraction = Files.createDirectory(staging.resolve("extracted"))
         val context = coroutineContext
         val bundle = WindowsUpdateArchive.extract(archive, extraction) { context.ensureActive() }
@@ -98,18 +107,14 @@ class WindowsUpdateInstaller(
     override suspend fun launch(update: PreparedWindowsUpdate): Unit = withContext(Dispatchers.IO) {
         val root = update.installRoot.toAbsolutePath().normalize()
         require(root == installRoot?.toAbsolutePath()?.normalize())
-        require(update.stagingRoot.parent == root.parent && update.bundle == update.stagingRoot.resolve("extracted/Qirato"))
-        WindowsUpdateArchive.validateBundle(update.bundle)
-        val script = update.stagingRoot.resolve("install.ps1")
-        checkNotNull(javaClass.getResourceAsStream("/update/install.ps1")).use { Files.copy(it, script, StandardCopyOption.REPLACE_EXISTING) }
-        val plan = update.stagingRoot.resolve("plan.json")
-        val json = JSONObject().put("installRoot", root.toString()).put("stagingRoot", update.stagingRoot.toString())
-            .put("bundle", update.bundle.toString()).put("processId", ProcessHandle.current().pid())
-            .put("version", update.release.version.toString()).put("dataDirectory", dataDirectory.toAbsolutePath().normalize().toString())
-        Files.writeString(plan, json.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        require(update.stagingRoot.parent == root.parent && update.release.kind == packageKind)
+        if (update.release.kind == WindowsPackage.ZIP) {
+            require(update.bundle == update.stagingRoot.resolve("extracted/Qirato"))
+            WindowsUpdateArchive.validateBundle(update.bundle)
+        } else require(update.bundle == update.stagingRoot.resolve("package.msi"))
+        val (script, plan) = writeHelper(update)
         Files.deleteIfExists(update.stagingRoot.resolve("ready"))
-        val powershell = Path.of(System.getenv("SystemRoot") ?: "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
-        val process = ProcessBuilder(powershell.toString(), "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", script.toString(), "-Plan", plan.toString())
+        val process = ProcessBuilder(powershell().toString(), "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", script.toString(), "-Plan", plan.toString())
             .directory(update.stagingRoot.toFile()).redirectErrorStream(true).redirectOutput(update.stagingRoot.resolve("helper.log").toFile()).start()
         try {
             val ready = update.stagingRoot.resolve("ready")
@@ -119,7 +124,30 @@ class WindowsUpdateInstaller(
         } catch (failure: Exception) { process.destroyForcibly(); throw failure }
     }
 
+    private fun writeHelper(update: PreparedWindowsUpdate): Pair<Path, Path> {
+        val script = update.stagingRoot.resolve("install.ps1")
+        val resource = if (update.release.kind == WindowsPackage.MSI) "/update/install-msi.ps1" else "/update/install.ps1"
+        checkNotNull(javaClass.getResourceAsStream(resource)).use { Files.copy(it, script, StandardCopyOption.REPLACE_EXISTING) }
+        val plan = update.stagingRoot.resolve("plan.json")
+        val json = JSONObject().put("installRoot", update.installRoot.toString()).put("stagingRoot", update.stagingRoot.toString())
+            .put("bundle", update.bundle.toString()).put("processId", ProcessHandle.current().pid())
+            .put("version", update.release.version.toString()).put("dataDirectory", dataDirectory.toAbsolutePath().normalize().toString())
+            .put("sha256", update.release.sha256).put("size", update.release.size)
+        Files.writeString(plan, json.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+        return script to plan
+    }
+
+    private suspend fun runVerification(builder: ProcessBuilder, log: Path) {
+        val process = builder.redirectErrorStream(true).redirectOutput(log.toFile()).start()
+        try {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
+            while (process.isAlive && System.nanoTime() < deadline) { delay(100); coroutineContext.ensureActive() }
+            require(!process.isAlive && process.exitValue() == 0) { "Installer validation failed" }
+        } finally { if (process.isAlive) process.destroyForcibly() }
+    }
+
     companion object {
+        private fun powershell() = Path.of(System.getenv("SystemRoot") ?: "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
         fun packagedRoot(): Path? {
             val launcher = System.getProperty("jpackage.app-path") ?: ProcessHandle.current().info().command().orElse(null) ?: return null
             val path = Path.of(launcher).toAbsolutePath().normalize()

@@ -2,8 +2,10 @@ import os
 import subprocess
 import tempfile
 import unittest
+import json
+from unittest.mock import patch
 from pathlib import Path
-from plan_release import classify, release_plan, select_targets, versions
+from plan_release import classify, release_plan, select_targets, versions, finalize
 
 
 def artifact(tag, android=True, windows=True):
@@ -12,6 +14,13 @@ def artifact(tag, android=True, windows=True):
 
 
 class PolicyTests(unittest.TestCase):
+    def test_new_windows_release_cannot_publish_without_installer(self):
+        result = subprocess.CompletedProcess([], 0, json.dumps({"isDraft": True, "assets": [{"name": "Qirato-Windows-x64-0.56.40.zip"}]}), "")
+        with patch("plan_release.command", return_value=result) as command:
+            with self.assertRaisesRegex(ValueError, "Windows installer missing"):
+                finalize("v0.56.40", "test/repo", "0.56.40", False, True)
+            self.assertEqual(1, command.call_count)
+
     def test_platform_paths_and_shared_assets(self):
         self.assertEqual((False, True), classify(["desktop/src/main/Main.kt"]))
         self.assertEqual((True, False), classify(["app/src/main/AndroidManifest.xml"]))

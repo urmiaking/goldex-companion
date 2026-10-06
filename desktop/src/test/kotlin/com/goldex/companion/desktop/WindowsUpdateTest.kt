@@ -2,6 +2,7 @@ package com.goldex.companion.desktop
 
 import com.goldex.companion.desktop.update.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import org.json.*
 import org.junit.*
 import org.junit.Test
@@ -44,6 +45,22 @@ class WindowsUpdateTest {
             mutation(release.getJSONArray("assets").getJSONObject(0))
             assertFailsWith<IllegalArgumentException> { WindowsReleasePolicy.newest(listOf(JSONArray().put(metadata("0.56.38")).put(release)), installed) }
         }
+    }
+
+    @Test fun installedChannelRequiresMsiWhileLegacyPortableStillFindsZip() {
+        val candidate = metadata("0.56.40")
+        val assets = candidate.getJSONArray("assets")
+        val msi = JSONObject(assets.getJSONObject(0).toString())
+        msi.put("name", "Qirato-Windows-x64-0.56.40.msi")
+        msi.put("browser_download_url", msi.getString("browser_download_url").replace(".zip", ".msi"))
+        assets.put(msi)
+        val pages = listOf(JSONArray().put(candidate).put(metadata("0.56.41")))
+        assertEquals(WindowsVersion(0,56,41), WindowsReleasePolicy.newest(pages, installed)?.version)
+        val release = assertNotNull(WindowsReleasePolicy.newest(pages, installed, WindowsPackage.MSI))
+        assertEquals(WindowsVersion(0,56,40), release.version)
+        assertEquals(WindowsPackage.MSI, release.kind)
+        msi.put("digest", "")
+        assertFails { WindowsReleasePolicy.newest(pages, installed, WindowsPackage.MSI) }
     }
 
     private fun release(bytes: ByteArray) = WindowsRelease(WindowsVersion(0,56,38), "windows-v0.56.38", "", URI("https://github.com"), bytes.size.toLong(),
@@ -105,6 +122,47 @@ class WindowsUpdateTest {
             verifying(); return PreparedWindowsUpdate(release, Path.of("Qirato"), Path.of("stage"), Path.of("bundle"))
         }
         override suspend fun launch(update: PreparedWindowsUpdate) { if (fails) error("test helper failure"); launches++ }
+    }
+
+    @Test fun startupAndFiveMinuteTicksCheckWithoutManualActionAndDoNotOverlap() = runBlocking {
+        val calls = Channel<Unit>(Channel.UNLIMITED)
+        val finish = Channel<Unit>(Channel.UNLIMITED)
+        val ticks = Channel<Unit>(Channel.UNLIMITED)
+        val intervals = Channel<Long>(Channel.UNLIMITED)
+        val gateway = object : WindowsUpdateGateway {
+            override suspend fun check(): WindowsRelease? { calls.send(Unit); finish.receive(); return null }
+            override suspend fun prepare(release: WindowsRelease, progress: (Long,Long)->Unit, verifying:()->Unit): PreparedWindowsUpdate = error("No release")
+            override suspend fun launch(update: PreparedWindowsUpdate) = error("No release")
+        }
+        val updater = WindowsUpdater(gateway, waitForNextCheck = { intervals.send(it); ticks.receive() })
+        try {
+            updater.start(); updater.start()
+            withTimeout(3000) { calls.receive() }
+            assertNull(updater.check()); assertTrue(calls.tryReceive().isFailure)
+            finish.send(Unit)
+            assertEquals(300000L, withTimeout(3000) { intervals.receive() })
+            ticks.send(Unit)
+            withTimeout(3000) { calls.receive() }
+            finish.send(Unit)
+            assertEquals(300000L, withTimeout(3000) { intervals.receive() })
+            assertEquals(WindowsUpdatePhase.CURRENT, updater.state.value.phase)
+        } finally { updater.close() }
+    }
+
+    @Test fun backgroundTicksKeepPostponedReadyUpdateQuietButManualCheckReopensIt() = runBlocking {
+        val ticks = Channel<Unit>(Channel.UNLIMITED)
+        val intervals = Channel<Long>(Channel.UNLIMITED)
+        val gateway = Gateway(release("bytes".toByteArray()))
+        val updater = WindowsUpdater(gateway, waitForNextCheck = { intervals.send(it); ticks.receive() })
+        try {
+            updater.start()
+            withTimeout(3000) { intervals.receive() }
+            assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase); assertTrue(updater.state.value.dialog)
+            updater.postpone(); ticks.send(Unit)
+            withTimeout(3000) { intervals.receive() }
+            assertFalse(updater.state.value.dialog); assertEquals(1, gateway.downloads)
+            updater.check(); assertTrue(updater.state.value.dialog)
+        } finally { updater.close() }
     }
 
     @Test fun downloadsAutomaticallyButPostponesWithoutClosingAndReusesReadyPackage() = runBlocking {

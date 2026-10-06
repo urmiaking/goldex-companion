@@ -138,13 +138,20 @@ jobs:
           $launcher = Resolve-Path 'desktop/build/compose/binaries/main/app/Qirato/Qirato.exe'
           $verification = Start-Process -FilePath $launcher -ArgumentList '--verify-runtime' -WindowStyle Hidden -PassThru -Wait
           if ($verification.ExitCode -ne 0) { throw 'Packaged runtime verification failed' }
-      - name: Upload Windows asset
+      - name: Build installer and verify installation upgrade
+        shell: pwsh
+        run: |
+          ./desktop/packaging/build-installer.ps1
+          ./desktop/packaging/verify-installer.ps1 -Version $env:WINDOWS_VERSION
+      - name: Upload Windows installer and legacy portable asset
         shell: pwsh
         run: |
           $archive = "Qirato-Windows-x64-$env:WINDOWS_VERSION.zip"
           Compress-Archive -Path 'desktop/build/compose/binaries/main/app/Qirato' -DestinationPath $archive
           gh release upload $env:RELEASE_TAG $archive --clobber
           if ($LASTEXITCODE -ne 0) { throw 'Windows upload failed' }
+          gh release upload $env:RELEASE_TAG "desktop/build/installer/Qirato-Windows-x64-$env:WINDOWS_VERSION.msi" --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Windows installer upload failed' }
       - name: Report Windows failure
         if: failure()
         shell: pwsh

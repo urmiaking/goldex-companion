@@ -153,6 +153,8 @@ def finalize(tag, repo, windows_version, android, windows):
         raise ValueError("Android asset missing")
     if windows and f"Qirato-Windows-x64-{windows_version}.zip" not in names:
         raise ValueError("Windows asset missing")
+    if windows and version_tuple(windows_version) >= (0, 56, 40) and f"Qirato-Windows-x64-{windows_version}.msi" not in names:
+        raise ValueError("Windows installer missing")
     args = ["gh", "release", "edit", tag, "--repo", repo, "--draft=false"]
     # Recovery of an already-published release leaves GitHub latest selection untouched.
     if release["isDraft"]:
