@@ -111,8 +111,13 @@ if (Test-Path -LiteralPath (Join-Path $root 'app\previous-only.txt')) { throw 'O
 if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $before) { throw 'Upgrade changed user data' }
 AssertShortcuts
 $reopened = @(Get-Process Qirato -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq (Join-Path $root 'Qirato.exe') })
-if ($reopened.Count -ne 1) { throw 'Updater did not reopen the installed application' }
-$reopened | Stop-Process -Force
+# jpackage may keep a launcher and a JVM process, both named Qirato. Verify
+# reopening without equating native process count with application windows.
+if ($reopened.Count -lt 1) { throw 'Updater did not reopen the installed application' }
+foreach ($process in $reopened) {
+    if (!$process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+    [void]$process.WaitForExit(10000)
+}
 # Reinstall is idempotent and older packages are rejected.
 Install $current
 $downgrade = Start-Process $msiexec -ArgumentList @('/i', ('"'+$previous+'"'), '/qn', '/norestart') -WindowStyle Hidden -PassThru -Wait
