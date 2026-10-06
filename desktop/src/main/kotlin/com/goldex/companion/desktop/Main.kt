@@ -51,6 +51,9 @@ private fun verifyRuntime() {
     check(PersistenceJsonCodecs.decodeSettings("{}").defaultProfitPercent == "7")
     check(desktopVersion().matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")))
     checkNotNull(ManualGoldCalculator::class.java.getResourceAsStream("/update/install-msi.ps1")).use { check(it.read() >= 0) }
+    val inventory = com.goldex.companion.presentation.inventory.InventoryForm.toItem(com.goldex.companion.presentation.inventory.InventoryDraft(code = "RNG-123", title = "آزمون", gross = "2"))
+    check(com.goldex.companion.presentation.inventory.InventoryForm.price(inventory, 6_000_000)!!.total == 14_315_160L)
+    InventoryLabelPrinter.render(inventory).let { check(it.width == 600); it.flush() }
     println("Qirato runtime version=${desktopVersion()}")
     println("Qirato font, icon, shared codecs and financial runtime verification passed")
 }
@@ -69,9 +72,14 @@ private fun launchWorkspace() {
         DisposableEffect(Unit) { onDispose { closeData() } }
         val workspace = initialized.getOrNull()?.second
         val state = workspace?.state?.collectAsState()?.value
+        val inventoryState = workspace?.inventory?.state?.collectAsState()?.value
+        var confirmClose by remember { mutableStateOf(false) }
         LaunchedEffect(workspace) { if (workspace != null) { workspace.start(); updater.start() } }
         Window(
-            onCloseRequest = { closeData(); exitApplication() }, title = "قیراط | ${state?.destination?.title ?: "اطلاعات"}",
+            onCloseRequest = {
+                if (state?.saving == true || inventoryState?.saving == true || state?.draft != null || state?.settingsDraft != null || inventoryState?.draft != null || inventoryState?.movement != null) confirmClose = true
+                else { closeData(); exitApplication() }
+            }, title = "قیراط | ${state?.destination?.title ?: "اطلاعات"}",
             icon = painterResource("mipmap-xxxhdpi/ic_launcher.png"), state = rememberWindowState(width = 1400.dp, height = 900.dp),
             onPreviewKeyEvent = { event ->
                 if (workspace != null && event.type == KeyEventType.KeyDown && event.isCtrlPressed) {
@@ -81,8 +89,15 @@ private fun launchWorkspace() {
                         Key.Three -> workspace.navigate(DesktopDestination.RATES)
                         Key.Four -> workspace.navigate(DesktopDestination.PORTFOLIO)
                         Key.Five -> workspace.navigate(DesktopDestination.SETTINGS)
+                        Key.Six -> workspace.navigate(DesktopDestination.INVENTORY)
                         Key.R -> { workspace.refreshRates() }
-                        Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null) { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }
+                        Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && !workspace.inventory.state.value.hasDialog) {
+                            if (workspace.state.value.destination == DesktopDestination.INVENTORY) workspace.inventory.open()
+                            else { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }
+                        }
+                        Key.S -> if (workspace.inventory.state.value.draft != null) workspace.inventory.save()
+                            else if (workspace.inventory.state.value.movement != null) workspace.inventory.saveMovement()
+                            else return@Window false
                         else -> return@Window false
                     }
                     true
@@ -91,8 +106,17 @@ private fun launchWorkspace() {
         ) {
             window.minimumSize = Dimension(940, 700)
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
+                if (confirmClose) CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    val busy = state?.saving == true || inventoryState?.saving == true
+                    AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیرهٔ اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
+                        text = { Text(if (busy) "پس از پایان عملیات می‌توانید برنامه را ببندید." else "فرم باز یا تنظیمات ویرایش‌شده ذخیره نشده‌اند. پیش از خروج، آن‌ها را ذخیره کنید.") },
+                        confirmButton = { Row(Modifier.width(380.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            GoldButton("بازگشت به برنامه", { confirmClose = false }, Modifier.weight(1f), isSecondary = true)
+                            GoldButton("خروج", { closeData(); exitApplication() }, Modifier.weight(1f), enabled = !busy)
+                        } })
+                }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
-                    onRestart = { if (!workspace.state.value.saving) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
+                    onRestart = { if (!workspace.state.value.saving && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
                     FileDialog(window, "ذخیرهٔ فایل پشتیبان", FileDialog.SAVE).apply {
                         file = "Qirato-backup-${java.time.LocalDate.now()}.json"
                         isVisible = true

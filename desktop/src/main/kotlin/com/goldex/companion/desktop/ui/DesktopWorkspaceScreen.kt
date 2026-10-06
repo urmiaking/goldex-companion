@@ -47,6 +47,7 @@ import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 @Composable
 fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, version: String, updater: WindowsUpdater? = null, onRestart: () -> Unit = {}) {
     val state by workspace.state.collectAsState()
+    val inventoryState by workspace.inventory.state.collectAsState()
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
     val focus = LocalFocusManager.current
@@ -101,6 +102,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
+                                    DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
                                 }
                             }
                         }
@@ -109,8 +111,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             }
         }
         state.draft?.let { AssetDialog(it, state.saving, workspace) }
-        if (updater != null && state.draft == null && state.pendingDelete == null)
-            WindowsUpdatePrompt(updater, canRestart = !state.saving, onRestart = onRestart)
+        InventoryDialogs(workspace.inventory)
+        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
+            WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
         state.pendingDelete?.let { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخهٔ قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
@@ -130,6 +133,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     DesktopDestination.RATES -> Icons.Outlined.ShowChart
     DesktopDestination.PORTFOLIO -> Icons.Outlined.AccountBalanceWallet
     DesktopDestination.SETTINGS -> Icons.Outlined.Settings
+    DesktopDestination.INVENTORY -> Icons.Outlined.Inventory2
 }
 
 @Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String) {
@@ -143,7 +147,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                     Text("همراه زرگر", color = colors.textMuted, fontSize = 11.sp)
                 }
             }
-            DesktopDestination.values().forEach { destination ->
+            listOf(DesktopDestination.DASHBOARD, DesktopDestination.INVENTORY, DesktopDestination.CALCULATOR, DesktopDestination.RATES, DesktopDestination.PORTFOLIO, DesktopDestination.SETTINGS).forEach { destination ->
                 val selected = state.destination == destination
                 val selectionColor by animateColorAsState(if (selected) colors.goldContainer else Color.Transparent,
                     tween(if (state.reduceMotion) 0 else 180), label = "sidebar-selection")
@@ -275,10 +279,10 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
     }
 }
 
-@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null) {
+@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, singleLine = true, isError = error != null,
+        GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp, color = colors.textMain, textDirection = if (numeric) TextDirection.Ltr else TextDirection.ContentOrRtl),
             visualTransformation = if (numeric) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary, focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,

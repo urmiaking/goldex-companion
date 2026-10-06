@@ -60,7 +60,7 @@ import kotlin.math.roundToInt
                     Triple("ثبت دارایی", Icons.Outlined.Add, { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }),
                     Triple("محاسبه طلا", Icons.Outlined.Calculate, { workspace.navigate(DesktopDestination.CALCULATOR) }),
                     Triple("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, { workspace.navigate(DesktopDestination.RATES) }),
-                    Triple("تنظیمات گالری", Icons.Outlined.Tune, { workspace.navigate(DesktopDestination.SETTINGS) }))
+                    Triple("انبار و کالاها", Icons.Outlined.Inventory2, { workspace.navigate(DesktopDestination.INVENTORY) }))
                 val rows = if (maxWidth >= 740.dp) listOf(actions) else actions.chunked(2)
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     rows.forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
