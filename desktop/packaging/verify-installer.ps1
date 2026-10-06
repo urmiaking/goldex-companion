@@ -30,10 +30,16 @@ function Products {
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $related = $null
     try {
-        $related = $installer.RelatedProducts('{A6B3CF2A-A8F7-4CDE-A49A-F8935C6B8306}')
-        foreach ($code in $related) {
-            [pscustomobject]@{PSChildName=[string]$code;DisplayVersion=$installer.ProductInfo($code,'VersionString');
-                AssignmentType=$installer.ProductInfo($code,'AssignmentType')}
+        # MSI automation properties have incomplete type information in pwsh.
+        # Use explicit IDispatch property access rather than dynamic adaptation.
+        $related = $installer.GetType().InvokeMember('RelatedProducts', [Reflection.BindingFlags]::GetProperty, $null, $installer,
+            @('{A6B3CF2A-A8F7-4CDE-A49A-F8935C6B8306}'))
+        $count = $related.GetType().InvokeMember('Count', [Reflection.BindingFlags]::GetProperty, $null, $related, $null)
+        for ($index = 0; $index -lt $count; $index++) {
+            $code = $related.GetType().InvokeMember('Item', [Reflection.BindingFlags]::GetProperty, $null, $related, @($index))
+            [pscustomobject]@{PSChildName=[string]$code;
+                DisplayVersion=$installer.GetType().InvokeMember('ProductInfo', [Reflection.BindingFlags]::GetProperty, $null, $installer, @($code,'VersionString'));
+                AssignmentType=$installer.GetType().InvokeMember('ProductInfo', [Reflection.BindingFlags]::GetProperty, $null, $installer, @($code,'AssignmentType'))}
         }
     } finally {
         if ($related) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($related) }
