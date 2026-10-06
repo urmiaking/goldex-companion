@@ -10,7 +10,7 @@ import java.security.MessageDigest
 import kotlin.coroutines.coroutineContext
 
 class WindowsUpdateNetwork {
-    suspend fun check(installed: WindowsVersion, kind: WindowsPackage = WindowsPackage.ZIP): WindowsRelease? = withContext(Dispatchers.IO) {
+    suspend fun check(installed: WindowsVersion): WindowsRelease? = withContext(Dispatchers.IO) {
         val pages = mutableListOf<JSONArray>()
         for (page in 1..20) {
             coroutineContext.ensureActive()
@@ -30,7 +30,7 @@ class WindowsUpdateNetwork {
             }
             val records = JSONArray(bytes.toString(Charsets.UTF_8))
             pages += records
-            if (records.length() < 100) return@withContext WindowsReleasePolicy.newest(pages, installed, kind)
+            if (records.length() < 100) return@withContext WindowsReleasePolicy.newest(pages, installed)
         }
         throw IOException("Release history exceeds discovery limit")
     }

@@ -77,7 +77,7 @@ while (!(Test-Path -LiteralPath (Join-Path $data 'workspace.lock')) -and !$app.H
 if (!(Test-Path -LiteralPath (Join-Path $data 'workspace.lock')) -or $app.HasExited) { throw 'Installed application did not open its data store' }
 $stage = Join-Path (Split-Path $root -Parent) ('.qirato-update-' + [guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $stage | Out-Null
-$package = Join-Path $stage 'package.msi'
+$package = Join-Path $stage "Qirato-Windows-x64-$Version.msi"
 Copy-Item -LiteralPath $current -Destination $package
 Copy-Item -LiteralPath "$PSScriptRoot\..\src\main\resources\update\install-msi.ps1" -Destination (Join-Path $stage 'install.ps1')
 $plan = Join-Path $stage 'plan.json'

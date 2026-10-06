@@ -50,7 +50,7 @@ $expectedRoot = FullPath (Join-Path $env:LOCALAPPDATA 'Programs\Qirato')
 $data = FullPath $planData.dataDirectory
 if ($root -ine $expectedRoot -or (Split-Path $stage -Parent) -ine (Split-Path $root -Parent) -or
     (Split-Path $stage -Leaf) -notmatch '^\.qirato-update-[0-9a-f-]{36}$' -or
-    $package -ine (Join-Path $stage 'package.msi') -or (FullPath $Plan) -ine (Join-Path $stage 'plan.json') -or
+    $package -ine (Join-Path $stage "Qirato-Windows-x64-$($planData.version).msi") -or (FullPath $Plan) -ine (Join-Path $stage 'plan.json') -or
     (FullPath $PSScriptRoot) -ine $stage -or $planData.version -notmatch '^\d+\.\d+\.\d+$' -or
     $planData.sha256 -notmatch '^[a-f0-9]{64}$' -or [long]$planData.size -lt 1 -or [long]$planData.size -gt 300MB -or
     [long]$planData.processId -le 0 -or [long]$planData.processId -eq $PID -or

@@ -57,7 +57,7 @@ def versions(ref):
 def has_asset(release, platform):
     return any(asset.get("state", "uploaded") == "uploaded" and
                (asset["name"] == "app-release.apk" if platform == "android" else
-                bool(re.fullmatch(r"Qirato-Windows-x64-[\d.]+\.zip", asset["name"])))
+                bool(re.fullmatch(r"Qirato-Windows-x64-[\d.]+\.(?:msi|zip)", asset["name"])))
                for asset in release.get("assets", []))
 
 
@@ -151,10 +151,10 @@ def finalize(tag, repo, windows_version, android, windows):
     names = {asset["name"] for asset in release["assets"]}
     if android and "app-release.apk" not in names:
         raise ValueError("Android asset missing")
-    if windows and f"Qirato-Windows-x64-{windows_version}.zip" not in names:
-        raise ValueError("Windows asset missing")
-    if windows and version_tuple(windows_version) >= (0, 56, 40) and f"Qirato-Windows-x64-{windows_version}.msi" not in names:
-        raise ValueError("Windows installer missing")
+    if windows:
+        extension = "msi" if version_tuple(windows_version) >= (0, 56, 40) else "zip"
+        if f"Qirato-Windows-x64-{windows_version}.{extension}" not in names:
+            raise ValueError("Windows installer missing" if extension == "msi" else "Windows asset missing")
     args = ["gh", "release", "edit", tag, "--repo", repo, "--draft=false"]
     # Recovery of an already-published release leaves GitHub latest selection untouched.
     if release["isDraft"]:

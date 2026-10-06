@@ -10,7 +10,6 @@ import org.junit.rules.TemporaryFolder
 import java.net.URI
 import java.nio.file.*
 import java.security.MessageDigest
-import java.util.zip.*
 import kotlin.test.*
 
 class WindowsUpdateTest {
@@ -18,9 +17,9 @@ class WindowsUpdateTest {
     private val installed = WindowsVersion(0, 56, 37)
     private fun metadata(version: String, windowsTag: Boolean = false, windowsAsset: Boolean = true): JSONObject {
         val tag = (if (windowsTag) "windows-v" else "v") + version
-        val asset = JSONObject().put("name", "Qirato-Windows-x64-$version.zip").put("state", "uploaded").put("size", 100)
+        val asset = JSONObject().put("name", "Qirato-Windows-x64-$version.msi").put("state", "uploaded").put("size", 100)
             .put("digest", "sha256:" + "a".repeat(64))
-            .put("browser_download_url", "https://github.com/urmiaking/goldex-companion/releases/download/$tag/Qirato-Windows-x64-$version.zip")
+            .put("browser_download_url", "https://github.com/urmiaking/goldex-companion/releases/download/$tag/Qirato-Windows-x64-$version.msi")
         return JSONObject().put("tag_name", tag).put("draft", false).put("prerelease", false).put("body", "تغییرات نسخه")
             .put("assets", if (windowsAsset) JSONArray().put(asset) else JSONArray())
     }
@@ -40,27 +39,22 @@ class WindowsUpdateTest {
     }
 
     @Test fun refusesMissingDigestAndForeignDownloadRatherThanInstallingAnOlderCandidate() {
-        for (mutation in listOf<(JSONObject) -> Unit>({ it.put("digest", "") }, { it.put("browser_download_url", "https://example.com/Qirato.zip") })) {
+        for (mutation in listOf<(JSONObject) -> Unit>({ it.put("digest", "") }, { it.put("browser_download_url", "https://example.com/Qirato.msi") })) {
             val release = metadata("0.56.39", windowsTag = true)
             mutation(release.getJSONArray("assets").getJSONObject(0))
             assertFailsWith<IllegalArgumentException> { WindowsReleasePolicy.newest(listOf(JSONArray().put(metadata("0.56.38")).put(release)), installed) }
         }
     }
 
-    @Test fun installedChannelRequiresMsiWhileLegacyPortableStillFindsZip() {
-        val candidate = metadata("0.56.40")
-        val assets = candidate.getJSONArray("assets")
-        val msi = JSONObject(assets.getJSONObject(0).toString())
-        msi.put("name", "Qirato-Windows-x64-0.56.40.msi")
-        msi.put("browser_download_url", msi.getString("browser_download_url").replace(".zip", ".msi"))
-        assets.put(msi)
-        val pages = listOf(JSONArray().put(candidate).put(metadata("0.56.41")))
-        assertEquals(WindowsVersion(0,56,41), WindowsReleasePolicy.newest(pages, installed)?.version)
-        val release = assertNotNull(WindowsReleasePolicy.newest(pages, installed, WindowsPackage.MSI))
+    @Test fun discoversOnlyMsiAndKeepsCanonicalInstallerFilename() {
+        val installer = metadata("0.56.40")
+        val portable = metadata("0.56.41")
+        val asset = portable.getJSONArray("assets").getJSONObject(0)
+        asset.put("name", "Qirato-Windows-x64-0.56.41.zip")
+        asset.put("browser_download_url", asset.getString("browser_download_url").replace(".msi", ".zip"))
+        val release = assertNotNull(WindowsReleasePolicy.newest(listOf(JSONArray().put(installer).put(portable)), installed))
         assertEquals(WindowsVersion(0,56,40), release.version)
-        assertEquals(WindowsPackage.MSI, release.kind)
-        msi.put("digest", "")
-        assertFails { WindowsReleasePolicy.newest(pages, installed, WindowsPackage.MSI) }
+        assertEquals("Qirato-Windows-x64-0.56.40.msi", release.installerName)
     }
 
     private fun release(bytes: ByteArray) = WindowsRelease(WindowsVersion(0,56,38), "windows-v0.56.38", "", URI("https://github.com"), bytes.size.toLong(),
@@ -68,7 +62,7 @@ class WindowsUpdateTest {
 
     @Test fun verifiesDownloadedBytesAndReportsCompletion() {
         val bytes = ByteArray(300000) { (it % 127).toByte() }
-        val output = temporary.root.toPath().resolve("package.zip")
+        val output = temporary.root.toPath().resolve("package.msi")
         var received = 0L
         WindowsUpdateDownload.copyVerified(bytes.inputStream(), output, release(bytes), { count, _ -> received = count })
         assertContentEquals(bytes, Files.readAllBytes(output)); assertEquals(bytes.size.toLong(), received)
@@ -77,40 +71,16 @@ class WindowsUpdateTest {
     @Test fun removesOnlyOwnedPartialFilesOnTruncationCorruptionCancellation() {
         val bytes = "valid package".toByteArray()
         for (input in listOf(bytes.copyOf(2), "wrong package".toByteArray(), bytes + 1.toByte())) {
-            val path = temporary.root.toPath().resolve("partial.zip")
+            val path = temporary.root.toPath().resolve("partial.msi")
             assertFails { WindowsUpdateDownload.copyVerified(input.inputStream(), path, release(bytes)) }
             assertFalse(Files.exists(path))
         }
-        val path = temporary.root.toPath().resolve("cancel.zip")
+        val path = temporary.root.toPath().resolve("cancel.msi")
         assertFailsWith<CancellationException> { WindowsUpdateDownload.copyVerified(bytes.inputStream(), path, release(bytes), checkActive = { throw CancellationException() }) }
         assertFalse(Files.exists(path))
         Files.writeString(path, "retained")
         assertFails { WindowsUpdateDownload.copyVerified(bytes.inputStream(), path, release(bytes)) }
         assertEquals("retained", Files.readString(path))
-    }
-
-    private fun archive(names: List<String>): Path {
-        val zip = temporary.newFile().toPath()
-        ZipOutputStream(Files.newOutputStream(zip)).use { output -> names.forEach { name ->
-            output.putNextEntry(ZipEntry(name)); if (!name.endsWith('/')) output.write("test".toByteArray()); output.closeEntry()
-        } }
-        return zip
-    }
-
-    @Test fun extractsACompleteBundleWithoutChangingExternalData() {
-        val data = temporary.newFile("workspace.json").toPath(); Files.writeString(data, "synthetic records")
-        val zip = archive(listOf("Qirato/Qirato.exe", "Qirato/app/Qirato.cfg", "Qirato/runtime/", "Qirato/runtime/bin/test.dll"))
-        val bundle = WindowsUpdateArchive.extract(zip, temporary.newFolder().toPath())
-        assertTrue(Files.isRegularFile(bundle.resolve("Qirato.exe")))
-        assertEquals("synthetic records", Files.readString(data))
-    }
-
-    @Test fun rejectsTraversalWindowsAliasesDuplicateAndIncompleteBundles() {
-        for (name in listOf("../escape", "Qirato/../escape", "Qirato/app/CON.txt", "Qirato/app/file:stream", "Qirato/app/a\\b", "/Qirato/test", "Qirato/app/file.")) {
-            assertFails { WindowsUpdateArchive.extract(archive(listOf(name)), temporary.newFolder().toPath()) }
-        }
-        assertFails { WindowsUpdateArchive.extract(archive(listOf("Qirato/app/A", "Qirato/app/a")), temporary.newFolder().toPath()) }
-        assertFails { WindowsUpdateArchive.extract(archive(listOf("Qirato/Qirato.exe")), temporary.newFolder().toPath()) }
     }
 
     private class Gateway(val release: WindowsRelease?) : WindowsUpdateGateway {
