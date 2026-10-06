@@ -38,6 +38,10 @@ Windows CI requests only `platform-tools`, `platforms;android-34` and `build-too
 
 ## Workspace behavior
 
+- Updater (Windows 0.56.38+): verify startup/manual discovery includes `windows-v` releases, downloads without blocking financial work and requires explicit restart confirmation. Stop a download, postpone a ready package, reopen the prompt and verify no second download is needed. Restart must be disabled during a financial save.
+- `WindowsUpdateTest` exercises release selection, digest/size/cancellation handling and Windows ZIP traversal/alias/duplicate protection. `WindowsUpdateHelperTest` executes the actual resource script with disposable synthetic EXEs and data folders, checking wait-for-exit, rename/relaunch, invalid-plan refusal and startup rollback. `WindowsUpdateScreenTest` captures the ready prompt in both themes and verifies postpone/save guards.
+- On a packaged app, preserve the directory name Qirato and write access to its parent. Save forms before confirming; expect the new app at the original path and an adjacent `.qirato-previous-*` directory. Confirm data stayed outside the swapped directories. No updates run against real customer files during automated tests. Bootstrap from 0.56.37 requires manually extracting the complete new ZIP once. See ADR 0013 for recovery and limits.
+
 - Create Persian-input gold/coin holdings; edit and reopen with the same IDs; search/filter; cancel deletion and confirm another deletion. Verify values against the shared valuation policy. Unavailable quotes and unknown purchase basis must not become fake profit.
 - Change pages without losing calculator input or unsaved settings; save defaults and verify they affect the next reset only. Verify RTL confirmation buttons, native backup chooser, Tab focus and Ctrl+1–5/Ctrl+N/Ctrl+R.
 - Restart and verify holdings/profile/theme/manual quote. Attempt a second process for the same data directory: it must fail without writing data.

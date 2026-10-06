@@ -98,6 +98,8 @@ app data/ -> HTTP integrations, AndroidBiometricAuthManager, multi-provider mark
 
 The code is authoritative when this document and implementation disagree. Update this document when a structural decision changes.
 
+- Windows updater: `desktop/update/WindowsUpdater` owns update phases and explicit confirmation events; `WindowsReleasePolicy` discovers the highest published Windows ZIP across shared and `windows-v` releases, independently of Android latest. Network downloads require fixed-project HTTPS URLs, declared size and GitHub SHA-256. `WindowsUpdateInstaller` safely stages and verifies the new runtime beside the installation and launches the shipped PowerShell helper after user intent. `Main` closes existing state owners/store before process exit; the helper waits, locks the data owner, renames complete program directories, reopens the new app and restores/reopens the old one on replacement/startup failure. No business storage/schema or shared/Android ownership changes. See ADR 0013 for trust, retained backups, writable portable-folder requirements, bootstrap and recovery.
+
 ## 3. Feature ownership model
 
 New work must be organized around a feature owner. Pure behavior belongs in `core`; platform adapters and presentation currently belong in `app`.

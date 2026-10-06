@@ -13,6 +13,7 @@ import androidx.compose.ui.window.*
 import com.goldex.companion.data.PersistenceJsonCodecs
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
+import com.goldex.companion.desktop.update.*
 import com.goldex.companion.desktop.ui.DesktopWorkspaceScreen
 import com.goldex.companion.presentation.calculator.*
 import com.goldex.companion.ui.components.GoldButton
@@ -49,6 +50,8 @@ private fun verifyRuntime() {
     check(calculator.state.value.result?.totalPayable?.toLong() == 14_315_160L)
     check(PersistenceJsonCodecs.decodeSettings("{}").defaultProfitPercent == "7")
     check(desktopVersion().matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")))
+    checkNotNull(ManualGoldCalculator::class.java.getResourceAsStream("/update/install.ps1")).use { check(it.read() >= 0) }
+    println("Qirato runtime version=${desktopVersion()}")
     println("Qirato font, icon, shared codecs and financial runtime verification passed")
 }
 
@@ -60,12 +63,13 @@ private fun launchWorkspace() {
         catch (failure: Exception) { storage.close(); throw failure }
     }
     val closed = AtomicBoolean(false)
-    fun closeData() { if (closed.compareAndSet(false, true)) initialized.getOrNull()?.let { (store, workspace) -> workspace.close(); store.close() } }
+    val updater = WindowsUpdater(WindowsUpdateInstaller(checkNotNull(WindowsVersion.parse(desktopVersion())), directory))
+    fun closeData() { if (closed.compareAndSet(false, true)) { updater.close(); initialized.getOrNull()?.let { (store, workspace) -> workspace.close(); store.close() } } }
     application {
         DisposableEffect(Unit) { onDispose { closeData() } }
         val workspace = initialized.getOrNull()?.second
         val state = workspace?.state?.collectAsState()?.value
-        LaunchedEffect(workspace) { workspace?.start() }
+        LaunchedEffect(workspace) { if (workspace != null) { workspace.start(); updater.start() } }
         Window(
             onCloseRequest = { closeData(); exitApplication() }, title = "قیراط | ${state?.destination?.title ?: "اطلاعات"}",
             icon = painterResource("mipmap-xxxhdpi/ic_launcher.png"), state = rememberWindowState(width = 1400.dp, height = 900.dp),
@@ -87,7 +91,8 @@ private fun launchWorkspace() {
         ) {
             window.minimumSize = Dimension(940, 700)
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
-                if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), onBackup = {
+                if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
+                    onRestart = { if (!workspace.state.value.saving) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
                     FileDialog(window, "ذخیرهٔ فایل پشتیبان", FileDialog.SAVE).apply {
                         file = "Qirato-backup-${java.time.LocalDate.now()}.json"
                         isVisible = true
