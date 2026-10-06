@@ -32,3 +32,5 @@ if ($verification.ExitCode -ne 0) { throw 'Packaged runtime failed' }
 - Android: run the retained migration, repository and ViewModel tests. On an available device, additionally check the calculator, font, dark theme and outlined inputs. A successful local JVM/Robolectric run is not a device check.
 
 Local APK assembly/signing is prohibited. The tag workflow builds/signs Android and then publishes the Windows portable ZIP. Installer tasks need a Windows packaging toolchain (including WiX); this slice does not promise installer publication.
+
+Windows CI requests only `platform-tools`, `platforms;android-34` and `build-tools;34.0.0`; the SDK's removed legacy `tools` package is not requested. If Android publication succeeds but Windows packaging fails, dispatch `build-and-release.yml` from main with `release_tag` set to that existing release (for example `v0.56.36`). The recovery run skips Android, checks out the exact release tag, builds/verifies Windows and uploads its ZIP to the same release. The input is validated as a version tag and passed through environment variables.
