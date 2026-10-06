@@ -33,6 +33,7 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 - Do not run full APK assembly or signing on the local machine. Those remain CI-only.
 - Release APK assembly, signing, failure reporting, and release distribution run in GitHub Actions.
 - The workflow source of truth is `.github/workflows/build-and-release.yml`.
+- Follow [platform-selective release routing](.agents/rules/platform-release-routing.md): shared infrastructure/core/UI releases both hosts, desktop-only releases Windows, app-only releases Android. Compare each platform with its own last published artifact and bump only affected versions.
 - Feature branches (`feature/<name>`) and Git Worktrees must be used for feature development and parallel agent workflows (see `.agents/rules/git-worktree-and-branching.md`).
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.
 - Before a change is complete, verify compilation and unit tests locally. For shared-core changes also run `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`; keep JVM tests local, not in the release workflow.
@@ -43,7 +44,7 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 
 These are current implementation constraints, not permanent bans on future architecture:
 
-- Android `app` host, initial Windows manual-calculator `desktop` host, and Kotlin Multiplatform `core`/`shared-ui` with Android/JVM targets. Shared domain/models/ports and platform-free form state belong in `core/src/commonMain`; shared Compose tokens/primitives belong in `shared-ui/src/commonMain`.
+- Android `app` host, Windows workspace `desktop` host (calculator, dashboard, rates, portfolio and settings), and Kotlin Multiplatform `core`/`shared-ui` with Android/JVM targets. Shared domain/models/ports and platform-free form state belong in `core/src/commonMain`; shared Compose tokens/primitives belong in `shared-ui/src/commonMain`. JSON codecs belong in `core/jvmSharedMain`; desktop local storage and HTTP adapters remain desktop-owned.
 - Jetpack Compose/Material 3 on Android and Compose Multiplatform on Desktop; preserve the verified Kotlin/compiler pair unless an explicit toolchain migration is needed.
 - Kotlin coroutines and `StateFlow`.
 - `HttpURLConnection` and `org.json` for the current network layer.
@@ -205,7 +206,7 @@ Each ADR contains context, decision, consequences, and revisit conditions.
 ### 13.0 Read rules and complete delivery
 
 - Before repository exploration or edits, read this file and all applicable rules under `.agents/rules/`, including rules marked `always_on`; read relevant referenced workflows as well.
-- [Task issue lifecycle](.agents/rules/task-issue-lifecycle.md) is mandatory: create a GitHub issue before code changes and keep it open until cloud CI succeeds and the APK release is published.
+- [Task issue lifecycle](.agents/rules/task-issue-lifecycle.md) is mandatory: create a GitHub issue before code changes and keep it open until cloud CI succeeds and all selected platform artifacts are published. A Windows-only task does not require an APK release.
 - Complete [the branch/worktree workflow](.agents/rules/git-worktree-and-branching.md): local verification, documentation, commit, push, merge to `main`, release with [Persian notes](.agents/rules/release-changelog.md), issue closure with the release link, and cleanup of the task's branch/worktree.
 - Do not report a task as complete at the local-commit stage when the required delivery steps remain.
 

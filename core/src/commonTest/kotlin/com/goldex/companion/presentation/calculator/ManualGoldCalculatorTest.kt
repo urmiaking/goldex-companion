@@ -9,6 +9,15 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ManualGoldCalculatorTest {
+    @Test fun savedDefaultsDoNotRepriceAnInProgressCalculation() {
+        val form = calculator()
+        val quote = form.state.value.result
+        form.updateDefaults(com.goldex.companion.data.AppSettings(defaultProfitPercent = "8", defaultTaxPercent = "10"))
+        assertEquals(quote, form.state.value.result)
+        form.reset()
+        assertEquals("8", form.state.value.input(CalculatorField.PROFIT))
+        assertEquals("10", form.state.value.input(CalculatorField.TAX))
+    }
     private fun calculator() = ManualGoldCalculator().apply {
         setInput(CalculatorField.SPOT, "۶٬۰۰۰٬۰۰۰")
         setInput(CalculatorField.GROSS_WEIGHT, "۲٫۵۰۰")

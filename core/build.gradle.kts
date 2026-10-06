@@ -21,7 +21,10 @@ kotlin {
         // Android and desktop share Java-backed adapters, never business rules.
         val jvmSharedMain by creating { dependsOn(commonMain) }
         val androidMain by getting { dependsOn(jvmSharedMain) }
-        val jvmMain by getting { dependsOn(jvmSharedMain) }
+        val jvmMain by getting {
+            dependsOn(jvmSharedMain)
+            dependencies { api("org.json:json:20240303") }
+        }
 
         val jvmSharedTest by creating {
             dependsOn(commonTest)

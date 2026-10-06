@@ -14,7 +14,7 @@ Whenever the user assigns a new task, feature request, or bug fix:
      ```
    - Note the issue number created for reference during the task.
 2. **Task Completion (پایان هر تسک)**:
-   - AFTER the task is implemented, cloud CI build succeeds, and the APK release is published:
+   - AFTER the task is implemented, cloud CI succeeds, and all selected platform artifacts are published according to [platform release routing](platform-release-routing.md). Windows-only tasks require the Windows asset, Android-only tasks the APK, and shared tasks both:
      a. **Update GitHub Release Notes**: Ensure the release has a simple, non-technical Persian changelog for in-app display:
         ```bash
         gh release edit <tag> --notes "<Persian changelog tailored for goldsmiths>"

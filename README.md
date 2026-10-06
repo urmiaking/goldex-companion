@@ -40,13 +40,13 @@
 ## 🛠 مشخصات فنی
 - **Target SDK:** 34 | **Min SDK:** 24 | **Java Version:** 17
 - **UI Framework:** Jetpack Compose (Material 3 Adaptive Themes)
-- **Architecture:** Android host + initial Windows calculator, shared Kotlin core and Compose primitives (Android/JVM), StateFlow, constructor injection and repository ports
+- **Architecture:** Android host + Windows workspace, shared Kotlin core/JSON codecs and Compose primitives (Android/JVM), StateFlow, constructor injection and repository ports
 - **Signer:** Persistent 2048-bit RSA Keystore (Seamless in-place APK updates)
 - **CI/CD:** GitHub Actions Automation Loop with Protected Repository Secrets
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.36` نخستین برش ویندوز را اضافه می‌کند: ماشین‌حساب طلا با نرخ دستی، وزن و کسر نگین، عیار، اجرت، سود و مالیات، حالت روز/شب و کپی خلاصه. محاسبات و مبانی ظاهر با اندروید مشترک‌اند. نسخهٔ ویندوز فعلاً مشتری، فاکتور، انبار، نرخ زنده، ذخیره‌سازی مالی و همگام‌سازی ندارد. قابلیت‌ها، داده‌ها و هویت نصب اندروید حفظ می‌شوند. بررسی کامپایل و تست‌ها محلی‌اند؛ GitHub Actions، APK امضاشده و فایل ZIP قابل اجرای ویندوز را منتشر می‌کند.
+نسخهٔ `0.56.37` پیشخوان، نرخ‌های آنلاین و دستی، ثبت و ویرایش دارایی‌های طلا و سکه، تنظیمات گالری و فایل پشتیبان را به ویندوز اضافه می‌کند. اطلاعات دارایی‌ها، ظاهر و تنظیمات پس از بستن برنامه باقی می‌مانند. ارزش روز با نرخ‌های موجود محاسبه می‌شود؛ نرخ ناموجود و بهای خرید نامشخص، سود فرضی ایجاد نمی‌کنند. مشتریان، فاکتورها، انبار تجاری، همگام‌سازی و چاپ هنوز به ویندوز منتقل نشده‌اند. محاسبات، قابلیت‌ها، داده‌ها و هویت نصب اندروید حفظ می‌شوند. خروجی هر پلتفرم بر اساس تغییراتش منتشر می‌شود؛ تغییرات مشترک برای هر دو خروجی دارد.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).
@@ -63,7 +63,7 @@ JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` 
 
 `app` میزبان Android، `core` محل مدل‌ها و منطق مشترک، `shared-ui` محل تم و کامپوننت‌های مشترک و `desktop` میزبان ویندوز است. جزئیات این مرحله در [ADR 0010](docs/adr/0010-windows-calculator-foundation.md) و [راهنمای بررسی ویندوز](docs/testing/windows-calculator.md) آمده است.
 
-### اجرای ماشین‌حساب ویندوز
+### اجرای برنامهٔ ویندوز
 
 ```powershell
 .\gradlew.bat :desktop:run --no-daemon
@@ -72,3 +72,5 @@ JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` 
 ```
 
 برای توسعه، JDK 17 و SDK اندروید جهت پیکربندی ماژول مشترک لازم‌اند. نسخهٔ ZIP انتشار، runtime را همراه دارد و برای استفاده نیازی به نصب Java یا Android SDK ندارد. ZIP را کامل استخراج و `Qirato/Qirato.exe` را اجرا کنید؛ فایل EXE را به‌تنهایی از پوشه خارج نکنید. خروجی محلی در `desktop/build/compose/binaries/main/app/Qirato` قرار می‌گیرد. ساخت MSI/EXE نصب‌کننده نیازمند ابزار بسته‌بندی ویندوز است و در این مرحله فقط ZIP منتشر می‌شود.
+
+میانبرها: `Ctrl+1` تا `Ctrl+5` برای صفحات، `Ctrl+N` برای دارایی جدید و `Ctrl+R` برای دریافت آنلاین نرخ‌ها. اطلاعات محلی در `%LOCALAPPDATA%/Qirato/Desktop` ذخیره می‌شوند؛ از تنظیمات فایل پشتیبان تهیه کنید. برنامه را برای یک پوشهٔ اطلاعات فقط در یک پنجره باز کنید. اطلاعات اندروید/ابر به‌صورت خودکار وارد نمی‌شوند. تصمیم‌های این مرحله در [ADR 0011](docs/adr/0011-desktop-workspace-and-local-data.md) و [ADR 0012](docs/adr/0012-platform-selective-releases.md) آمده‌اند.

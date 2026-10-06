@@ -56,12 +56,12 @@ Merge the feature into `main`:
   ```
 
 ### Step 4: Tag & Release
-When ready to publish an APK release:
+Follow [platform-selective release routing](platform-release-routing.md) before tagging: shared changes publish both, app-only publishes Android, desktop-only publishes Windows. Bump only affected versions and add Persian notes at the exact tag's release document. For Android/shared releases:
 ```powershell
 git tag v1.X.Y
 git push origin v1.X.Y
 ```
-Cloud CI (`build-and-release.yml`) automatically triggers on the tag push, compiles the release APK, signs it with the release keystore, and creates the GitHub Release.
+For Windows-only releases use `windows-vX.Y.Z` matching `desktop/version.properties`; leave Android version/code unchanged. CI selects jobs against each platform's last published artifact, builds only selected hosts and publishes after their success. Windows-only releases do not become GitHub latest. A task is delivered when all selected artifacts are published; it does not require building an unaffected APK.
 
 ### Step 5: Clean Up Worktree
 Once merged and verified:

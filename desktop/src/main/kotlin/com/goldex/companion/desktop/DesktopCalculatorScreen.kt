@@ -37,7 +37,7 @@ import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
 @Composable
-fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, onThemeChange: () -> Unit) {
+fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, showHeader: Boolean = true, onThemeChange: () -> Unit) {
     val state by calculator.state.collectAsState()
     val colors = LocalGoldExColors.current
     val clipboard = LocalClipboardManager.current
@@ -45,10 +45,10 @@ fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, onT
     LaunchedEffect(state) { copied = false }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
-            Modifier.fillMaxSize().background(colors.background).padding(28.dp),
+            Modifier.fillMaxSize().background(colors.background).padding(if (showHeader) 28.dp else 8.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (showHeader) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("قیراط", style = MaterialTheme.typography.headlineLarge, color = colors.goldPrimary, fontWeight = FontWeight.Bold)
                     Text("ماشین‌حساب طلا • نسخهٔ ویندوز", color = colors.textSecondary, fontSize = 14.sp)
