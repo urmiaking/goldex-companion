@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.*
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
+import com.goldex.companion.desktop.update.WindowsUpdater
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.components.*
@@ -88,7 +89,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         })
 }
 
-@Composable internal fun SettingsPage(state: WorkspaceState, workspace: DesktopWorkspace, onBackup: () -> Unit) {
+@Composable internal fun SettingsPage(state: WorkspaceState, workspace: DesktopWorkspace, onBackup: () -> Unit, updater: WindowsUpdater? = null, version: String = "") {
     val draft = state.settingsDraft ?: state.settings
     val colors = LocalGoldExColors.current
     val dirty = draft != state.settings
@@ -141,5 +142,6 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             Text("اطلاعات گوشی و حساب ابری به‌صورت خودکار به این نسخه منتقل نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
             GoldButton("ذخیرهٔ فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
         }
+        if (updater != null) WindowsUpdateCard(updater, version)
     }
 }

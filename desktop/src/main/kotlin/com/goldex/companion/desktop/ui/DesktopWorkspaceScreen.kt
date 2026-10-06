@@ -29,13 +29,14 @@ import com.goldex.companion.data.*
 import com.goldex.companion.desktop.DesktopCalculatorScreen
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
+import com.goldex.companion.desktop.update.WindowsUpdater
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
 @Composable
-fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, version: String) {
+fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, version: String, updater: WindowsUpdater? = null, onRestart: () -> Unit = {}) {
     val state by workspace.state.collectAsState()
     val colors = LocalGoldExColors.current
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -50,6 +51,14 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             Text(state.destination.subtitle, color = colors.textMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         QuoteStatus(state)
+                        if (updater != null) {
+                            val updateState by updater.state.collectAsState()
+                            IconButton(onClick = updater::showDialog, modifier = Modifier.testTag("open-updater")) {
+                                BadgedBox(badge = { if (updateState.phase == com.goldex.companion.desktop.update.WindowsUpdatePhase.READY) Badge() }) {
+                                    Icon(Icons.Outlined.SystemUpdateAlt, "به‌روزرسانی برنامه", tint = colors.goldPrimary)
+                                }
+                            }
+                        }
                         IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
                             if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
                             else Icon(Icons.Outlined.Refresh, "دریافت آنلاین نرخ‌ها", tint = colors.goldPrimary)
@@ -69,13 +78,15 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, onThemeChange = { workspace.toggleTheme() })
                             DesktopDestination.RATES -> RatesPage(state, workspace)
                             DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
-                            DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup)
+                            DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
                         }
                     }
                 }
             }
         }
         state.draft?.let { AssetDialog(it, state.saving, workspace) }
+        if (updater != null && state.draft == null && state.pendingDelete == null)
+            WindowsUpdatePrompt(updater, canRestart = !state.saving, onRestart = onRestart)
         state.pendingDelete?.let { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخهٔ قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
