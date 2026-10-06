@@ -22,8 +22,11 @@ Before merging a feature branch to `main`, pushing commits, or triggering a GitH
 
 3. **If compilation or tests fail**: Fix all errors locally. Do NOT proceed to merge to `main` or trigger a release with failing tests.
 
-4. **Cloud CI Scope**: GitHub Actions CI (`build-and-release.yml`) is now exclusively dedicated to:
+4. **Cloud CI Scope**: GitHub Actions CI (`build-and-release.yml`) follows [platform routing](platform-release-routing.md); unit tests remain local. It is dedicated to:
    - Keystore decoding and signing configuration
    - Release APK assembly (`assembleRelease`)
    - Failure reporting
    - GitHub Release publishing and asset uploading
+   - Selecting affected platforms, desktop packaging and packaged runtime verification
+
+5. Run `python -m unittest discover -s scripts/release -p "test_*.py"` and actionlint when release planning/workflow changes. Do not rebuild the unaffected platform merely to close an issue.

@@ -24,9 +24,12 @@ data class ManualGoldCalculatorState(
 }
 
 /** Owns form parsing and validation; the existing domain policy owns every calculation. */
-class ManualGoldCalculator(private val defaults: AppSettings = AppSettings()) {
+class ManualGoldCalculator(private var defaults: AppSettings = AppSettings()) {
     private val mutableState = MutableStateFlow(initialState())
     val state = mutableState.asStateFlow()
+
+    /** New preferences affect the next reset, never an in-progress quote. */
+    fun updateDefaults(settings: AppSettings) { defaults = settings }
 
     fun setInput(field: CalculatorField, value: String) {
         mutableState.update { evaluate(it.copy(inputs = it.inputs + (field to value))) }

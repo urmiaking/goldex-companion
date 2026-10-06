@@ -4,37 +4,69 @@ on:
   push:
     tags:
       - 'v*'
+      - 'windows-v*'
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Existing release tag to recover Windows packaging'
+        description: 'Existing immutable release tag to build or recover'
         required: true
         type: string
+      target:
+        description: 'Auto selects changed platforms; explicit targets recover missing assets'
+        type: choice
+        default: auto
+        options: [auto, android, windows, both]
 
 permissions:
   contents: write
   issues: write
 
 jobs:
-  build:
-    if: github.event_name == 'push'
-    name: "Build and Release APK"
+  plan:
+    name: Select affected platforms
     runs-on: ubuntu-latest
-
+    outputs:
+      android: ${{ steps.plan.outputs.android }}
+      windows: ${{ steps.plan.outputs.windows }}
+      release_tag: ${{ steps.plan.outputs.tag }}
+      windows_version: ${{ steps.plan.outputs.windows_version }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+      REQUESTED_TARGET: ${{ inputs.target || 'auto' }}
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v5
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+      - uses: actions/checkout@v5
         with:
-          distribution: 'temurin'
+          ref: main
+          fetch-depth: 0
+      - name: Validate versions, select platforms and prepare draft
+        id: plan
+        run: python3 scripts/release/plan_release.py --tag "$RELEASE_TAG" --target "$REQUESTED_TARGET"
+      - name: Report planning failure
+        if: failure()
+        run: |
+          gh label create ci-build-failure --force
+          printf 'انتخاب پلتفرم یا آماده‌سازی انتشار ناموفق بود. گزارش: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > issue_body.md
+          gh issue create --title "اشکال برنامه‌ریزی انتشار $RELEASE_TAG" --label ci-build-failure --body-file issue_body.md
+
+  build:
+    name: Build and Release Android
+    needs: plan
+    if: needs.plan.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ needs.plan.outputs.release_tag }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.release_tag }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
           java-version: '17'
-          cache: 'gradle'
-
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x gradlew
-
+          cache: gradle
+      - run: chmod +x gradlew
       - name: Configure release signing
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.GOLD_EX_RELEASE_STORE_PASSWORD }}
@@ -56,103 +88,92 @@ jobs:
             echo "GOLD_EX_RELEASE_KEY_ALIAS=$RELEASE_KEY_ALIAS"
             echo "GOLD_EX_RELEASE_KEY_PASSWORD=$RELEASE_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
-
-      - name: Build Release APK
+      - name: Build signed APK
         run: |
           set -e -o pipefail
-          touch build.log
           ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
           test -f app/build/outputs/apk/release/app-release.apk
           test ! -f app/build/outputs/apk/release/app-release-unsigned.apk
-
-      - name: Report Build Failure
+      - name: Upload Android asset
+        run: gh release upload "$RELEASE_TAG" app/build/outputs/apk/release/app-release.apk --clobber
+      - name: Report Android failure
         if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh label create ci-build-failure --force || true
+          gh label create ci-build-failure --force
           touch build.log
-          echo "### CI Build Failure" > issue_body.md
-          echo "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> issue_body.md
-          echo "Commit: ${{ github.sha }}" >> issue_body.md
-          echo "Tag: ${{ github.ref_name }}" >> issue_body.md
-          echo "" >> issue_body.md
-          echo "#### Build Log (last 80 lines):" >> issue_body.md
+          printf 'ساخت یا انتشار اندروید ناموفق بود. گزارش: %s/%s/actions/runs/%s\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > issue_body.md
           echo '```' >> issue_body.md
           tail -n 80 build.log >> issue_body.md
           echo '```' >> issue_body.md
-
-          gh issue create \
-            --title "CI Build Failure on ${{ github.ref_name }}" \
-            --label "ci-build-failure" \
-            --body-file issue_body.md
-
-      - name: Publish GitHub Release
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          files: app/build/outputs/apk/release/app-release.apk
-          generate_release_notes: true
-          name: "قیراط (Qirat) ${{ github.ref_name }}"
+          gh issue create --title "اشکال ساخت اندروید $RELEASE_TAG" --label ci-build-failure --body-file issue_body.md
 
   windows:
-    name: "Build and Release Windows Calculator"
-    needs: build
-    if: ${{ always() && (needs.build.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    name: Build and Release Windows
+    needs: plan
+    if: needs.plan.outputs.windows == 'true'
     runs-on: windows-2022
     env:
-      RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+      RELEASE_TAG: ${{ needs.plan.outputs.release_tag }}
+      WINDOWS_VERSION: ${{ needs.plan.outputs.windows_version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Validate release tag
-        shell: pwsh
-        run: |
-          if ($env:RELEASE_TAG -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Expected a version release tag' }
-
-      - name: Checkout Code
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.release_tag || github.ref }}
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+          ref: ${{ needs.plan.outputs.release_tag }}
+      - uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-          cache: 'gradle'
-
-      - name: Set up Android SDK for shared UI configuration
+          cache: gradle
+      - name: Set up Android SDK for shared module configuration
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
           log-accepted-android-sdk-licenses: false
-
-      - name: Build portable Windows application
+      - name: Build and verify portable Windows application
         shell: pwsh
         run: |
           ./gradlew.bat :desktop:createDistributable --no-daemon --stacktrace
           if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
           $launcher = Resolve-Path 'desktop/build/compose/binaries/main/app/Qirato/Qirato.exe'
           $verification = Start-Process -FilePath $launcher -ArgumentList '--verify-runtime' -WindowStyle Hidden -PassThru -Wait
-          if ($verification.ExitCode -ne 0) { throw 'Packaged Windows runtime verification failed' }
-
-      - name: Publish portable Windows archive
+          if ($verification.ExitCode -ne 0) { throw 'Packaged runtime verification failed' }
+      - name: Upload Windows asset
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $version = $env:RELEASE_TAG.TrimStart('v')
-          $archive = "Qirato-Windows-x64-$version.zip"
+          $archive = "Qirato-Windows-x64-$env:WINDOWS_VERSION.zip"
           Compress-Archive -Path 'desktop/build/compose/binaries/main/app/Qirato' -DestinationPath $archive
           gh release upload $env:RELEASE_TAG $archive --clobber
-          if ($LASTEXITCODE -ne 0) { throw 'Windows release upload failed' }
-
-      - name: Report Windows build failure
+          if ($LASTEXITCODE -ne 0) { throw 'Windows upload failed' }
+      - name: Report Windows failure
         if: failure()
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh label create ci-build-failure --force
           $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
-          "ساخت یا انتشار نسخه ویندوز ناموفق بود. گزارش اجرا: $runUrl" | Set-Content windows-failure.md -Encoding utf8
-          gh issue create --title "اشکال ساخت نسخه ویندوز $env:RELEASE_TAG" --label ci-build-failure --body-file windows-failure.md
+          "ساخت یا انتشار ویندوز ناموفق بود. گزارش: $runUrl" | Set-Content windows-failure.md -Encoding utf8
+          gh issue create --title "اشکال ساخت ویندوز $env:RELEASE_TAG" --label ci-build-failure --body-file windows-failure.md
+
+  publish:
+    name: Publish verified release
+    needs: [plan, build, windows]
+    if: ${{ always() && needs.plan.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.windows.result == 'success' || needs.windows.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ needs.plan.outputs.release_tag }}
+      WINDOWS_VERSION: ${{ needs.plan.outputs.windows_version }}
+      BUILD_ANDROID: ${{ needs.plan.outputs.android }}
+      BUILD_WINDOWS: ${{ needs.plan.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Verify selected assets and publish with correct latest policy
+        run: python3 scripts/release/plan_release.py --finalize --tag "$RELEASE_TAG" --windows-version "$WINDOWS_VERSION" --android "$BUILD_ANDROID" --windows "$BUILD_WINDOWS"
+      - name: Report publication failure
+        if: failure()
+        run: |
+          gh label create ci-build-failure --force
+          printf 'تکمیل انتشار ناموفق بود. گزارش: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > issue_body.md
+          gh issue create --title "اشکال تکمیل انتشار $RELEASE_TAG" --label ci-build-failure --body-file issue_body.md

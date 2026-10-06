@@ -17,3 +17,4 @@ stitch_specs/
 .worktrees/
 graphify-out/
 **/graphify-out/
+**/__pycache__/

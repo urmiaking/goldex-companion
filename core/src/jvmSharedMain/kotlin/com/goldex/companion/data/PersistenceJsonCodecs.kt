@@ -28,7 +28,48 @@ import com.goldex.companion.model.WageType
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal object PersistenceJsonCodecs {
+object PersistenceJsonCodecs {
+    /** Shared settings shape for new host adapters; older records keep their defaults. */
+    fun encodeSettings(value: AppSettings): String = JSONObject().apply {
+        put("priceSource", value.priceSource.name)
+        put("defaultProfitPercent", value.defaultProfitPercent)
+        put("defaultTaxPercent", value.defaultTaxPercent)
+        put("defaultWageType", value.defaultWageType.name)
+        put("autoSyncRates", value.autoSyncRates)
+        put("galleryName", value.galleryName)
+        put("managerName", value.managerName)
+        put("unionCode", value.unionCode)
+        put("galleryPhone", value.galleryPhone)
+        put("galleryAddress", value.galleryAddress)
+        put("galleryLicense", value.galleryLicense)
+        put("invoiceLogoUri", value.invoiceLogoUri)
+        put("invoiceStampUri", value.invoiceStampUri)
+        put("invoiceSignatureUri", value.invoiceSignatureUri)
+        put("isBiometricLockEnabled", value.isBiometricLockEnabled)
+        put("isBiometricTipDismissed", value.isBiometricTipDismissed)
+        put("hasCompletedOnboarding", value.hasCompletedOnboarding)
+    }.toString()
+
+    fun decodeSettings(json: String): AppSettings {
+        val obj = JSONObject(json)
+        val defaults = AppSettings()
+        return AppSettings(
+            priceSource = enumOrDefault(obj.stringValue("priceSource"), defaults.priceSource),
+            defaultProfitPercent = obj.optString("defaultProfitPercent", defaults.defaultProfitPercent),
+            defaultTaxPercent = obj.optString("defaultTaxPercent", defaults.defaultTaxPercent),
+            defaultWageType = enumOrDefault(obj.stringValue("defaultWageType"), defaults.defaultWageType),
+            autoSyncRates = obj.optBoolean("autoSyncRates", defaults.autoSyncRates),
+            galleryName = obj.stringValue("galleryName"), managerName = obj.stringValue("managerName"),
+            unionCode = obj.stringValue("unionCode"), galleryPhone = obj.stringValue("galleryPhone"),
+            galleryAddress = obj.stringValue("galleryAddress"), galleryLicense = obj.stringValue("galleryLicense"),
+            invoiceLogoUri = obj.stringValue("invoiceLogoUri"), invoiceStampUri = obj.stringValue("invoiceStampUri"),
+            invoiceSignatureUri = obj.stringValue("invoiceSignatureUri"),
+            isBiometricLockEnabled = obj.optBoolean("isBiometricLockEnabled", false),
+            isBiometricTipDismissed = obj.optBoolean("isBiometricTipDismissed", false),
+            hasCompletedOnboarding = obj.optBoolean("hasCompletedOnboarding", false)
+        )
+    }
+
     fun encodeLedgerSettlement(value: LedgerSettlement): String = (if (value.unknownFieldsJson.isBlank()) JSONObject() else JSONObject(value.unknownFieldsJson)).apply {
         put("targetType", value.targetType.name)
         put("rateTomans", value.rateTomans)
