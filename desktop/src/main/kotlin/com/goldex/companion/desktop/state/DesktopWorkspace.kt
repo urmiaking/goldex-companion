@@ -20,6 +20,7 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
 data class WorkspaceState(
     val destination: DesktopDestination = DesktopDestination.DASHBOARD,
     val settings: AppSettings = AppSettings(), val settingsDraft: AppSettings? = null, val dark: Boolean = false,
+    val reduceMotion: Boolean = false,
     val snapshot: MarketSnapshot? = null, val now: Long = System.currentTimeMillis(),
     val assets: PortfolioProjection = DesktopPortfolioPolicy.project(emptyList(), null),
     val query: String = "", val categoryFilter: PortfolioCategory? = null,
@@ -39,12 +40,14 @@ private object PersianTextSearch {
 class DesktopWorkspace(
     private val storage: DesktopDataStore,
     private val market: DesktopMarketGateway,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository()
 ) : AutoCloseable {
+    val dashboard = DesktopDashboard(history, scope)
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())
-    private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(),
+    private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()
 
@@ -55,6 +58,7 @@ class DesktopWorkspace(
     }
 
     fun start() = scope.launch {
+        dashboard.select(dashboard.state.value.horizon)
         if (state.value.settings.autoSyncRates && state.value.snapshot?.kind != QuoteKind.MANUAL) refreshRates().join()
         while (isActive) {
             delay(30_000)
@@ -63,7 +67,10 @@ class DesktopWorkspace(
         }
     }
 
-    fun navigate(destination: DesktopDestination) { mutable.update { it.copy(destination = destination, notice = null) } }
+    fun navigate(destination: DesktopDestination) {
+        mutable.update { it.copy(destination = destination, notice = null) }
+        if (destination == DesktopDestination.DASHBOARD) dashboard.select(dashboard.state.value.horizon)
+    }
     fun search(value: String) { mutable.update { it.copy(query = value) } }
     fun filter(category: PortfolioCategory?) { mutable.update { it.copy(categoryFilter = category) } }
     fun clearMessage() { mutable.update { it.copy(error = null, notice = null) } }
@@ -98,6 +105,11 @@ class DesktopWorkspace(
         val dark = !state.value.dark
         preferences.saveDarkTheme(dark)
         mutable.update { it.copy(dark = dark) }
+    }
+
+    fun setReduceMotion(enabled: Boolean): Job? = if (state.value.saving) null else operation("تنظیم حرکت ذخیره نشد") {
+        storage.saveReduceMotion(enabled)
+        mutable.update { it.copy(reduceMotion = enabled) }
     }
 
     fun saveSettings(settings: AppSettings): Job? {

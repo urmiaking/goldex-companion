@@ -14,6 +14,19 @@ class DesktopDataStoreTest {
     private fun directory() = temporary.newFolder().toPath()
     private fun gold() = PortfolioItem(id = "stable-id", title = "طلای آزمون", category = PortfolioCategory.GOLD, weightGrams = 2.125, purchasePriceTotal = 12_345_678)
 
+    @Test fun motionPreferenceDefaultsAndRoundTripsWithoutLosingFinancialRecords() {
+        val path = directory()
+        DesktopDataStore(path).use { store ->
+            assertFalse(store.loadReduceMotion())
+            store.addItem(gold())
+            store.saveReduceMotion(true)
+        }
+        DesktopDataStore(path).use { store ->
+            assertTrue(store.loadReduceMotion())
+            assertEquals(listOf(gold()), store.getItems())
+        }
+    }
+
     @Test fun reopeningRetainsStableIdsSettingsThemeAndPreviousDocument() {
         val path = directory()
         DesktopDataStore(path).use { store ->

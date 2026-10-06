@@ -143,5 +143,13 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             GoldButton("ذخیرهٔ فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
         }
         if (updater != null) WindowsUpdateCard(updater, version)
+        LuxuryCard {
+            PageTitle("حرکت رابط")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("کاهش حرکت صفحات و نمودار", Modifier.weight(1f), color = colors.textSecondary, fontSize = 13.sp)
+                Switch(state.reduceMotion, { workspace.setReduceMotion(it) }, enabled = !state.saving,
+                    modifier = Modifier.testTag("reduce-motion"), colors = SwitchDefaults.colors(checkedTrackColor = colors.goldPrimary))
+            }
+        }
     }
 }

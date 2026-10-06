@@ -1,6 +1,14 @@
 package com.goldex.companion.desktop.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,10 +43,14 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, version: String, updater: WindowsUpdater? = null, onRestart: () -> Unit = {}) {
     val state by workspace.state.collectAsState()
     val colors = LocalGoldExColors.current
+    val pages = rememberSaveableStateHolder()
+    val focus = LocalFocusManager.current
+    LaunchedEffect(state.destination) { focus.clearFocus() }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
@@ -72,13 +84,25 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             }
                         }
                     }
-                    Box(Modifier.weight(1f).fillMaxWidth()) {
-                        when (state.destination) {
-                            DesktopDestination.DASHBOARD -> DashboardPage(state, workspace)
-                            DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, onThemeChange = { workspace.toggleTheme() })
-                            DesktopDestination.RATES -> RatesPage(state, workspace)
-                            DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
-                            DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
+                    AnimatedContent(targetState = state.destination, modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds(),
+                        transitionSpec = {
+                            if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                            else (fadeIn(tween(240, delayMillis = 40)) + slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (targetState.ordinal > initialState.ordinal) -it / 16 else it / 16 })
+                                .togetherWith(fadeOut(tween(140)) + slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { if (targetState.ordinal > initialState.ordinal) it / 24 else -it / 24 })
+                        }, label = "desktop-page-transition") { destination ->
+                        val outgoing = destination != state.destination
+                        Box(Modifier.fillMaxSize().then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
+                            awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
+                        } else Modifier)) {
+                            pages.SaveableStateProvider(destination.name) {
+                                when (destination) {
+                                    DesktopDestination.DASHBOARD -> DesktopDashboardPage(state, workspace.dashboard, workspace)
+                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, onThemeChange = { workspace.toggleTheme() })
+                                    DesktopDestination.RATES -> RatesPage(state, workspace)
+                                    DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
+                                    DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
+                                }
+                            }
                         }
                     }
                 }
@@ -121,8 +145,10 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
             }
             DesktopDestination.values().forEach { destination ->
                 val selected = state.destination == destination
+                val selectionColor by animateColorAsState(if (selected) colors.goldContainer else Color.Transparent,
+                    tween(if (state.reduceMotion) 0 else 180), label = "sidebar-selection")
                 var focused by remember(destination) { mutableStateOf(false) }
-                Surface(color = if (selected) colors.goldContainer else Color.Transparent, shape = RoundedCornerShape(14.dp),
+                Surface(color = selectionColor, shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
                     if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Icon(icon(destination), null, Modifier.size(23.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
@@ -169,73 +195,6 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     AnimatedPriceTicker(text = text ?: "—", modifier = modifier, color = color, fontSize = size.sp, fontWeight = FontWeight.SemiBold)
 }
 internal fun price(value: Long?): String? = value?.let { PersianNumberFormatter.formatPrice(it) }
-
-@Composable private fun DashboardPage(state: WorkspaceState, workspace: DesktopWorkspace) {
-    val colors = LocalGoldExColors.current
-    val summary = state.assets.summary
-    PageScroll {
-        Box(Modifier.fillMaxWidth().background(colors.dashboardVaultGradient, RoundedCornerShape(18.dp)).border(0.8.dp, colors.goldBorder, RoundedCornerShape(18.dp)).padding(28.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(state.settings.galleryName.ifBlank { "دارایی‌های شما" }, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        Text(if (state.snapshot?.isFresh(state.now) == true) "ارزش روز طلا و سکه‌های ثبت‌شده" else "ارزش دارایی‌ها با نرخ انتخابی", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
-                    }
-                    Icon(Icons.Outlined.AccountBalanceWallet, null, Modifier.size(32.dp), tint = colors.goldSecondary)
-                }
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Amount(price(summary?.currentValue), color = colors.goldSecondary, size = 36)
-                    Text("تومان", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
-                }
-                Text(if (state.assets.rows.isEmpty()) "اولین دارایی را ثبت کنید تا ارزش آن را اینجا ببینید." else if (summary == null) "برای محاسبهٔ کامل، نرخ همهٔ دارایی‌ها باید موجود باشد." else if (!state.assets.knownPurchaseBasis) "برای نمایش سود و زیان، مبلغ خرید همهٔ دارایی‌ها را ثبت کنید." else "بر پایهٔ ${state.snapshot?.label(state.now)}؛ سود نمایش‌داده‌شده تحقق‌نیافته است.", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
-                HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    HeroMetric("مبلغ خرید", price(summary?.purchaseValue?.takeIf { state.assets.knownPurchaseBasis }), Modifier.weight(1f))
-                    HeroMetric("سود / زیان", price(summary?.profit?.takeIf { state.assets.knownPurchaseBasis }), Modifier.weight(1f), summary?.profit?.let { if (it >= 0) colors.profitGreen else colors.errorRed } ?: colors.goldSecondary)
-                    HeroMetric("طلای معادل ۱۸", PersianNumberFormatter.formatWeight(state.assets.goldWeight18) + " گرم", Modifier.weight(1f))
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GoldButton("افزودن دارایی", { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }, Modifier.weight(1f), icon = Icons.Outlined.Add)
-            GoldButton("ماشین‌حساب طلا", { workspace.navigate(DesktopDestination.CALCULATOR) }, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Calculate)
-        }
-        LuxuryCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PageTitle("نبض بازار", Modifier.weight(1f))
-                TextButton(onClick = { workspace.navigate(DesktopDestination.RATES) }) { Text("همهٔ نرخ‌ها", color = colors.goldPrimary) }
-            }
-            QuoteRow("طلای ۱۸ عیار", state.snapshot?.rates?.gold18)
-            QuoteRow("مظنهٔ آبشده", state.snapshot?.rates?.goldMelt)
-            QuoteRow("سکهٔ امامی", state.snapshot?.rates?.coinEmami)
-            SourceCaption(state)
-        }
-        LuxuryCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PageTitle("دارایی‌های اخیر", Modifier.weight(1f))
-                TextButton(onClick = { workspace.navigate(DesktopDestination.PORTFOLIO) }) { Text("مشاهدهٔ همه", color = colors.goldPrimary) }
-            }
-            if (state.assets.rows.isEmpty()) Text("طلا یا سکهٔ خود را با مبلغ خرید ثبت کنید. اطلاعات پس از بستن برنامه باقی می‌ماند.", color = colors.textMuted, fontSize = 13.sp)
-            state.assets.rows.takeLast(4).reversed().forEach { row ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(row.item.title, color = colors.textMain, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(assetDescription(row.item), color = colors.textMuted, fontSize = 11.sp)
-                    }
-                    Amount(price(row.value))
-                    IconButton(onClick = { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset(row.item) }) { Icon(Icons.Outlined.Edit, "ویرایش ${row.item.title}", Modifier.size(18.dp), tint = colors.goldPrimary) }
-                }
-            }
-        }
-    }
-}
-
-@Composable private fun HeroMetric(label: String, value: String?, modifier: Modifier, color: Color = Color.White) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(label, color = Color.White.copy(alpha = 0.65f), fontSize = 12.sp, maxLines = 1)
-        Amount(value, color = color, size = 18)
-    }
-}
 
 @Composable internal fun QuoteRow(label: String, value: Long?, unit: String = "تومان") {
     val colors = LocalGoldExColors.current
