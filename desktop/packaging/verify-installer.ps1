@@ -90,10 +90,13 @@ $rejected = Start-Process $shellPath -ArgumentList @('-NoProfile','-NonInteracti
 if ($rejected.ExitCode -eq 0 -or (Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) { throw 'Corrupt update was not rejected before restart' }
 $validPlan | Set-Content -LiteralPath $plan -Encoding UTF8
 $helper = Start-Process $shellPath -ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass',
-    '-File', ('"'+(Join-Path $stage 'install.ps1')+'"'), '-Plan', ('"'+$plan+'"')) -WindowStyle Hidden -PassThru
+    '-File', ('"'+(Join-Path $stage 'install.ps1')+'"'), '-Plan', ('"'+$plan+'"')) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $stage 'helper-out.log') -RedirectStandardError (Join-Path $stage 'helper-error.log')
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 while (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -and !$helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
-if (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) { throw 'Helper did not acknowledge while app remained open' }
+if (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) {
+    Get-Content -LiteralPath (Join-Path $stage 'helper-error.log') -Tail 25
+    throw "Helper did not acknowledge while app remained open (appExited=$($app.HasExited), helperExited=$($helper.HasExited))"
+}
 # Only the disposable runner's explicitly launched fixture process is stopped.
 Stop-Process -Id $app.Id -Force
 if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) { throw 'Shipped updater helper failed' }

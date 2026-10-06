@@ -12,8 +12,14 @@ function PlainPath([string]$Value) {
 }
 function AssertInstaller {
     PlainPath $root; PlainPath $stage; PlainPath $package
+    # Start-Process from pwsh can inherit a PSModulePath that omits Windows
+    # PowerShell's Get-FileHash module. Use the runtime's .NET implementation.
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($package)
+    try { $digest = [BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','').ToLowerInvariant() }
+    finally { $stream.Dispose(); $sha.Dispose() }
     if ((Get-Item -LiteralPath $package).Length -ne [long]$planData.size -or
-        (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash -ine $planData.sha256) { throw 'Installer checksum mismatch' }
+        $digest -ine $planData.sha256) { throw 'Installer checksum mismatch' }
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $database = $null
     try {
@@ -70,7 +76,9 @@ try {
         $log = Join-Path $stage 'runtime.log'
         $verification = Start-Process (Join-Path $root 'Qirato.exe') -ArgumentList '--verify-runtime' -RedirectStandardOutput $log -WindowStyle Hidden -PassThru
         if (!$verification.WaitForExit(60000)) { $verification.Kill(); throw 'Installed runtime verification timed out' }
-        if ($verification.ExitCode -ne 0 -or !(Select-String -LiteralPath $log -SimpleMatch "Qirato runtime version=$($planData.version)" -Quiet)) { throw 'Installed runtime verification failed' }
+        $verification.WaitForExit() # Drain redirected output before reading the version marker.
+        if ($verification.ExitCode -ne 0 -or (Get-Item -LiteralPath $log).Length -gt 65536 -or
+            [IO.File]::ReadAllLines($log) -notcontains "Qirato runtime version=$($planData.version)") { throw 'Installed runtime verification failed' }
     } finally { $lock.Dispose() }
     Start-Process (Join-Path $root 'Qirato.exe') -WorkingDirectory $root -WindowStyle Normal
     @{success=$true; version=$planData.version} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stage 'result.json') -Encoding UTF8
