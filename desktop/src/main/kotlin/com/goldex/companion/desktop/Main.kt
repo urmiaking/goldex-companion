@@ -50,7 +50,7 @@ private fun verifyRuntime() {
     check(calculator.state.value.result?.totalPayable?.toLong() == 14_315_160L)
     check(PersistenceJsonCodecs.decodeSettings("{}").defaultProfitPercent == "7")
     check(desktopVersion().matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")))
-    checkNotNull(ManualGoldCalculator::class.java.getResourceAsStream("/update/install.ps1")).use { check(it.read() >= 0) }
+    checkNotNull(ManualGoldCalculator::class.java.getResourceAsStream("/update/install-msi.ps1")).use { check(it.read() >= 0) }
     println("Qirato runtime version=${desktopVersion()}")
     println("Qirato font, icon, shared codecs and financial runtime verification passed")
 }

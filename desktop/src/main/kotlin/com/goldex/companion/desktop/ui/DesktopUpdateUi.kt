@@ -22,7 +22,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
         PageTitle("به‌روزرسانی قیراط")
         Text("نسخهٔ ${PersianNumberFormatter.toPersianDigits(version)} • ویندوز", color = LocalGoldExColors.current.textMuted, fontSize = 12.sp)
         UpdateProgress(state)
-        Text("نسخهٔ تازه خودکار دانلود می‌شود. نصب و راه‌اندازی مجدد با تأیید شما انجام می‌شود.", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
+        Text("هنگام شروع و هر ۵ دقیقه، نسخهٔ تازه خودکار بررسی و دانلود می‌شود. نصب و راه‌اندازی مجدد با تأیید شما انجام می‌شود.", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
         GoldButton(if (state.phase == WindowsUpdatePhase.READY) "نصب نسخهٔ جدید" else "بررسی به‌روزرسانی",
             { if (state.phase == WindowsUpdatePhase.READY) updater.showDialog() else updater.check() },
             enabled = !state.busy, isSecondary = state.phase != WindowsUpdatePhase.READY,

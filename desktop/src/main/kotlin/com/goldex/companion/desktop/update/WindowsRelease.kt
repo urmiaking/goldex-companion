@@ -15,7 +15,9 @@ data class WindowsVersion(val major: Int, val minor: Int, val patch: Int) : Comp
     }
 }
 
-data class WindowsRelease(val version: WindowsVersion, val tag: String, val notes: String, val url: URI, val size: Long, val sha256: String)
+data class WindowsRelease(val version: WindowsVersion, val tag: String, val notes: String, val url: URI, val size: Long, val sha256: String) {
+    val installerName get() = "Qirato-Windows-x64-$version.msi"
+}
 
 /** Windows discovery deliberately does not use /releases/latest (the Android channel). */
 object WindowsReleasePolicy {
@@ -32,13 +34,13 @@ object WindowsReleasePolicy {
                 if (version <= installed) return@mapNotNull null
                 val assets = release.optJSONArray("assets") ?: return@mapNotNull null
                 val asset = (0 until assets.length()).map { assets.getJSONObject(it) }.singleOrNull {
-                    it.optString("name") == "Qirato-Windows-x64-$version.zip" && it.optString("state") == "uploaded"
+                    it.optString("name") == "Qirato-Windows-x64-$version.msi" && it.optString("state") == "uploaded"
                 } ?: return@mapNotNull null
                 Triple(version, release, asset)
             }
         val (version, release, asset) = candidates.maxByOrNull { it.first } ?: return null
         val tag = release.getString("tag_name")
-        val expected = URI("https://github.com/$REPOSITORY/releases/download/$tag/Qirato-Windows-x64-$version.zip")
+        val expected = URI("https://github.com/$REPOSITORY/releases/download/$tag/Qirato-Windows-x64-$version.msi")
         require(URI(asset.getString("browser_download_url")) == expected) { "Unexpected release download URL" }
         val digest = asset.optString("digest")
         require(digest.matches(Regex("sha256:[a-fA-F0-9]{64}"))) { "Release checksum unavailable" }

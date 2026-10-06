@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="Qirato" Language="1033" Version="$(var.Version)" Manufacturer="Qirato"
+           UpgradeCode="A6B3CF2A-A8F7-4CDE-A49A-F8935C6B8306">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser" InstallPrivileges="limited" Platform="x64" />
+    <MajorUpgrade Schedule="afterInstallInitialize" DowngradeErrorMessage="A newer version of Qirato is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Property Id="QIRATO_INSTALLER" Value="1" />
+    <Condition Message="Qirato installs for the current user only.">NOT ALLUSERS</Condition>
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <CustomAction Id="SetInstallLocation" Property="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" />
+    <InstallExecuteSequence><Custom Action="SetInstallLocation" After="CostFinalize">NOT Installed</Custom></InstallExecuteSequence>
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/urmiaking/goldex-companion" />
+    <Property Id="ARPPRODUCTICON" Value="QiratoIcon" />
+    <Icon Id="QiratoIcon" SourceFile="$(var.Icon)" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="ProgramsFolder" Name="Programs"><Directory Id="INSTALLFOLDER" Name="Qirato" /></Directory>
+      </Directory>
+      <Directory Id="DesktopFolder" />
+      <Directory Id="ProgramMenuFolder"><Directory Id="QiratoMenu" Name="Qirato" /></Directory>
+    </Directory>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="InstallerMarker" Guid="B70498A4-A4EC-4DC4-830F-E33BE6332714" Win64="yes">
+        <File Id="InstallerMarkerFile" Source="$(var.Marker)" Name=".qirato-msi" />
+        <RegistryValue Root="HKCU" Key="Software\Qirato\Installer" Name="Version" Type="string" Value="$(var.Version)" KeyPath="yes" />
+        <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+      </Component>
+      <Component Id="Shortcuts" Guid="502A8773-08F3-4B4E-BAF1-D19EAE8CC366" Win64="yes">
+        <Shortcut Id="DesktopShortcut" Directory="DesktopFolder" Name="Qirato" Target="[INSTALLFOLDER]Qirato.exe" WorkingDirectory="INSTALLFOLDER" Icon="QiratoIcon" />
+        <Shortcut Id="MenuShortcut" Directory="QiratoMenu" Name="Qirato" Target="[INSTALLFOLDER]Qirato.exe" WorkingDirectory="INSTALLFOLDER" Icon="QiratoIcon" />
+        <RemoveFolder Id="RemoveQiratoMenu" Directory="QiratoMenu" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Qirato\Installer" Name="Shortcuts" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <Feature Id="Application" Title="Qirato" Level="1">
+      <ComponentGroupRef Id="AppFiles" /><ComponentRef Id="InstallerMarker" /><ComponentRef Id="Shortcuts" />
+    </Feature>
+    <UI Id="QiratoInstallerUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="9" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="11" Bold="yes" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <DialogRef Id="ErrorDlg" /><DialogRef Id="FatalError" /><DialogRef Id="UserExit" />
+      <DialogRef Id="FilesInUse" /><DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" /><DialogRef Id="ProgressDlg" /><DialogRef Id="ResumeDlg" />
+      <DialogRef Id="WelcomeDlg" /><DialogRef Id="ExitDialog" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="EndDialog" Value="Return">1</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
+      <InstallUISequence><Show Dialog="WelcomeDlg" Before="ProgressDlg">NOT Installed</Show></InstallUISequence>
+    </UI>
+    <UIRef Id="WixUI_Common" />
+  </Product>
+</Wix>

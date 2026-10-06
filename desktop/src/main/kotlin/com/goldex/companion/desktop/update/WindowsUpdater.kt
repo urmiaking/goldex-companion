@@ -16,7 +16,8 @@ data class WindowsUpdateState(
 /** Owns update state only; financial storage and workspace drafts stay with their owners. */
 class WindowsUpdater(
     private val gateway: WindowsUpdateGateway,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    private val waitForNextCheck: suspend (Long) -> Unit = { delay(it) }
 ) : AutoCloseable {
     private val mutable = MutableStateFlow(WindowsUpdateState())
     val state = mutable.asStateFlow()
@@ -27,12 +28,15 @@ class WindowsUpdater(
     @Synchronized fun start() {
         if (started) return
         started = true
-        scope.launch { check()?.join(); while (isActive) { delay(6 * 60 * 60 * 1000L); check()?.join() } }
+        scope.launch {
+            check(background = true)?.join()
+            while (isActive) { waitForNextCheck(CHECK_INTERVAL_MS); check(background = true)?.join() }
+        }
     }
 
-    @Synchronized fun check(): Job? {
+    @Synchronized fun check(background: Boolean = false): Job? {
         if (state.value.busy) return null
-        if (prepared != null) { showDialog(); return null }
+        if (prepared != null) { if (!background) showDialog(); return null }
         mutable.update { it.copy(phase = WindowsUpdatePhase.CHECKING, error = null) }
         work = scope.launch {
             try {
@@ -46,7 +50,7 @@ class WindowsUpdater(
                 mutable.update { it.copy(phase = WindowsUpdatePhase.READY, dialog = true) }
             } catch (failure: CancellationException) { throw failure }
             catch (_: Exception) { mutable.update { it.copy(phase = WindowsUpdatePhase.FAILED,
-                error = "به‌روزرسانی آماده نشد. اینترنت و فضای دیسک را بررسی کنید؛ بستهٔ ZIP باید کامل در پوشهٔ قابل نوشتن Qirato استخراج شده باشد. نسخهٔ فعلی حفظ شده است.") } }
+                error = "به‌روزرسانی آماده نشد. اینترنت و فضای دیسک را بررسی کنید؛ پوشهٔ برنامه باید قابل نوشتن باشد. نسخهٔ فعلی حفظ شده است.") } }
         }
         return work
     }
@@ -74,4 +78,6 @@ class WindowsUpdater(
     }
 
     override fun close() { runBlocking { scope.coroutineContext[Job]?.cancelAndJoin() } }
+
+    companion object { const val CHECK_INTERVAL_MS = 5 * 60 * 1000L }
 }
