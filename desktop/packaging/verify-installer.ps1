@@ -23,8 +23,12 @@ $previous = Join-Path $previousOutput "Qirato-Windows-x64-$previousVersion.msi"
 $current = Join-Path $output "Qirato-Windows-x64-$Version.msi"
 $msiexec = Join-Path $env:SystemRoot 'System32\msiexec.exe'
 function Install([string]$Package) {
-    $result = Start-Process $msiexec -ArgumentList @('/i', ('"'+$Package+'"'), '/qn', '/norestart') -WindowStyle Hidden -PassThru -Wait
-    if ($result.ExitCode -ne 0) { throw "Installer failed ($($result.ExitCode))" }
+    $log = Join-Path $env:RUNNER_TEMP ('qirato-install-' + [guid]::NewGuid().ToString() + '.log')
+    $result = Start-Process $msiexec -ArgumentList @('/i', ('"'+$Package+'"'), '/qn', '/norestart', '/l*v', ('"'+$log+'"')) -WindowStyle Hidden -PassThru -Wait
+    if ($result.ExitCode -ne 0) {
+        Select-String -LiteralPath $log -Pattern 'Return value 3|Error [0-9]+|MainEngineThread is returning' -Context 12,3
+        throw "Installer failed ($($result.ExitCode)): $Package"
+    }
 }
 function Products {
     $installer = New-Object -ComObject WindowsInstaller.Installer
@@ -114,6 +118,19 @@ $reopened = @(Get-Process Qirato -ErrorAction SilentlyContinue | Where-Object { 
 # jpackage may keep a launcher and a JVM process, both named Qirato. Verify
 # reopening without equating native process count with application windows.
 if ($reopened.Count -lt 1) { throw 'Updater did not reopen the installed application' }
+# Wait for the relaunched JVM to finish opening its store before stopping the
+# fixture; enumerating just the launcher can race its creation of the JVM.
+$deadline = [DateTime]::UtcNow.AddSeconds(30)
+$started = $false
+while (!$started -and [DateTime]::UtcNow -lt $deadline) {
+    try {
+        $probe = [IO.File]::Open((Join-Path $data 'workspace.lock'), 'Open', 'ReadWrite', 'None')
+        $probe.Dispose()
+    } catch [IO.IOException] { $started = $true }
+    if (!$started) { Start-Sleep -Milliseconds 100 }
+}
+if (!$started) { throw 'Reopened application did not acquire its data lock' }
+$reopened = @(Get-Process Qirato -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq (Join-Path $root 'Qirato.exe') })
 foreach ($process in $reopened) {
     if (!$process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
     [void]$process.WaitForExit(10000)
