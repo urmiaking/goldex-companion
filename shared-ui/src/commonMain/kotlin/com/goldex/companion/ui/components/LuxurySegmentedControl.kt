@@ -6,8 +6,10 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -100,10 +106,12 @@ fun <T> LuxurySegmentedControl(
             ) {}
 
             // 2. Interactive Text Buttons
-            Row(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxSize().selectableGroup()) {
                 items.forEach { item ->
                     val isSelected = item == selectedItem
                     val itemEnabled = isItemEnabled(item)
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val focused by interactionSource.collectIsFocusedAsState()
                     val animatedTextColor by animateColorAsState(
                         targetValue = if (isSelected) colors.goldPrimary else colors.textMuted,
                         label = "segmentedTextColor"
@@ -113,8 +121,11 @@ fun <T> LuxurySegmentedControl(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
+                            .border(if (focused) 2.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(8.dp))
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.Tab,
+                                interactionSource = interactionSource,
                                 indication = null,
                                 enabled = itemEnabled
                             ) { onItemSelected(item) },
@@ -126,7 +137,9 @@ fun <T> LuxurySegmentedControl(
                             fontSize = fontSize,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (itemEnabled) animatedTextColor else colors.textMuted.copy(alpha = 0.35f),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

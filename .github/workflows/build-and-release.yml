@@ -87,3 +87,52 @@ jobs:
           files: app/build/outputs/apk/release/app-release.apk
           generate_release_notes: true
           name: "قیراط (Qirat) ${{ github.ref_name }}"
+
+  windows:
+    name: "Build and Release Windows Calculator"
+    needs: build
+    runs-on: windows-2022
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK for shared UI configuration
+        uses: android-actions/setup-android@v3
+
+      - name: Build portable Windows application
+        shell: pwsh
+        run: |
+          ./gradlew.bat :desktop:createDistributable --no-daemon --stacktrace
+          if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
+          $launcher = Resolve-Path 'desktop/build/compose/binaries/main/app/Qirato/Qirato.exe'
+          $verification = Start-Process -FilePath $launcher -ArgumentList '--verify-runtime' -WindowStyle Hidden -PassThru -Wait
+          if ($verification.ExitCode -ne 0) { throw 'Packaged Windows runtime verification failed' }
+
+      - name: Publish portable Windows archive
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $archive = "Qirato-Windows-x64-$version.zip"
+          Compress-Archive -Path 'desktop/build/compose/binaries/main/app/Qirato' -DestinationPath $archive
+          gh release upload $env:GITHUB_REF_NAME $archive
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release upload failed' }
+
+      - name: Report Windows build failure
+        if: failure()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create ci-build-failure --force
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          "ساخت یا انتشار نسخه ویندوز ناموفق بود. گزارش اجرا: $runUrl" | Set-Content windows-failure.md -Encoding utf8
+          gh issue create --title "اشکال ساخت نسخه ویندوز $env:GITHUB_REF_NAME" --label ci-build-failure --body-file windows-failure.md

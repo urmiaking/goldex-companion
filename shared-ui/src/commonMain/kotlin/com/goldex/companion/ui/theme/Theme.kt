@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 
 // Material controls use the same Stitch tokens as custom app surfaces.
-internal val DarkColorScheme = darkColorScheme(
+val DarkColorScheme = darkColorScheme(
     primary = DarkGoldExColors.goldPrimary,
     onPrimary = DarkGoldExColors.background,
     primaryContainer = Color(0xFF2A2308),

@@ -1,0 +1,213 @@
+package com.goldex.companion.desktop
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.VerticalScrollbar
+import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.PriceBasisTab
+import com.goldex.companion.model.WageType
+import com.goldex.companion.presentation.calculator.CalculatorField
+import com.goldex.companion.presentation.calculator.ManualGoldCalculator
+import com.goldex.companion.presentation.calculator.ManualGoldCalculatorState
+import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.GoldOutlinedTextField
+import com.goldex.companion.ui.components.LuxuryCard
+import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.theme.*
+import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
+
+@Composable
+fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, onThemeChange: () -> Unit) {
+    val state by calculator.state.collectAsState()
+    val colors = LocalGoldExColors.current
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(state) { copied = false }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column(
+            Modifier.fillMaxSize().background(colors.background).padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp)
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("قیراط", style = MaterialTheme.typography.headlineLarge, color = colors.goldPrimary, fontWeight = FontWeight.Bold)
+                    Text("ماشین‌حساب طلا • نسخهٔ ویندوز", color = colors.textSecondary, fontSize = 14.sp)
+                }
+                GoldButton(
+                    text = if (dark) "حالت روز" else "حالت شب",
+                    onClick = onThemeChange, isSecondary = true, modifier = Modifier.width(128.dp).testTag("theme")
+                )
+            }
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                if (maxWidth >= 940.dp) {
+                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        ScrollPane(Modifier.weight(1.15f)) {
+                            InputPanel(state, calculator)
+                        }
+                        ScrollPane(Modifier.weight(1f)) {
+                            ResultPanel(state)
+                            Actions(state, calculator, copied) {
+                                calculator.summary()?.let { clipboard.setText(AnnotatedString(it)); copied = true }
+                            }
+                        }
+                    }
+                } else {
+                    ScrollPane(Modifier.fillMaxSize()) {
+                        InputPanel(state, calculator)
+                        ResultPanel(state)
+                        Actions(state, calculator, copied) {
+                            calculator.summary()?.let { clipboard.setText(AnnotatedString(it)); copied = true }
+                        }
+                    }
+                }
+            }
+            Text("محاسبه با نرخ واردشدهٔ شما • مبالغ به تومان", color = colors.textMuted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun ScrollPane(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+    val scroll = rememberScrollState()
+    Box(modifier.fillMaxHeight()) {
+        Column(
+            Modifier.fillMaxSize().padding(end = 12.dp).verticalScroll(scroll),
+            verticalArrangement = Arrangement.spacedBy(18.dp), content = content
+        )
+        VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+    }
+}
+
+@Composable
+private fun InputPanel(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator) {
+    LuxuryCard {
+        PanelTitle("نرخ و مشخصات طلا")
+        Text("نرخ دستی", color = LocalGoldExColors.current.goldPrimary, fontSize = 13.sp)
+        LuxurySegmentedControl(
+            items = PriceBasisTab.values().toList(), selectedItem = state.priceBasis,
+            onItemSelected = calculator::setPriceBasis,
+            label = { when (it) { PriceBasisTab.K18 -> "۱۸ عیار"; PriceBasisTab.K24 -> "۲۴ عیار"; PriceBasisTab.MESGHAL -> "مظنه" } },
+            modifier = Modifier.fillMaxWidth().testTag("basis"), height = 44.dp, fontSize = 13.sp
+        )
+        NumericInput(state, CalculatorField.SPOT, "نرخ مبنا", "تومان", calculator)
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            NumericInput(state, CalculatorField.GROSS_WEIGHT, "وزن کل", "گرم", calculator, Modifier.weight(1f))
+            NumericInput(state, CalculatorField.STONE_WEIGHT, "کسر نگین", "گرم", calculator, Modifier.weight(1f))
+        }
+        NumericInput(state, CalculatorField.KARAT, "عیار", "عیار", calculator)
+    }
+    LuxuryCard {
+        PanelTitle("اجرت، سود و مالیات")
+        LuxurySegmentedControl(
+            items = WageType.values().toList(), selectedItem = state.wageType,
+            onItemSelected = calculator::setWageType,
+            label = { if (it == WageType.PERCENTAGE) "اجرت درصدی" else "اجرت هر گرم" },
+            modifier = Modifier.fillMaxWidth().testTag("wageType"), height = 44.dp, fontSize = 13.sp
+        )
+        NumericInput(state, CalculatorField.WAGE, "اجرت", if (state.wageType == WageType.PERCENTAGE) "٪" else "تومان / گرم", calculator)
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            NumericInput(state, CalculatorField.PROFIT, "سود", "٪", calculator, Modifier.weight(1f))
+            NumericInput(state, CalculatorField.TAX, "مالیات", "٪", calculator, Modifier.weight(1f))
+        }
+        Text("مالیات بر اجرت و سود محاسبه می‌شود.", color = LocalGoldExColors.current.textMuted, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun NumericInput(
+    state: ManualGoldCalculatorState, field: CalculatorField, label: String, unit: String,
+    calculator: ManualGoldCalculator, modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val error = state.errors[field]
+    val integer = field == CalculatorField.SPOT || field == CalculatorField.KARAT
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        GoldOutlinedTextField(
+            value = state.input(field),
+            onValueChange = { calculator.setInput(field, PersianNumberFormatter.toEnglishDigits(it).replace("٬", "").replace("،", "").replace(",", "")) },
+            modifier = Modifier.fillMaxWidth().testTag("input-${field.name}"),
+            singleLine = true, isError = error != null,
+            label = { Text(label, fontSize = 13.sp) },
+            trailingIcon = { Text(unit, Modifier.padding(horizontal = 10.dp), color = colors.textMuted, fontSize = 12.sp) },
+            textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings,
+                fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = colors.textMain, textDirection = TextDirection.Ltr),
+            visualTransformation = ThousandsSeparatorVisualTransformation(addSeparators = field == CalculatorField.SPOT),
+            keyboardOptions = KeyboardOptions(keyboardType = if (integer) KeyboardType.Number else KeyboardType.Decimal),
+            shape = ButtonShape,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
+                focusedLabelColor = colors.goldPrimary, unfocusedLabelColor = colors.textSecondary,
+                focusedContainerColor = colors.surfaceElevated, unfocusedContainerColor = colors.surface,
+                errorBorderColor = colors.errorRed, errorLabelColor = colors.errorRed, cursorColor = colors.goldPrimary
+            )
+        )
+        if (error != null) Text(error, color = colors.errorRed, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun ResultPanel(state: ManualGoldCalculatorState) {
+    val colors = LocalGoldExColors.current
+    val result = state.result
+    LuxuryCard(backgroundColor = colors.surfaceElevated) {
+        PanelTitle("خلاصهٔ محاسبه")
+        Text("مبلغ نهایی", color = colors.textSecondary, fontSize = 14.sp)
+        AnimatedPriceTicker(
+            text = result?.let { PersianNumberFormatter.formatPrice(it.totalPayable) } ?: "—",
+            modifier = Modifier.testTag("total"), color = colors.goldPrimary, fontSize = 32.sp, fontWeight = FontWeight.Bold
+        )
+        Text("تومان", color = colors.textMuted, fontSize = 13.sp)
+        if (result == null) Text("برای محاسبه، فیلدهای لازم را کامل کنید.", color = colors.textMuted, fontSize = 13.sp)
+        HorizontalDivider(color = colors.goldBorder)
+        ResultLine("وزن خالص", result?.let { PersianNumberFormatter.formatWeight(it.netWeight) }, "گرم")
+        ResultLine("ارزش خام طلا", result?.let { PersianNumberFormatter.formatPrice(it.rawGoldValue) }, "تومان")
+        ResultLine("اجرت ساخت", result?.let { PersianNumberFormatter.formatPrice(it.wageAmount) }, "تومان")
+        ResultLine("سود فروشنده", result?.let { PersianNumberFormatter.formatPrice(it.profitAmount) }, "تومان")
+        ResultLine("مالیات", result?.let { PersianNumberFormatter.formatPrice(it.taxAmount) }, "تومان")
+        HorizontalDivider(color = colors.goldBorder)
+        ResultLine("قیمت هر گرم", result?.let { PersianNumberFormatter.formatPrice(it.effectiveGramPrice) }, "تومان")
+    }
+}
+
+@Composable
+private fun ResultLine(label: String, value: String?, unit: String) {
+    val colors = LocalGoldExColors.current
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), color = colors.textSecondary, fontSize = 13.sp, maxLines = 1)
+        AnimatedPriceTicker(text = value ?: "—", color = colors.textMain, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(unit, color = colors.textMuted, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun Actions(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator, copied: Boolean, onCopy: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        GoldButton("پاک کردن", calculator::reset, Modifier.weight(1f).testTag("reset"), isSecondary = true)
+        GoldButton(if (copied) "کپی شد" else "کپی خلاصه", onCopy, Modifier.weight(1f).testTag("copy"), enabled = state.result != null)
+    }
+}
+
+@Composable
+private fun PanelTitle(title: String) {
+    Text(title, color = LocalGoldExColors.current.textMain, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+}

@@ -40,13 +40,13 @@
 ## 🛠 مشخصات فنی
 - **Target SDK:** 34 | **Min SDK:** 24 | **Java Version:** 17
 - **UI Framework:** Jetpack Compose (Material 3 Adaptive Themes)
-- **Architecture:** Android host + Kotlin Multiplatform core (Android/JVM), MVVM, StateFlow, constructor injection and repository ports
+- **Architecture:** Android host + initial Windows calculator, shared Kotlin core and Compose primitives (Android/JVM), StateFlow, constructor injection and repository ports
 - **Signer:** Persistent 2048-bit RSA Keystore (Seamless in-place APK updates)
 - **CI/CD:** GitHub Actions Automation Loop with Protected Repository Secrets
 
 ### وضعیت انتشار
 
-نسخهٔ `0.56.15` تکمیل مرحلهٔ آماده‌سازی مهاجرت است: هستهٔ محاسبات و مدل‌ها بین Android و JVM مشترک است، ثبت دوبارهٔ موجودی اولیه متوقف شده و فرم‌های فاکتور نرخ‌ها را از ورودی مشخص دریافت می‌کنند. ظاهر فارسی، فرمول‌ها، داده‌های ذخیره‌شده و هویت نصب حفظ می‌شوند. نسخهٔ Windows یا iOS هنوز منتشر نشده است. بررسی کامپایل و تست‌ها محلی انجام می‌شوند؛ GitHub Actions فقط APK Android را می‌سازد، امضا و منتشر می‌کند.
+نسخهٔ `0.56.36` نخستین برش ویندوز را اضافه می‌کند: ماشین‌حساب طلا با نرخ دستی، وزن و کسر نگین، عیار، اجرت، سود و مالیات، حالت روز/شب و کپی خلاصه. محاسبات و مبانی ظاهر با اندروید مشترک‌اند. نسخهٔ ویندوز فعلاً مشتری، فاکتور، انبار، نرخ زنده، ذخیره‌سازی مالی و همگام‌سازی ندارد. قابلیت‌ها، داده‌ها و هویت نصب اندروید حفظ می‌شوند. بررسی کامپایل و تست‌ها محلی‌اند؛ GitHub Actions، APK امضاشده و فایل ZIP قابل اجرای ویندوز را منتشر می‌کند.
 
 
 Cloud synchronization is off by default on each device. Open its row in the settings group or use the wizard to connect. Server-selected temporary OTP is displayed in the login modal until SMS mode is configured. Expired/revoked licenses stop cloud traffic without deleting local data. Before replacing local data or switching accounts, export the offered backup. Technical ownership and migrations: [ARCHITECTURE.md](ARCHITECTURE.md) and [cloud ADRs](docs/adr/0002-cloud-identity-and-writer.md).
@@ -61,4 +61,14 @@ JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` 
 .\gradlew.bat :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q
 ```
 
-`app` میزبان Android و `core` محل مدل‌ها، قراردادها و منطق مشترک است. برای ساخت Windows در مرحلهٔ بعد باید میزبان دسکتاپ، آداپتورهای ذخیره‌سازی/شبکه/فایل و بسته‌بندی آن اضافه شوند. جزئیات مرزها و محدودیت‌های فعلی در [ADR 0006](docs/adr/0006-shared-core-and-platform-boundaries.md) آمده است.
+`app` میزبان Android، `core` محل مدل‌ها و منطق مشترک، `shared-ui` محل تم و کامپوننت‌های مشترک و `desktop` میزبان ویندوز است. جزئیات این مرحله در [ADR 0010](docs/adr/0010-windows-calculator-foundation.md) و [راهنمای بررسی ویندوز](docs/testing/windows-calculator.md) آمده است.
+
+### اجرای ماشین‌حساب ویندوز
+
+```powershell
+.\gradlew.bat :desktop:run --no-daemon
+.\gradlew.bat :desktop:test --no-daemon -q
+.\gradlew.bat :desktop:createDistributable --no-daemon
+```
+
+برای توسعه، JDK 17 و SDK اندروید جهت پیکربندی ماژول مشترک لازم‌اند. نسخهٔ ZIP انتشار، runtime را همراه دارد و برای استفاده نیازی به نصب Java یا Android SDK ندارد. ZIP را کامل استخراج و `Qirato/Qirato.exe` را اجرا کنید؛ فایل EXE را به‌تنهایی از پوشه خارج نکنید. خروجی محلی در `desktop/build/compose/binaries/main/app/Qirato` قرار می‌گیرد. ساخت MSI/EXE نصب‌کننده نیازمند ابزار بسته‌بندی ویندوز است و در این مرحله فقط ZIP منتشر می‌شود.

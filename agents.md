@@ -36,14 +36,15 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 - Feature branches (`feature/<name>`) and Git Worktrees must be used for feature development and parallel agent workflows (see `.agents/rules/git-worktree-and-branching.md`).
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.
 - Before a change is complete, verify compilation and unit tests locally. For shared-core changes also run `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`; keep JVM tests local, not in the release workflow.
+- For Windows/shared UI changes also run `./gradlew :desktop:test --no-daemon -q` and verify the packaged desktop runtime. Desktop packaging is allowed locally; APK assembly/signing remains CI-only.
 - Do not claim a build or test passed unless its output is available.
 
 ## 3. Current technology constraints
 
 These are current implementation constraints, not permanent bans on future architecture:
 
-- Android `app` host plus Kotlin Multiplatform `core` with Android/JVM targets; shared domain/models/ports belong in `core/src/commonMain`.
-- Jetpack Compose and Material 3.
+- Android `app` host, initial Windows manual-calculator `desktop` host, and Kotlin Multiplatform `core`/`shared-ui` with Android/JVM targets. Shared domain/models/ports and platform-free form state belong in `core/src/commonMain`; shared Compose tokens/primitives belong in `shared-ui/src/commonMain`.
+- Jetpack Compose/Material 3 on Android and Compose Multiplatform on Desktop; preserve the verified Kotlin/compiler pair unless an explicit toolchain migration is needed.
 - Kotlin coroutines and `StateFlow`.
 - `HttpURLConnection` and `org.json` for the current network layer.
 - Room 2.6.1 version 2 for financial records, business settings and transactional sync outbox; SharedPreferences for device preferences/market cache and retained legacy JSON import backups.

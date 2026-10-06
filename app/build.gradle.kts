@@ -26,8 +26,15 @@ val hasReleaseSigningConfig = !releaseStoreFilePath.isNullOrBlank()
     && !releaseKeyAlias.isNullOrBlank()
     && !releaseKeyPassword.isNullOrBlank()
 
-if (System.getenv("CI") == "true" && !hasReleaseSigningConfig) {
-    throw GradleException("Release signing is not configured in CI; refusing to produce an unsigned APK")
+// Desktop CI also configures this project; require Android credentials only for release tasks.
+tasks.configureEach {
+    if (name == "preReleaseBuild") {
+        doFirst {
+            if (System.getenv("CI") == "true" && !hasReleaseSigningConfig) {
+                throw GradleException("Release signing is not configured in CI; refusing to produce an unsigned APK")
+            }
+        }
+    }
 }
 
 android {
@@ -38,8 +45,8 @@ android {
         applicationId = "com.goldex.companion"
         minSdk = 24
         targetSdk = 34
-        versionCode = 159
-        versionName = "0.56.35"
+        versionCode = 160
+        versionName = "0.56.36"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -96,6 +103,7 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":shared-ui"))
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
     implementation(composeBom)
