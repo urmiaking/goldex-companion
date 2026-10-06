@@ -22,3 +22,5 @@ dependencyResolutionManagement {
 rootProject.name = "goldex-companion"
 include(":app")
 include(":core")
+include(":shared-ui")
+include(":desktop")

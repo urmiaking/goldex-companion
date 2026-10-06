@@ -2,7 +2,7 @@
 
 ## 1. Purpose and architectural stance
 
-GoldEx Companion is a production-oriented Android application implemented incrementally by vertical feature slices. It has an Android `app` host and a Kotlin Multiplatform `core` module with Android and JVM targets. The host uses Jetpack Compose, Kotlin coroutines, `StateFlow`, Room/local preferences, and HTTP market-rate integrations.
+GoldEx Companion has an Android `app` host, an initial Windows `desktop` calculator host, a Kotlin Multiplatform `core` (Android/JVM), and a `shared-ui` module (Android/JVM). Android retains its existing feature state, navigation, Room/local preferences and HTTP integrations. The desktop slice currently provides a manual gold calculator only.
 
 The architecture must support two truths:
 
@@ -62,7 +62,9 @@ app data/ -> HTTP integrations, AndroidBiometricAuthManager, multi-provider mark
 
 - Entry points: `GoldexApplication.kt` and `MainActivity.kt` under `app/src/main/java/com/goldex/companion/`; `app/AndroidAppContainer.kt` is the composition root.
 - Activity Result compatibility: `MainActivity` retains `FragmentActivity` for biometric authentication. The Android host declares Fragment 1.6.2 directly, compatible with Activity 1.8.2. Biometric 1.1.0 otherwise brings in Fragment 1.2.5, whose 16-bit request-code restriction prevents registry-backed logo pickers from launching. `BrandImagePickerHostTest` exercises a real FragmentActivity registry launch and selected-logo result delivery with the resolved app dependencies.
-- Shared ownership: paths below in `domain/` and `model/` refer to `core/src/commonMain/kotlin/com/goldex/companion/`. Repository ports, AppSettings, PortfolioModels, MarketRates and LicenseModels also live in commonMain with their existing package names. Android implementations and all `ui/` paths remain under the Android source root.
+- Shared ownership: paths below in `domain/` and `model/` refer to `core/src/commonMain/kotlin/com/goldex/companion/`. Repository ports, AppSettings, PortfolioModels, MarketRates and LicenseModels also live in commonMain with their existing package names. Android feature screens/state remain in `app`; theme and the selected reusable components below live in `shared-ui`, retaining their existing packages.
+- Windows foundation (0.56.36): `core/presentation/calculator/ManualGoldCalculator.kt` owns the validated manual financial form and immutable StateFlow. `desktop/Main.kt` owns the JVM window and `DesktopCalculatorScreen` renders it with the shared theme, RTL and LTR decimal inputs. Quotes are explicitly manual; desktop has no financial persistence, live networking, invoices, cloud accounts or PDF yet. Android still uses its existing feature state and screens. See ADR 0010.
+- Shared presentation primitives: Color/Shape/Theme/Type, AnimatedPriceTicker, GoldButton, GoldOutlinedTextField, LuxuryCard, LuxurySegmentedControl and ThousandsSeparatorVisualTransformation belong to `shared-ui/commonMain`. Font resolution has Android/JVM actuals; the existing `app/src/main/res/font` files supply generated Android library resources and JVM resources. No font/token values or Android `R.font` callers change. Segmented controls expose tab selection semantics and a visible hardware-keyboard focus border.
 - Invoice market inputs: AndroidAppContainer exposes the existing read-only quote StateFlow. MainActivity collects it and passes immutable MarketRates through MainScreen to the invoice editor, coin form and rate dialog. These forms do not access market repositories or own a second quote stream; existing invoice/manual input values remain local to their current owners.
 - Platform services: `core/commonMain platform/` defines time, ID, decimal and local-calendar boundaries; `core/jvmSharedMain` provides the existing Java behavior to Android/JVM.
 - Opening inventory: `domain/onboarding/OpeningInventory.kt` owns the unchanged seed policy; `CompleteOnboardingUseCase.kt` owns completion, the shared transaction and repeat protection. `data/local/RoomOnboardingCheckpoint.kt` adapts the existing marker without a schema change. A restored account bypasses all seed/profile writes; a repeated wizard edits settings without duplicating stock.
@@ -88,10 +90,10 @@ app data/ -> HTTP integrations, AndroidBiometricAuthManager, multi-provider mark
 - Financial models and formatters: `model/`
 - Report detail projections: `domain/reporting/ReportingDetailsUseCase.kt` builds period sales categories, current and previous-period profit buckets, and stock movement totals, plus current customer and inventory-location snapshots. `MainScreen` opens the four report pages over the reports gateway with the same screen-push transition. `ui/reporting/ReportingChrome.kt` owns their shared header and date filters; `ReportingShareText.kt` formats user-initiated aggregate summaries. All pages consume the same `ReportingUiState`; no second data owner or persisted shape was introduced.
 - Integrations: `data/`
-- Design tokens: `ui/theme/`. Dark-mode custom colors and Material 3 roles share the Stitch charcoal/slate/champagne palette; `docs/stitch/dark-mode/` stores the source dashboard HTML, screenshot, and role mapping. Dashboard vault gradients and market-gain labels select theme-aware tokens without changing financial state or the light palette.
+- Design tokens: `shared-ui/src/commonMain/kotlin/com/goldex/companion/ui/theme/`. Dark-mode custom colors and Material 3 roles share the Stitch charcoal/slate/champagne palette; `docs/stitch/dark-mode/` stores the source dashboard HTML, screenshot, and role mapping. Dashboard vault gradients and market-gain labels select theme-aware tokens without changing financial state or the light palette.
 - Floating input labels: `ui/components/GoldOutlinedTextField.kt` wraps the Material outlined field for `GoldInputField`, customer forms, and legacy settings. Labels are passed directly to Material with no painted background; the native outline cutout remains in use. Keyboard, formatting, validation, and field colors stay owned by the callers.
 - Tests: `core/src/commonTest/` for portable compatibility/onboarding checks, `core/src/jvmSharedTest/` for existing domain tests executed on both Android and JVM, and `app/src/test/` for Android repository, migration, rollback and ViewModel checks; `app/src/androidTest/` includes the floating-label transparency pixel regression for light/dark themes and focus/error/disabled states (requires an Android device).
-- Release workflow: `.github/workflows/build-and-release.yml`
+- Release workflow: `.github/workflows/build-and-release.yml` signs/publishes Android and then packages/verifies/publishes a Windows x64 portable ZIP. Android signing credentials are required at the release task, so desktop CI configuration does not need them. Desktop local packaging is permitted; local APK assembly/signing remains prohibited.
 
 The code is authoritative when this document and implementation disagree. Update this document when a structural decision changes.
 
@@ -106,6 +108,9 @@ core data/                 Existing repository ports and shared data models
 app data/<feature>/        Repository implementations, local/remote sources
 app app/                   Android composition root
 core platform/             expect services + platform actual adapters
+core presentation/         Platform-free form state and validation for extracted slices
+shared-ui/                 Shared Compose tokens/primitives and font actuals
+desktop/                   JVM window, desktop rendering and portable packaging
 ```
 
 The current `model/` and `data/` packages remain valid during migration. Do not move files merely for aesthetic consistency. Move a file when ownership is unclear, isolated testing is needed, or a feature is being extracted.
@@ -315,9 +320,9 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 ## 14. Known current compromises
 
 - The market layer contains provider-specific HTTP and parsing code.
-- ViewModel/presentation code, Room 2.6.1, WorkManager, cloud coordinator/JSON form state, PDF/files and biometrics remain Android-owned. A JVM-tested core is not yet a Windows application.
+- Android feature ViewModels, Room 2.6.1, WorkManager, cloud coordinator/JSON form state, PDF/files and biometrics remain Android-owned. The initial Windows manual calculator shares core and UI primitives; it does not yet implement those financial application adapters.
 - Repository ports remain synchronous. Invoice, customer/statement, inventory and settlement feature ViewModels execute reads/writes and snapshot projections through a serial coroutine queue on an injected dispatcher (IO by default). Reports load on opening, rather than during shell construction. Room still permits main-thread queries for retained settings/onboarding/portfolio compatibility paths; this is not permission for new list operations to run on Main.
-- Native iOS actual services, common UI, desktop packaging and other platform signing are not implemented.
+- Native iOS actual services, full shared application UI and other platform signing are not implemented. Windows packaging currently publishes a portable manual calculator; the full Android financial application has not been ported.
 - Existing Double money fields and large-number formatting semantics remain unchanged for compatibility.
 - Dashboard visual content is partly static while the feature is being migrated from Stitch designs.
 

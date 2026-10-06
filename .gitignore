@@ -6,6 +6,8 @@
 /build
 app/build/
 core/build/
+shared-ui/build/
+desktop/build/
 .cxx
 *.apk
 *.aab
