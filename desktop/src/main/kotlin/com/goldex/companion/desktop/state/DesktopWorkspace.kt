@@ -14,7 +14,8 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
     CALCULATOR("ماشین‌حساب", "محاسبهٔ طلا با نرخ انتخابی شما"),
     RATES("تابلوی نرخ‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
     PORTFOLIO("دارایی‌ها", "طلا و سکه‌های شما، ارزش روز و نتیجهٔ خرید"),
-    SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات")
+    SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات"),
+    INVENTORY("انبار و کالاها", "مدیریت کامل کالا، قیمت‌گذاری و گردش موجودی گالری")
 }
 
 data class WorkspaceState(
@@ -44,6 +45,7 @@ class DesktopWorkspace(
     history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository()
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
+    val inventory = DesktopInventory(storage, scope)
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())
@@ -53,7 +55,10 @@ class DesktopWorkspace(
 
     init {
         scope.launch {
-            market.snapshot.collect { quote -> mutable.update { it.copy(snapshot = quote, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), quote?.rates), now = System.currentTimeMillis()) } }
+            market.snapshot.collect { quote ->
+                inventory.quote(quote?.rates?.gold18 ?: 0)
+                mutable.update { it.copy(snapshot = quote, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), quote?.rates), now = System.currentTimeMillis()) }
+            }
         }
     }
 
@@ -76,7 +81,7 @@ class DesktopWorkspace(
     fun clearMessage() { mutable.update { it.copy(error = null, notice = null) } }
     fun editSettings(change: (AppSettings) -> AppSettings) { if (!state.value.saving) mutable.update { it.copy(settingsDraft = change(it.settingsDraft ?: it.settings)) } }
     fun revertSettings() { mutable.update { it.copy(settingsDraft = null) } }
-    fun openAsset(item: PortfolioItem? = null) { mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
+    fun openAsset(item: PortfolioItem? = null) { if (!inventory.state.value.hasDialog) mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
     fun editDraft(change: (PortfolioDraft) -> PortfolioDraft) { if (!state.value.saving) mutable.update { current -> current.copy(draft = current.draft?.let(change)?.copy(errors = emptyMap())) } }
     fun dismissAsset() { if (!state.value.saving) mutable.update { it.copy(draft = null) } }
     fun requestDelete(item: PortfolioItem?) { mutable.update { it.copy(pendingDelete = item) } }
