@@ -72,7 +72,7 @@ try {
         AssertInstaller
         $msiexec = Join-Path $env:SystemRoot 'System32\msiexec.exe'
         $install = Start-Process $msiexec -ArgumentList @('/i', ('"' + $package + '"'), '/qn', '/norestart', 'REBOOT=ReallySuppress') -WindowStyle Hidden -PassThru -Wait
-        if ($install.ExitCode -notin @(0,3010)) { throw 'Windows Installer could not upgrade the application' }
+        if ($install.ExitCode -notin @(0,3010)) { throw "Windows Installer could not upgrade the application (code=$($install.ExitCode))" }
         $log = Join-Path $stage 'runtime.log'
         $verification = Start-Process (Join-Path $root 'Qirato.exe') -ArgumentList '--verify-runtime' -RedirectStandardOutput $log -WindowStyle Hidden -PassThru
         if (!$verification.WaitForExit(60000)) { $verification.Kill(); throw 'Installed runtime verification timed out' }
@@ -83,6 +83,8 @@ try {
     Start-Process (Join-Path $root 'Qirato.exe') -WorkingDirectory $root -WindowStyle Normal
     @{success=$true; version=$planData.version} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stage 'result.json') -Encoding UTF8
 } catch {
+    # This helper handles only installer/process metadata, never financial JSON.
+    [Console]::Error.WriteLine($_.Exception.Message)
     # MSI failure rolls back in its own transaction. Reopen whichever registered
     # runtime remains, without deleting data or forcing a running app to close.
     if ($exited -and (Test-Path -LiteralPath (Join-Path $root 'Qirato.exe'))) {

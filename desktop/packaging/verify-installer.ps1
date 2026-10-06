@@ -99,7 +99,11 @@ if (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) {
 }
 # Only the disposable runner's explicitly launched fixture process is stopped.
 Stop-Process -Id $app.Id -Force
-if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) { throw 'Shipped updater helper failed' }
+if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) {
+    Get-Content -LiteralPath (Join-Path $stage 'helper-error.log') -Tail 25
+    if (Test-Path -LiteralPath (Join-Path $stage 'runtime.log')) { Get-Content -LiteralPath (Join-Path $stage 'runtime.log') -Tail 5 }
+    throw "Shipped updater helper failed (code=$($helper.ExitCode))"
+}
 $installed = @(Products)
 if ($installed.Count -ne 1 -or $installed[0].DisplayVersion -ne $Version -or $installed[0].PSChildName -eq $old[0].PSChildName) { throw 'Previous product was not replaced' }
 if (Test-Path -LiteralPath (Join-Path $root 'app\previous-only.txt')) { throw 'Obsolete installer-owned file remained after upgrade' }
