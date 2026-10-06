@@ -13,9 +13,12 @@ $parts = $Version.Split('.')
 if ([int]$parts[2] -lt 1) { throw 'Test fixture needs a lower patch version' }
 $previousVersion = "$($parts[0]).$($parts[1]).$([int]$parts[2] - 1)"
 $previousOutput = Join-Path $env:RUNNER_TEMP 'qirato-previous-installer'
+$previousImage = Join-Path $env:RUNNER_TEMP 'qirato-previous-image'
+Copy-Item -LiteralPath $image -Destination $previousImage -Recurse
+[IO.File]::WriteAllText((Join-Path $previousImage 'app\previous-only.txt'), 'obsolete installer-owned file')
 # Previous product metadata over this runtime tests installer ownership,
 # upgrade/removal and the actual shipped helper without relying on old assets.
-& "$PSScriptRoot\build-installer.ps1" -AppImage $image -Version $previousVersion -Destination $previousOutput
+& "$PSScriptRoot\build-installer.ps1" -AppImage $previousImage -Version $previousVersion -Destination $previousOutput
 $previous = Join-Path $previousOutput "Qirato-Windows-x64-$previousVersion.msi"
 $current = Join-Path $output "Qirato-Windows-x64-$Version.msi"
 $msiexec = Join-Path $env:SystemRoot 'System32\msiexec.exe'
@@ -77,6 +80,7 @@ Stop-Process -Id $app.Id -Force
 if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) { throw 'Shipped updater helper failed' }
 $installed = @(Products)
 if ($installed.Count -ne 1 -or $installed[0].DisplayVersion -ne $Version -or $installed[0].PSChildName -eq $old[0].PSChildName) { throw 'Previous product was not replaced' }
+if (Test-Path -LiteralPath (Join-Path $root 'app\previous-only.txt')) { throw 'Obsolete installer-owned file remained after upgrade' }
 if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $before) { throw 'Upgrade changed user data' }
 AssertShortcuts
 $reopened = @(Get-Process Qirato -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq (Join-Path $root 'Qirato.exe') })

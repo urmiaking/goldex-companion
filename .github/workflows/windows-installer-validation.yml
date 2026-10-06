@@ -8,6 +8,9 @@ on:
       - '.github/workflows/windows-installer-validation.yml'
 permissions:
   contents: read
+concurrency:
+  group: windows-installer-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
   installer:
     runs-on: windows-2022
