@@ -83,6 +83,8 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
 
     @Synchronized override fun loadDarkTheme(): Boolean = document.optBoolean("darkTheme", false)
     @Synchronized override fun saveDarkTheme(enabled: Boolean) { commit(cloneDocument().put("darkTheme", enabled)) }
+    @Synchronized fun loadReduceMotion(): Boolean = document.optBoolean("reduceMotion", false)
+    @Synchronized fun saveReduceMotion(enabled: Boolean) { commit(cloneDocument().put("reduceMotion", enabled)) }
 
     @Synchronized fun cachedMarket(): MarketSnapshot? = document.optJSONObject("market")?.let(MarketJson::decode)
     @Synchronized fun saveMarket(snapshot: MarketSnapshot) { commit(cloneDocument().put("market", MarketJson.encode(snapshot))) }
