@@ -5,7 +5,7 @@ function FullPath([string]$Value) { [IO.Path]::GetFullPath($Value).TrimEnd('\') 
 function PlainPath([string]$Value) {
     $current = $Value
     while ($current) {
-        $item = Get-Item -LiteralPath $current
+        $item = Get-Item -LiteralPath $current -Force
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse point in installation' }
         $current = Split-Path $current -Parent
     }
