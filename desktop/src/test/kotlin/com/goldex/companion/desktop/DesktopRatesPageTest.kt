@@ -55,7 +55,7 @@ class DesktopRatesPageTest {
     @After fun cleanup() { workspace.close(); store.close() }
 
     @Test fun wideBoardShowsOnlyRequestedMarketsAndDetailsAcrossNavigation() = runDesktopComposeUiTest(width=1280,height=1080) {
-        setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(isDarkTheme=state.dark) { DesktopWorkspaceScreen(workspace,{},"0.56.46") } }
+        setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(isDarkTheme=state.dark) { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         waitUntil(5000) { !workspace.ratesBoard.state.value.cached }
         onNodeWithTag("rates-summary-GOLD18").assertIsDisplayed()
         onNodeWithTag("rates-summary-MELT").assertIsDisplayed()
@@ -95,7 +95,7 @@ class DesktopRatesPageTest {
     }
 
     @Test fun detailsUseSelectedGoldBasisAndPreserveOtherCalculatorInput() = runDesktopComposeUiTest(width=1280,height=1000) {
-        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.46") } }
+        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         runOnIdle { workspace.calculatorRates.setInput(CalculatorField.GROSS_WEIGHT,"2.125") }
         onNodeWithTag("rate-detail-GOLD24").performScrollTo().performClick()
         onNodeWithTag("rate-details-dialog").assertExists()
@@ -111,7 +111,7 @@ class DesktopRatesPageTest {
 
     @Test fun compactStoredQuotesStayHonestWithoutManualEntry() = runDesktopComposeUiTest(width=850,height=1000) {
         runBlocking { workspace.saveManualRates(quotes.copy(gold24=0,coinGerami=0))!!.join() }
-        setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(isDarkTheme=state.dark) { DesktopWorkspaceScreen(workspace,{},"0.56.46") } }
+        setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(isDarkTheme=state.dark) { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         onNodeWithTag("rate-row-GOLD24").performScrollTo()
         assertTrue(onAllNodes(hasText("—") and hasAnyAncestor(hasTestTag("rate-row-GOLD24")),useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
         onNodeWithTag("rate-detail-GOLD24").performClick()
@@ -130,7 +130,7 @@ class DesktopRatesPageTest {
 
     @Test fun connectionPillDoesNotConfuseOfflineWithUnavailableSavedPrices() = runDesktopComposeUiTest(width=1280,height=1000) {
         connection.value = ConnectionStatus.OFFLINE
-        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.46") } }
+        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         waitUntil(5000) { workspace.state.value.connection == ConnectionStatus.OFFLINE && !workspace.ratesBoard.state.value.loading }
         onNodeWithText("آفلاین").assertExists()
         onNodeWithTag("rates-refresh").assertIsEnabled()
