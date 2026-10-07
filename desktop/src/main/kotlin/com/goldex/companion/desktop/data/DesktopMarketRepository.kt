@@ -28,7 +28,7 @@ class DesktopMarketRepository(
     private val fetch: (PriceSource) -> MarketRates = ::fetchProvider,
     private val clock: () -> Long = System::currentTimeMillis
 ) : DesktopMarketGateway {
-    private val initial = storage.cachedMarket()?.let { if (it.kind == QuoteKind.ONLINE) it.copy(kind = QuoteKind.CACHED) else it }
+    private val initial = storage.cachedMarket()?.let { if (it.kind == QuoteKind.ONLINE) it.copy(kind = QuoteKind.CACHED, rates = it.rates.copy(isLive = false)) else it }
     private val mutableSnapshot = MutableStateFlow(initial)
     override val snapshot = mutableSnapshot.asStateFlow()
     private val mutableRates = MutableStateFlow(initial?.rates ?: emptyRates())

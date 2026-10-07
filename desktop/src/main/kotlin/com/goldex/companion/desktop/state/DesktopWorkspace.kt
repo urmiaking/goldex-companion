@@ -61,6 +61,7 @@ class DesktopWorkspace(
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())
+    val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()
@@ -69,6 +70,7 @@ class DesktopWorkspace(
         scope.launch {
             market.snapshot.collect { quote ->
                 inventory.quote(quote?.rates?.gold18 ?: 0)
+                calculatorRates.updateQuote(quote)
                 mutable.update { it.copy(snapshot = quote, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), quote?.rates), now = System.currentTimeMillis()) }
             }
         }
@@ -175,7 +177,7 @@ class DesktopWorkspace(
         val quote = state.value.snapshot ?: return
         if (quote.rates.gold18 <= 0) return
         calculator.setPriceBasis(PriceBasisTab.K18)
-        calculator.setInput(CalculatorField.SPOT, quote.rates.gold18.toString())
+        calculatorRates.useMarketRate()
         mutable.update { it.copy(destination = DesktopDestination.CALCULATOR, notice = "نرخ انتخابی در ماشین‌حساب قرار گرفت؛ پیش از محاسبه آن را بررسی کنید") }
     }
 

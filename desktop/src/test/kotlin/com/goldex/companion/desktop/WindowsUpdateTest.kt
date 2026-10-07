@@ -3,6 +3,7 @@ package com.goldex.companion.desktop
 import com.goldex.companion.desktop.update.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import org.json.*
 import org.junit.*
 import org.junit.Test
@@ -84,10 +85,11 @@ class WindowsUpdateTest {
     }
 
     private class Gateway(val release: WindowsRelease?) : WindowsUpdateGateway {
-        var launches = 0; var downloads = 0; var fails = false; var suspendDownload = false
+        var launches = 0; var downloads = 0; var fails = false; var suspendDownload = false; var failDownload = false
         override suspend fun check() = release
         override suspend fun prepare(release: WindowsRelease, progress: (Long,Long)->Unit, verifying:()->Unit): PreparedWindowsUpdate {
             downloads++; progress(release.size, release.size)
+            if (failDownload) error("download fixture failure")
             if (suspendDownload) awaitCancellation()
             verifying(); return PreparedWindowsUpdate(release, Path.of("Qirato"), Path.of("stage"), Path.of("bundle"))
         }
@@ -127,7 +129,12 @@ class WindowsUpdateTest {
         try {
             updater.start()
             withTimeout(3000) { intervals.receive() }
-            assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase); assertTrue(updater.state.value.dialog)
+            assertEquals(WindowsUpdatePhase.AVAILABLE, updater.state.value.phase); assertFalse(updater.state.value.dialog)
+            ticks.send(Unit); withTimeout(3000) { intervals.receive() }
+            assertEquals(WindowsUpdatePhase.AVAILABLE, updater.state.value.phase); assertEquals(0, gateway.downloads)
+            assertEquals(0, gateway.downloads); updater.download()?.join()
+            assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase); assertFalse(updater.state.value.dialog)
+            updater.showDialog(); assertTrue(updater.state.value.dialog)
             updater.postpone(); ticks.send(Unit)
             withTimeout(3000) { intervals.receive() }
             assertFalse(updater.state.value.dialog); assertEquals(1, gateway.downloads)
@@ -135,10 +142,13 @@ class WindowsUpdateTest {
         } finally { updater.close() }
     }
 
-    @Test fun downloadsAutomaticallyButPostponesWithoutClosingAndReusesReadyPackage() = runBlocking {
+    @Test fun discoversQuietlyAndDownloadsOnlyOnIntentThenReusesReadyPackage() = runBlocking {
         val gateway = Gateway(release("bytes".toByteArray())); val updater = WindowsUpdater(gateway)
         try {
-            updater.check()?.join(); assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase)
+            updater.check()?.join(); assertEquals(WindowsUpdatePhase.AVAILABLE, updater.state.value.phase)
+            assertFalse(updater.state.value.dialog); assertEquals(0, gateway.downloads)
+            updater.download()?.join(); assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase)
+            assertFalse(updater.state.value.dialog); updater.showDialog()
             assertTrue(updater.state.value.dialog); assertEquals(0, gateway.launches)
             updater.postpone(); assertFalse(updater.state.value.dialog)
             updater.check()?.join(); assertTrue(updater.state.value.dialog); assertEquals(1, gateway.downloads)
@@ -150,20 +160,35 @@ class WindowsUpdateTest {
     @Test fun helperFailureKeepsApplicationOpenAndAllowsRetry() = runBlocking {
         val gateway = Gateway(release("bytes".toByteArray())); val updater = WindowsUpdater(gateway)
         try {
-            updater.check()?.join(); gateway.fails = true
+            updater.check()?.join(); updater.download()?.join(); gateway.fails = true
             var closed = false; updater.restart { closed = true }?.join()
             assertFalse(closed); assertEquals(WindowsUpdatePhase.READY, updater.state.value.phase); assertNotNull(updater.state.value.error)
             gateway.fails = false; updater.restart { closed = true }?.join(); assertTrue(closed)
         } finally { updater.close() }
     }
 
+    @Test fun failedDownloadCanRetryAndNeverOffersRestartForPartialBytes() = runBlocking {
+        val gateway = Gateway(release("bytes".toByteArray())).apply { failDownload = true }
+        val updater = WindowsUpdater(gateway)
+        try {
+            updater.check()?.join(); updater.download()?.join()
+            assertEquals(WindowsUpdatePhase.FAILED, updater.state.value.phase)
+            assertFalse(updater.state.value.dialog); assertNotNull(updater.state.value.error)
+            assertNull(updater.restart { fail("Partial update cannot restart") })
+            gateway.failDownload = false
+            updater.activate()
+            withTimeout(3000) { updater.state.first { it.phase == WindowsUpdatePhase.READY } }
+            assertEquals(2, gateway.downloads); assertFalse(updater.state.value.dialog)
+        } finally { updater.close() }
+    }
+
     @Test fun cancellationNeverOffersPartialUpdate() = runBlocking {
         val gateway = Gateway(release("bytes".toByteArray())).apply { suspendDownload = true }; val updater = WindowsUpdater(gateway)
         try {
-            updater.check()
+            updater.check()?.join(); updater.download()
             withTimeout(3000) { while (updater.state.value.phase != WindowsUpdatePhase.DOWNLOADING) delay(10) }
             updater.cancelDownload()
-            withTimeout(3000) { while (updater.state.value.phase != WindowsUpdatePhase.IDLE) delay(10) }
+            withTimeout(3000) { while (updater.state.value.phase != WindowsUpdatePhase.AVAILABLE) delay(10) }
             assertFalse(updater.state.value.dialog); assertNull(updater.restart { fail("Must not close") }); assertEquals(0, gateway.launches)
         } finally { updater.close() }
     }

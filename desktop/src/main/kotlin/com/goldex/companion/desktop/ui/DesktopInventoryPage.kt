@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -44,26 +45,33 @@ import java.nio.file.Path
             OutlinedIconButton({ feature.showHistory(true) }, Modifier.size(48.dp).testTag("inventory-history"), shape = ButtonShape, border = BorderStroke(.6.dp, colors.goldBorder)) { Icon(Icons.Outlined.History, "تاریخچهٔ ورود و خروج", tint = colors.goldPrimary) }
             GoldButton("کالای جدید", { feature.open() }, Modifier.width(155.dp).testTag("inventory-add"), icon = Icons.Outlined.Add, enabled = !state.saving)
         }
-        Column(Modifier.fillMaxWidth().background(colors.heroCardGradient, RoundedCornerShape(18.dp)).border(.8.dp, colors.goldBorder.copy(alpha = .6f), RoundedCornerShape(18.dp)).padding(18.dp).testTag("inventory-summary"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().background(colors.heroCardGradient, RoundedCornerShape(18.dp)).border(.8.dp, colors.goldBorder.copy(alpha = .6f), RoundedCornerShape(18.dp)).padding(14.dp).testTag("inventory-summary")) {
+            val spacious = maxWidth >= 900.dp
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Inventory2, null, tint = colors.goldSecondary, modifier = Modifier.size(20.dp))
-                Text("موجودی ویترین و گاوصندوق", Modifier.weight(1f).padding(start = 8.dp), color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("موجودی ویترین و گاوصندوق", Modifier.weight(1f).padding(start = 8.dp), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 IconButton({ feature.togglePrivacy() }, Modifier.testTag("inventory-privacy"), enabled = !state.saving) { Icon(if (state.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff, if (state.visible) "پنهان‌کردن موجودی" else "نمایش موجودی", tint = colors.goldSecondary) }
             }
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("برآورد ارزش طلای موجودی", color = Color.White.copy(alpha = .75f), fontSize = 11.sp)
-                    Amount(if (state.visible) state.metalValue?.let(PersianNumberFormatter::formatPrice) else "••••", color = colors.goldSecondary, size = 26)
-                }
-                Text("تومان • بدون اجرت و سود", color = Color.White.copy(alpha = .75f), fontSize = 11.sp, modifier = Modifier.padding(bottom = 4.dp))
-            }
-            HorizontalDivider(color = Color.White.copy(alpha = .15f))
             val summary = state.summary
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InventoryMetric("طلای معادل ۱۸", if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", "گرم", Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(if (spacious) 1.7f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("ارزش طلای موجودی", color = Color.White.copy(alpha = .75f), fontSize = 11.sp)
+                    InventoryMetric("", if (state.visible) state.metalValue?.let(PersianNumberFormatter::formatPrice) ?: "—" else "••••", "تومان • بدون اجرت و سود", Modifier.fillMaxWidth())
+                }
+                if (spacious) {
+                    InventoryMetric("خالص ۱۸ عیار", if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", "گرم", Modifier.weight(1f))
+                    InventoryMetric("مظنهٔ وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
+                    InventoryMetric("قطعات", if (state.visible) digits(summary.pieces) else "••••", "قطعه", Modifier.weight(.7f))
+                    InventoryMetric("محل نگهداری", if (state.visible) "${digits(summary.trays.toLong())} / ${digits(summary.safes.toLong())}" else "••••", "ویترین / انبار", Modifier.weight(1f))
+                }
+            }
+            if (!spacious) Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                InventoryMetric("خالص ۱۸ عیار", if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", "گرم", Modifier.weight(1f))
                 InventoryMetric("مظنهٔ وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
-                InventoryMetric("تعداد قطعات", if (state.visible) digits(summary.pieces) else "••••", "قطعه", Modifier.weight(1f))
+                InventoryMetric("قطعات", if (state.visible) digits(summary.pieces) else "••••", "قطعه", Modifier.weight(1f))
                 InventoryMetric("محل نگهداری", if (state.visible) "${digits(summary.trays.toLong())} / ${digits(summary.safes.toLong())}" else "••••", "ویترین / انبار", Modifier.weight(1f))
+            }
             }
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -83,11 +91,11 @@ import java.nio.file.Path
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val wide = maxWidth >= 900.dp
+            val masterWidth = (maxWidth * .4f).coerceIn(340.dp, 440.dp)
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column((if (wide) Modifier.width(masterWidth) else Modifier.weight(1f)).fillMaxHeight().testTag("inventory-master"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${digits(state.filtered.size.toLong())} کالا • ${state.category.titleFa}", Modifier.weight(1f), color = colors.textMuted, fontSize = 12.sp)
-                        Text("وزن‌ها برای هر قطعه", color = colors.textMuted, fontSize = 11.sp)
                     }
                     if (state.filtered.isEmpty()) LuxuryCard(Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.Diamond, null, Modifier.size(40.dp), tint = colors.goldPrimary)
@@ -97,32 +105,16 @@ import java.nio.file.Path
                     } else {
                         val scroll = rememberLazyListStateCompat()
                         Box(Modifier.weight(1f)) {
-                            LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().padding(end = 12.dp).testTag("inventory-list"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().padding(end = 12.dp).testTag("inventory-list"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 items(state.filtered, key = { it.id }) { item ->
-                                    Surface(color = if (state.selectedId == item.id) colors.goldContainer else colors.surface,
-                                        shape = RoundedCornerShape(16.dp), border = BorderStroke(.6.dp, colors.goldBorder.copy(alpha = if (state.selectedId == item.id) 1f else .5f)),
-                                        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-                                        modifier = Modifier.fillMaxWidth().clickable { feature.select(item.id) }.testTag("inventory-item-${item.id}")) {
-                                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            InventoryImage(item.imageUrl, Modifier.size(58.dp))
-                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                                Text(item.title, color = colors.textMain, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text("${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}", color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text("${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams)} گرم خالص • عیار ${digits(item.customKaratValue.toLong())}", color = colors.textSecondary, fontSize = 12.sp)
-                                            }
-                                            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                                Text("${digits(item.quantity.toLong())} قطعه", color = if (item.quantity == 0) colors.syncWarning else colors.goldPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                                Text(item.location, color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 120.dp))
-                                            }
-                                        }
-                                    }
+                                    InventoryListRow(item, state.selectedId == item.id) { feature.select(item.id) }
                                 }
                             }
                             VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
                         }
                     }
                 }
-                if (wide) Box(Modifier.width(325.dp).fillMaxHeight()) {
+                if (wide) Box(Modifier.weight(1f).fillMaxHeight().testTag("inventory-detail-pane")) {
                     if (state.selected != null) InventoryDetails(state, feature, Modifier.fillMaxSize()) else LuxuryCard(Modifier.fillMaxWidth()) {
                         Icon(Icons.Outlined.TouchApp, null, Modifier.size(32.dp), tint = colors.goldPrimary)
                         PageTitle("جزئیات و گردش کالا")
@@ -138,6 +130,27 @@ import java.nio.file.Path
     }
 }
 
+@Composable private fun InventoryListRow(item: InventoryItem, selected: Boolean, onSelect: () -> Unit) {
+    val colors = LocalGoldExColors.current
+    Surface(color = if (selected) colors.surfaceElevated else colors.surface, shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(.6.dp, colors.goldBorder.copy(alpha = if (selected) .85f else .5f)),
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+        modifier = Modifier.fillMaxWidth().selectable(selected, onClick = onSelect).testTag("inventory-item-${item.id}")) {
+        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.width(3.dp).height(40.dp).background(if (selected) colors.goldPrimary else Color.Transparent, RoundedCornerShape(3.dp)))
+            InventoryImage(item.imageUrl, Modifier.size(40.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(item.title, Modifier.weight(1f), color = colors.textMain, fontSize = 13.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${digits(item.quantity.toLong())} قطعه", color = if (item.quantity == 0) colors.syncWarning else colors.textSecondary, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1)
+                }
+                Text("${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}", color = colors.textMuted, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams)} گرم • ${digits(item.customKaratValue.toLong())} عیار • ${item.location}", color = colors.textSecondary, fontSize = 11.sp, lineHeight = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
 @Composable private fun rememberLazyListStateCompat() = androidx.compose.foundation.lazy.rememberLazyListState()
 private fun digits(value: Long) = PersianNumberFormatter.toPersianDigits(value.toString())
 private fun categoryShort(value: InventoryCategory) = when(value) {
@@ -148,7 +161,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 @Composable private fun InventoryMetric(title: String, value: String, unit: String, modifier: Modifier) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(title, color = Color.White.copy(alpha = .75f), fontSize = 11.sp)
+        if (title.isNotBlank()) Text(title, color = Color.White.copy(alpha = .75f), fontSize = 11.sp, maxLines = 1)
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -164,7 +177,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 @Composable private fun InventoryImage(value: String, modifier: Modifier) {
     val colors = LocalGoldExColors.current
     val bitmap = remember(value) { if (value.isBlank()) null else runCatching { org.jetbrains.skia.Image.makeFromEncoded(InventoryPhoto.bytes(value)).use { it.toComposeImageBitmap() } }.getOrNull() }
-    Box(modifier.clip(RoundedCornerShape(12.dp)).background(colors.goldContainer), contentAlignment = Alignment.Center) {
+    Box(modifier.clip(RoundedCornerShape(12.dp)).background(colors.surfaceVariant), contentAlignment = Alignment.Center) {
         if (bitmap == null) Icon(Icons.Outlined.Diamond, "بدون تصویر کالا", Modifier.size(28.dp), tint = colors.goldPrimary)
         else Image(bitmap, "تصویر کالا", Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
     }
@@ -176,9 +189,14 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     val scroll = rememberScrollState()
     Box(modifier) {
     LuxuryCard(Modifier.fillMaxSize().padding(end = 10.dp).verticalScroll(scroll).testTag("inventory-details"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        InventoryImage(item.imageUrl, Modifier.fillMaxWidth().height(if (item.imageUrl.isBlank()) 64.dp else 145.dp))
-        PageTitle(item.title)
-        Text("${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}", color = colors.textMuted, fontSize = 12.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            InventoryImage(item.imageUrl, Modifier.size(80.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(item.title, color = colors.textMain, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}", color = colors.textMuted, fontSize = 12.sp)
+                Text("${digits(item.quantity.toLong())} قطعه • ${item.location}", color = colors.textSecondary, fontSize = 12.sp)
+            }
+        }
         Text("برآورد فروش هر قطعه", color = colors.textMuted, fontSize = 11.sp)
         Amount(state.selectedPrice?.total?.let { PersianNumberFormatter.formatPrice(it) }, size = 23)
         Text(if (state.selectedPrice == null) "نرخ موجود نیست" else "تومان • بر پایهٔ نرخ انتخابی", color = colors.textMuted, fontSize = 10.sp)
@@ -269,20 +287,20 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     PageTitle("وزن و قیمت‌گذاری")
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        DraftField(draft, "gross", "وزن ناخالص (گرم)", draft.gross, feature, Modifier.weight(1f), true) { it.copy(gross = this) }
-                        DraftField(draft, "stone", "وزن نگین (گرم)", draft.stone, feature, Modifier.weight(1f), true) { it.copy(stone = this) }
+                        DraftField(draft, "gross", "وزن ناخالص", draft.gross, feature, Modifier.weight(1f), true) { it.copy(gross = this) }
+                        DraftField(draft, "stone", "وزن نگین", draft.stone, feature, Modifier.weight(1f), true) { it.copy(stone = this) }
                     }
                     LuxurySegmentedControl(Karat.values().toList(), draft.karat, feature::karat, label = { it.labelFa.substringBefore(" (") }, modifier = Modifier.fillMaxWidth(), height = 40.dp, fontSize = 12.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        DraftField(draft, "purity", "عیار دقیق (۱۰۰–۱۰۰۰)", draft.purity, feature, Modifier.weight(1f), true) { it.copy(purity = this) }
-                        DesktopField(draft.quantity, { value -> feature.edit { it.copy(quantity = value) } }, "تعداد قطعات", Modifier.weight(1f).testTag("inventory-quantity"), numeric = true, error = draft.errors["quantity"], enabled = draft.id == null)
+                        DraftField(draft, "purity", "عیار دقیق", draft.purity, feature, Modifier.weight(1f), true) { it.copy(purity = this) }
+                        DesktopField(draft.quantity, { value -> feature.edit { it.copy(quantity = value) } }, "تعداد", Modifier.weight(1f).testTag("inventory-quantity"), numeric = true, error = draft.errors["quantity"], enabled = draft.id == null, unit = "قطعه")
                     }
                     LuxurySegmentedControl(WageType.values().toList(), draft.wageType, { value -> feature.edit { it.copy(wageType = value, wage = "0") } },
                         label = { if (it == WageType.PERCENTAGE) "اجرت درصدی" else "اجرت هر گرم" }, modifier = Modifier.fillMaxWidth(), height = 40.dp, fontSize = 12.sp)
-                    DraftField(draft, "wage", if (draft.wageType == WageType.PERCENTAGE) "اجرت (درصد)" else "اجرت هر گرم (تومان)", draft.wage, feature, numeric = true) { it.copy(wage = this) }
+                    DraftField(draft, "wage", "اجرت", draft.wage, feature, numeric = true) { it.copy(wage = this) }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        DraftField(draft, "profit", "سود (درصد)", draft.profit, feature, Modifier.weight(1f), true) { it.copy(profit = this) }
-                        DraftField(draft, "tax", "مالیات (درصد)", draft.tax, feature, Modifier.weight(1f), true) { it.copy(tax = this) }
+                        DraftField(draft, "profit", "سود", draft.profit, feature, Modifier.weight(1f), true) { it.copy(profit = this) }
+                        DraftField(draft, "tax", "مالیات", draft.tax, feature, Modifier.weight(1f), true) { it.copy(tax = this) }
                     }
                     PricePreview(state.preview)
                     Text("وزن و قیمت برای یک قطعه‌اند. در دستهٔ سکه سود صفر محاسبه می‌شود.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
@@ -297,8 +315,8 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
             if (state.error != null) Text(state.error.orEmpty(), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp)
             LuxurySegmentedControl(StockAdjustmentType.values().toList(), draft.type, { type -> feature.editMovement { it.copy(type = type) } }, label = { if (it == StockAdjustmentType.CHARGE) "ورود موجودی" else "خروج موجودی" }, modifier = Modifier.fillMaxWidth(), height = 42.dp)
             Text("موجودی فعلی: ${digits(item.quantity.toLong())} قطعه • ${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams * item.quantity)} گرم خالص", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
-            DesktopField(draft.count, { value -> feature.editMovement { it.copy(count = value) } }, "تعداد ورود / خروج", Modifier.testTag("movement-count"), numeric = true, error = draft.errors["count"])
-            DesktopField(draft.weight, { value -> feature.editMovement { it.copy(weight = value) } }, "وزن ثبت در سند (گرم، اختیاری)", Modifier.testTag("movement-weight"), numeric = true, error = draft.errors["weight"])
+            DesktopField(draft.count, { value -> feature.editMovement { it.copy(count = value) } }, "تعداد ورود / خروج", Modifier.testTag("movement-count"), numeric = true, error = draft.errors["count"], unit = "قطعه")
+            DesktopField(draft.weight, { value -> feature.editMovement { it.copy(weight = value) } }, "وزن سند (اختیاری)", Modifier.testTag("movement-weight"), numeric = true, error = draft.errors["weight"], unit = "گرم")
             Text("اگر وزن را وارد نکنید، وزن خالص کالا × تعداد ثبت می‌شود. این وزن سند است و وزن هر قطعه را تغییر نمی‌دهد.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
             DesktopField(draft.reason, { value -> feature.editMovement { it.copy(reason = value) } }, "دلیل ورود / خروج", Modifier.testTag("movement-reason"), error = draft.errors["reason"])
             DesktopField(draft.note, { value -> feature.editMovement { it.copy(note = value) } }, "یادداشت (اختیاری)", error = draft.errors["note"], singleLine = false)
@@ -339,7 +357,8 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 
 @Composable private fun DraftField(draft: InventoryDraft, key: String, label: String, value: String, feature: DesktopInventory, modifier: Modifier = Modifier, numeric: Boolean = false, change: String.(InventoryDraft) -> InventoryDraft) {
     DesktopField(value, { text -> feature.edit { text.change(it) } }, label, modifier.testTag("inventory-$key"), numeric, draft.errors[key],
-        monetary = key == "wage" && draft.wageType == WageType.TOMAN_PER_GRAM)
+        monetary = key == "wage" && draft.wageType == WageType.TOMAN_PER_GRAM,
+        unit = when (key) { "gross", "stone" -> "گرم"; "profit", "tax" -> "٪"; "wage" -> if (draft.wageType == WageType.PERCENTAGE) "٪" else "تومان / گرم"; "purity" -> "از ۱۰۰۰"; else -> null })
 }
 
 @Composable private fun InventoryDialog(title: String, tag: String, busy: Boolean, cancel: () -> Unit, save: () -> Unit, saveLabel: String, wide: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
