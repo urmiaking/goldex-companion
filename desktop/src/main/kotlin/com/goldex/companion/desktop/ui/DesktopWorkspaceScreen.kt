@@ -61,10 +61,30 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             Row(Modifier.fillMaxSize()) {
                 Sidebar(state, workspace, compact, version)
                 Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Column {
                             Text(state.destination.title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
-                            Text(state.destination.subtitle, color = colors.textMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(state.destination.subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        if (state.destination == DesktopDestination.DASHBOARD && !compact) {
+                            Row(Modifier.testTag("dashboard-greeting").padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Box(Modifier.size(42.dp).background(colors.goldContainer, androidx.compose.foundation.shape.CircleShape).border(1.dp, colors.goldBorder, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+                                    Text(state.settings.managerName.take(1).ifBlank { "م" }, color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                                }
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "استاد زرگر" }}", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                                    Text(state.settings.galleryName.ifBlank { "به پیشخوان قیراط خوش آمدید" }, color = colors.textMuted, fontSize = 11.5.sp)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        if (state.destination == DesktopDestination.DASHBOARD && !compact) {
+                            Surface(color = colors.surface, shape = RoundedCornerShape(20.dp), border = BorderStroke(0.6.dp, colors.border)) {
+                                Row(Modifier.padding(horizontal = 14.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Outlined.CalendarToday, null, tint = colors.goldPrimary, modifier = Modifier.size(15.dp))
+                                    Text(DesktopPortfolioPolicy.observedTime(state.now).substringBefore(" •"), color = colors.textMuted, fontSize = 12.sp)
+                                }
+                            }
                         }
                         ConnectionChip(state)
                         if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
@@ -99,6 +119,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
                                     DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
+                                    DesktopDestination.INVOICES -> DesktopInvoicesPage(state, workspace)
                                 }
                             }
                         }
@@ -130,6 +151,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     DesktopDestination.PORTFOLIO -> Icons.Outlined.AccountBalanceWallet
     DesktopDestination.SETTINGS -> Icons.Outlined.Settings
     DesktopDestination.INVENTORY -> Icons.Outlined.Inventory2
+    DesktopDestination.INVOICES -> Icons.Outlined.ReceiptLong
 }
 
 @Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String) {
@@ -152,7 +174,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
                     if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Icon(icon(destination), null, Modifier.size(23.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
-                        Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
+                        Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else if (destination == DesktopDestination.INVOICES) "فاکتورها" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
                     } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
@@ -161,7 +183,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
             }
             Spacer(Modifier.weight(1f))
             HorizontalDivider(color = colors.border)
-            GoldButton(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() }, Modifier.fillMaxWidth().testTag("workspace-theme"), isSecondary = true, enabled = !state.saving)
+            GoldButton(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() }, Modifier.fillMaxWidth().testTag("workspace-theme"), icon = if (state.dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, isSecondary = true, enabled = !state.saving)
             Text(if (compact) "این رایانه" else "اطلاعات روی این رایانه ذخیره می‌شود", color = colors.textMuted, fontSize = 10.sp, maxLines = 2)
             Text("نسخه ${PersianNumberFormatter.toPersianDigits(version)}", color = colors.textMuted, fontSize = 11.sp)
         }

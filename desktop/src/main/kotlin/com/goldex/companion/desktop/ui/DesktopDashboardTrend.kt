@@ -46,9 +46,12 @@ import kotlin.math.roundToInt
     LuxuryCard(Modifier.testTag("dashboard-trend"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val heading: @Composable () -> Unit = {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("روند طلای ۱۸ عیار", color = colors.textMain, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text("نرخ هر گرم طلای ۱۸ عیار", color = colors.textMuted, fontSize = 10.5.sp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.size(8.dp).background(colors.goldPrimary, CircleShape))
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("نوسانات لحظه‌ای طلای ۱۸ عیار", color = colors.textMain, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("تاریخچه بازار TGJU • تومان به ازای هر گرم ۷۵۰", color = colors.textMuted, fontSize = 11.sp)
+                    }
                 }
             }
             val selector: @Composable () -> Unit = {
@@ -82,8 +85,15 @@ import kotlin.math.roundToInt
                 .togetherWith(fadeOut(tween(180, easing = FastOutLinearInEasing)) + scaleOut(targetScale = .98f, animationSpec = tween(180, easing = FastOutLinearInEasing)))
         }, label = "dashboard-history-horizon") { horizon ->
             val history = state.history[horizon]?.takeIf { it.belongsToToday(now) }
-            if (history != null) HistoryChart(history, reduceMotion)
-            else Box(Modifier.fillMaxWidth().height(130.dp).testTag("history-unavailable"), contentAlignment = Alignment.Center) {
+            if (history != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("بیشینه: ${PersianNumberFormatter.formatPrice(history.high)} تومان", color = colors.marketGainText, fontSize = 11.sp)
+                        Text("کمینه: ${PersianNumberFormatter.formatPrice(history.low)} تومان", color = colors.errorRed, fontSize = 11.sp)
+                    }
+                    HistoryChart(history, reduceMotion)
+                }
+            } else Box(Modifier.fillMaxWidth().height(130.dp).testTag("history-unavailable"), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (state.loading) CircularProgressIndicator(Modifier.size(26.dp), colors.goldPrimary, strokeWidth = 2.dp)
                     else Icon(Icons.Outlined.CandlestickChart, null, Modifier.size(28.dp), tint = colors.textMuted.copy(alpha = .4f))
@@ -93,13 +103,16 @@ import kotlin.math.roundToInt
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(Modifier.weight(1f)) {
-                Text(if (active == null) "نرخ دستی جایگزین تاریخچه بازار نمی‌شود." else "TGJU • دریافت: ${DesktopPortfolioPolicy.observedTime(active.receivedAt)}",
-                    color = colors.textMuted, fontSize = 11.sp)
-                if (state.error != null) Text(state.error, color = colors.errorRed, fontSize = 12.sp, modifier = Modifier.testTag("history-error"))
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(Modifier.size(6.dp).background(colors.marketGainText, CircleShape))
+                Column {
+                    Text(if (active == null) "نرخ دستی جایگزین تاریخچه بازار نمی‌شود." else "دریافت تازه: ${DesktopPortfolioPolicy.observedTime(active.receivedAt)} • دامنه نوسان: ${PersianNumberFormatter.formatPrice(active.high - active.low)} تومان",
+                        color = colors.textMuted, fontSize = 11.sp)
+                    if (state.error != null) Text(state.error, color = colors.errorRed, fontSize = 12.sp, modifier = Modifier.testTag("history-error"))
+                }
             }
             TextButton({ dashboard.select(state.horizon, force = true) }, enabled = !state.loading, modifier = Modifier.testTag("refresh-history")) {
-                Text(if (state.loading) "در حال دریافت" else "دریافت تازه", color = colors.goldPrimary)
+                Text(if (state.loading) "در حال دریافت" else "دریافت تازه", color = colors.goldPrimary, fontSize = 12.sp)
             }
         }
     }

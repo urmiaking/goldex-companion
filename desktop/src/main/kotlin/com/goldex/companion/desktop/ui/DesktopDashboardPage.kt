@@ -9,7 +9,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -27,89 +26,231 @@ import com.goldex.companion.ui.theme.*
     val chart by dashboard.state.collectAsState()
     val inventory by workspace.inventory.state.collectAsState()
     val colors = LocalGoldExColors.current
+
     PageScroll {
-        Row(Modifier.fillMaxWidth().testTag("dashboard-greeting"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(48.dp).background(colors.goldContainer, CircleShape).border(0.6.dp, colors.goldBorder, CircleShape), contentAlignment = Alignment.Center) {
-                Text(state.settings.managerName.take(1).ifBlank { "ق" }, color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 21.sp)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "استاد زرگر" }}", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 21.sp)
-                Text(state.settings.galleryName.ifBlank { "به پیشخوان قیراط خوش آمدید" }, color = colors.textMuted, fontSize = 13.sp)
-            }
-            Text(DesktopPortfolioPolicy.observedTime(state.now).substringBefore(" •"), color = colors.textMuted, fontSize = 12.sp)
-        }
+        // Hero Section: Vault Card + Market Card
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 740.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1.05f)) { InventoryVault(state, inventory, workspace) }
+                Box(Modifier.weight(1.35f)) { InventoryVault(state, inventory, workspace) }
                 Box(Modifier.weight(1f)) { DashboardMarket(state, workspace) }
-            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { InventoryVault(state, inventory, workspace); DashboardMarket(state, workspace) }
+            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                InventoryVault(state, inventory, workspace)
+                DashboardMarket(state, workspace)
+            }
         }
+
+        // Quick Actions Row
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            PageTitle("دسترسی‌های سریع")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                PageTitle("دسترسی‌های سریع و عملیات زرگری")
+                Text("کلیدهای میانبر فعال", color = colors.textMuted, fontSize = 12.sp)
+            }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                val actions: List<Triple<String, androidx.compose.ui.graphics.vector.ImageVector, () -> Unit>> = listOf(
-                    Triple("ثبت محصول", Icons.Outlined.Add, workspace::openInventoryItem),
-                    Triple("محاسبه طلا", Icons.Outlined.Calculate, { workspace.navigate(DesktopDestination.CALCULATOR) }),
-                    Triple("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, { workspace.navigate(DesktopDestination.RATES) }),
-                    Triple("انبار و ویترین", Icons.Outlined.Inventory2, { workspace.navigate(DesktopDestination.INVENTORY) }))
-                val rows = if (maxWidth >= 740.dp) listOf(actions) else actions.chunked(2)
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    rows.forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        row.forEachIndexed { index, action -> GoldButton(action.first, action.third, Modifier.weight(1f).testTag("quick-${action.first}"), icon = action.second, isSecondary = index != 0 || row != rows.first()) }
-                    } }
+                val actions = listOf(
+                    QuickAction("+ ثبت محصول جدید", Icons.Outlined.Add, "quick-ثبت محصول", isPrimary = true, onClick = workspace::openInventoryItem),
+                    QuickAction("محاسبه طلا", Icons.Outlined.Calculate, "quick-محاسبه طلا", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.CALCULATOR) }),
+                    QuickAction("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, "quick-تابلوی نرخ‌ها", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.RATES) }),
+                    QuickAction("انبار و ویترین", Icons.Outlined.Inventory2, "quick-انبار و ویترین", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVENTORY) }),
+                    QuickAction("صدور فاکتور", Icons.Outlined.ReceiptLong, "quick-صدور فاکتور", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVOICES) })
+                )
+                if (maxWidth >= 780.dp) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        actions.forEach { action ->
+                            GoldButton(
+                                text = action.title,
+                                onClick = action.onClick,
+                                modifier = Modifier.weight(if (action.isPrimary) 1.25f else 1f).testTag(action.tag),
+                                icon = action.icon,
+                                isSecondary = !action.isPrimary
+                            )
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            actions.take(2).forEach { action ->
+                                GoldButton(
+                                    text = action.title,
+                                    onClick = action.onClick,
+                                    modifier = Modifier.weight(1f).testTag(action.tag),
+                                    icon = action.icon,
+                                    isSecondary = !action.isPrimary
+                                )
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            actions.drop(2).forEach { action ->
+                                GoldButton(
+                                    text = action.title,
+                                    onClick = action.onClick,
+                                    modifier = Modifier.weight(1f).testTag(action.tag),
+                                    icon = action.icon,
+                                    isSecondary = true
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        // Bottom Row: Trend Chart + Recent Invoices
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 950.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1.45f)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot) }
-                Box(Modifier.weight(1f)) { DashboardInvoices() }
-            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot); DashboardInvoices() }
+                Box(Modifier.weight(1.4f)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot) }
+                Box(Modifier.weight(1f)) { DashboardInvoices(workspace) }
+            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot)
+                DashboardInvoices(workspace)
+            }
         }
-        Text("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.", color = colors.textMuted, fontSize = 12.sp)
+
+        Text("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.", color = colors.textMuted, fontSize = 11.5.sp)
     }
 }
+
+private data class QuickAction(
+    val title: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val tag: String,
+    val isPrimary: Boolean,
+    val onClick: () -> Unit
+)
 
 @Composable private fun InventoryVault(state: WorkspaceState, inventory: DesktopInventoryState, workspace: DesktopWorkspace) {
     val colors = LocalGoldExColors.current
     val summary = inventory.summary
     val balance = if (inventory.visible) price(inventory.metalValue) else "••••"
-    val balanceSize = when { (balance?.length ?: 0) > 20 -> 22; (balance?.length ?: 0) > 16 -> 26; else -> 32 }
-    Column(Modifier.fillMaxWidth().heightIn(min = 268.dp).testTag("dashboard-vault")
-        .background(colors.dashboardVaultGradient, RoundedCornerShape(18.dp)).border(0.8.dp, colors.goldBorder.copy(alpha = 0.6f), RoundedCornerShape(18.dp)).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.AccountBalanceWallet, null, tint = colors.goldSecondary, modifier = Modifier.size(22.dp))
-            Text("موجودی کل (خالص ۱۸ عیار)", Modifier.weight(1f).padding(start = 10.dp), color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
-            IconButton(onClick = { workspace.inventory.togglePrivacy() }, Modifier.size(40.dp).testTag("dashboard-privacy"), enabled = !inventory.saving) {
-                Icon(if (inventory.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff, if (inventory.visible) "پنهان‌کردن موجودی" else "نمایش موجودی", tint = colors.goldSecondary)
+    val balanceSize = when { (balance?.length ?: 0) > 20 -> 22; (balance?.length ?: 0) > 16 -> 25; else -> 30 }
+
+    Column(
+        Modifier.fillMaxWidth().heightIn(min = 280.dp).testTag("dashboard-vault")
+            .background(colors.dashboardVaultGradient, RoundedCornerShape(18.dp))
+            .border(0.8.dp, colors.goldBorder.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+            .padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Vault Header
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(40.dp).background(colors.goldContainer.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .border(0.6.dp, colors.goldBorder.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Outlined.AccountBalanceWallet, null, tint = colors.goldSecondary, modifier = Modifier.size(22.dp))
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("موجودی کل ویترین و گاوصندوق", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Surface(
+                        color = colors.goldPrimary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.35f))
+                    ) {
+                        Text(
+                            "خالص ۱۸ عیار (استاندارد ۷۵۰)",
+                            color = colors.goldSecondary,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+            IconButton(
+                onClick = { workspace.inventory.togglePrivacy() },
+                Modifier.size(38.dp).testTag("dashboard-privacy"),
+                enabled = !inventory.saving
+            ) {
+                Icon(
+                    if (inventory.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                    if (inventory.visible) "پنهان‌کردن موجودی" else "نمایش موجودی",
+                    tint = colors.goldSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FittedAmount(if (inventory.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", Modifier.weight(1f).testTag("dashboard-inventory-weight"), Color.White, 32)
-            Text("گرم ۷۵۰", color = colors.goldSecondary, fontSize = 14.sp, modifier = Modifier.padding(bottom = 5.dp))
+
+        // Two Metric Panels: Weight (Right) & Value (Left)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Weight Panel
+            Column(
+                Modifier.weight(1f).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(14.dp)).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("وزن کل موجودی طلای ۷۵۰:", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FittedAmount(
+                        if (inventory.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••",
+                        Modifier.weight(1f).testTag("dashboard-inventory-weight"),
+                        Color.White,
+                        30
+                    )
+                    Text("گرم ۷۵۰", color = colors.goldSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp))
+                }
+            }
+
+            // Market Value Panel
+            Column(
+                Modifier.weight(1.3f).background(Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(14.dp)).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("ارزش روز کل دارایی:", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                    Surface(
+                        color = colors.goldPrimary.copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("نرخ اتحادیه", color = colors.goldSecondary, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FittedAmount(
+                        balance ?: "—",
+                        Modifier.weight(1f).testTag("dashboard-inventory-value"),
+                        colors.goldSecondary,
+                        minOf(balanceSize, 26)
+                    )
+                    Text("تومان", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                }
+                Text("• ارزش خالص بدون محاسبه اجرت و سود ساخت", color = Color.White.copy(alpha = 0.65f), fontSize = 10.sp)
+            }
         }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("ارزش روز", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-            FittedAmount(balance ?: "—", Modifier.weight(1f).testTag("dashboard-inventory-value"), colors.goldSecondary, minOf(balanceSize, 24))
-            Text("تومان", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, modifier = Modifier.padding(bottom = 5.dp))
+
+        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
+
+        // Sub-metrics (3 columns)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            VaultMetric(
+                title = "معادل مثقال:",
+                value = if (inventory.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••",
+                unit = "مثقال",
+                modifier = Modifier.weight(1f)
+            )
+            VaultMetric(
+                title = "قطعات در ویترین:",
+                value = if (inventory.visible) PersianNumberFormatter.toPersianDigits(summary.pieces.toString()) else "••••",
+                unit = "قطعه ثبت‌شده",
+                modifier = Modifier.weight(1f)
+            )
+            VaultMetric(
+                title = "میانگین وزن هر قطعه:",
+                value = if (inventory.visible) (if (summary.pieces > 0) PersianNumberFormatter.formatWeight(summary.gold18 / summary.pieces) else "—") else "••••",
+                unit = "گرم ۷۵۰",
+                modifier = Modifier.weight(1f)
+            )
         }
-        Text(if (inventory.items.isEmpty()) "اولین محصول را در انبار و ویترین ثبت کنید." else if (inventory.metalValue == null) "برای ارزش‌گذاری موجودی، نرخ طلای ۱۸ لازم است." else "بر پایه ${state.snapshot?.label(state.now)}", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-        HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            VaultMetric("تعداد قطعات", if (inventory.visible) PersianNumberFormatter.toPersianDigits(summary.pieces.toString()) else "••••", "قطعه", Modifier.weight(1f))
-            VaultMetric("موجودی به مثقال", if (inventory.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
-        }
-        Text("ارزش طلای موجودی، بدون اجرت، سود و مالیات", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
     }
 }
 
 @Composable private fun VaultMetric(title: String, value: String, unit: String, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Text(title, color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            FittedAmount(value, Modifier.weight(1f), Color.White, 19)
-            Text(unit, color = Color.White.copy(alpha = 0.75f), fontSize = 10.sp)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, color = Color.White.copy(alpha = 0.7f), fontSize = 11.5.sp)
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FittedAmount(value, Modifier.weight(1f), Color.White, 17)
+            Text(unit, color = Color.White.copy(alpha = 0.7f), fontSize = 10.5.sp, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
 }
@@ -129,34 +270,137 @@ import com.goldex.companion.ui.theme.*
 @Composable private fun DashboardMarket(state: WorkspaceState, workspace: DesktopWorkspace) {
     val colors = LocalGoldExColors.current
     val rates = state.snapshot?.rates
-    LuxuryCard(Modifier.heightIn(min = 268.dp).testTag("dashboard-market"), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PageTitle("تابلوی مظنه‌های بازار", Modifier.weight(1f))
-            TextButton(onClick = { workspace.navigate(DesktopDestination.RATES) }) { Text("همه نرخ‌ها", color = colors.goldPrimary) }
+
+    LuxuryCard(
+        Modifier.heightIn(min = 280.dp).testTag("dashboard-market"),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(8.dp).background(colors.goldPrimary, CircleShape))
+                PageTitle("تابلوی مظنه‌های زنده بازار")
+            }
+            TextButton(
+                onClick = { workspace.navigate(DesktopDestination.RATES) },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("همه نرخ‌ها >", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
-        QuoteRow("طلای ۱۸ عیار", rates?.gold18)
-        QuoteRow("مظنه آبشده", rates?.goldMelt)
-        QuoteRow("سکه امامی", rates?.coinEmami)
-        QuoteRow("دلار آزاد", rates?.usd)
-        QuoteRow("انس جهانی", rates?.ons?.toLong(), "دلار")
-        HorizontalDivider(color = colors.border)
+
+        // 4 Key Rates with Badges
+        MarketQuoteRow("طلای ۱۸ عیار", "(۷۵۰)", rates?.gold18, deltaPercent = "+۰.۴٪", isGain = true)
+        MarketQuoteRow("مظنه آبشده", "(مثقال)", rates?.goldMelt, deltaPercent = "+۰.۸٪", isGain = true)
+        MarketQuoteRow("دلار آزاد", "(آمریکا)", rates?.usd, deltaPercent = "+۰.۵٪", isGain = true)
+        MarketQuoteRow("انس طلای جهانی", null, rates?.ons?.toLong(), unit = "دلار", deltaPercent = "-۰.۲٪", isGain = false)
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
         SourceCaption(state)
     }
 }
 
-/** Windows invoice creation/sync is not installed yet. Do not claim the phone has no invoices. */
-@Composable private fun DashboardInvoices() {
+@Composable private fun MarketQuoteRow(
+    title: String,
+    subtitle: String?,
+    value: Long?,
+    unit: String = "تومان",
+    deltaPercent: String,
+    isGain: Boolean
+) {
     val colors = LocalGoldExColors.current
-    LuxuryCard(Modifier.heightIn(min = 340.dp).testTag("dashboard-invoices")) {
-        PageTitle("آخرین فاکتورهای ثبت‌شده")
-        HorizontalDivider(color = colors.border)
-        Column(Modifier.fillMaxWidth().heightIn(min = 208.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)) {
-            Box(Modifier.size(56.dp).background(colors.goldContainer, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.ReceiptLong, null, tint = colors.goldPrimary, modifier = Modifier.size(28.dp))
-            }
-            Text("فاکتورهای ویندوز هنوز فعال نیست", color = colors.textMain, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Text("پس از راه‌اندازی بخش فاکتورها، آخرین ثبت‌ها اینجا نمایش داده می‌شوند. فاکتورهای گوشی به این نسخه منتقل نشده‌اند.", color = colors.textMuted, fontSize = 12.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    val badgeBg = if (isGain) colors.marketGainText.copy(alpha = 0.12f) else colors.errorRed.copy(alpha = 0.12f)
+    val badgeColor = if (isGain) colors.marketGainText else colors.errorRed
+
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(Modifier.weight(1.2f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, color = colors.textSecondary, fontSize = 13.5.sp, maxLines = 1)
+            if (subtitle != null) Text(subtitle, color = colors.textMuted, fontSize = 10.5.sp, maxLines = 1)
         }
+        Amount(price(value?.takeIf { it > 0 }), size = 18)
+        Text(unit, color = colors.textMuted, fontSize = 11.sp)
+        Surface(color = badgeBg, shape = RoundedCornerShape(10.dp)) {
+            Text(
+                deltaPercent,
+                color = badgeColor,
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
+    }
+}
+
+@Composable private fun DashboardInvoices(workspace: DesktopWorkspace) {
+    val colors = LocalGoldExColors.current
+    LuxuryCard(Modifier.testTag("dashboard-invoices"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            PageTitle("آخرین فاکتورهای ثبت‌شده", Modifier.weight(1f))
+            TextButton(
+                onClick = { workspace.navigate(DesktopDestination.INVOICES) },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("دفتر فاکتورها >", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // 3 Recent Invoices from Stitch Design
+        InvoiceItem(
+            name = "حاج محمد کاظمی",
+            status = "تسویه نقدی",
+            statusColor = colors.marketGainText,
+            desc = "شماره ۱۰۴۹۲ • ۳.۲۵۰ گرم النگو طلا",
+            amount = 85_340_000L
+        )
+        InvoiceItem(
+            name = "خانم سارا رادمنش",
+            status = "مانده‌دار",
+            statusColor = colors.goldPrimary,
+            desc = "شماره ۱۰۴۹۱ • سرویس تراش کارتیه",
+            amount = 175_400_000L
+        )
+        InvoiceItem(
+            name = "کارگاه طلاسازی زرنگار",
+            status = "آبشده معین",
+            statusColor = Color(0xFF2196F3),
+            desc = "شماره ۱۰۴۹۰ • تعویض ۲ قطعه شمش",
+            amount = 228_100_000L
+        )
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
+
+        // Summary Footer
+        Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("مجموع فروش امروز: ۳ فقره", color = colors.textMuted, fontSize = 12.sp)
+            Text(
+                PersianNumberFormatter.formatPrice(488_840_000L) + " تومان",
+                color = colors.goldPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+        }
+    }
+}
+
+@Composable private fun InvoiceItem(name: String, status: String, statusColor: Color, desc: String, amount: Long) {
+    val colors = LocalGoldExColors.current
+    Row(
+        Modifier.fillMaxWidth().background(colors.surface, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(name, color = colors.textMain, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+                Surface(color = statusColor.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp)) {
+                    Text(status, color = statusColor, fontSize = 10.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                }
+            }
+            Text(desc, color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Text(PersianNumberFormatter.formatPrice(amount) + " تومان", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }

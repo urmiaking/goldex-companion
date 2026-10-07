@@ -12,21 +12,23 @@ import java.nio.file.Path
 enum class DesktopDestination(val title: String, val subtitle: String) {
     DASHBOARD("پیشخوان", "موجودی ویترین و گاوصندوق و نبض بازار"),
     CALCULATOR("ماشین‌حساب", "محاسبه طلا با نرخ انتخابی شما"),
-    RATES("تابلوی نرخ‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
+    RATES("تابلوی مظنه‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
+    INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت"),
+    INVOICES("مدیریت فاکتورها", "فاکتورهای ثبت‌شده و تسویه زرگری"),
     PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
-    SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات"),
-    INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت");
+    SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات");
 
     val navigationOrder get() = when (this) {
         DASHBOARD -> 0
         CALCULATOR -> 1
         RATES -> 2
         INVENTORY -> 3
-        PORTFOLIO, SETTINGS -> 4
+        INVOICES -> 4
+        PORTFOLIO, SETTINGS -> 5
     }
 
     companion object {
-        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, SETTINGS)
+        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, INVOICES, SETTINGS)
     }
 }
 
