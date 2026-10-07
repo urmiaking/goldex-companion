@@ -39,6 +39,7 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 - Before a change is complete, verify compilation and unit tests locally. For shared-core changes also run `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`; keep JVM tests local, not in the release workflow.
 - For Windows/shared UI changes also run `./gradlew :desktop:test --no-daemon -q` and verify the packaged desktop runtime. Desktop packaging is allowed locally; APK assembly/signing remains CI-only.
 - Do not claim a build or test passed unless its output is available.
+- Follow [release verification without artifact re-downloads](.agents/rules/release-verification.md): do not download published Windows installers/packages or Android APKs again just to verify a feature or release. Use local verification evidence, CI results, and GitHub release/asset metadata instead.
 
 ## 3. Current technology constraints
 
