@@ -102,8 +102,23 @@ if (!(Test-Path -LiteralPath (Join-Path $stage 'ready')) -or $app.HasExited) {
     Get-Content -LiteralPath (Join-Path $stage 'helper-error.log') -Tail 25
     throw "Helper did not acknowledge while app remained open (appExited=$($app.HasExited), helperExited=$($helper.HasExited))"
 }
-# Only the disposable runner's explicitly launched fixture process is stopped.
-Stop-Process -Id $app.Id -Force
+# Stop only this disposable fixture's launcher and matching JVM descendants.
+# Stopping its launcher alone can leave a JVM holding workspace.lock.
+$fixtureIds = [Collections.Generic.List[int]]::new()
+$fixtureIds.Add($app.Id)
+for ($index = 0; $index -lt $fixtureIds.Count; $index++) {
+    $fixtureParent = $fixtureIds[$index]
+    foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $fixtureParent")) {
+        if ($child.ExecutablePath -and $child.ExecutablePath -ieq (Join-Path $root 'Qirato.exe')) { $fixtureIds.Add([int]$child.ProcessId) }
+    }
+}
+for ($index = $fixtureIds.Count - 1; $index -ge 0; $index--) {
+    $fixtureProcess = Get-Process -Id $fixtureIds[$index] -ErrorAction SilentlyContinue
+    if ($fixtureProcess -and !$fixtureProcess.HasExited -and $fixtureProcess.Path -ieq (Join-Path $root 'Qirato.exe')) {
+        Stop-Process -Id $fixtureProcess.Id -Force -ErrorAction SilentlyContinue
+        [void]$fixtureProcess.WaitForExit(10000)
+    }
+}
 if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) {
     Get-Content -LiteralPath (Join-Path $stage 'helper-error.log') -Tail 25
     if (Test-Path -LiteralPath (Join-Path $stage 'runtime.log')) { Get-Content -LiteralPath (Join-Path $stage 'runtime.log') -Tail 5 }

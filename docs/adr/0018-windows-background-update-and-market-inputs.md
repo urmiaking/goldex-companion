@@ -20,3 +20,5 @@ Local tests cover startup/five-minute checks, discovery without download, backgr
 ## Revisit
 
 Revisit for durable prepared-update recovery, enterprise installation or a new quote synchronization preference. Such changes require explicit persistence/compatibility policies; this decision introduces none.
+
+Release verification found a launcher/JVM lifetime race in the disposable fixture: stopping only its launcher could leave a child JVM holding workspace.lock. The fixture now stops only its explicit process tree. The shipped helper waits up to 30 seconds for exclusive lock acquisition after the target process exits, postpones if the lock remains held and never forces another process to exit or installs while storage is open. windows-v0.56.43 remains immutable and unpublished; the verified delivery advances to 0.56.44.
