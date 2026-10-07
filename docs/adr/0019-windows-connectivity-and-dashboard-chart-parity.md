@@ -12,7 +12,7 @@ DesktopDashboardTrend owns rendering of the Android card structure, 32dp segment
 
 ## Consequences
 
-Windows Internet status does not promise any market provider is available; source captions and cached/error states remain authoritative for rates. History remains the existing in-memory cache with no storage migration. No financial formula, signing identity, Android/shared source, or customer-authored text changes. Remove only extra hamza marks from program-authored Windows copy and record the writing rule.
+Windows Internet status does not promise any market provider is available; source captions and cached/error states remain authoritative for rates. History remains the existing in-memory cache with no storage migration. No financial formula, signing identity, Android/shared source, or customer-authored text changes. Remove only extra hamza marks from program-authored Windows copy and record the writing rule. Shared validation messages are normalized only at Windows error rendering through programErrorText; domain errors and editable/stored customer text remain unchanged.
 
 ## Revisit conditions
 

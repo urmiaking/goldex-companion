@@ -1,5 +1,7 @@
 package com.goldex.companion.desktop
 
+import com.goldex.companion.desktop.ui.programErrorText
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.rememberScrollbarAdapter
@@ -177,7 +179,7 @@ private fun NumericInput(
                 errorBorderColor = colors.errorRed, errorLabelColor = colors.errorRed, cursorColor = colors.goldPrimary
             )
         )
-        if (error != null) Text(error, color = colors.errorRed, fontSize = 12.sp)
+        if (error != null) Text(programErrorText(error), color = colors.errorRed, fontSize = 12.sp)
     }
 }
 

@@ -285,7 +285,7 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
             visualTransformation = if (monetary) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary, focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
                 unfocusedLabelColor = colors.textMuted, focusedContainerColor = colors.surface, unfocusedContainerColor = colors.surface, cursorColor = colors.goldPrimary))
-        error?.let { Text(it, color = colors.errorRed, fontSize = 11.sp) }
+        error?.let { Text(programErrorText(it), color = colors.errorRed, fontSize = 11.sp) }
     }
 }
 
