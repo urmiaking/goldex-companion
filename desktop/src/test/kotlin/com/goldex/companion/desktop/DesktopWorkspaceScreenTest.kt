@@ -53,8 +53,8 @@ class DesktopWorkspaceScreenTest {
 
     @Test fun persianAssetFormSavesAndSearchFiltersRealRecords() {
         render()
-        compose.onNodeWithTag("nav-PORTFOLIO").performClick()
-        compose.onNodeWithTag("add-asset").performClick()
+        compose.runOnIdle { workspace.navigate(DesktopDestination.PORTFOLIO) }
+        compose.runOnIdle { workspace.openAsset() }
         field("asset-title").performTextReplacement("شمش آزمون")
         field("asset-weight").performTextReplacement("۲٫۱۲۵")
         field("asset-cost").performTextReplacement("۱۰۰۰۰۰۰۰")
@@ -75,7 +75,8 @@ class DesktopWorkspaceScreenTest {
         workspace.close()
         workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }))
         render()
-        compose.onNodeWithTag("nav-PORTFOLIO").performClick()
+        compose.onNodeWithTag("nav-SETTINGS").performClick()
+        compose.onNodeWithTag("open-previous-portfolio").performScrollTo().performClick()
         compose.onNodeWithTag("delete-gold").performClick()
         compose.onNodeWithText("انصراف").performClick()
         compose.runOnIdle { assertEquals(1, store.getItems().size) }
@@ -95,7 +96,8 @@ class DesktopWorkspaceScreenTest {
         screenshot("workspace-dark.png")
         compose.onNodeWithTag("nav-RATES").performClick()
         screenshot("rates-dark.png")
-        compose.onNodeWithTag("nav-PORTFOLIO").performClick()
+        compose.onNodeWithTag("nav-SETTINGS").performClick()
+        compose.onNodeWithTag("open-previous-portfolio").performScrollTo().performClick()
         screenshot("portfolio-dark.png")
         compose.onNodeWithTag("nav-SETTINGS").performClick()
         screenshot("settings-dark.png")

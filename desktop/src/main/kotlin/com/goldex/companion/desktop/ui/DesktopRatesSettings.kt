@@ -71,7 +71,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         text = {
             Column(Modifier.heightIn(max = 450.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("نرخ‌ها را به تومان وارد کنید. فقط طلای ۱۸ الزامی است؛ سایر خانه‌های خالی، ناموجود ثبت می‌شوند.", color = LocalGoldExColors.current.textMuted, fontSize = 12.sp)
-                inputs.forEachIndexed { i, value -> DesktopField(value, { new -> inputs = inputs.toMutableList().also { it[i] = new }; errors = errors - i }, rateLabels[i], Modifier.testTag("manual-rate-$i"), numeric = true, error = errors[i]) }
+                inputs.forEachIndexed { i, value -> DesktopField(value, { new -> inputs = inputs.toMutableList().also { it[i] = new }; errors = errors - i }, rateLabels[i], Modifier.testTag("manual-rate-$i"), numeric = true, monetary = true, error = errors[i]) }
             }
         }, confirmButton = {
             Row(Modifier.width(350.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -100,10 +100,10 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                     PageTitle("مشخصات گالری")
                     DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"))
                     DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر")
-                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", numeric = true)
-                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", numeric = true)
-                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب")
-                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری")
+                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii)
+                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii)
+                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false)
                 }
             }
             val preferences: @Composable () -> Unit = {
@@ -136,9 +136,14 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, enabled = dirty && !state.saving)
             GoldButton(if (state.saving) "در حال ذخیره" else "ذخیرهٔ تنظیمات", { workspace.saveSettings(draft) }, Modifier.weight(1f).testTag("save-settings"), enabled = dirty && !state.saving, icon = Icons.Outlined.Save)
         }
+        if (state.assets.rows.isNotEmpty()) LuxuryCard {
+            PageTitle("سبد قبلی")
+            Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
+            GoldButton("مشاهدهٔ سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
+        }
         LuxuryCard {
             PageTitle("پشتیبان اطلاعات")
-            Text("دارایی‌ها، تنظیمات و آخرین نرخ‌ها روی همین رایانه نگهداری می‌شوند. یک نسخهٔ پشتیبان در محل دلخواه ذخیره کنید و آن را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 13.sp)
+            Text("کالاها، گردش موجودی، تنظیمات و آخرین نرخ‌ها روی همین رایانه نگهداری می‌شوند. یک نسخهٔ پشتیبان در محل دلخواه ذخیره کنید و آن را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 13.sp)
             Text("اطلاعات گوشی و حساب ابری به‌صورت خودکار به این نسخه منتقل نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
             GoldButton("ذخیرهٔ فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
         }

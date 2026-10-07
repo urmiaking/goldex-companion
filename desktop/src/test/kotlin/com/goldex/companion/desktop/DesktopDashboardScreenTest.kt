@@ -27,6 +27,8 @@ class DesktopDashboardScreenTest {
         store = DesktopDataStore(temporary.newFolder().toPath())
         store.saveSettings(AppSettings(managerName = "استاد زرگر", galleryName = "گالری آزمون قیراط"))
         store.addItem(PortfolioItem(title = "طلای آزمون", category = PortfolioCategory.GOLD, weightGrams = 12.125, purchasePriceTotal = 65_000_000))
+        store.inventory.addItem(com.goldex.companion.model.InventoryItem(code = "INV-1", title = "موجودی آزمون", grossWeightGrams = 12.125, quantity = 2))
+        store.saveInventoryVisible(true)
         val market = DesktopMarketRepository(store, fetch = { error("offline") })
         market.useManual(DesktopMarketRepository.emptyRates().copy(gold18 = 6_000_000, goldMelt = 25_991_100, coinEmami = 60_000_000, ons = 2650.0))
         workspace = DesktopWorkspace(store, market, history = DesktopGoldHistoryGateway { horizon ->
@@ -94,12 +96,13 @@ class DesktopDashboardScreenTest {
 
     @Test fun largeVaultBalanceRemainsFullyReadableInCompactWindow() = runDesktopComposeUiTest(width = 940, height = 700) {
         workspace.close()
-        store.addItem(PortfolioItem(title = "دارایی بزرگ آزمون", category = PortfolioCategory.GOLD, weightGrams = 1_000_000.0))
+        store.inventory.addItem(com.goldex.companion.model.InventoryItem(code = "INV-BIG", title = "موجودی بزرگ آزمون", grossWeightGrams = 1_000_000.0))
         val market = DesktopMarketRepository(store, fetch = { error("offline") })
         market.useManual(DesktopMarketRepository.emptyRates().copy(gold18 = 1_000_000_000_000))
         workspace = DesktopWorkspace(store, market, history = DesktopGoldHistoryGateway { error("offline") })
+        waitUntil(5000) { workspace.inventory.state.value.spot18 == 1_000_000_000_000 }
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.39") } }
-        val amount = com.goldex.companion.model.PersianNumberFormatter.formatPrice(workspace.state.value.assets.summary!!.currentValue)
+        val amount = com.goldex.companion.model.PersianNumberFormatter.formatPrice(workspace.inventory.state.value.metalValue!!)
         val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         onNodeWithText(amount).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
         save(onNodeWithTag("workspace-root"), "dashboard-large-balance.png")

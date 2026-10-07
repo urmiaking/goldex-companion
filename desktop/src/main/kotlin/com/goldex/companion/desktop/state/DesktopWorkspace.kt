@@ -10,12 +10,24 @@ import kotlinx.coroutines.flow.*
 import java.nio.file.Path
 
 enum class DesktopDestination(val title: String, val subtitle: String) {
-    DASHBOARD("پیشخوان", "نمای کلی دارایی‌های شما و نبض بازار"),
+    DASHBOARD("پیشخوان", "موجودی ویترین و گاوصندوق و نبض بازار"),
     CALCULATOR("ماشین‌حساب", "محاسبهٔ طلا با نرخ انتخابی شما"),
     RATES("تابلوی نرخ‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
-    PORTFOLIO("دارایی‌ها", "طلا و سکه‌های شما، ارزش روز و نتیجهٔ خرید"),
+    PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
     SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات"),
-    INVENTORY("انبار و کالاها", "مدیریت کامل کالا، قیمت‌گذاری و گردش موجودی گالری")
+    INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت");
+
+    val navigationOrder get() = when (this) {
+        DASHBOARD -> 0
+        CALCULATOR -> 1
+        RATES -> 2
+        INVENTORY -> 3
+        PORTFOLIO, SETTINGS -> 4
+    }
+
+    companion object {
+        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, SETTINGS)
+    }
 }
 
 data class WorkspaceState(
@@ -82,6 +94,11 @@ class DesktopWorkspace(
     fun editSettings(change: (AppSettings) -> AppSettings) { if (!state.value.saving) mutable.update { it.copy(settingsDraft = change(it.settingsDraft ?: it.settings)) } }
     fun revertSettings() { mutable.update { it.copy(settingsDraft = null) } }
     fun openAsset(item: PortfolioItem? = null) { if (!inventory.state.value.hasDialog) mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
+    fun openInventoryItem() {
+        if (state.value.saving || state.value.draft != null || state.value.pendingDelete != null || inventory.state.value.hasDialog || inventory.state.value.saving) return
+        navigate(DesktopDestination.INVENTORY)
+        inventory.open()
+    }
     fun editDraft(change: (PortfolioDraft) -> PortfolioDraft) { if (!state.value.saving) mutable.update { current -> current.copy(draft = current.draft?.let(change)?.copy(errors = emptyMap())) } }
     fun dismissAsset() { if (!state.value.saving) mutable.update { it.copy(draft = null) } }
     fun requestDelete(item: PortfolioItem?) { mutable.update { it.copy(pendingDelete = item) } }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
 import com.goldex.companion.data.*
 import com.goldex.companion.desktop.DesktopCalculatorScreen
@@ -88,8 +90,8 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                     AnimatedContent(targetState = state.destination, modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds(),
                         transitionSpec = {
                             if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
-                            else (fadeIn(tween(240, delayMillis = 40)) + slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (targetState.ordinal > initialState.ordinal) -it / 16 else it / 16 })
-                                .togetherWith(fadeOut(tween(140)) + slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { if (targetState.ordinal > initialState.ordinal) it / 24 else -it / 24 })
+                            else (fadeIn(tween(240, delayMillis = 40)) + slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) -it / 16 else it / 16 })
+                                .togetherWith(fadeOut(tween(140)) + slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) it / 24 else -it / 24 })
                         }, label = "desktop-page-transition") { destination ->
                         val outgoing = destination != state.destination
                         Box(Modifier.fillMaxSize().then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
@@ -147,8 +149,8 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                     Text("همراه زرگر", color = colors.textMuted, fontSize = 11.sp)
                 }
             }
-            listOf(DesktopDestination.DASHBOARD, DesktopDestination.INVENTORY, DesktopDestination.CALCULATOR, DesktopDestination.RATES, DesktopDestination.PORTFOLIO, DesktopDestination.SETTINGS).forEach { destination ->
-                val selected = state.destination == destination
+            DesktopDestination.mainDestinations.forEach { destination ->
+                val selected = state.destination == destination || (destination == DesktopDestination.SETTINGS && state.destination == DesktopDestination.PORTFOLIO)
                 val selectionColor by animateColorAsState(if (selected) colors.goldContainer else Color.Transparent,
                     tween(if (state.reduceMotion) 0 else 180), label = "sidebar-selection")
                 var focused by remember(destination) { mutableStateOf(false) }
@@ -156,7 +158,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
                     if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Icon(icon(destination), null, Modifier.size(23.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
-                        Text(destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
+                        Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
                     } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
@@ -224,9 +226,10 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
 @Composable private fun PortfolioPage(state: WorkspaceState, workspace: DesktopWorkspace) {
     val colors = LocalGoldExColors.current
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        TextButton({ workspace.navigate(DesktopDestination.SETTINGS) }, Modifier.testTag("previous-portfolio-back")) { Text("بازگشت به تنظیمات") }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             DesktopField(state.query, workspace::search, "جست‌وجوی دارایی", Modifier.weight(1f).testTag("asset-search"))
-            GoldButton("دارایی جدید", { workspace.openAsset() }, icon = Icons.Outlined.Add, modifier = Modifier.width(172.dp).testTag("add-asset"))
+            GoldButton("ثبت محصول در انبار", workspace::openInventoryItem, icon = Icons.Outlined.Add, modifier = Modifier.width(172.dp).testTag("previous-portfolio-to-inventory"))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(null to "همه", PortfolioCategory.GOLD to "طلا", PortfolioCategory.COIN to "سکه").forEach { (category, label) ->
@@ -279,12 +282,13 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
     }
 }
 
-@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true) {
+@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp, color = colors.textMain, textDirection = if (numeric) TextDirection.Ltr else TextDirection.ContentOrRtl),
-            visualTransformation = if (numeric) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            visualTransformation = if (monetary) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary, focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
                 unfocusedLabelColor = colors.textMuted, focusedContainerColor = colors.surface, unfocusedContainerColor = colors.surface, cursorColor = colors.goldPrimary))
         error?.let { Text(it, color = colors.errorRed, fontSize = 11.sp) }
@@ -308,7 +312,7 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
                     ChoiceField("نوع سکه", draft.coin, CoinType.values().toList(), ::coinLabel) { coin -> workspace.editDraft { it.copy(coin = coin) } }
                     DesktopField(draft.quantity, { value -> workspace.editDraft { it.copy(quantity = value) } }, "تعداد", Modifier.testTag("asset-quantity"), numeric = true, error = draft.errors["quantity"])
                 }
-                DesktopField(draft.cost, { value -> workspace.editDraft { it.copy(cost = value) } }, "مبلغ کل خرید (تومان)", Modifier.testTag("asset-cost"), numeric = true, error = draft.errors["cost"])
+                DesktopField(draft.cost, { value -> workspace.editDraft { it.copy(cost = value) } }, "مبلغ کل خرید (تومان)", Modifier.testTag("asset-cost"), numeric = true, monetary = true, error = draft.errors["cost"])
                 DesktopField(draft.date, { value -> workspace.editDraft { it.copy(date = value) } }, "تاریخ خرید (اختیاری)", error = draft.errors["date"])
                 Text("دارایی‌ها روی همین رایانه ذخیره می‌شوند. ارزش روز به موجود بودن نرخ هر دارایی وابسته است.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
             }
