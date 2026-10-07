@@ -25,45 +25,7 @@ import kotlinx.coroutines.launch
 private val rateLabels = listOf("طلای ۱۸ عیار", "طلای ۲۴ عیار", "مظنه آبشده", "سکه امامی", "سکه بهار آزادی", "نیم سکه", "ربع سکه", "سکه گرمی", "دلار آزاد")
 private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rates.goldMelt, rates.coinEmami, rates.coinBahar, rates.coinHalf, rates.coinQuarter, rates.coinGerami, rates.usd)
 
-@Composable internal fun RatesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
-    val colors = LocalGoldExColors.current
-    var manual by remember { mutableStateOf(false) }
-    PageScroll {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GoldButton(if (state.refreshing) "در حال دریافت" else "دریافت آنلاین", { workspace.refreshRates() }, Modifier.weight(1f), enabled = !state.refreshing && !state.saving, icon = Icons.Outlined.Refresh)
-            GoldButton("ثبت نرخ دستی", { manual = true }, Modifier.weight(1f).testTag("manual-rates"), isSecondary = true, enabled = !state.refreshing && !state.saving, icon = Icons.Outlined.Edit)
-        }
-        LuxuryCard {
-            PageTitle("طلا و ارز")
-            val quotes = state.snapshot?.rates?.let(::values) ?: List(9) { 0L }
-            for (i in 0..2) {
-                QuoteRow(rateLabels[i], quotes[i])
-                HorizontalDivider(color = colors.border)
-            }
-            QuoteRow(rateLabels[8], quotes[8])
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("انس جهانی", Modifier.weight(1f), color = colors.textSecondary, fontSize = 14.sp)
-                Amount(state.snapshot?.rates?.ons?.takeIf { it > 0 }?.let { PersianNumberFormatter.toPersianDigits(String.format(java.util.Locale.US, "%.2f", it)) })
-                Text("دلار", Modifier.padding(start = 10.dp), color = colors.textMuted, fontSize = 11.sp)
-            }
-            SourceCaption(state)
-            Text("— یعنی نرخ موجود نیست. قیمت انواع سکه یا ارز از روی نسبت‌های فرضی ساخته نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
-        }
-        LuxuryCard {
-            PageTitle("تابلوی سکه")
-            val quotes = state.snapshot?.rates?.let(::values) ?: List(9) { 0L }
-            for (i in 3..7) {
-                QuoteRow(rateLabels[i], quotes[i])
-                if (i < 7) HorizontalDivider(color = colors.border)
-            }
-        }
-        GoldButton("استفاده از نرخ ۱۸ در ماشین‌حساب", workspace::applyQuoteToCalculator, Modifier.fillMaxWidth(), enabled = state.snapshot?.rates?.gold18?.let { it > 0 } == true, isSecondary = true, icon = Icons.Outlined.Calculate)
-        Text("منبع ترجیحی از تنظیمات انتخاب می‌شود. اگر در دسترس نباشد، منبع جایگزین در کنار نرخ نمایش داده می‌شود.", color = colors.textMuted, fontSize = 12.sp)
-    }
-    if (manual) ManualRatesDialog(state, workspace) { manual = false }
-}
-
-@Composable private fun ManualRatesDialog(state: WorkspaceState, workspace: DesktopWorkspace, onDismiss: () -> Unit) {
+@Composable internal fun ManualRatesDialog(state: WorkspaceState, workspace: DesktopWorkspace, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var inputs by remember { mutableStateOf((state.snapshot?.rates?.let(::values) ?: List(9) { 0L }).map { if (it > 0) it.toString() else "" }) }
     var errors by remember { mutableStateOf(emptyMap<Int, String>()) }

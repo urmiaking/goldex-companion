@@ -47,6 +47,15 @@ class DesktopCalculatorRatesTest {
         assertEquals("", calculator.state.value.input(CalculatorField.GROSS_WEIGHT))
     }
 
+    @Test fun independentlyAvailableK24QuoteLoadsWithoutK18() {
+        val calculator = ManualGoldCalculator()
+        val binding = DesktopCalculatorRates(calculator, quote(0))
+        binding.setPriceBasis(PriceBasisTab.K24)
+        assertEquals("8123456", calculator.state.value.input(CalculatorField.SPOT))
+        binding.setPriceBasis(PriceBasisTab.MESGHAL)
+        assertEquals("26123456", calculator.state.value.input(CalculatorField.SPOT))
+    }
+
     @Test fun freshApiQuoteSurvivesRestartAndOfflineFailureWithoutChangingItsTime() = runBlocking {
         val path = temporary.newFolder().toPath()
         DesktopDataStore(path).use { store ->
