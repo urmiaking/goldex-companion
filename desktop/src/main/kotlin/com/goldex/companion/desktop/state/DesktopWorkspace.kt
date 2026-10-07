@@ -58,9 +58,11 @@ class DesktopWorkspace(
     private val market: DesktopMarketGateway,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository(),
-    private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope)
+    private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope),
+    ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory)
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
+    val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
     val inventory = DesktopInventory(storage, scope)
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
@@ -164,6 +166,7 @@ class DesktopWorkspace(
     fun refreshRates(): Job {
         if (state.value.refreshing) return scope.launch { }
         mutable.update { it.copy(refreshing = true, error = null, notice = null) }
+        if (state.value.destination == DesktopDestination.RATES) ratesBoard.refresh(force = true)
         return scope.launch {
             try {
                 if (market.currentSource.value != state.value.settings.priceSource) market.setSource(state.value.settings.priceSource) else market.refreshRates()
@@ -179,10 +182,13 @@ class DesktopWorkspace(
         mutable.update { it.copy(notice = "نرخ دستی ثبت شد؛ دریافت خودکار تا انتخاب دریافت آنلاین متوقف است") }
     }
 
-    fun applyQuoteToCalculator() {
+    fun applyQuoteToCalculator() = applyQuoteToCalculator(PriceBasisTab.K18)
+
+    fun applyQuoteToCalculator(basis: PriceBasisTab) {
         val quote = state.value.snapshot ?: return
-        if (quote.rates.gold18 <= 0) return
-        calculator.setPriceBasis(PriceBasisTab.K18)
+        val price = when (basis) { PriceBasisTab.K18 -> quote.rates.gold18; PriceBasisTab.K24 -> quote.rates.gold24; PriceBasisTab.MESGHAL -> quote.rates.goldMelt }
+        if (price <= 0) return
+        calculatorRates.setPriceBasis(basis)
         calculatorRates.useMarketRate()
         mutable.update { it.copy(destination = DesktopDestination.CALCULATOR, notice = "نرخ انتخابی در ماشین‌حساب قرار گرفت؛ پیش از محاسبه آن را بررسی کنید") }
     }

@@ -45,14 +45,13 @@ class DesktopCalculatorRates(private val calculator: ManualGoldCalculator, initi
 
     private fun applyLatest() {
         val rates = state.value.quote?.rates ?: return
-        if (rates.gold18 <= 0) return
         val basis = calculator.state.value.priceBasis
         val supplied = when (basis) {
             PriceBasisTab.K18 -> rates.gold18
             PriceBasisTab.K24 -> rates.gold24
             PriceBasisTab.MESGHAL -> rates.goldMelt
         }
-        val value = supplied.takeIf { it > 0 } ?: GoldCalculationUseCases.fromSpotPrice18k(rates.gold18, basis)
+        val value = supplied.takeIf { it > 0 } ?: if (rates.gold18 > 0) GoldCalculationUseCases.fromSpotPrice18k(rates.gold18, basis) else return
         calculator.setInput(CalculatorField.SPOT, value.toString())
     }
 }
