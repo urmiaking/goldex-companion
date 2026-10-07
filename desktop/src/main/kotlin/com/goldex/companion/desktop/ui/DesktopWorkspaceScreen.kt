@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -68,12 +69,52 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                         }
                     } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Column(Modifier.weight(1f)) {
-                            Text(state.destination.title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
-                            Text(state.destination.subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            val title = if (state.destination == DesktopDestination.CALCULATOR) "ماشین‌حساب تخصصی طلا" else state.destination.title
+                            val subtitle = if (state.destination == DesktopDestination.CALCULATOR) "محاسبه دقیق طلا بر اساس آخرین مظنه و نرخ لحظه‌ای بازار" else state.destination.subtitle
+                            Text(title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
+                            Text(subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         ConnectionChip(state)
                         if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
-                        if (!state.settings.autoSyncRates) IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
+                        if (state.destination == DesktopDestination.CALCULATOR) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color.Transparent,
+                                modifier = Modifier
+                                    .height(38.dp)
+                                    .testTag("refresh-rates")
+                                    .clickable(enabled = !state.refreshing && !state.saving) { workspace.refreshRates() }
+                            ) {
+                                Box(
+                                    Modifier
+                                        .fillMaxHeight()
+                                        .background(
+                                            Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
+                                            RoundedCornerShape(20.dp)
+                                        )
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        if (state.refreshing) {
+                                            CircularProgressIndicator(Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                        } else {
+                                            Icon(Icons.Outlined.Refresh, "دریافت آنلاین", tint = Color.White, modifier = Modifier.size(17.dp))
+                                        }
+                                        Text("دریافت آنلاین", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color.White.copy(alpha = 0.25f)
+                                        ) {
+                                            Text("TGJU", Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (!state.settings.autoSyncRates) IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
                             if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
                             else Icon(Icons.Outlined.Refresh, "دریافت آنلاین نرخ‌ها", tint = colors.goldPrimary)
                         }
@@ -99,7 +140,14 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             pages.SaveableStateProvider(destination.name) {
                                 when (destination) {
                                     DesktopDestination.DASHBOARD -> DesktopDashboardPage(state, workspace.dashboard, workspace)
-                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, marketRates = workspace.calculatorRates, onThemeChange = { workspace.toggleTheme() })
+                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(
+                                        calculator = workspace.calculator,
+                                        dark = state.dark,
+                                        showHeader = false,
+                                        marketRates = workspace.calculatorRates,
+                                        onNavigateToInvoice = { workspace.navigate(DesktopDestination.INVOICES) },
+                                        onThemeChange = { workspace.toggleTheme() }
+                                    )
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
