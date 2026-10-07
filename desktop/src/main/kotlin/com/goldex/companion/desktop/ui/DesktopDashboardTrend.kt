@@ -36,9 +36,9 @@ import com.goldex.companion.ui.theme.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Mobile chart composition, rendered with real desktop-owned history and source status. */
 @Composable internal fun DashboardTrend(
-    state: DesktopDashboardState, now: Long, reduceMotion: Boolean, dashboard: DesktopDashboard, quote: MarketSnapshot?
+    state: DesktopDashboardState, now: Long, reduceMotion: Boolean, dashboard: DesktopDashboard, quote: MarketSnapshot?,
+    autoSyncRates: Boolean = true
 ) {
     val colors = LocalGoldExColors.current
     val active = state.active(now)
@@ -106,13 +106,15 @@ import kotlin.math.roundToInt
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Box(Modifier.size(6.dp).background(colors.marketGainText, CircleShape))
                 Column {
-                    Text(if (active == null) "نرخ دستی جایگزین تاریخچه بازار نمی‌شود." else "دریافت تازه: ${DesktopPortfolioPolicy.observedTime(active.receivedAt)} • دامنه نوسان: ${PersianNumberFormatter.formatPrice(active.high - active.low)} تومان",
+                    Text(if (active == null) "نرخ دستی جایگزین تاریخچه بازار نمی‌شود." else "بروزرسانی: ${DesktopPortfolioPolicy.observedTime(active.receivedAt)} • دامنه نوسان: ${PersianNumberFormatter.formatPrice(active.high - active.low)} تومان",
                         color = colors.textMuted, fontSize = 11.sp)
                     if (state.error != null) Text(state.error, color = colors.errorRed, fontSize = 12.sp, modifier = Modifier.testTag("history-error"))
                 }
             }
-            TextButton({ dashboard.select(state.horizon, force = true) }, enabled = !state.loading, modifier = Modifier.testTag("refresh-history")) {
-                Text(if (state.loading) "در حال دریافت" else "دریافت تازه", color = colors.goldPrimary, fontSize = 12.sp)
+            if (!autoSyncRates) {
+                TextButton({ dashboard.select(state.horizon, force = true) }, enabled = !state.loading, modifier = Modifier.testTag("refresh-history")) {
+                    Text(if (state.loading) "در حال بروزرسانی" else "بروزرسانی", color = colors.goldPrimary, fontSize = 12.sp)
+                }
             }
         }
     }

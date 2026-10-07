@@ -62,29 +62,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                 Sidebar(state, workspace, compact, version)
                 Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Column {
+                        Column(Modifier.weight(1f)) {
                             Text(state.destination.title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
                             Text(state.destination.subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        if (state.destination == DesktopDestination.DASHBOARD && !compact) {
-                            Row(Modifier.testTag("dashboard-greeting").padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Box(Modifier.size(42.dp).background(colors.goldContainer, androidx.compose.foundation.shape.CircleShape).border(1.dp, colors.goldBorder, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-                                    Text(state.settings.managerName.take(1).ifBlank { "م" }, color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 19.sp)
-                                }
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "استاد زرگر" }}", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
-                                    Text(state.settings.galleryName.ifBlank { "به پیشخوان قیراط خوش آمدید" }, color = colors.textMuted, fontSize = 11.5.sp)
-                                }
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        if (state.destination == DesktopDestination.DASHBOARD && !compact) {
-                            Surface(color = colors.surface, shape = RoundedCornerShape(20.dp), border = BorderStroke(0.6.dp, colors.border)) {
-                                Row(Modifier.padding(horizontal = 14.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Icon(Icons.Outlined.CalendarToday, null, tint = colors.goldPrimary, modifier = Modifier.size(15.dp))
-                                    Text(DesktopPortfolioPolicy.observedTime(state.now).substringBefore(" •"), color = colors.textMuted, fontSize = 12.sp)
-                                }
-                            }
                         }
                         ConnectionChip(state)
                         if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
