@@ -35,6 +35,7 @@ import kotlin.math.roundToInt
 
 @Composable internal fun DesktopDashboardPage(state: WorkspaceState, dashboard: DesktopDashboard, workspace: DesktopWorkspace) {
     val chart by dashboard.state.collectAsState()
+    val inventory by workspace.inventory.state.collectAsState()
     val colors = LocalGoldExColors.current
     PageScroll {
         Row(Modifier.fillMaxWidth().testTag("dashboard-greeting"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -49,18 +50,18 @@ import kotlin.math.roundToInt
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 740.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1.05f)) { AssetVault(state, workspace) }
+                Box(Modifier.weight(1.05f)) { InventoryVault(state, inventory, workspace) }
                 Box(Modifier.weight(1f)) { DashboardMarket(state, workspace) }
-            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { AssetVault(state, workspace); DashboardMarket(state, workspace) }
+            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { InventoryVault(state, inventory, workspace); DashboardMarket(state, workspace) }
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             PageTitle("دسترسی‌های سریع")
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val actions: List<Triple<String, androidx.compose.ui.graphics.vector.ImageVector, () -> Unit>> = listOf(
-                    Triple("ثبت دارایی", Icons.Outlined.Add, { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }),
+                    Triple("ثبت محصول", Icons.Outlined.Add, workspace::openInventoryItem),
                     Triple("محاسبه طلا", Icons.Outlined.Calculate, { workspace.navigate(DesktopDestination.CALCULATOR) }),
                     Triple("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, { workspace.navigate(DesktopDestination.RATES) }),
-                    Triple("انبار و کالاها", Icons.Outlined.Inventory2, { workspace.navigate(DesktopDestination.INVENTORY) }))
+                    Triple("انبار و ویترین", Icons.Outlined.Inventory2, { workspace.navigate(DesktopDestination.INVENTORY) }))
                 val rows = if (maxWidth >= 740.dp) listOf(actions) else actions.chunked(2)
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     rows.forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -75,34 +76,42 @@ import kotlin.math.roundToInt
                 Box(Modifier.weight(1f)) { DashboardInvoices() }
             } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard); DashboardInvoices() }
         }
-        Text("دارایی‌های این رایانه مستقل از موجودی انبار و فاکتورهای گوشی هستند.", color = colors.textMuted, fontSize = 12.sp)
+        Text("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.", color = colors.textMuted, fontSize = 12.sp)
     }
 }
 
-@Composable private fun AssetVault(state: WorkspaceState, workspace: DesktopWorkspace) {
+@Composable private fun InventoryVault(state: WorkspaceState, inventory: DesktopInventoryState, workspace: DesktopWorkspace) {
     val colors = LocalGoldExColors.current
-    val summary = state.assets.summary
-    val balance = price(summary?.currentValue)
+    val summary = inventory.summary
+    val balance = if (inventory.visible) price(inventory.metalValue) else "••••"
     val balanceSize = when { (balance?.length ?: 0) > 20 -> 22; (balance?.length ?: 0) > 16 -> 26; else -> 32 }
     Column(Modifier.fillMaxWidth().heightIn(min = 268.dp).testTag("dashboard-vault")
         .background(colors.dashboardVaultGradient, RoundedCornerShape(18.dp)).border(0.8.dp, colors.goldBorder.copy(alpha = 0.6f), RoundedCornerShape(18.dp)).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.AccountBalanceWallet, null, tint = colors.goldSecondary, modifier = Modifier.size(22.dp))
-            Text("ارزش دارایی‌های شما", Modifier.weight(1f).padding(start = 10.dp), color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
-            IconButton(onClick = { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.size(40.dp)) { Icon(Icons.Outlined.ArrowBack, "مشاهدهٔ دارایی‌ها", tint = colors.goldSecondary) }
+            Text("موجودی کل (خالص ۱۸ عیار)", Modifier.weight(1f).padding(start = 10.dp), color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
+            IconButton(onClick = { workspace.inventory.togglePrivacy() }, Modifier.size(40.dp).testTag("dashboard-privacy"), enabled = !inventory.saving) {
+                Icon(if (inventory.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff, if (inventory.visible) "پنهان‌کردن موجودی" else "نمایش موجودی", tint = colors.goldSecondary)
+            }
+            IconButton(onClick = { workspace.navigate(DesktopDestination.INVENTORY) }, Modifier.size(40.dp).testTag("dashboard-open-inventory")) { Icon(Icons.Outlined.ArrowBack, "مشاهدهٔ انبار و ویترین", tint = colors.goldSecondary) }
         }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FittedAmount(balance ?: "—", Modifier.weight(1f), colors.goldSecondary, balanceSize)
+            FittedAmount(if (inventory.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", Modifier.weight(1f).testTag("dashboard-inventory-weight"), Color.White, 32)
+            Text("گرم ۷۵۰", color = colors.goldSecondary, fontSize = 14.sp, modifier = Modifier.padding(bottom = 5.dp))
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("ارزش روز", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+            FittedAmount(balance ?: "—", Modifier.weight(1f).testTag("dashboard-inventory-value"), colors.goldSecondary, minOf(balanceSize, 24))
             Text("تومان", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp, modifier = Modifier.padding(bottom = 5.dp))
         }
-        Text(if (state.assets.rows.isEmpty()) "اولین طلا یا سکهٔ خود را ثبت کنید." else if (summary == null) "برای ارزش‌گذاری کامل، نرخ همهٔ دارایی‌ها لازم است." else "بر پایهٔ ${state.snapshot?.label(state.now)}", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+        Text(if (inventory.items.isEmpty()) "اولین محصول را در انبار و ویترین ثبت کنید." else if (inventory.metalValue == null) "برای ارزش‌گذاری موجودی، نرخ طلای ۱۸ لازم است." else "بر پایهٔ ${state.snapshot?.label(state.now)}", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
         HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            VaultMetric("طلای معادل ۱۸", PersianNumberFormatter.formatWeight(state.assets.goldWeight18), "گرم", Modifier.weight(1f))
-            VaultMetric("سود / زیان", price(summary?.profit?.takeIf { state.assets.knownPurchaseBasis }) ?: "—", "تومان", Modifier.weight(1f))
+            VaultMetric("تعداد قطعات", if (inventory.visible) PersianNumberFormatter.toPersianDigits(summary.pieces.toString()) else "••••", "قطعه", Modifier.weight(1f))
+            VaultMetric("موجودی به مثقال", if (inventory.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
         }
-        Text(if (!state.assets.knownPurchaseBasis) "با ثبت مبلغ خرید، سود و زیان نمایش داده می‌شود." else "سود و زیان تحقق‌نیافتهٔ دارایی‌های ثبت‌شده", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
+        Text("ارزش طلای موجودی، بدون اجرت، سود و مالیات", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
     }
 }
 

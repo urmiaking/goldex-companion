@@ -87,13 +87,12 @@ private fun launchWorkspace() {
                         Key.One -> workspace.navigate(DesktopDestination.DASHBOARD)
                         Key.Two -> workspace.navigate(DesktopDestination.CALCULATOR)
                         Key.Three -> workspace.navigate(DesktopDestination.RATES)
-                        Key.Four -> workspace.navigate(DesktopDestination.PORTFOLIO)
+                        Key.Four -> workspace.navigate(DesktopDestination.INVENTORY)
                         Key.Five -> workspace.navigate(DesktopDestination.SETTINGS)
                         Key.Six -> workspace.navigate(DesktopDestination.INVENTORY)
                         Key.R -> { workspace.refreshRates() }
                         Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && !workspace.inventory.state.value.hasDialog) {
-                            if (workspace.state.value.destination == DesktopDestination.INVENTORY) workspace.inventory.open()
-                            else { workspace.navigate(DesktopDestination.PORTFOLIO); workspace.openAsset() }
+                            workspace.openInventoryItem()
                         }
                         Key.S -> if (workspace.inventory.state.value.draft != null) workspace.inventory.save()
                             else if (workspace.inventory.state.value.movement != null) workspace.inventory.saveMovement()
