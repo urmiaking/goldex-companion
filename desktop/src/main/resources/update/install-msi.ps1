@@ -10,6 +10,18 @@ function PlainPath([string]$Value) {
         $current = Split-Path $current -Parent
     }
 }
+function WaitForDataLock([string]$Path, [int]$TimeoutMilliseconds = 30000) {
+    # A native launcher can exit before its JVM releases the store. Never force
+    # another process to close or install while financial storage is still open.
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+    do {
+        try { return [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
+        catch [IO.IOException] {
+            if ([DateTime]::UtcNow -ge $deadline) { throw 'Data is still in use; update postponed without installation' }
+            Start-Sleep -Milliseconds 100
+        }
+    } while ($true)
+}
 function AssertInstaller {
     PlainPath $root; PlainPath $stage; PlainPath $package
     # Start-Process from pwsh can inherit a PSModulePath that omits Windows
@@ -65,7 +77,7 @@ $exited = $false
 try {
     if (!$running.WaitForExit(120000)) { throw 'Application did not exit; update postponed' }
     $exited = $true
-    $lock = [IO.File]::Open((Join-Path $data 'workspace.lock'), [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    $lock = WaitForDataLock (Join-Path $data 'workspace.lock')
     try {
         # Revalidate immediately before executing. Windows Installer owns the
         # transactional removal/replacement of the previous registered version.

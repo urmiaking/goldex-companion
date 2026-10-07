@@ -51,4 +51,62 @@ class WindowsUpdateHelperTest {
         plan.put("bundle", Path.of(plan.getString("stagingRoot")).resolve("package.msi").toString())
     }
     @Test fun rejectsCorruptInstallerBeforeAcknowledgingOrInstalling() = rejects("Installer checksum mismatch")
+
+    @Test fun waitsForAnotherProcessToReleaseStoreAndTimesOutWithoutChangingData() {
+        val directory = temporary.newFolder().toPath()
+        val lock = Files.writeString(directory.resolve("workspace.lock"), "retained fixture")
+        val ready = directory.resolve("ready")
+        val release = directory.resolve("release")
+        val helper = directory.resolve("install.ps1")
+        checkNotNull(javaClass.getResourceAsStream("/update/install-msi.ps1")).use { Files.copy(it, helper) }
+        val shell = Path.of(System.getenv("SystemRoot") ?: "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe")
+        val lockerScript = Files.writeString(directory.resolve("locker.ps1"), """
+            param([string]${'$'}Directory)
+            ${'$'}handle = [IO.File]::Open((Join-Path ${'$'}Directory 'workspace.lock'), 'Open', 'ReadWrite', 'None')
+            try {
+                [IO.File]::WriteAllText((Join-Path ${'$'}Directory 'ready'), 'ready')
+                while (!(Test-Path -LiteralPath (Join-Path ${'$'}Directory 'release'))) { Start-Sleep -Milliseconds 50 }
+            } finally { ${'$'}handle.Dispose() }
+        """.trimIndent())
+        val driver = Files.writeString(directory.resolve("driver.ps1"), """
+            param([string]${'$'}Directory, [int]${'$'}Timeout)
+            ${'$'}ErrorActionPreference = 'Stop'
+            ${'$'}tokens = ${'$'}null; ${'$'}errors = ${'$'}null
+            ${'$'}ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path ${'$'}Directory 'install.ps1'), [ref]${'$'}tokens, [ref]${'$'}errors)
+            ${'$'}function = ${'$'}ast.Find({ param(${'$'}node) ${'$'}node -is [Management.Automation.Language.FunctionDefinitionAst] -and ${'$'}node.Name -eq 'WaitForDataLock' }, ${'$'}true)
+            Invoke-Expression ${'$'}function.Extent.Text
+            [IO.File]::WriteAllText((Join-Path ${'$'}Directory ('waiting-' + ${'$'}Timeout)), 'started')
+            ${'$'}handle = WaitForDataLock (Join-Path ${'$'}Directory 'workspace.lock') ${'$'}Timeout
+            try { Write-Output 'acquired' } finally { ${'$'}handle.Dispose() }
+        """.trimIndent())
+        val locker = ProcessBuilder(shell.toString(), "-NoProfile", "-NonInteractive", "-File", lockerScript.toString(), "-Directory", directory.toString())
+            .redirectErrorStream(true).redirectOutput(directory.resolve("locker.log").toFile()).start()
+        fun waiter(timeout: Int, name: String) = ProcessBuilder(shell.toString(), "-NoProfile", "-NonInteractive", "-File", driver.toString(), "-Directory", directory.toString(), "-Timeout", timeout.toString())
+            .redirectErrorStream(true).redirectOutput(directory.resolve(name).toFile()).start()
+        var waiting: Process? = null
+        try {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+            while (!Files.exists(ready) && locker.isAlive && System.nanoTime() < deadline) Thread.sleep(20)
+            assertTrue(Files.exists(ready))
+            val rejected = waiter(200, "timeout.log")
+            assertTrue(rejected.waitFor(10, TimeUnit.SECONDS))
+            assertNotEquals(0, rejected.exitValue())
+            assertTrue(Files.readString(directory.resolve("timeout.log")).contains("update postponed without installation"))
+            waiting = waiter(5000, "waiting.log")
+            val waitingDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+            while (!Files.exists(directory.resolve("waiting-5000")) && waiting.isAlive && System.nanoTime() < waitingDeadline) Thread.sleep(20)
+            assertTrue(Files.exists(directory.resolve("waiting-5000")))
+            Thread.sleep(200)
+            assertTrue(waiting.isAlive)
+            Files.writeString(release, "release fixture lock")
+            assertTrue(waiting.waitFor(10, TimeUnit.SECONDS))
+            assertEquals(0, waiting.exitValue(), Files.readString(directory.resolve("waiting.log")))
+            assertTrue(Files.readString(directory.resolve("waiting.log")).contains("acquired"))
+            assertEquals("retained fixture", Files.readString(lock))
+        } finally {
+            Files.writeString(release, "release fixture lock")
+            if (!locker.waitFor(5, TimeUnit.SECONDS)) locker.destroyForcibly().waitFor()
+            waiting?.let { if (it.isAlive) it.destroyForcibly().waitFor() }
+        }
+    }
 }
