@@ -28,7 +28,7 @@ class WindowsUpdateScreenTest {
                 PreparedWindowsUpdate(release, Path.of("Qirato"), Path.of("staging"), Path.of("bundle"))
             override suspend fun launch(update: PreparedWindowsUpdate) = error("UI must emit restart intent only")
         })
-        updater.check()?.join()
+        updater.check()?.join(); updater.download()?.join(); updater.showDialog()
         Unit
     }
     @After fun close() { updater.close() }

@@ -28,6 +28,11 @@ import com.goldex.companion.model.WageType
 import com.goldex.companion.presentation.calculator.CalculatorField
 import com.goldex.companion.presentation.calculator.ManualGoldCalculator
 import com.goldex.companion.presentation.calculator.ManualGoldCalculatorState
+import com.goldex.companion.desktop.state.DesktopCalculatorRates
+import com.goldex.companion.desktop.state.DesktopCalculatorRateState
+import com.goldex.companion.desktop.state.DesktopPortfolioPolicy
+import com.goldex.companion.desktop.data.MarketSnapshot
+import com.goldex.companion.desktop.data.QuoteKind
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldOutlinedTextField
@@ -37,8 +42,9 @@ import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 
 @Composable
-fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, showHeader: Boolean = true, onThemeChange: () -> Unit) {
+fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, showHeader: Boolean = true, marketRates: DesktopCalculatorRates? = null, onThemeChange: () -> Unit) {
     val state by calculator.state.collectAsState()
+    val rateState = marketRates?.state?.collectAsState()?.value
     val colors = LocalGoldExColors.current
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
@@ -62,26 +68,26 @@ fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, sho
                 if (maxWidth >= 940.dp) {
                     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                         ScrollPane(Modifier.weight(1.15f)) {
-                            InputPanel(state, calculator)
+                            InputPanel(state, calculator, marketRates, rateState)
                         }
                         ScrollPane(Modifier.weight(1f)) {
                             ResultPanel(state)
-                            Actions(state, calculator, copied) {
-                                calculator.summary()?.let { clipboard.setText(AnnotatedString(it)); copied = true }
+                            Actions(state, calculator, marketRates, copied) {
+                                calculator.summary()?.let { clipboard.setText(AnnotatedString(rateSummary(it, rateState))); copied = true }
                             }
                         }
                     }
                 } else {
                     ScrollPane(Modifier.fillMaxSize()) {
-                        InputPanel(state, calculator)
+                        InputPanel(state, calculator, marketRates, rateState)
                         ResultPanel(state)
-                        Actions(state, calculator, copied) {
-                            calculator.summary()?.let { clipboard.setText(AnnotatedString(it)); copied = true }
+                        Actions(state, calculator, marketRates, copied) {
+                            calculator.summary()?.let { clipboard.setText(AnnotatedString(rateSummary(it, rateState))); copied = true }
                         }
                     }
                 }
             }
-            Text("محاسبه با نرخ واردشدهٔ شما • مبالغ به تومان", color = colors.textMuted, fontSize = 12.sp)
+            Text(if (rateState?.automatic == true) "محاسبه با نرخ انتخابی بازار • مبالغ به تومان" else "محاسبه با نرخ واردشدهٔ شما • مبالغ به تومان", color = colors.textMuted, fontSize = 12.sp)
         }
     }
 }
@@ -99,17 +105,26 @@ private fun ScrollPane(modifier: Modifier, content: @Composable ColumnScope.() -
 }
 
 @Composable
-private fun InputPanel(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator) {
+private fun InputPanel(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator, marketRates: DesktopCalculatorRates?, rateState: DesktopCalculatorRateState?) {
     LuxuryCard {
         PanelTitle("نرخ و مشخصات طلا")
-        Text("نرخ دستی", color = LocalGoldExColors.current.goldPrimary, fontSize = 13.sp)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (rateState?.automatic == true) rateState.quote?.label(System.currentTimeMillis()) ?: "در انتظار نرخ بازار" else "نرخ دستی شما",
+                Modifier.weight(1f).testTag("calculator-rate-status"), color = LocalGoldExColors.current.goldPrimary, fontSize = 13.sp)
+            if (marketRates != null && rateState?.automatic == false) TextButton(marketRates::useMarketRate, Modifier.testTag("calculator-use-market")) { Text("نرخ بازار") }
+        }
+        if (rateState?.automatic == true) rateState.quote?.let { quote ->
+            val converted = when (state.priceBasis) { PriceBasisTab.K18 -> false; PriceBasisTab.K24 -> quote.rates.gold24 <= 0; PriceBasisTab.MESGHAL -> quote.rates.goldMelt <= 0 }
+            Text("${quoteSource(quote)} • ${DesktopPortfolioPolicy.observedTime(quote.observedAt)}${if (converted) " • نرخ معادل از ۱۸ عیار" else ""}",
+                color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
+        }
         LuxurySegmentedControl(
             items = PriceBasisTab.values().toList(), selectedItem = state.priceBasis,
-            onItemSelected = calculator::setPriceBasis,
+            onItemSelected = { if (marketRates != null) marketRates.setPriceBasis(it) else calculator.setPriceBasis(it) },
             label = { when (it) { PriceBasisTab.K18 -> "۱۸ عیار"; PriceBasisTab.K24 -> "۲۴ عیار"; PriceBasisTab.MESGHAL -> "مظنه" } },
             modifier = Modifier.fillMaxWidth().testTag("basis"), height = 44.dp, fontSize = 13.sp
         )
-        NumericInput(state, CalculatorField.SPOT, "نرخ مبنا", "تومان", calculator)
+        NumericInput(state, CalculatorField.SPOT, "نرخ مبنا", "تومان", calculator, marketRates = marketRates)
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             NumericInput(state, CalculatorField.GROSS_WEIGHT, "وزن کل", "گرم", calculator, Modifier.weight(1f))
             NumericInput(state, CalculatorField.STONE_WEIGHT, "کسر نگین", "گرم", calculator, Modifier.weight(1f))
@@ -136,7 +151,7 @@ private fun InputPanel(state: ManualGoldCalculatorState, calculator: ManualGoldC
 @Composable
 private fun NumericInput(
     state: ManualGoldCalculatorState, field: CalculatorField, label: String, unit: String,
-    calculator: ManualGoldCalculator, modifier: Modifier = Modifier
+    calculator: ManualGoldCalculator, modifier: Modifier = Modifier, marketRates: DesktopCalculatorRates? = null
 ) {
     val colors = LocalGoldExColors.current
     val error = state.errors[field]
@@ -144,7 +159,8 @@ private fun NumericInput(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         GoldOutlinedTextField(
             value = state.input(field),
-            onValueChange = { calculator.setInput(field, PersianNumberFormatter.toEnglishDigits(it).replace("٬", "").replace("،", "").replace(",", "")) },
+            onValueChange = { val value = PersianNumberFormatter.toEnglishDigits(it).replace("٬", "").replace("،", "").replace(",", "")
+                if (marketRates != null) marketRates.setInput(field, value) else calculator.setInput(field, value) },
             modifier = Modifier.fillMaxWidth().testTag("input-${field.name}"),
             singleLine = true, isError = error != null,
             label = { Text(label, fontSize = 13.sp) },
@@ -200,12 +216,18 @@ private fun ResultLine(label: String, value: String?, unit: String) {
 }
 
 @Composable
-private fun Actions(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator, copied: Boolean, onCopy: () -> Unit) {
+private fun Actions(state: ManualGoldCalculatorState, calculator: ManualGoldCalculator, marketRates: DesktopCalculatorRates?, copied: Boolean, onCopy: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        GoldButton("پاک کردن", calculator::reset, Modifier.weight(1f).testTag("reset"), isSecondary = true)
+        GoldButton("پاک کردن", { if (marketRates != null) marketRates.reset() else calculator.reset() }, Modifier.weight(1f).testTag("reset"), isSecondary = true)
         GoldButton(if (copied) "کپی شد" else "کپی خلاصه", onCopy, Modifier.weight(1f).testTag("copy"), enabled = state.result != null)
     }
 }
+
+private fun rateSummary(summary: String, rate: DesktopCalculatorRateState?): String =
+    if (rate?.automatic == true && rate.quote != null) summary.replace("محاسبه با نرخ دستی",
+        "محاسبه با ${rate.quote.label(System.currentTimeMillis())} • ${quoteSource(rate.quote)} • ${DesktopPortfolioPolicy.observedTime(rate.quote.observedAt)}") else summary
+
+private fun quoteSource(quote: MarketSnapshot) = if (quote.kind == QuoteKind.MANUAL) "ثبت‌شده توسط شما" else quote.rates.source.labelFa
 
 @Composable
 private fun PanelTitle(title: String) {

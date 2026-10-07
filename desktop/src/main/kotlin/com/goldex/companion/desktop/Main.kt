@@ -74,7 +74,7 @@ private fun launchWorkspace() {
         val state = workspace?.state?.collectAsState()?.value
         val inventoryState = workspace?.inventory?.state?.collectAsState()?.value
         var confirmClose by remember { mutableStateOf(false) }
-        LaunchedEffect(workspace) { if (workspace != null) { workspace.start(); updater.start() } }
+        LaunchedEffect(workspace) { workspace?.start() }
         Window(
             onCloseRequest = {
                 if (state?.saving == true || inventoryState?.saving == true || state?.draft != null || state?.settingsDraft != null || inventoryState?.draft != null || inventoryState?.movement != null) confirmClose = true
@@ -115,7 +115,7 @@ private fun launchWorkspace() {
                         } })
                 }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
-                    onRestart = { if (!workspace.state.value.saving && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
+                    onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
                     FileDialog(window, "ذخیرهٔ فایل پشتیبان", FileDialog.SAVE).apply {
                         file = "Qirato-backup-${java.time.LocalDate.now()}.json"
                         isVisible = true

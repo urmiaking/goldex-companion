@@ -54,6 +54,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val pages = rememberSaveableStateHolder()
     val focus = LocalFocusManager.current
     LaunchedEffect(state.destination) { focus.clearFocus() }
+    LaunchedEffect(updater) { updater?.start() }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
@@ -66,14 +67,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             Text(state.destination.subtitle, color = colors.textMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         QuoteStatus(state)
-                        if (updater != null) {
-                            val updateState by updater.state.collectAsState()
-                            IconButton(onClick = updater::showDialog, modifier = Modifier.testTag("open-updater")) {
-                                BadgedBox(badge = { if (updateState.phase == com.goldex.companion.desktop.update.WindowsUpdatePhase.READY) Badge() }) {
-                                    Icon(Icons.Outlined.SystemUpdateAlt, "به‌روزرسانی برنامه", tint = colors.goldPrimary)
-                                }
-                            }
-                        }
+                        if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
                         IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
                             if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
                             else Icon(Icons.Outlined.Refresh, "دریافت آنلاین نرخ‌ها", tint = colors.goldPrimary)
@@ -90,17 +84,17 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                     AnimatedContent(targetState = state.destination, modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds(),
                         transitionSpec = {
                             if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
-                            else (fadeIn(tween(240, delayMillis = 40)) + slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) -it / 16 else it / 16 })
-                                .togetherWith(fadeOut(tween(140)) + slideOutHorizontally(tween(200, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) it / 24 else -it / 24 })
+                            else (fadeIn(tween(240, delayMillis = 40)) + slideInVertically(tween(300, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) it / 16 else -it / 16 })
+                                .togetherWith(fadeOut(tween(140)) + slideOutVertically(tween(200, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) -it / 24 else it / 24 })
                         }, label = "desktop-page-transition") { destination ->
                         val outgoing = destination != state.destination
-                        Box(Modifier.fillMaxSize().then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
+                        Box(Modifier.fillMaxSize().testTag("page-${destination.name}").then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
                             awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
                         } else Modifier)) {
                             pages.SaveableStateProvider(destination.name) {
                                 when (destination) {
                                     DesktopDestination.DASHBOARD -> DesktopDashboardPage(state, workspace.dashboard, workspace)
-                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, onThemeChange = { workspace.toggleTheme() })
+                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(workspace.calculator, state.dark, showHeader = false, marketRates = workspace.calculatorRates, onThemeChange = { workspace.toggleTheme() })
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
@@ -282,12 +276,13 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
     }
 }
 
-@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text) {
+@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text, unit: String? = null) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp, color = colors.textMain, textDirection = if (numeric) TextDirection.Ltr else TextDirection.ContentOrRtl),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            trailingIcon = unit?.let { { Text(it, Modifier.padding(horizontal = 10.dp).testTag("field-unit-$label"), color = colors.textMuted, fontSize = 12.sp, maxLines = 1) } },
             visualTransformation = if (monetary) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary, focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
                 unfocusedLabelColor = colors.textMuted, focusedContainerColor = colors.surface, unfocusedContainerColor = colors.surface, cursorColor = colors.goldPrimary))
