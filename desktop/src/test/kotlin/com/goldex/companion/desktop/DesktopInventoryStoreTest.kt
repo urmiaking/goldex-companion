@@ -17,7 +17,7 @@ import kotlin.test.*
 
 class DesktopInventoryStoreTest {
     @get:Rule val temporary = TemporaryFolder()
-    private fun item() = InventoryForm.toItem(InventoryDraft(id = "stable", createdAt = 1, code = "RNG-123", title = "حلقهٔ آزمون", gross = "2.125", stone = "0.125", quantity = "3"))
+    private fun item() = InventoryForm.toItem(InventoryDraft(id = "stable", createdAt = 1, code = "RNG-123", title = "حلقه آزمون", gross = "2.125", stone = "0.125", quantity = "3"))
     private fun move(type: StockAdjustmentType = StockAdjustmentType.CHARGE, count: Int = 2) = StockAdjustment(id = "movement", itemId = "stable", itemTitle = item().title, type = type, quantityChange = count, weightGrams = 4.0, timestamp = 5)
     @Test fun additiveInventoryDefaultsAndRoundTripWithSettingsAndPortfolio() {
         val path = temporary.newFolder().toPath()
@@ -59,9 +59,9 @@ class DesktopInventoryStoreTest {
         val file = path.resolve("workspace.json")
         val json = JSONObject(Files.readString(file)); json.getJSONArray("inventory").getJSONObject(0).put("future", "retained"); Files.writeString(file, json.toString())
         DesktopDataStore(path).use { store ->
-            store.inventory.updateItem(item().copy(title = "حلقهٔ تازه"))
+            store.inventory.updateItem(item().copy(title = "حلقه تازه"))
             assertEquals("retained", JSONObject(Files.readString(file)).getJSONArray("inventory").getJSONObject(0).getString("future"))
-            store.inventory.adjustStock(move().copy(itemTitle = "حلقهٔ تازه")); store.inventory.deleteItem("stable")
+            store.inventory.adjustStock(move().copy(itemTitle = "حلقه تازه")); store.inventory.deleteItem("stable")
             assertTrue(store.inventory.getItems().isEmpty()); assertEquals(1, store.inventory.getAdjustments().size)
         }
     }

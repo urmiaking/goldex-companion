@@ -23,7 +23,7 @@ class DesktopInventoryScreenTest {
     private lateinit var workspace: DesktopWorkspace
     @Before fun setup() {
         store = DesktopDataStore(temporary.newFolder().toPath())
-        listOf("حلقهٔ طلای آوا" to InventoryCategory.RINGS, "دستبند نگین‌دار" to InventoryCategory.BANGLES, "نیم‌ست مهتاب" to InventoryCategory.SETS).forEachIndexed { index, (title, category) ->
+        listOf("حلقه طلای آوا" to InventoryCategory.RINGS, "دستبند نگین‌دار" to InventoryCategory.BANGLES, "نیم‌ست مهتاب" to InventoryCategory.SETS).forEachIndexed { index, (title, category) ->
             store.inventory.addItem(InventoryForm.toItem(InventoryDraft(id = "item-$index", createdAt = 1, code = "RNG-12$index", title = title, category = category, gross = "4.125", stone = "0.125", quantity = "3", location = "سینی ${index + 1} ویترین اصلی", rfid = "RFID-$index")))
         }
         val market = DesktopMarketRepository(store, fetch = { error("offline") })
@@ -85,7 +85,7 @@ class DesktopInventoryScreenTest {
         runOnIdle { workspace.navigate(DesktopDestination.RATES) }
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).assertTextContains("پیش‌نویس محفوظ")
         onNodeWithText("انصراف").performClick(); onNodeWithText("بستن بدون ذخیره؟").assertExists()
-        onNodeWithText("ادامهٔ ویرایش").performClick(); assertNotNull(workspace.inventory.state.value.draft)
+        onNodeWithText("ادامه ویرایش").performClick(); assertNotNull(workspace.inventory.state.value.draft)
     }
     @Test fun importedPhotoRendersAndSurvivesRemovalOfSourceFile() = runDesktopComposeUiTest(width = 1400, height = 980) {
         val file = temporary.newFile("synthetic-photo.png")

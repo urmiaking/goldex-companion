@@ -42,7 +42,7 @@ import java.nio.file.Path
     Column(Modifier.fillMaxSize().testTag("inventory-page"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DesktopField(state.query, feature::search, "جست‌وجوی نام، کد، RFID یا محل", Modifier.weight(1f).testTag("inventory-search"))
-            OutlinedIconButton({ feature.showHistory(true) }, Modifier.size(48.dp).testTag("inventory-history"), shape = ButtonShape, border = BorderStroke(.6.dp, colors.goldBorder)) { Icon(Icons.Outlined.History, "تاریخچهٔ ورود و خروج", tint = colors.goldPrimary) }
+            OutlinedIconButton({ feature.showHistory(true) }, Modifier.size(48.dp).testTag("inventory-history"), shape = ButtonShape, border = BorderStroke(.6.dp, colors.goldBorder)) { Icon(Icons.Outlined.History, "تاریخچه ورود و خروج", tint = colors.goldPrimary) }
             GoldButton("کالای جدید", { feature.open() }, Modifier.width(155.dp).testTag("inventory-add"), icon = Icons.Outlined.Add, enabled = !state.saving)
         }
         BoxWithConstraints(Modifier.fillMaxWidth().background(colors.heroCardGradient, RoundedCornerShape(18.dp)).border(.8.dp, colors.goldBorder.copy(alpha = .6f), RoundedCornerShape(18.dp)).padding(14.dp).testTag("inventory-summary")) {
@@ -61,14 +61,14 @@ import java.nio.file.Path
                 }
                 if (spacious) {
                     InventoryMetric("خالص ۱۸ عیار", if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", "گرم", Modifier.weight(1f))
-                    InventoryMetric("مظنهٔ وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
+                    InventoryMetric("مظنه وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
                     InventoryMetric("قطعات", if (state.visible) digits(summary.pieces) else "••••", "قطعه", Modifier.weight(.7f))
                     InventoryMetric("محل نگهداری", if (state.visible) "${digits(summary.trays.toLong())} / ${digits(summary.safes.toLong())}" else "••••", "ویترین / انبار", Modifier.weight(1f))
                 }
             }
             if (!spacious) Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 InventoryMetric("خالص ۱۸ عیار", if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••", "گرم", Modifier.weight(1f))
-                InventoryMetric("مظنهٔ وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
+                InventoryMetric("مظنه وزنی", if (state.visible) PersianNumberFormatter.formatWeight(summary.mesghal) else "••••", "مثقال", Modifier.weight(1f))
                 InventoryMetric("قطعات", if (state.visible) digits(summary.pieces) else "••••", "قطعه", Modifier.weight(1f))
                 InventoryMetric("محل نگهداری", if (state.visible) "${digits(summary.trays.toLong())} / ${digits(summary.safes.toLong())}" else "••••", "ویترین / انبار", Modifier.weight(1f))
             }
@@ -199,7 +199,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
         }
         Text("برآورد فروش هر قطعه", color = colors.textMuted, fontSize = 11.sp)
         Amount(state.selectedPrice?.total?.let { PersianNumberFormatter.formatPrice(it) }, size = 23)
-        Text(if (state.selectedPrice == null) "نرخ موجود نیست" else "تومان • بر پایهٔ نرخ انتخابی", color = colors.textMuted, fontSize = 10.sp)
+        Text(if (state.selectedPrice == null) "نرخ موجود نیست" else "تومان • بر پایه نرخ انتخابی", color = colors.textMuted, fontSize = 10.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GoldButton("ورود", { feature.openMovement(item) }, Modifier.weight(1f).testTag("inventory-charge"), enabled = !state.saving)
             GoldButton("خروج", { feature.openMovement(item, StockAdjustmentType.DEDUCT) }, Modifier.weight(1f).testTag("inventory-deduct"), isSecondary = true, enabled = !state.saving && item.quantity > 0)
@@ -260,11 +260,11 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     val state by feature.state.collectAsState()
     state.draft?.let { draft ->
         val focus = remember { FocusRequester() }
-        InventoryDialog(if (draft.id == null) "ثبت کالای جدید" else "ویرایش کالا", "inventory-dialog", state.saving, feature::dismiss, { feature.save() }, "ذخیرهٔ کالا", wide = true) {
+        InventoryDialog(if (draft.id == null) "ثبت کالای جدید" else "ویرایش کالا", "inventory-dialog", state.saving, feature::dismiss, { feature.save() }, "ذخیره کالا", wide = true) {
             if (state.error != null) Text(state.error.orEmpty(), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    PageTitle("شناسنامهٔ کالا")
+                    PageTitle("شناسنامه کالا")
                     DraftField(draft, "title", "نام کالا", draft.title, feature, Modifier.focusRequester(focus)) { it.copy(title = this) }
                     LaunchedEffect(draft.id) { focus.requestFocus() }
                     DraftField(draft, "code", "کد کالا / بارکد", draft.code, feature) { it.copy(code = this) }
@@ -275,7 +275,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                     }
                     DraftField(draft, "location", "محل نگهداری", draft.location, feature) { it.copy(location = this) }
                     DraftField(draft, "workshop", "کارگاه سازنده", draft.workshop, feature) { it.copy(workshop = this) }
-                    DraftField(draft, "rfid", "شناسهٔ RFID (اختیاری)", draft.rfid, feature) { it.copy(rfid = this) }
+                    DraftField(draft, "rfid", "شناسه RFID (اختیاری)", draft.rfid, feature) { it.copy(rfid = this) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         InventoryImage(draft.image, Modifier.size(70.dp))
                         Column(Modifier.weight(1f)) {
@@ -303,7 +303,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                         DraftField(draft, "tax", "مالیات", draft.tax, feature, Modifier.weight(1f), true) { it.copy(tax = this) }
                     }
                     PricePreview(state.preview)
-                    Text("وزن و قیمت برای یک قطعه‌اند. در دستهٔ سکه سود صفر محاسبه می‌شود.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
+                    Text("وزن و قیمت برای یک قطعه‌اند. در دسته سکه سود صفر محاسبه می‌شود.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
                     if (draft.id != null) Text("برای تغییر تعداد از ورود و خروج کالا استفاده کنید تا سابقه ثبت شود.", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
                 }
             }
@@ -330,15 +330,15 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
         AlertDialog(onDismissRequest = { feature.requestDelete(null) }, title = { Text("حذف کالا") }, text = { Text("«${item.title}» با ${digits(item.quantity.toLong())} قطعه از انبار حذف شود؟ سوابق ورود و خروج حفظ می‌شوند و فایل قبلی در پشتیبان محلی می‌ماند.") },
             confirmButton = { DialogActions(state.saving, { feature.requestDelete(null) }, { feature.delete() }, "حذف کالا", "inventory-confirm-delete") })
     }
-    if (state.showHistory) AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچهٔ ورود و خروج انبار") },
+    if (state.showHistory) AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچه ورود و خروج انبار") },
         text = {
             if (state.history.isEmpty()) Text("هنوز گردش موجودی ثبت نشده است؛ از جزئیات کالا ورود یا خروج را انتخاب کنید.")
             else LazyColumn(Modifier.heightIn(max = 500.dp).testTag("inventory-history-list"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(state.history.sortedByDescending { it.timestamp }, key = { it.id }) { MovementRow(it, full = true) }
             }
         }, confirmButton = { GoldButton("بستن", { feature.showHistory(false) }, isSecondary = true) })
-    if (state.discard) AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامهٔ ویرایش، به فرم برگردید.") },
-        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامهٔ ویرایش") })
+    if (state.discard) AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامه ویرایش، به فرم برگردید.") },
+        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامه ویرایش") })
 }
 
 @Composable private fun MovementRow(movement: StockAdjustment, full: Boolean = false) {

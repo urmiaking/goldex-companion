@@ -67,7 +67,7 @@ class WindowsUpdater(
                 }
             } catch (failure: CancellationException) { throw failure }
             catch (_: Exception) { mutable.update { it.copy(phase = WindowsUpdatePhase.FAILED,
-                error = "به‌روزرسانی آماده نشد. اینترنت و فضای دیسک را بررسی کنید؛ پوشهٔ برنامه باید قابل نوشتن باشد. نسخهٔ فعلی حفظ شده است.") } }
+                error = "به‌روزرسانی آماده نشد. اینترنت و فضای دیسک را بررسی کنید؛ پوشه برنامه باید قابل نوشتن باشد. نسخه فعلی حفظ شده است.") } }
         }
         return work
     }

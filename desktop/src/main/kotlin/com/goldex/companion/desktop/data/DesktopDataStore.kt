@@ -45,7 +45,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
         Files.createDirectories(directory)
         lockChannel = FileChannel.open(directory.resolve("workspace.lock"), CREATE, WRITE)
         try {
-            fileLock = checkNotNull(lockChannel.tryLock()) { "پوشهٔ اطلاعات در برنامهٔ دیگری باز است" }
+            fileLock = checkNotNull(lockChannel.tryLock()) { "پوشه اطلاعات در برنامه دیگری باز است" }
             document = if (Files.exists(documentPath)) {
                 require(Files.size(documentPath) <= 100_000_000) { "حجم فایل اطلاعات پشتیبانی نمی‌شود" }
                 JSONObject(Files.readString(documentPath))
@@ -123,7 +123,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
         val next = cloneDocument()
         val history = next.optJSONArray("stockAdjustments") ?: JSONArray()
         val existing = inventoryAdjustments().firstOrNull { it.id == adjustment.id }
-        if (existing != null) { require(existing == adjustment) { "شناسهٔ گردش تکراری است" }; return }
+        if (existing != null) { require(existing == adjustment) { "شناسه گردش تکراری است" }; return }
         val old = next.optJSONArray("inventory") ?: JSONArray()
         val index = (0 until old.length()).firstOrNull { old.getJSONObject(it).getString("id") == adjustment.itemId }
             ?: error("کالا پیدا نشد")
@@ -191,7 +191,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
         private fun merge(target: JSONObject, source: JSONObject) { source.keySet().forEach { target.put(it, source.get(it)) } }
 
         fun validate(value: JSONObject) {
-            require(value.get("schemaVersion").toString() == "1") { "نسخهٔ فایل اطلاعات پشتیبانی نمی‌شود" }
+            require(value.get("schemaVersion").toString() == "1") { "نسخه فایل اطلاعات پشتیبانی نمی‌شود" }
             val settings = value.getJSONObject("settings")
             for ((field, names) in listOf("priceSource" to PriceSource.values().map { it.name }, "defaultWageType" to WageType.values().map { it.name })) {
                 require(!settings.has(field) || settings.getString(field) in names) { "تنظیم ناشناخته در فایل" }
@@ -205,7 +205,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
             val ids = mutableSetOf<String>()
             for (index in 0 until portfolio.length()) {
                 val record = portfolio.getJSONObject(index)
-                require(record.getString("id").isNotBlank() && ids.add(record.getString("id"))) { "شناسهٔ تکراری یا نامعتبر" }
+                require(record.getString("id").isNotBlank() && ids.add(record.getString("id"))) { "شناسه تکراری یا نامعتبر" }
                 require(record.getString("title").isNotBlank())
                 require(record.getString("category") in PortfolioCategory.values().map { it.name })
                 require(!record.has("karat") || record.getString("karat") in Karat.values().map { it.name })

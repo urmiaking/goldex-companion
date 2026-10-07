@@ -50,7 +50,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
         }
     } else if (state.release != null && state.phase in setOf(WindowsUpdatePhase.AVAILABLE, WindowsUpdatePhase.READY, WindowsUpdatePhase.FAILED)) {
         GoldButton(when (state.phase) {
-            WindowsUpdatePhase.READY -> "نصب نسخهٔ جدید"
+            WindowsUpdatePhase.READY -> "نصب نسخه جدید"
             WindowsUpdatePhase.FAILED -> "تلاش دوباره"
             else -> "به‌روزرسانی"
         }, updater::activate, Modifier.width(176.dp).testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt,
@@ -58,7 +58,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     } else if (state.phase == WindowsUpdatePhase.CHECKING) {
         CircularProgressIndicator(Modifier.size(20.dp).testTag("update-checking"), color = colors.goldPrimary, strokeWidth = 2.dp)
     } else if (state.phase == WindowsUpdatePhase.FAILED) {
-        TextButton({ updater.check() }, Modifier.testTag("retry-update-check")) { Text("بررسی دوبارهٔ آپدیت", color = colors.textSecondary, fontSize = 12.sp) }
+        TextButton({ updater.check() }, Modifier.testTag("retry-update-check")) { Text("بررسی دوباره آپدیت", color = colors.textSecondary, fontSize = 12.sp) }
     }
 }
 
@@ -66,10 +66,10 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     val state by updater.state.collectAsState()
     LuxuryCard {
         PageTitle("به‌روزرسانی قیراط")
-        Text("نسخهٔ ${PersianNumberFormatter.toPersianDigits(version)} • ویندوز", color = LocalGoldExColors.current.textMuted, fontSize = 12.sp)
+        Text("نسخه ${PersianNumberFormatter.toPersianDigits(version)} • ویندوز", color = LocalGoldExColors.current.textMuted, fontSize = 12.sp)
         UpdateProgress(state)
-        Text("هنگام شروع و هر ۵ دقیقه نسخهٔ تازه بررسی می‌شود. دانلود با انتخاب شما در پس‌زمینه انجام می‌شود؛ پس از آماده‌شدن، نصب و راه‌اندازی مجدد را تأیید کنید.", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
-        GoldButton(when { state.phase == WindowsUpdatePhase.READY -> "نصب نسخهٔ جدید"; state.release != null -> "دریافت به‌روزرسانی"; else -> "بررسی به‌روزرسانی" },
+        Text("هنگام شروع و هر ۵ دقیقه نسخه تازه بررسی می‌شود. دانلود با انتخاب شما در پس‌زمینه انجام می‌شود؛ پس از آماده‌شدن، نصب و راه‌اندازی مجدد را تأیید کنید.", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
+        GoldButton(when { state.phase == WindowsUpdatePhase.READY -> "نصب نسخه جدید"; state.release != null -> "دریافت به‌روزرسانی"; else -> "بررسی به‌روزرسانی" },
             updater::activate,
             enabled = !state.busy, isSecondary = state.phase != WindowsUpdatePhase.READY,
             icon = Icons.Outlined.SystemUpdateAlt, modifier = Modifier.testTag("check-update"))
@@ -82,14 +82,14 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     val state by updater.state.collectAsState()
     if (!state.dialog) return
     AlertDialog(onDismissRequest = updater::postpone, modifier = Modifier.width(590.dp).testTag("update-dialog"),
-        title = { Text(if (state.phase == WindowsUpdatePhase.READY) "نسخهٔ جدید آماده است" else "به‌روزرسانی قیراط") },
+        title = { Text(if (state.phase == WindowsUpdatePhase.READY) "نسخه جدید آماده است" else "به‌روزرسانی قیراط") },
         text = {
             Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 UpdateProgress(state)
                 if (state.phase in setOf(WindowsUpdatePhase.READY, WindowsUpdatePhase.RESTARTING)) {
-                    Text("قیراط بسته می‌شود، نسخهٔ جدید جایگزین می‌شود و برنامه دوباره باز می‌شود. اطلاعات ثبت‌شدهٔ شما حفظ می‌شوند.", fontSize = 14.sp)
+                    Text("قیراط بسته می‌شود، نسخه جدید جایگزین می‌شود و برنامه دوباره باز می‌شود. اطلاعات ثبت‌شده شما حفظ می‌شوند.", fontSize = 14.sp)
                     Text("پیش از ادامه، تغییرات ذخیره‌نشده را ذخیره کنید؛ ورودی فعلی ماشین‌حساب پس از راه‌اندازی مجدد پاک می‌شود.", color = LocalGoldExColors.current.goldPrimary, fontSize = 12.sp)
-                    if (!canRestart) Text("ذخیرهٔ اطلاعات در حال انجام است؛ کمی صبر کنید.", fontSize = 12.sp)
+                    if (!canRestart) Text("ذخیره اطلاعات در حال انجام است؛ کمی صبر کنید.", fontSize = 12.sp)
                     state.release?.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                         HorizontalDivider(color = LocalGoldExColors.current.border)
                         Text(notes, fontSize = 12.sp, color = LocalGoldExColors.current.textSecondary)
@@ -111,11 +111,11 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     val caption = when (state.phase) {
         WindowsUpdatePhase.IDLE -> "بررسی خودکار هنگام اجرای برنامه"
         WindowsUpdatePhase.CHECKING -> "در حال بررسی نسخه‌ها…"
-        WindowsUpdatePhase.CURRENT -> "آخرین نسخهٔ ویندوز نصب است"
-        WindowsUpdatePhase.AVAILABLE -> "نسخهٔ ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())} برای دریافت آماده است"
-        WindowsUpdatePhase.DOWNLOADING -> "دریافت نسخهٔ ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())}"
+        WindowsUpdatePhase.CURRENT -> "آخرین نسخه ویندوز نصب است"
+        WindowsUpdatePhase.AVAILABLE -> "نسخه ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())} برای دریافت آماده است"
+        WindowsUpdatePhase.DOWNLOADING -> "دریافت نسخه ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())}"
         WindowsUpdatePhase.VERIFYING -> "در حال بررسی فایل و آماده‌سازی…"
-        WindowsUpdatePhase.READY -> "نسخهٔ ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())} آمادهٔ نصب است"
+        WindowsUpdatePhase.READY -> "نسخه ${PersianNumberFormatter.toPersianDigits(state.release?.version.toString())} آماده نصب است"
         WindowsUpdatePhase.RESTARTING -> "در حال آماده‌سازی راه‌اندازی مجدد…"
         WindowsUpdatePhase.FAILED -> "دریافت به‌روزرسانی انجام نشد"
     }

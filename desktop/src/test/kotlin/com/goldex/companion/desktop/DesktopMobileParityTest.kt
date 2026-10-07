@@ -23,7 +23,7 @@ class DesktopMobileParityTest {
     @get:Rule val temporary = TemporaryFolder()
     private lateinit var store: DesktopDataStore
     private lateinit var workspace: DesktopWorkspace
-    private val item = InventoryItem(id = "stock", code = "ST-1", title = "قطعهٔ آزمون", grossWeightGrams = 4.125, stoneWeightGrams = .125, customKaratValue = 875, quantity = 3)
+    private val item = InventoryItem(id = "stock", code = "ST-1", title = "قطعه آزمون", grossWeightGrams = 4.125, stoneWeightGrams = .125, customKaratValue = 875, quantity = 3)
     @Before fun setup() {
         store = DesktopDataStore(temporary.newFolder().toPath())
         store.inventory.addItem(item)
@@ -48,7 +48,7 @@ class DesktopMobileParityTest {
             assertEquals(value, layouts.single().layoutInput.text.text)
         }
         field("settings-gallery").performTextReplacement("گالری شماره ۱۲")
-        field("settings-address").performTextReplacement("نشانی آزمایشی\nطبقهٔ دوم")
+        field("settings-address").performTextReplacement("نشانی آزمایشی\nطبقه دوم")
         field("settings-profit").performTextReplacement("۷٫۵")
         save(onNodeWithTag("workspace-root"), "settings-identifiers-light.png")
         onNodeWithTag("workspace-theme").performClick()
@@ -70,7 +70,7 @@ class DesktopMobileParityTest {
         assertEquals(identifiers["settings-union"], store.loadSettings().unionCode)
         assertEquals(identifiers["settings-license"], store.loadSettings().galleryLicense)
         assertEquals("7.5", store.loadSettings().defaultProfitPercent)
-        assertEquals("نشانی آزمایشی\nطبقهٔ دوم", store.loadSettings().galleryAddress)
+        assertEquals("نشانی آزمایشی\nطبقه دوم", store.loadSettings().galleryAddress)
     }
 
     @Test fun dashboardAndNavigationUseTheSameInventoryIncludingStockChangesAndPrivacy() = runDesktopComposeUiTest(width = 1400, height = 980) {
@@ -79,7 +79,8 @@ class DesktopMobileParityTest {
         onNodeWithTag("nav-PORTFOLIO").assertDoesNotExist()
         onNodeWithText(PersianNumberFormatter.formatWeight(14.0)).assertExists()
         onNodeWithText(PersianNumberFormatter.formatPrice(84_000_000)).assertExists()
-        onNodeWithTag("dashboard-open-inventory").performClick()
+        onNodeWithTag("dashboard-open-inventory").assertDoesNotExist()
+        onNodeWithTag("nav-INVENTORY").performClick()
         onNodeWithTag("inventory-item-stock").assertExists()
         onNodeWithTag("inventory-privacy").performClick()
         waitUntil(5000) { !workspace.inventory.state.value.visible }
