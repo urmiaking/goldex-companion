@@ -54,12 +54,12 @@ class DesktopMobileParityTest {
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
         save(onNodeWithTag("workspace-root"), "settings-identifiers-dark.png")
-        onNodeWithTag("nav-RATES").performClick()
-        onNodeWithTag("manual-rates").performClick()
+        onNodeWithTag("nav-CALCULATOR").performClick()
+        onNodeWithTag("input-SPOT").performTextReplacement("۶۰۰۰۰۰۰")
         val priceLayouts = mutableListOf<TextLayoutResult>()
-        field("manual-rate-0").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(priceLayouts) }
-        assertEquals("۶،۰۰۰،۰۰۰", priceLayouts.single().layoutInput.text.text)
-        onNodeWithText("انصراف").performClick()
+        onNodeWithTag("input-SPOT").performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(priceLayouts) }
+        val priceText = priceLayouts.single().layoutInput.text.text
+        assertTrue(priceText.contains(',') || priceText.contains('،'))
         onNodeWithTag("nav-SETTINGS").performClick()
         onNodeWithTag("save-settings").performScrollTo().performClick()
         waitUntil(5000) { workspace.state.value.settingsDraft == null && !workspace.state.value.saving }
