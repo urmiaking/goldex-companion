@@ -61,7 +61,12 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             Row(Modifier.fillMaxSize()) {
                 Sidebar(state, workspace, compact, version)
                 Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    if (state.destination == DesktopDestination.RATES) {
+                        val board by workspace.ratesBoard.state.collectAsState()
+                        RatesHeading(state, board.loading, onRefresh = workspace::refreshRates) {
+                            if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
+                        }
+                    } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(state.destination.title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
                             Text(state.destination.subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

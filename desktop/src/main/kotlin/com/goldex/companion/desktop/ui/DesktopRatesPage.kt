@@ -1,7 +1,5 @@
 package com.goldex.companion.desktop.ui
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,10 +8,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -25,232 +22,485 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.*
+import com.goldex.companion.data.ConnectionStatus
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.*
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
+// Rates-specific desktop scale from the supplied references; theme owns fonts and colors.
+private object RatesType {
+    val title = 13.5.sp
+    val secondary = 10.5.sp
+    val caption = 10.sp
+    val tableHeading = 11.sp
+}
+
 @Composable internal fun RatesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
     val board by workspace.ratesBoard.state.collectAsState()
-    var manual by remember { mutableStateOf(false) }
     var detail by remember { mutableStateOf<BoardInstrument?>(null) }
-    var filter by rememberSaveable { mutableStateOf(0) }
-    val rows = BoardInstrument.values().map { DesktopRatesBoardPolicy.row(it,state.snapshot,board,state.now) }
+    // Tether is hidden from this board; its stored data and provider contract stay compatible.
+    val rows = BoardInstrument.values().filter { it != BoardInstrument.TETHER }
+        .map { DesktopRatesBoardPolicy.row(it, state.snapshot, board, state.now) }
     DisposableEffect(workspace.ratesBoard, state.settings.autoSyncRates) {
         val subscription = workspace.ratesBoard.observe(state.settings.autoSyncRates)
         onDispose { subscription.cancel() }
     }
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val compact = maxWidth < 940.dp
+            val compact = maxWidth < 860.dp
             val columns = if (maxWidth < 800.dp) 2 else 4
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                RatesWelcome(state, board, compact, onRefresh = { workspace.refreshRates() }, onManual = { manual = true })
-                val featured = listOf(BoardInstrument.GOLD18, BoardInstrument.MELT, BoardInstrument.OUNCE, BoardInstrument.EMAMI).map { key -> rows.first { it.instrument == key } }
+            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                RatesWelcome(state, compact)
+                val featured = listOf(BoardInstrument.GOLD18, BoardInstrument.MELT, BoardInstrument.OUNCE, BoardInstrument.EMAMI)
+                    .map { key -> rows.first { it.instrument == key } }
                 featured.chunked(columns).forEach { group ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { group.forEach { row ->
-                        SummaryQuote(row, state.reduceMotion, { detail = row.instrument }, Modifier.weight(1f))
-                    } }
-                }
-                LuxurySegmentedControl(items = (0..4).toList(), selectedItem = filter, onItemSelected = { filter = it },
-                    label = { listOf("همه بازارها", "طلا و آبشده", "ارز", "انس جهانی", "سکه")[it] },
-                    modifier = Modifier.fillMaxWidth().testTag("rates-filter"), height = 36.dp)
-                AnimatedContent(filter, transitionSpec = { fadeIn(tween(if (state.reduceMotion) 0 else 180)) togetherWith fadeOut(tween(if (state.reduceMotion) 0 else 120)) }, label = "rates-filter-transition") { active ->
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        val filtered = rows.filter { active == 0 || it.instrument.group == active }
-                        if (filtered.any { it.instrument.coin == null }) BoardTable("تابلوی طلا و ارزهای معتبر بازار", "نرخ طلا، مظنه، انس و ارزهای پایه", filtered.filter { it.instrument.coin == null }, false, compact, state, board,
-                            onDetail = { detail = it }, onCalculator = { workspace.applyQuoteToCalculator(it) })
-                        if (filtered.any { it.instrument.coin != null }) BoardTable("تابلوی مسکوکات بانکی و حباب", "نرخ اعلامی و ارزش ذاتی با فرمول مشترک برنامه", filtered.filter { it.instrument.coin != null }, true, compact, state, board,
-                            onDetail = { detail = it }, onCalculator = { workspace.applyQuoteToCalculator(it) })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        group.forEach { row ->
+                            SummaryQuote(row, state.reduceMotion, { detail = row.instrument }, Modifier.weight(1f))
+                        }
                     }
                 }
-                if (board.error != null) Text(board.error!!, Modifier.testTag("rates-board-error"), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp)
+                BoardTable("تابلوی طلا و ارزهای معتبر بازار", "نرخ‌های رسمی بنکداری، طلای خام، شمش و ارزهای پایه معاملاتی",
+                    rows.filter { it.instrument.coin == null }, false, compact, state, board, onDetail = { detail = it })
+                BoardTable("تابلوی رسمی انواع مسکوکات بانکی و حباب", "نرخ اعلامی، ارزش ذاتی طلا و حباب محاسبه‌شده",
+                    rows.filter { it.instrument.coin != null }, true, compact, state, board, onDetail = { detail = it })
+                board.error?.let { RatesText(it, Modifier.testTag("rates-board-error"), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp) }
             }
         }
     }
-    if (manual) ManualRatesDialog(state, workspace) { manual = false }
-    detail?.let { key -> RateDetails(rows.first { it.instrument == key }, state, board, onDismiss = { detail = null },
-        onCalculator = { basis -> detail = null; workspace.applyQuoteToCalculator(basis) }) }
+    detail?.let { key ->
+        RateDetails(rows.first { it.instrument == key }, state, board, onDismiss = { detail = null },
+            onCalculator = { basis -> detail = null; workspace.applyQuoteToCalculator(basis) })
+    }
 }
 
-@Composable private fun RatesWelcome(state: WorkspaceState, board: DesktopRatesBoardState, compact: Boolean, onRefresh: () -> Unit, onManual: () -> Unit) {
+@Composable internal fun RatesHeading(state: WorkspaceState, boardLoading: Boolean, onRefresh: () -> Unit,
+    updateAction: @Composable () -> Unit = {}) {
     val c = LocalGoldExColors.current
-    val actions: @Composable () -> Unit = {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            GoldButton(if (state.refreshing || board.loading) "در حال دریافت" else "دریافت آنلاین", onRefresh,
-                Modifier.width(160.dp).testTag("rates-refresh"), enabled = !state.refreshing && !board.loading && !state.saving, icon = Icons.Outlined.Refresh)
-            GoldButton("ثبت نرخ دستی", onManual, Modifier.width(150.dp).testTag("manual-rates"), isSecondary = true, enabled = !state.refreshing && !state.saving, icon = Icons.Outlined.Edit)
+    Row(Modifier.fillMaxWidth().testTag("rates-heading"), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            RatesText("تابلوی نرخ‌ها", Modifier.semantics { heading() }, color = c.textMain, fontWeight = FontWeight.Black,
+                fontSize = 28.sp, lineHeight = 36.sp)
+            RatesText("قیمت‌ها همراه با منبع، زمان دریافت و تحلیل بازار", color = c.textMuted, fontSize = 11.sp)
         }
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(44.dp).background(c.goldContainer, CircleShape), contentAlignment = Alignment.Center) {
-                Text(state.settings.managerName.firstOrNull()?.toString() ?: "ق", color = c.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "همراه زرگر" }}", color = c.textMain, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(state.settings.galleryName.ifBlank { "نبض بازار طلا و ارز" }, color = c.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            if (!compact) actions()
-        }
-        if (compact) actions()
-        Surface(color = c.surface, shape = RoundedCornerShape(12.dp), border = BorderStroke(0.6.dp,c.goldBorder.copy(alpha = .5f))) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.Schedule, null, Modifier.size(17.dp), tint = c.goldPrimary)
-                Column(Modifier.weight(1f)) { SourceCaption(state) }
-                if (board.loading) CircularProgressIndicator(Modifier.size(16.dp), color = c.goldPrimary, strokeWidth = 2.dp)
-                Text(state.snapshot?.label(state.now) ?: "ناموجود", color = c.textSecondary, fontSize = 11.sp, maxLines = 1)
+        updateAction()
+        val busy = state.refreshing || boardLoading
+        Button(onClick = onRefresh, enabled = !busy && !state.saving,
+            modifier = Modifier.width(174.dp).height(40.dp).testTag("rates-refresh"), shape = ButtonShape,
+            contentPadding = PaddingValues(0.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = c.goldButtonText,
+                disabledContainerColor = c.goldContainer, disabledContentColor = c.textMuted)) {
+            Row(Modifier.fillMaxSize().background(if (busy || state.saving) c.goldContainer else c.goldButtonContainer)
+                .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (busy) CircularProgressIndicator(Modifier.size(16.dp), color = c.goldPrimary, strokeWidth = 2.dp)
+                else Icon(Icons.Outlined.Refresh, null, Modifier.size(18.dp))
+                RatesText(if (busy) "در حال دریافت" else "دریافت آنلاین", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                RatesText("TGJU", Modifier.background(c.surface.copy(alpha = .35f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 3.dp), fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
+
+@Composable private fun RatesWelcome(state: WorkspaceState, compact: Boolean) {
+    val c = LocalGoldExColors.current
+    val greeting: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(48.dp).background(c.goldContainer, CircleShape)
+                .border(.6.dp, c.goldBorder, CircleShape), contentAlignment = Alignment.Center) {
+                RatesText(state.settings.managerName.firstOrNull()?.toString() ?: "ق", color = c.goldPrimary,
+                    fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                RatesText("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "همراه زرگر" }}",
+                    color = c.textMain, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                RatesText(state.settings.galleryName.ifBlank { "طلا و جواهر" }, color = c.textMuted, fontSize = 11.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+    if (compact) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        greeting()
+        MarketDatePill(state)
+    } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        Box(Modifier.weight(1f).padding(end = 12.dp)) { greeting() }
+        MarketDatePill(state)
+    }
+}
+
+@Composable private fun MarketDatePill(state: WorkspaceState) {
+    val c = LocalGoldExColors.current
+    val online = state.connection == ConnectionStatus.ONLINE
+    val statusColor = if (online) c.marketGainText else c.textMuted
+    val now = Instant.ofEpochMilli(state.now).atZone(ZoneId.of("Asia/Tehran"))
+    val (year, month, day) = MarketHistoryConverter.gregorianToShamsi(now.year, now.monthValue, now.dayOfMonth)
+    val months = listOf("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
+    val weekdays = listOf("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یکشنبه")
+    val date = PersianNumberFormatter.toPersianDigits("${weekdays[now.dayOfWeek.value - 1]}، $day ${months[month - 1]} $year")
+    val time = state.snapshot?.observedAt?.let(::boardClock)
+    val timeLabel = if (state.snapshot?.kind == QuoteKind.MANUAL) "نرخ ثبت‌شده" else "آخرین دریافت بازار"
+    Surface(color = c.surface, shape = RoundedCornerShape(12.dp), border = c.hairlineBorder,
+        shadowElevation = if (c.isDark) 0.dp else 1.dp) {
+        Row(Modifier.testTag("rates-date-status").padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.testTag("connection-chip").background(statusColor.copy(alpha = .08f), RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Box(Modifier.size(6.dp).background(statusColor, CircleShape))
+                RatesText(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 10.sp)
+            }
+            Box(Modifier.width(.6.dp).height(16.dp).background(c.border))
+            Icon(Icons.Outlined.CalendarToday, null, Modifier.size(15.dp), tint = c.goldPrimary)
+            RatesText(date, color = c.textMain, fontSize = 11.sp)
+            Box(Modifier.width(.6.dp).height(16.dp).background(c.border))
+            RatesText(time?.let { "$timeLabel ($it)" } ?: "دریافت نشده", color = c.textMuted, fontSize = 11.sp)
+        }
+    }
+}
+
+private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersianDigits(
+    Instant.ofEpochMilli(timestamp).atZone(ZoneId.of("Asia/Tehran")).format(DateTimeFormatter.ofPattern("HH:mm")))
 
 @Composable private fun BoardCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalGoldExColors.current
-    Surface(modifier, color = c.surface, shape = RoundedCornerShape(16.dp), border = BorderStroke(.6.dp,c.goldBorder.copy(alpha = .5f)), shadowElevation = if (c.isDark) 0.dp else 2.dp) {
+    Surface(modifier, color = c.surface, shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(.6.dp, c.border.copy(alpha = if (c.isDark) .14f else .08f)), shadowElevation = if (c.isDark) 0.dp else 2.dp) {
         Column(content = content)
     }
 }
 
 @Composable private fun SummaryQuote(row: BoardRow, reduceMotion: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val c = LocalGoldExColors.current
-    BoardCard(modifier.testTag("rates-summary-${row.instrument.name}").clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات ${row.instrument.title}", onClick = onClick)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Box(Modifier.size(7.dp).background(c.goldPrimary,CircleShape))
-                Text(row.instrument.title, Modifier.weight(1f), fontSize = 11.sp, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    BoardCard(modifier.testTag("rates-summary-${row.instrument.name}")
+        .clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات ${row.instrument.title}", onClick = onClick)) {
+        Column(Modifier.fillMaxWidth().heightIn(min = 182.dp).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                InstrumentDot(row.instrument)
+                RatesText(summaryTitle(row.instrument), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium,
+                    color = c.textMain, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                PercentChange(row.daily)
             }
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                BoardAmount(row.value,row.instrument.dollar,reduceMotion,Modifier.weight(1f), 22)
-                Text(if (row.instrument.dollar) "دلار" else "تومان", color = c.textMuted, fontSize = 10.sp)
+            HorizontalDivider(color = c.border.copy(alpha = .08f), thickness = .6.dp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                BoardAmount(row.value, row.instrument.dollar, reduceMotion, size = 26)
+                RatesText(if (row.instrument.dollar) "دلار آمریکا" else "تومان", color = c.textMuted, fontSize = 11.sp)
             }
-            DayChange(row.daily, small = true)
-            Sparkline(row.history, row.daily?.change, Modifier.fillMaxWidth().height(26.dp))
+            HorizontalDivider(color = c.border.copy(alpha = .05f), thickness = .6.dp)
+            SummaryContext(row)
+            Sparkline(row.history, row.daily?.change, Modifier.fillMaxWidth().height(28.dp))
         }
     }
 }
 
-@Composable private fun BoardTable(title: String, subtitle: String, rows: List<BoardRow>, coins: Boolean, compact: Boolean,
-    state: WorkspaceState, board: DesktopRatesBoardState, onDetail: (BoardInstrument) -> Unit, onCalculator: (PriceBasisTab) -> Unit) {
+private fun summaryTitle(instrument: BoardInstrument): String = when (instrument) {
+    BoardInstrument.GOLD18 -> "طلای ۱۸ عیار (۷۵۰)"
+    BoardInstrument.MELT -> "مظنه آبشده (مثقال)"
+    BoardInstrument.OUNCE -> "انس طلا (XAU/USD)"
+    BoardInstrument.EMAMI -> "سکه امامی (طرح جدید)"
+    else -> instrument.title
+}
+
+@Composable private fun InstrumentDot(instrument: BoardInstrument) {
+    val c = LocalGoldExColors.current
+    val color = when (instrument) {
+        BoardInstrument.OUNCE -> c.textMuted
+        BoardInstrument.USD -> c.profitGreen
+        BoardInstrument.AED -> c.syncBlue
+        BoardInstrument.GOLD18, BoardInstrument.EMAMI -> c.goldSecondary
+        else -> c.goldPrimary
+    }
+    Box(Modifier.size(9.dp).background(color, CircleShape))
+}
+
+@Composable private fun SummaryContext(row: BoardRow) {
+    val c = LocalGoldExColors.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        when (row.instrument) {
+            BoardInstrument.GOLD18 -> {
+                RatesText("کمینه: ${formatBoardNumber(row.daily?.low)}", color = c.textMuted, fontSize = 9.sp)
+                RatesText("بیشینه: ${formatBoardNumber(row.daily?.high)}", color = c.textMuted, fontSize = 9.sp)
+            }
+            BoardInstrument.OUNCE -> {
+                RatesText("نوسان ۲۴ ساعته:", color = c.textMuted, fontSize = 9.sp)
+                RatesText(row.daily?.change?.let { "${signedBoardNumber(it)} دلار" } ?: "—",
+                    color = changeColor(row.daily?.change), fontSize = 10.sp)
+            }
+            BoardInstrument.EMAMI -> {
+                RatesText("حباب سکه:", color = c.textMuted, fontSize = 9.sp)
+                RatesText(DesktopRatesBoardPolicy.bubbleAmount(row)?.let { "${PersianNumberFormatter.format(it)} تومان" } ?: "—",
+                    color = c.goldPrimary, fontSize = 10.sp, maxLines = 1)
+            }
+            else -> {
+                // The provider has no melted-gold premium; do not fabricate a bubble from a daily change.
+                RatesText("حباب مظنه:", color = c.textMuted, fontSize = 9.sp)
+                RatesText("—", color = c.textMuted, fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable private fun BoardTable(title: String, subtitle: String, rows: List<BoardRow>, coins: Boolean,
+    compact: Boolean, state: WorkspaceState, board: DesktopRatesBoardState, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
     BoardCard(Modifier.fillMaxWidth().testTag(if (coins) "rates-coins" else "rates-gold-currency")) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(36.dp).background(c.goldContainer,RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) { Icon(if (coins) Icons.Outlined.StarOutline else Icons.Outlined.Paid,null,Modifier.size(21.dp),tint = c.goldPrimary) }
-            Column(Modifier.weight(1f)) {
-                Text(title, Modifier.semantics { heading() }, color = c.textMain, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(subtitle,color = c.textMuted,fontSize = 11.sp)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(38.dp).background(c.goldContainer, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Icon(if (coins) Icons.Outlined.StarOutline else Icons.Outlined.Paid, null, Modifier.size(23.dp), tint = c.goldPrimary)
             }
-            if (!compact) Text(if (coins) "عیار استاندارد: ۹۰۰" else "قیمت‌ها: تومان / دلار", color = c.textMuted, fontSize = 10.sp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                RatesText(title, Modifier.semantics { heading() }, color = c.textMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                RatesText(subtitle, color = c.textMuted, fontSize = 11.sp)
+            }
+            if (!compact) Surface(color = c.surfaceElevated.copy(alpha = .7f), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(.6.dp, c.border.copy(alpha = .08f))) {
+                RatesText(if (coins) "عیار استاندارد مسکوکات: ۹۰۰ (۲۱٫۶)" else "واحد قیمت‌ها: تومان رسمی",
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = c.textMuted, fontSize = 10.sp)
+            }
         }
-        if (!compact) Row(Modifier.fillMaxWidth().background(c.surfaceElevated.copy(alpha = .6f)).padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TableHeading(if (coins) "نام مسکوک" else "نماد و شاخص", 2.5f)
-            TableHeading(if (coins) "نرخ فروش / اعلامی" else "نرخ لحظه‌ای",1.5f)
-            TableHeading(if (coins) "نرخ خرید" else "تغییر روزانه",1.25f)
-            TableHeading(if (coins) "نوسان روز" else "کمینه / بیشینه",1.4f)
-            TableHeading(if (coins) "حباب محاسبه شده" else "اسپرد",1.2f)
-            TableHeading(if (coins) "حباب درصد" else "روند روز",.9f)
-            TableHeading("عملیات",1.1f)
+        if (!compact) Row(Modifier.fillMaxWidth().background(c.surfaceElevated.copy(alpha = .35f))
+            .padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (coins) {
+                TableHeading("نام مسکوک", 3.1f)
+                TableHeading("نرخ اعلامی (تومان)", 1.5f)
+                TableHeading("نرخ خرید (تومان)", 1.4f)
+                TableHeading("نوسان روز", 1.65f)
+                TableHeading("حباب سکه (مبلغ و درصد)", 1.6f)
+                TableHeading("عملیات", 1f)
+            } else {
+                TableHeading("نماد و شاخص", 2.9f)
+                TableHeading("نرخ لحظه‌ای (تومان)", 1.5f)
+                TableHeading("تغییر روزانه", 1.55f)
+                TableHeading("کمینه / بیشینه روز", 1.65f)
+                TableHeading("نمودار روند", .85f)
+                TableHeading("عملیات", 1.05f)
+            }
         }
         rows.forEach { row ->
-            HorizontalDivider(color = c.goldBorder.copy(alpha = .12f), thickness = .6.dp)
-            if (compact) CompactQuote(row,state,onDetail,onCalculator) else TableQuote(row,coins,state,onDetail,onCalculator)
+            HorizontalDivider(color = c.border.copy(alpha = .08f), thickness = .6.dp)
+            if (compact) CompactQuote(row, state, onDetail) else TableQuote(row, coins, state, onDetail)
         }
-        HorizontalDivider(color = c.goldBorder.copy(alpha = .12f), thickness = .6.dp)
-        Column(Modifier.fillMaxWidth().background(c.surfaceElevated.copy(alpha = .4f)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(if (coins) "حباب = نرخ سکه − (ارزش طلای خالص + حق ضرب). نرخ خرید و وضعیت تقاضا در منبع فعلی موجود نیست."
-                else "اسپرد در منبع فعلی موجود نیست. درهم و تتر از TGJU هستند؛ سایر نرخ‌ها از منبع انتخابی شما می‌آیند.", color = c.textMuted,fontSize = 10.sp)
-            Text("جزئیات روز: TGJU • ${board.snapshot?.receivedAt?.let(DesktopPortfolioPolicy::observedTime) ?: "دریافت نشده"}${if (board.cached) " • ذخیره شده" else ""} • نمودار و تغییر فقط برای نرخ همسان و داده معتبر امروز نمایش داده می‌شود.",color = c.textMuted,fontSize = 10.sp)
+        HorizontalDivider(color = c.border.copy(alpha = .08f), thickness = .6.dp)
+        TableFooter(coins, compact, state, board)
+    }
+}
+
+@Composable private fun TableFooter(coins: Boolean, compact: Boolean, state: WorkspaceState, board: DesktopRatesBoardState) {
+    val c = LocalGoldExColors.current
+    val source = if (coins) "ارزش ذاتی: طلای خالص × (انس × دلار ÷ ۳۱٫۱۰۳۵) + حق ضرب"
+        else "منبع نرخ‌ها: ${state.snapshot?.label(state.now) ?: "ناموجود"} • درهم: TGJU"
+    val metadata = if (coins) "نرخ خرید: — • ${state.snapshot?.label(state.now) ?: "ناموجود"} • ${state.snapshot?.observedAt?.let(::boardClock) ?: "—"}"
+        else "جزئیات روز و نمودار: TGJU • ${board.snapshot?.receivedAt?.let(::boardClock) ?: "دریافت نشده"}${if (board.cached) " • ذخیره‌شده" else ""}"
+    val modifier = Modifier.fillMaxWidth().background(c.surfaceElevated.copy(alpha = .25f)).padding(horizontal = 20.dp, vertical = 12.dp)
+    if (compact) Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        RatesText(source, color = c.textMuted, fontSize = RatesType.caption)
+        RatesText(metadata, color = c.textMuted, fontSize = RatesType.caption)
+    } else Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+        RatesText(source, Modifier.weight(1.4f), color = c.textMuted, fontSize = RatesType.caption)
+        RatesText(metadata, Modifier.weight(1f), color = c.textMuted, fontSize = RatesType.caption)
+    }
+}
+
+@Composable private fun RowScope.TableHeading(text: String, weight: Float) {
+    RatesText(text, Modifier.weight(weight), color = LocalGoldExColors.current.textMain,
+        fontSize = RatesType.tableHeading, fontWeight = FontWeight.Medium)
+}
+
+@Composable private fun InstrumentName(row: BoardRow, modifier: Modifier = Modifier) {
+    val c = LocalGoldExColors.current
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+        if (row.instrument.coin == null) InstrumentDot(row.instrument)
+        else {
+            val label = when (row.instrument) {
+                BoardInstrument.BAHAR -> "قدیم"; BoardInstrument.EMAMI -> "امامی"; BoardInstrument.HALF -> "نیم"
+                BoardInstrument.QUARTER -> "ربع"; else -> "گرمی"
+            }
+            val accent = if (row.instrument == BoardInstrument.EMAMI) c.goldPrimary
+                else if (row.instrument == BoardInstrument.QUARTER) c.errorRed else c.textSecondary
+            Box(Modifier.size(34.dp).background(accent.copy(alpha = .06f), CircleShape)
+                .border(.6.dp, accent.copy(alpha = .15f), CircleShape), contentAlignment = Alignment.Center) {
+                RatesText(label, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            RatesText(row.instrument.title, color = c.textMain, fontSize = RatesType.title, fontWeight = FontWeight.SemiBold)
+            RatesText(row.instrument.coin?.let { "وزن: ${PersianNumberFormatter.formatWeight(it.totalWeightGrams)} گرم | طلای ۹۰۰" }
+                ?: row.instrument.description, color = c.textMuted, fontSize = RatesType.secondary)
         }
     }
 }
 
-@Composable private fun RowScope.TableHeading(text: String, weight: Float) { Text(text, Modifier.weight(weight), color = LocalGoldExColors.current.textSecondary,fontSize = 10.sp) }
-@Composable private fun InstrumentName(row: BoardRow, modifier: Modifier = Modifier) {
+@Composable private fun TableQuote(row: BoardRow, coins: Boolean, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    Row(modifier,verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.size(if (row.instrument.coin == null) 8.dp else 30.dp).background(c.goldContainer,CircleShape),contentAlignment = Alignment.Center) {
-            if (row.instrument.coin != null) Icon(Icons.Outlined.Toll,null,Modifier.size(17.dp),tint = c.goldPrimary)
-        }
-        Column(Modifier.weight(1f),verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(row.instrument.title,color = c.textMain,fontSize = 12.sp,fontWeight = FontWeight.Bold)
-            Text(row.instrument.coin?.let { "${PersianNumberFormatter.formatWeight(it.totalWeightGrams)} گرم • عیار ۹۰۰" } ?: row.instrument.description,color = c.textMuted,fontSize = 10.sp)
+    Row(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").heightIn(min = 70.dp)
+        .padding(horizontal = 20.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        InstrumentName(row, Modifier.weight(if (coins) 3.1f else 2.9f))
+        Box(Modifier.weight(1.5f)) { InlineQuote(row, state.reduceMotion) }
+        if (coins) {
+            RatesText("—", Modifier.weight(1.4f), color = c.textMuted, fontSize = RatesType.title)
+            Box(Modifier.weight(1.65f)) { DayChange(row.daily) }
+            Column(Modifier.weight(1.6f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BubbleAmount(row)
+                BubblePercent(row)
+            }
+            Box(Modifier.weight(1f)) { QuoteAction(row, onDetail) }
+        } else {
+            Box(Modifier.weight(1.55f)) { DayChange(row.daily) }
+            RatesText("${formatBoardNumber(row.daily?.low, row.instrument.dollar)} / ${formatBoardNumber(row.daily?.high, row.instrument.dollar)}",
+                Modifier.weight(1.65f), color = c.textMuted, fontSize = RatesType.secondary, maxLines = 2)
+            Box(Modifier.weight(.85f).padding(horizontal = 4.dp)) {
+                Sparkline(row.history, row.daily?.change, Modifier.fillMaxWidth().height(24.dp))
+            }
+            Box(Modifier.weight(1.05f)) { QuoteAction(row, onDetail) }
         }
     }
 }
-@Composable private fun TableQuote(row: BoardRow, coins: Boolean, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit, onCalculator: (PriceBasisTab) -> Unit) {
-    val c = LocalGoldExColors.current
-    Row(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").padding(horizontal = 16.dp,vertical = 15.dp),verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        InstrumentName(row,Modifier.weight(2.5f))
-        Column(Modifier.weight(1.5f),verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BoardAmount(row.value,row.instrument.dollar,state.reduceMotion,size = 16)
-            Text(if (row.instrument.dollar) "دلار آمریکا" else "تومان",color = c.textMuted,fontSize = 10.sp)
-        }
-        Box(Modifier.weight(1.25f)) { if (coins) Text("—",color = c.textMuted,fontSize = 12.sp) else DayChange(row.daily) }
-        Box(Modifier.weight(1.4f)) { if (coins) DayChange(row.daily) else Column {
-            Text(formatBoardNumber(row.daily?.low,row.instrument.dollar),color = c.textMuted,fontSize = 10.sp)
-            Text(formatBoardNumber(row.daily?.high,row.instrument.dollar),color = c.textMuted,fontSize = 10.sp)
-        } }
-        Box(Modifier.weight(1.2f)) { if (coins) BubbleAmount(row) else Text("—",color = c.textMuted) }
-        Box(Modifier.weight(.9f)) { if (coins) BubblePercent(row) else Sparkline(row.history,row.daily?.change,Modifier.fillMaxWidth().height(25.dp)) }
-        Box(Modifier.weight(1.1f)) { QuoteAction(row,onDetail,onCalculator) }
+
+@Composable private fun InlineQuote(row: BoardRow, reduceMotion: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        BoardAmount(row.value, row.instrument.dollar, reduceMotion, size = 15)
+        RatesText(if (row.instrument.dollar) "دلار" else "تومان", color = LocalGoldExColors.current.textMuted, fontSize = 10.sp)
     }
 }
-@Composable private fun CompactQuote(row: BoardRow, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit, onCalculator: (PriceBasisTab) -> Unit) {
+
+@Composable private fun CompactQuote(row: BoardRow, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    Column(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").padding(16.dp),verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            InstrumentName(row,Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) { BoardAmount(row.value,row.instrument.dollar,state.reduceMotion,size = 18); Text(if (row.instrument.dollar) "دلار" else "تومان",fontSize = 10.sp,color = c.textMuted) }
+    Column(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            InstrumentName(row, Modifier.weight(1f))
+            InlineQuote(row, state.reduceMotion)
         }
-        Row(verticalAlignment = Alignment.CenterVertically,horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.weight(1f)) { DayChange(row.daily) }
-            if (row.instrument.coin != null) { BubbleAmount(row); BubblePercent(row) }
-            else Sparkline(row.history,row.daily?.change,Modifier.width(70.dp).height(25.dp))
-            QuoteAction(row,onDetail,onCalculator)
+            if (row.instrument.coin != null) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                BubbleAmount(row); BubblePercent(row)
+            } else Sparkline(row.history, row.daily?.change, Modifier.width(72.dp).height(25.dp))
+            QuoteAction(row, onDetail)
         }
+        if (row.instrument.coin == null) RatesText(
+            "کمینه: ${formatBoardNumber(row.daily?.low, row.instrument.dollar)} • بیشینه: ${formatBoardNumber(row.daily?.high, row.instrument.dollar)}",
+            color = c.textMuted, fontSize = RatesType.secondary)
+        else RatesText("نرخ خرید: —", color = c.textMuted, fontSize = RatesType.secondary)
     }
 }
 
 internal fun formatBoardNumber(value: Double?, dollar: Boolean = false): String = value?.takeIf { it.isFinite() && it > 0 }?.let {
-    if (dollar) PersianNumberFormatter.toPersianDigits(String.format(Locale.US,"%,.2f",it)) else PersianNumberFormatter.format(it.roundToLong())
+    if (dollar) PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%,.2f", it))
+    else PersianNumberFormatter.format(it.roundToLong())
 } ?: "—"
-@Composable private fun BoardAmount(value: Double?, dollar: Boolean, reduceMotion: Boolean, modifier: Modifier = Modifier, size: Int = 18) {
-    val c = LocalGoldExColors.current; val text = formatBoardNumber(value,dollar)
-    if (reduceMotion) Text(text,modifier,fontSize = size.sp,color = c.textMain,fontWeight = FontWeight.Bold,maxLines = 1)
-    else AnimatedPriceTicker(text,modifier,color = c.textMain,fontSize = size.sp,fontWeight = FontWeight.Bold)
+
+private fun signedBoardNumber(value: Double): String {
+    val sign = if (value > 0) "+" else if (value < 0) "−" else ""
+    return sign + PersianNumberFormatter.toPersianDigits(String.format(Locale.US,
+        if (abs(value) % 1.0 > .00001) "%,.2f" else "%,.0f", abs(value)))
 }
-@Composable private fun DayChange(day: BoardDayQuote?, small: Boolean = false) {
-    val c = LocalGoldExColors.current; val change = day?.change
-    if (change == null) Text("تغییر روز: —",color = c.textMuted,fontSize = if (small) 10.sp else 9.sp)
-    else {
-        val color = if (change > 0) c.marketGainText else if (change < 0) c.errorRed else c.textSecondary
-        val sign = if (change > 0) "+" else if (change < 0) "−" else ""
-        val amount = PersianNumberFormatter.toPersianDigits(String.format(Locale.US,if (abs(change) % 1.0 > .00001) "%,.2f" else "%,.0f",abs(change)))
-        val pct = day.percent?.let { " (${PersianNumberFormatter.toPersianDigits(String.format(Locale.US,"%.2f",abs(it)))}٪)" }.orEmpty()
-        Text("$sign$amount$pct",Modifier.background(color.copy(alpha = .08f),RoundedCornerShape(6.dp)).padding(horizontal = 6.dp,vertical = 5.dp),color = color,fontSize = if (small) 10.sp else 9.sp,maxLines = 2)
+
+@Composable private fun BoardAmount(value: Double?, dollar: Boolean, reduceMotion: Boolean, modifier: Modifier = Modifier, size: Int = 18) {
+    val c = LocalGoldExColors.current
+    val text = formatBoardNumber(value, dollar)
+    if (reduceMotion) RatesText(text, modifier.clipToBounds(), fontSize = size.sp, color = c.textMain,
+        fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+    else AnimatedPriceTicker(text, modifier.clipToBounds(), color = c.textMain, fontSize = size.sp, fontWeight = FontWeight.Black)
+}
+
+@Composable private fun changeColor(value: Double?): Color {
+    val c = LocalGoldExColors.current
+    return if (value != null && value > 0) c.marketGainText else if (value != null && value < 0) c.errorRed else c.textMuted
+}
+
+@Composable private fun PercentChange(day: BoardDayQuote?) {
+    val color = changeColor(day?.change)
+    Row(Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        day?.percent?.takeIf { it != 0.0 }?.let {
+            Icon(if (it < 0) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowUp, null, Modifier.size(12.dp))
+        }
+        RatesText(day?.percent?.let { "${signedBoardNumber(it)}٪" } ?: "—", color = color, fontSize = 9.sp, maxLines = 1, textDirection = TextDirection.Ltr)
     }
 }
+
+@Composable private fun DayChange(day: BoardDayQuote?, small: Boolean = false) {
+    val c = LocalGoldExColors.current
+    val change = day?.change
+    if (change == null) RatesText("—", color = c.textMuted, fontSize = RatesType.secondary)
+    else if (change == 0.0) Surface(color = c.surfaceElevated, shape = RoundedCornerShape(6.dp), border = c.hairlineBorder) {
+        RatesText("بدون نوسان", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            color = c.textSecondary, fontSize = RatesType.caption)
+    } else {
+        val color = changeColor(change)
+        Row(Modifier.background(color.copy(alpha = .06f), RoundedCornerShape(6.dp))
+            .border(.6.dp, color.copy(alpha = .2f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Icon(if (change < 0) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowUp, null,
+                Modifier.size(12.dp), tint = color)
+            val pct = day.percent?.let { " (${signedBoardNumber(it)}٪)" }.orEmpty()
+            RatesText("${signedBoardNumber(change)}$pct", color = color, fontSize = if (small) 9.sp else RatesType.caption,
+                fontWeight = FontWeight.Medium, maxLines = 2, textDirection = TextDirection.Ltr)
+        }
+    }
+}
+
 @Composable private fun BubbleAmount(row: BoardRow) {
     val c = LocalGoldExColors.current
-    val value = DesktopRatesBoardPolicy.bubbleAmount(row)
-    Text(value?.let { "${PersianNumberFormatter.format(it)}\nتومان" } ?: "—",color = if ((value ?: 0) < 0) c.marketGainText else c.goldPrimary,fontSize = 10.sp)
+    RatesText(DesktopRatesBoardPolicy.bubbleAmount(row)?.let { "${PersianNumberFormatter.format(it)} تومان" } ?: "—",
+        color = if ((row.bubble?.bubbleAmount ?: 0.0) < 0) c.marketGainText else c.goldPrimary,
+        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
 }
+
 @Composable private fun BubblePercent(row: BoardRow) {
     val c = LocalGoldExColors.current
-    Text(row.bubble?.let { PersianNumberFormatter.toPersianDigits(String.format(Locale.US,"%.2f٪",it.bubblePercent)) } ?: "—",color = c.textSecondary,fontSize = 10.sp)
+    val percent = row.bubble?.bubblePercent
+    // The existing Android coin UI marks >18% as high; retain that visual cue without investment-risk claims.
+    val high = percent != null && percent > 18.0
+    val color = if (high) c.errorRed else if (percent != null && percent < 0) c.marketGainText else c.goldPrimary
+    RatesText(percent?.let {
+        PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f٪", it)) + if (high) " (حباب بالا)" else ""
+    } ?: "—", Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(4.dp))
+        .padding(horizontal = 6.dp, vertical = 3.dp), color = color, fontSize = 9.sp, maxLines = 1)
 }
-private fun basis(row: BoardRow) = when (row.instrument) { BoardInstrument.GOLD18 -> PriceBasisTab.K18; BoardInstrument.GOLD24 -> PriceBasisTab.K24; BoardInstrument.MELT -> PriceBasisTab.MESGHAL; else -> null }
-@Composable private fun QuoteAction(row: BoardRow, onDetail: (BoardInstrument) -> Unit, onCalculator: (PriceBasisTab) -> Unit) {
+
+private fun basis(row: BoardRow) = when (row.instrument) {
+    BoardInstrument.GOLD18 -> PriceBasisTab.K18
+    BoardInstrument.GOLD24 -> PriceBasisTab.K24
+    BoardInstrument.MELT -> PriceBasisTab.MESGHAL
+    else -> null
+}
+
+@Composable private fun QuoteAction(row: BoardRow, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    TextButton(onClick = { onDetail(row.instrument) }, modifier = Modifier.testTag("rate-detail-${row.instrument.name}"), contentPadding = PaddingValues(horizontal = 8.dp,vertical = 4.dp), colors = ButtonDefaults.textButtonColors(contentColor = c.textMain)) {
-        Text(if (basis(row) != null) "جزئیات و\nمحاسبه" else "جزئیات",fontSize = 10.sp)
+    Button(onClick = { onDetail(row.instrument) }, modifier = Modifier.height(32.dp).testTag("rate-detail-${row.instrument.name}"),
+        shape = ButtonShape, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = c.surfaceElevated.copy(alpha = .7f), contentColor = c.textMain),
+        elevation = ButtonDefaults.buttonElevation(0.dp), border = null) {
+        RatesText("جزئیات", fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
+
+@Composable private fun RatesText(text: String, modifier: Modifier = Modifier, color: Color = LocalGoldExColors.current.textMain,
+    fontSize: TextUnit = RatesType.secondary, fontWeight: FontWeight? = null, maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip, softWrap: Boolean = true, lineHeight: TextUnit = fontSize * 1.4f,
+    textDirection: TextDirection = TextDirection.ContentOrRtl) {
+    Text(text, modifier, color = color, fontSize = fontSize, fontWeight = fontWeight, maxLines = maxLines,
+        overflow = overflow, softWrap = softWrap, lineHeight = lineHeight, style = LocalTextStyle.current.copy(textDirection = textDirection))
+}
+
 @Composable private fun Sparkline(values: List<Double>, change: Double?, modifier: Modifier) {
     val c = LocalGoldExColors.current; val color = if ((change ?: 0.0) < 0) c.errorRed else c.marketGainText
     if (values.size < 2) Box(modifier,contentAlignment = Alignment.Center) { Text("—",color = c.textMuted,fontSize = 12.sp) }

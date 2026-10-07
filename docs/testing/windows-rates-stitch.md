@@ -1,5 +1,7 @@
 # Windows rates page verification
 
+This records the original 2026-10-07 implementation and its historical verification. The 2026-10-08 header/table refinements, removed controls/columns and updated UI tests are documented in [windows-rates-refinements.md](windows-rates-refinements.md).
+
 Issue #259 preceded source changes. The user requested an isolated worktree, no version bump/release, and merge after successful tests. Scope is Windows rates; the concurrently edited dashboard screen is unchanged.
 
 The two supplied screenshots are the design source. Stitch hosted downloads redirected to Google login; they were not treated as images or code. Android LiveRatesScreen was inspected for navigation, gold basis, categories and details. Demo/fallback prices and synthetic statistics were not copied.
