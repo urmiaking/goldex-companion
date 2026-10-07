@@ -6,7 +6,7 @@ Windows follows Stitch screen de1138f22c2a4069af9bd7c248a65a36 (project 91222110
 
 ## Decision
 
-DesktopRatesBoard owns immutable reference state, bounded refresh and offline fallback. DesktopRatesBoardRepository reads TGJU current quotes and intraday tables with three concurrent history requests, IO dispatch, explicit headers and byte/time limits. Refresh occurs on entering the rates page and every five minutes while it is open and automatic rates are enabled. Explicit refresh updates selected rates and references. Dashboard history and shared source are unchanged.
+DesktopRatesBoard owns immutable reference state, bounded refresh and offline fallback. DesktopRatesBoardRepository reads TGJU current quotes and intraday tables with three concurrent history requests, IO dispatch, explicit headers and byte/time limits. Refresh occurs on entering the rates page and every five minutes while it is open and automatic rates are enabled. The subscription runs in the workspace scope and is cancelled when the page closes. Page, shell and Ctrl+R refresh routes update selected rates and references on this destination. Dashboard history and shared source are unchanged.
 
 Existing instruments use the selected snapshot. AED and USDT are independent TGJU references with their own source/time. Daily statistics and history for existing instruments require matching TGJU price, non-manual snapshot and today's Tehran data. Missing values remain unavailable; history fallback retains its original timestamp and is limited to the same day. Bid prices, spread and demand are unavailable rather than inferred. Coin bubbles reuse GoldCalculationUseCases.calculateCoinBubble including pure weights and mint fees. They are calculated metrics, not recommendations.
 

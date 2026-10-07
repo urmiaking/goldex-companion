@@ -166,6 +166,7 @@ class DesktopWorkspace(
     fun refreshRates(): Job {
         if (state.value.refreshing) return scope.launch { }
         mutable.update { it.copy(refreshing = true, error = null, notice = null) }
+        if (state.value.destination == DesktopDestination.RATES) ratesBoard.refresh(force = true)
         return scope.launch {
             try {
                 if (market.currentSource.value != state.value.settings.priceSource) market.setSource(state.value.settings.priceSource) else market.refreshRates()

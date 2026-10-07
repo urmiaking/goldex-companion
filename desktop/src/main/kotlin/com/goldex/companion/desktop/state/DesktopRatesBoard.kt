@@ -21,7 +21,7 @@ class DesktopRatesBoard(private val gateway: DesktopRatesBoardGateway, private v
     /** The screen owns this subscription; scheduling stays on the workspace scope, away from Compose's frame clock. */
     fun observe(autoRefresh: Boolean): Job = scope.launch {
         refresh()
-        if (autoRefresh) while (isActive) { delay(300_000); refresh() }
+        if (autoRefresh) while (isActive) { delay(300_000); refresh(force = true) }
     }
     @Synchronized fun refresh(force: Boolean = false) {
         if (request?.isActive == true) return

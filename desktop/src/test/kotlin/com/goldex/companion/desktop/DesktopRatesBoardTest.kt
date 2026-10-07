@@ -94,4 +94,26 @@ class DesktopRatesBoardTest {
         } finally { scope.cancel() }
         Unit
     }
+
+    @Test fun workspaceRefreshUpdatesBoardOnlyWhileRatesAreOpen() = runBlocking {
+        DesktopDataStore(temporary.newFolder().toPath()).use { store ->
+            val calls = java.util.concurrent.atomic.AtomicInteger()
+            val quote = BoardSnapshot(now,DesktopRatesBoardRepository.decodeCurrent(current))
+            val gateway = object : DesktopRatesBoardGateway {
+                override fun cached(): BoardSnapshot? = null
+                override suspend fun load(previous: BoardSnapshot?): BoardSnapshot { calls.incrementAndGet(); return quote }
+            }
+            val market = DesktopMarketRepository(store,fetch = { DesktopMarketRepository.emptyRates().copy(gold18=6_000_000) })
+            DesktopWorkspace(store,market,ratesBoardGateway=gateway).use { workspace ->
+                workspace.navigate(DesktopDestination.RATES)
+                workspace.refreshRates().join()
+                withTimeout(5000) { while (calls.get() == 0) delay(10) }
+                assertEquals(1,calls.get())
+                workspace.navigate(DesktopDestination.SETTINGS)
+                workspace.refreshRates().join()
+                assertEquals(1,calls.get())
+            }
+        }
+        Unit
+    }
 }

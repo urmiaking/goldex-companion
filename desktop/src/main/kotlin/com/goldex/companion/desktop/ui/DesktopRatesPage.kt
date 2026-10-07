@@ -50,7 +50,7 @@ import kotlin.math.roundToLong
             val compact = maxWidth < 940.dp
             val columns = if (maxWidth < 800.dp) 2 else 4
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                RatesWelcome(state, board, compact, onRefresh = { workspace.refreshRates(); workspace.ratesBoard.refresh(true) }, onManual = { manual = true })
+                RatesWelcome(state, board, compact, onRefresh = { workspace.refreshRates() }, onManual = { manual = true })
                 val featured = listOf(BoardInstrument.GOLD18, BoardInstrument.MELT, BoardInstrument.OUNCE, BoardInstrument.EMAMI).map { key -> rows.first { it.instrument == key } }
                 featured.chunked(columns).forEach { group ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { group.forEach { row ->
