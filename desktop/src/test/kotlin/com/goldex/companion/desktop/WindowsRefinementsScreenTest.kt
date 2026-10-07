@@ -30,7 +30,7 @@ class WindowsRefinementsScreenTest {
         store = DesktopDataStore(temporary.newFolder().toPath())
         store.saveInventoryVisible(true)
         store.saveMarket(MarketSnapshot(DesktopMarketRepository.emptyRates().copy(gold18 = 6_000_000), 100_000, QuoteKind.ONLINE))
-        repeat(14) { index -> store.inventory.addItem(InventoryItem(id = "item-$index", code = "RNG-$index", title = "حلقهٔ طلای آوا ${index + 1}", grossWeightGrams = 4.125, stoneWeightGrams = .125, quantity = 3, location = "سینی ویترین اصلی")) }
+        repeat(14) { index -> store.inventory.addItem(InventoryItem(id = "item-$index", code = "RNG-$index", title = "حلقه طلای آوا ${index + 1}", grossWeightGrams = 4.125, stoneWeightGrams = .125, quantity = 3, location = "سینی ویترین اصلی")) }
         workspace = DesktopWorkspace(store, DesktopMarketRepository(store, { error("offline fixture") }), history = DesktopGoldHistoryGateway { error("offline") })
     }
     @After fun close() { updater?.close(); workspace.close(); store.close() }

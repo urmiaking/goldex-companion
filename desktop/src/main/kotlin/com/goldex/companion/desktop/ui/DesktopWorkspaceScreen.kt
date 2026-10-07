@@ -66,9 +66,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             Text(state.destination.title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
                             Text(state.destination.subtitle, color = colors.textMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        QuoteStatus(state)
+                        ConnectionChip(state)
                         if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
-                        IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
+                        if (!state.settings.autoSyncRates) IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
                             if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
                             else Icon(Icons.Outlined.Refresh, "دریافت آنلاین نرخ‌ها", tint = colors.goldPrimary)
                         }
@@ -112,7 +112,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
         state.pendingDelete?.let { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
-                title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخهٔ قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
+                title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخه قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
                 confirmButton = {
                     Row(Modifier.width(330.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         GoldButton("انصراف", { workspace.requestDelete(null) }, Modifier.weight(1f), isSecondary = true, enabled = !state.saving)
@@ -163,19 +163,18 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
             HorizontalDivider(color = colors.border)
             GoldButton(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() }, Modifier.fillMaxWidth().testTag("workspace-theme"), isSecondary = true, enabled = !state.saving)
             Text(if (compact) "این رایانه" else "اطلاعات روی این رایانه ذخیره می‌شود", color = colors.textMuted, fontSize = 10.sp, maxLines = 2)
-            Text("نسخهٔ ${PersianNumberFormatter.toPersianDigits(version)}", color = colors.textMuted, fontSize = 11.sp)
+            Text("نسخه ${PersianNumberFormatter.toPersianDigits(version)}", color = colors.textMuted, fontSize = 11.sp)
         }
     }
 }
 
-@Composable private fun QuoteStatus(state: WorkspaceState) {
+@Composable private fun ConnectionChip(state: WorkspaceState) {
     val colors = LocalGoldExColors.current
-    val snapshot = state.snapshot
-    val fresh = snapshot?.isFresh(state.now) == true
-    val color = if (fresh) colors.profitGreen else colors.syncWarning
-    Row(Modifier.background(color.copy(alpha = 0.08f), RoundedCornerShape(24.dp)).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+    val online = state.connection == com.goldex.companion.data.ConnectionStatus.ONLINE
+    val color = if (online) colors.marketGainText else colors.textMuted
+    Row(Modifier.testTag("connection-chip").background(color.copy(alpha = 0.08f), RoundedCornerShape(24.dp)).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(6.dp).background(color, RoundedCornerShape(3.dp)))
-        Text(snapshot?.label(state.now) ?: "بدون نرخ", color = color, fontSize = 11.sp, maxLines = 1)
+        Text(if (online) "آنلاین" else "آفلاین", color = color, fontSize = 11.sp, maxLines = 1)
     }
 }
 
@@ -236,7 +235,7 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
             LuxuryCard(modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Outlined.AccountBalanceWallet, null, Modifier.size(36.dp), tint = colors.goldPrimary)
                 PageTitle(if (state.assets.rows.isEmpty()) "دارایی‌های شما از اینجا شروع می‌شود" else "دارایی مطابق جست‌وجو پیدا نشد")
-                Text(if (state.assets.rows.isEmpty()) "قطعهٔ طلا، شمش یا سکه را همراه با مبلغ خرید ثبت کنید؛ ارزش روز با نرخ‌های موجود محاسبه می‌شود." else "نام کوتاه‌تر را جست‌وجو یا فیلتر را تغییر دهید.", color = colors.textMuted, fontSize = 13.sp)
+                Text(if (state.assets.rows.isEmpty()) "قطعه طلا، شمش یا سکه را همراه با مبلغ خرید ثبت کنید؛ ارزش روز با نرخ‌های موجود محاسبه می‌شود." else "نام کوتاه‌تر را جست‌وجو یا فیلتر را تغییر دهید.", color = colors.textMuted, fontSize = 13.sp)
             }
         } else {
             Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -314,7 +313,7 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
         }, confirmButton = {
             Row(Modifier.width(350.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GoldButton("انصراف", workspace::dismissAsset, Modifier.weight(1f), isSecondary = true, enabled = !saving)
-                GoldButton(if (saving) "در حال ذخیره" else "ذخیرهٔ دارایی", { workspace.saveAsset() }, enabled = !saving, modifier = Modifier.weight(1.3f).testTag("save-asset"))
+                GoldButton(if (saving) "در حال ذخیره" else "ذخیره دارایی", { workspace.saveAsset() }, enabled = !saving, modifier = Modifier.weight(1.3f).testTag("save-asset"))
             }
         })
 }

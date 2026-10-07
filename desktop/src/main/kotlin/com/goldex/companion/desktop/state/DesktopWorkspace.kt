@@ -11,7 +11,7 @@ import java.nio.file.Path
 
 enum class DesktopDestination(val title: String, val subtitle: String) {
     DASHBOARD("پیشخوان", "موجودی ویترین و گاوصندوق و نبض بازار"),
-    CALCULATOR("ماشین‌حساب", "محاسبهٔ طلا با نرخ انتخابی شما"),
+    CALCULATOR("ماشین‌حساب", "محاسبه طلا با نرخ انتخابی شما"),
     RATES("تابلوی نرخ‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
     PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
     SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات"),
@@ -35,6 +35,7 @@ data class WorkspaceState(
     val settings: AppSettings = AppSettings(), val settingsDraft: AppSettings? = null, val dark: Boolean = false,
     val reduceMotion: Boolean = false,
     val snapshot: MarketSnapshot? = null, val now: Long = System.currentTimeMillis(),
+    val connection: ConnectionStatus = ConnectionStatus.OFFLINE,
     val assets: PortfolioProjection = DesktopPortfolioPolicy.project(emptyList(), null),
     val query: String = "", val categoryFilter: PortfolioCategory? = null,
     val draft: PortfolioDraft? = null, val pendingDelete: PortfolioItem? = null,
@@ -54,7 +55,8 @@ class DesktopWorkspace(
     private val storage: DesktopDataStore,
     private val market: DesktopMarketGateway,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-    history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository()
+    history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository(),
+    private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope)
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val inventory = DesktopInventory(storage, scope)
@@ -67,6 +69,7 @@ class DesktopWorkspace(
     val state = mutable.asStateFlow()
 
     init {
+        scope.launch { connectivity.status.collect { connection -> mutable.update { it.copy(connection = connection) } } }
         scope.launch {
             market.snapshot.collect { quote ->
                 inventory.quote(quote?.rates?.gold18 ?: 0)
@@ -77,6 +80,7 @@ class DesktopWorkspace(
     }
 
     fun start() = scope.launch {
+        (connectivity as? WindowsConnectivityObserver)?.start()
         dashboard.select(dashboard.state.value.horizon)
         if (state.value.settings.autoSyncRates && state.value.snapshot?.kind != QuoteKind.MANUAL) refreshRates().join()
         while (isActive) {
@@ -110,7 +114,7 @@ class DesktopWorkspace(
         if (state.value.saving) return null
         val errors = DesktopPortfolioPolicy.validate(draft)
         if (errors.isNotEmpty()) { mutable.update { it.copy(draft = draft.copy(errors = errors)) }; return null }
-        return operation("ذخیرهٔ دارایی انجام نشد؛ فضای دیسک و دسترسی پوشه را بررسی کنید") {
+        return operation("ذخیره دارایی انجام نشد؛ فضای دیسک و دسترسی پوشه را بررسی کنید") {
             portfolio.addItem(DesktopPortfolioPolicy.toItem(draft))
             mutable.update { it.copy(draft = null, notice = "دارایی ذخیره شد", assets = DesktopPortfolioPolicy.project(portfolio.getItems(), it.snapshot?.rates)) }
         }
@@ -145,7 +149,7 @@ class DesktopWorkspace(
             val previous = state.value.settings
             preferences.saveSettings(normalized)
             calculator.updateDefaults(normalized)
-            mutable.update { it.copy(settings = normalized, settingsDraft = null, notice = "تنظیمات ذخیره شد؛ پیش‌فرض‌ها برای محاسبهٔ جدید اعمال می‌شوند") }
+            mutable.update { it.copy(settings = normalized, settingsDraft = null, notice = "تنظیمات ذخیره شد؛ پیش‌فرض‌ها برای محاسبه جدید اعمال می‌شوند") }
             if (previous.priceSource != normalized.priceSource && state.value.snapshot?.kind != QuoteKind.MANUAL) {
                 mutable.update { it.copy(refreshing = true) }
                 try { market.setSource(normalized.priceSource) } catch (failure: CancellationException) { throw failure }

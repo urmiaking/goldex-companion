@@ -107,7 +107,7 @@ private fun launchWorkspace() {
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
                 if (confirmClose) CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val busy = state?.saving == true || inventoryState?.saving == true
-                    AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیرهٔ اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
+                    AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیره اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
                         text = { Text(if (busy) "پس از پایان عملیات می‌توانید برنامه را ببندید." else "فرم باز یا تنظیمات ویرایش‌شده ذخیره نشده‌اند. پیش از خروج، آن‌ها را ذخیره کنید.") },
                         confirmButton = { Row(Modifier.width(380.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             GoldButton("بازگشت به برنامه", { confirmClose = false }, Modifier.weight(1f), isSecondary = true)
@@ -116,7 +116,7 @@ private fun launchWorkspace() {
                 }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
                     onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
-                    FileDialog(window, "ذخیرهٔ فایل پشتیبان", FileDialog.SAVE).apply {
+                    FileDialog(window, "ذخیره فایل پشتیبان", FileDialog.SAVE).apply {
                         file = "Qirato-backup-${java.time.LocalDate.now()}.json"
                         isVisible = true
                         if (file != null && this.directory != null) workspace.exportBackup(Path.of(this.directory, file))
@@ -126,8 +126,8 @@ private fun launchWorkspace() {
                     Surface(color = LocalGoldExColors.current.background) {
                         Column(Modifier.fillMaxSize().padding(48.dp), verticalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("اطلاعات قابل بازکردن نیست", style = MaterialTheme.typography.headlineMedium)
-                            Text("اگر برنامه در پنجرهٔ دیگری باز است، آن را ببندید. فایل اصلی و پشتیبان شما حفظ شده‌اند؛ برای بررسی یا بازیابی، پوشهٔ اطلاعات را باز کنید.")
-                            GoldButton("بازکردن پوشهٔ اطلاعات", { Desktop.getDesktop().open(directory.toFile()) }, isSecondary = true)
+                            Text("اگر برنامه در پنجره دیگری باز است، آن را ببندید. فایل اصلی و پشتیبان شما حفظ شده‌اند؛ برای بررسی یا بازیابی، پوشه اطلاعات را باز کنید.")
+                            GoldButton("بازکردن پوشه اطلاعات", { Desktop.getDesktop().open(directory.toFile()) }, isSecondary = true)
                             GoldButton("بستن", { exitApplication() })
                         }
                     }

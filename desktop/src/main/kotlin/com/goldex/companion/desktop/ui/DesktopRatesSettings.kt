@@ -22,7 +22,7 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.*
 import kotlinx.coroutines.launch
 
-private val rateLabels = listOf("طلای ۱۸ عیار", "طلای ۲۴ عیار", "مظنهٔ آبشده", "سکهٔ امامی", "سکهٔ بهار آزادی", "نیم سکه", "ربع سکه", "سکهٔ گرمی", "دلار آزاد")
+private val rateLabels = listOf("طلای ۱۸ عیار", "طلای ۲۴ عیار", "مظنه آبشده", "سکه امامی", "سکه بهار آزادی", "نیم سکه", "ربع سکه", "سکه گرمی", "دلار آزاد")
 private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rates.goldMelt, rates.coinEmami, rates.coinBahar, rates.coinHalf, rates.coinQuarter, rates.coinGerami, rates.usd)
 
 @Composable internal fun RatesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
@@ -115,7 +115,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                             DesktopField(draft.defaultTaxPercent, { value -> workspace.editSettings { it.copy(defaultTaxPercent = value) } }, "مالیات (٪)", Modifier.weight(1f).testTag("settings-tax"), numeric = true)
                         }
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
-                        Text("محاسبهٔ در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
+                        Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
                     }
                     LuxuryCard {
                         PageTitle("دریافت نرخ‌ها")
@@ -134,18 +134,18 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, enabled = dirty && !state.saving)
-            GoldButton(if (state.saving) "در حال ذخیره" else "ذخیرهٔ تنظیمات", { workspace.saveSettings(draft) }, Modifier.weight(1f).testTag("save-settings"), enabled = dirty && !state.saving, icon = Icons.Outlined.Save)
+            GoldButton(if (state.saving) "در حال ذخیره" else "ذخیره تنظیمات", { workspace.saveSettings(draft) }, Modifier.weight(1f).testTag("save-settings"), enabled = dirty && !state.saving, icon = Icons.Outlined.Save)
         }
         if (state.assets.rows.isNotEmpty()) LuxuryCard {
             PageTitle("سبد قبلی")
             Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
-            GoldButton("مشاهدهٔ سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
+            GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
         }
         LuxuryCard {
             PageTitle("پشتیبان اطلاعات")
-            Text("کالاها، گردش موجودی، تنظیمات و آخرین نرخ‌ها روی همین رایانه نگهداری می‌شوند. یک نسخهٔ پشتیبان در محل دلخواه ذخیره کنید و آن را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 13.sp)
+            Text("کالاها، گردش موجودی، تنظیمات و آخرین نرخ‌ها روی همین رایانه نگهداری می‌شوند. یک نسخه پشتیبان در محل دلخواه ذخیره کنید و آن را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 13.sp)
             Text("اطلاعات گوشی و حساب ابری به‌صورت خودکار به این نسخه منتقل نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
-            GoldButton("ذخیرهٔ فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
+            GoldButton("ذخیره فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
         }
         if (updater != null) WindowsUpdateCard(updater, version)
         LuxuryCard {

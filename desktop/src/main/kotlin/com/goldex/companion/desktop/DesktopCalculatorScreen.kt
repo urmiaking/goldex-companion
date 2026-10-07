@@ -57,7 +57,7 @@ fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, sho
             if (showHeader) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("قیراط", style = MaterialTheme.typography.headlineLarge, color = colors.goldPrimary, fontWeight = FontWeight.Bold)
-                    Text("ماشین‌حساب طلا • نسخهٔ ویندوز", color = colors.textSecondary, fontSize = 14.sp)
+                    Text("ماشین‌حساب طلا • نسخه ویندوز", color = colors.textSecondary, fontSize = 14.sp)
                 }
                 GoldButton(
                     text = if (dark) "حالت روز" else "حالت شب",
@@ -87,7 +87,7 @@ fun DesktopCalculatorScreen(calculator: ManualGoldCalculator, dark: Boolean, sho
                     }
                 }
             }
-            Text(if (rateState?.automatic == true) "محاسبه با نرخ انتخابی بازار • مبالغ به تومان" else "محاسبه با نرخ واردشدهٔ شما • مبالغ به تومان", color = colors.textMuted, fontSize = 12.sp)
+            Text(if (rateState?.automatic == true) "محاسبه با نرخ انتخابی بازار • مبالغ به تومان" else "محاسبه با نرخ واردشده شما • مبالغ به تومان", color = colors.textMuted, fontSize = 12.sp)
         }
     }
 }
@@ -186,7 +186,7 @@ private fun ResultPanel(state: ManualGoldCalculatorState) {
     val colors = LocalGoldExColors.current
     val result = state.result
     LuxuryCard(backgroundColor = colors.surfaceElevated) {
-        PanelTitle("خلاصهٔ محاسبه")
+        PanelTitle("خلاصه محاسبه")
         Text("مبلغ نهایی", color = colors.textSecondary, fontSize = 14.sp)
         AnimatedPriceTicker(
             text = result?.let { PersianNumberFormatter.formatPrice(it.totalPayable) } ?: "—",

@@ -45,7 +45,7 @@ class DesktopDashboard(private val gateway: DesktopGoldHistoryGateway,
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { synchronized(this@DesktopDashboard) {
                 if (generation.get() == ticket) mutable.update { it.copy(loading = false,
-                    error = "تاریخچهٔ تازه دریافت نشد؛ اتصال اینترنت را بررسی و دوباره تلاش کنید.") }
+                    error = "تاریخچه تازه دریافت نشد؛ اتصال اینترنت را بررسی و دوباره تلاش کنید.") }
             } }
         }
     }
