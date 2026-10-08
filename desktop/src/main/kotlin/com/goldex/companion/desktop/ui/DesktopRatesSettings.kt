@@ -51,7 +51,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         })
 }
 
-@Composable internal fun SettingsPage(state: WorkspaceState, workspace: DesktopWorkspace, onBackup: () -> Unit, updater: WindowsUpdater? = null, version: String = "") {
+@Composable internal fun SettingsPage(state: WorkspaceState, workspace: DesktopWorkspace, onBackup: () -> Unit) {
     val draft = state.settingsDraft ?: state.settings
     val colors = LocalGoldExColors.current
     val dirty = draft != state.settings
@@ -60,12 +60,12 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             val profile: @Composable () -> Unit = {
                 LuxuryCard {
                     PageTitle("مشخصات گالری")
-                    DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"))
-                    DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر")
-                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
-                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii)
-                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii)
-                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false)
+                    DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
+                    DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
+                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone, adornment = Icons.Outlined.Phone)
+                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Badge)
+                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Verified)
+                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false, adornment = Icons.Outlined.LocationOn)
                 }
             }
             val preferences: @Composable () -> Unit = {
@@ -73,8 +73,8 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                     LuxuryCard {
                         PageTitle("پیش‌فرض‌های محاسبه")
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            DesktopField(draft.defaultProfitPercent, { value -> workspace.editSettings { it.copy(defaultProfitPercent = value) } }, "سود (٪)", Modifier.weight(1f).testTag("settings-profit"), numeric = true)
-                            DesktopField(draft.defaultTaxPercent, { value -> workspace.editSettings { it.copy(defaultTaxPercent = value) } }, "مالیات (٪)", Modifier.weight(1f).testTag("settings-tax"), numeric = true)
+                            DesktopField(draft.defaultProfitPercent, { value -> workspace.editSettings { it.copy(defaultProfitPercent = value) } }, "سود", Modifier.weight(1f).testTag("settings-profit"), numeric = true, unit = "٪")
+                            DesktopField(draft.defaultTaxPercent, { value -> workspace.editSettings { it.copy(defaultTaxPercent = value) } }, "مالیات", Modifier.weight(1f).testTag("settings-tax"), numeric = true, unit = "٪")
                         }
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
                         Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
@@ -82,11 +82,8 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                     LuxuryCard {
                         PageTitle("دریافت نرخ‌ها")
                         ChoiceField("منبع ترجیحی", draft.priceSource, PriceSource.values().toList(), { it.labelFa }) { value -> workspace.editSettings { it.copy(priceSource = value) } }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("دریافت خودکار", Modifier.weight(1f), color = colors.textSecondary, fontSize = 13.sp)
-                            Switch(draft.autoSyncRates, { value -> workspace.editSettings { it.copy(autoSyncRates = value) } }, colors = SwitchDefaults.colors(checkedTrackColor = colors.goldPrimary))
-                        }
-                        Text("نرخ دستی تا انتخاب «دریافت آنلاین» حفظ می‌شود.", color = colors.textMuted, fontSize = 11.sp)
+                        Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 12.sp)
+
                     }
                 }
             }
@@ -103,19 +100,23 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
             GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
         }
-        LuxuryCard {
-            PageTitle("پشتیبان اطلاعات")
-            Text("کالاها، گردش موجودی، تنظیمات و آخرین نرخ‌ها روی همین رایانه نگهداری می‌شوند. یک نسخه پشتیبان در محل دلخواه ذخیره کنید و آن را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 13.sp)
-            Text("اطلاعات گوشی و حساب ابری به‌صورت خودکار به این نسخه منتقل نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
-            GoldButton("ذخیره فایل پشتیبان", onBackup, isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
-        }
-        if (updater != null) WindowsUpdateCard(updater, version)
-        LuxuryCard {
-            PageTitle("حرکت رابط")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("کاهش حرکت صفحات و نمودار", Modifier.weight(1f), color = colors.textSecondary, fontSize = 13.sp)
-                Switch(state.reduceMotion, { workspace.setReduceMotion(it) }, enabled = !state.saving,
-                    modifier = Modifier.testTag("reduce-motion"), colors = SwitchDefaults.colors(checkedTrackColor = colors.goldPrimary))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-tools"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-backup")) {
+                PageTitle("پشتیبان اطلاعات")
+                Text("کالاها، گردش موجودی، تنظیمات و آخرین نرخ‌ها روی این رایانه ذخیره می‌شوند. نسخه پشتیبان را در جای مطمئن نگه دارید.", color = colors.textSecondary, fontSize = 12.sp)
+                Text("اطلاعات گوشی و حساب ابری خودکار منتقل نمی‌شود.", color = colors.textMuted, fontSize = 11.sp)
+                Spacer(Modifier.weight(1f))
+                GoldButton("ذخیره فایل پشتیبان", onBackup, Modifier.fillMaxWidth().testTag("save-backup"), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.FileDownload)
+            }
+            LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-motion")) {
+                PageTitle("حرکت رابط")
+                Text("اگر حرکت کمتر را ترجیح می‌دهید، انیمیشن صفحات و نمودارها را کاهش دهید.", color = colors.textSecondary, fontSize = 12.sp)
+                Spacer(Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("کاهش حرکت", Modifier.weight(1f), color = colors.textSecondary, fontSize = 13.sp)
+                    Switch(state.reduceMotion, { workspace.setReduceMotion(it) }, enabled = !state.saving,
+                        modifier = Modifier.testTag("reduce-motion"), colors = SwitchDefaults.colors(checkedTrackColor = colors.goldPrimary))
+                }
             }
         }
     }

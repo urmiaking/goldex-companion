@@ -16,6 +16,35 @@ class DesktopCalculatorRatesTest {
     @get:Rule val temporary = TemporaryFolder()
     private fun quote(spot: Long = 6_000_000) = MarketSnapshot(DesktopMarketRepository.emptyRates().copy(gold18 = spot, gold24 = 8_123_456, goldMelt = 26_123_456), 100_000, QuoteKind.ONLINE)
 
+    @Test fun legacyDisabledPreferenceStillRefreshesStartupAndRetriesOfflineWithCacheAndDraftIntact() = runBlocking {
+        val ticks = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+        val intervals = kotlinx.coroutines.channels.Channel<Long>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+        val calls = kotlinx.coroutines.channels.Channel<Unit>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+        var succeeds = false
+        DesktopDataStore(temporary.newFolder().toPath()).use { store ->
+            store.saveSettings(store.loadSettings().copy(autoSyncRates = false))
+            store.saveMarket(quote().copy(kind = QuoteKind.CACHED))
+            val market = DesktopMarketRepository(store, fetch = { calls.trySend(Unit); if (!succeeds) error("offline"); quote(7_000_000).rates })
+            DesktopWorkspace(store, market, history = DesktopGoldHistoryGateway { error("offline") },
+                waitForNextTick = { intervals.send(it); ticks.receive() }).use { workspace ->
+                workspace.calculatorRates.setInput(CalculatorField.GROSS_WEIGHT, "2.125")
+                workspace.editSettings { it.copy(galleryName = "پیش‌نویس") }
+                workspace.start()
+                kotlinx.coroutines.withTimeout(3000) { calls.receive(); intervals.receive() }
+                assertEquals(100_000L, workspace.state.value.snapshot!!.observedAt)
+                assertEquals("6000000", workspace.calculator.state.value.input(CalculatorField.SPOT))
+                assertNull(workspace.state.value.error)
+                succeeds = true; ticks.send(Unit)
+                kotlinx.coroutines.withTimeout(3000) { calls.receive(); workspace.calculator.state.first { it.input(CalculatorField.SPOT) == "7000000" }; intervals.receive() }
+                assertEquals("2.125", workspace.calculator.state.value.input(CalculatorField.GROSS_WEIGHT))
+                assertEquals("پیش‌نویس", workspace.state.value.settingsDraft!!.galleryName)
+                assertFalse(store.loadSettings().autoSyncRates)
+                assertEquals(7_000_000L, store.cachedMarket()!!.rates.gold18)
+            }
+        }
+        Unit
+    }
+
     @Test fun loadsAllActualBasesAndConvertsOnlyMissingQuotesUsingDomainPolicy() {
         val calculator = ManualGoldCalculator()
         val binding = DesktopCalculatorRates(calculator, quote())

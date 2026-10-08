@@ -65,7 +65,7 @@ class DesktopDashboardScreenTest {
         onNodeWithTag("history-canvas").assertExists()
     }
 
-    @Test fun headerFollowsSavedAutoRefreshAndConnectionIndependentlyOfManualQuote() = runDesktopComposeUiTest(width = 1400, height = 980) {
+    @Test fun headerStaysAutomaticWithLegacyPreferenceAndTracksActualConnection() = runDesktopComposeUiTest(width = 1400, height = 980) {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.45") } }
         onNodeWithTag("refresh-rates").assertDoesNotExist()
         onNode(hasText("آفلاین") and hasAnyAncestor(hasTestTag("connection-chip"))).assertExists()
@@ -76,7 +76,7 @@ class DesktopDashboardScreenTest {
         // Unsaved preferences do not change the header contract.
         onNodeWithTag("refresh-rates").assertDoesNotExist()
         runBlocking { workspace.saveSettings(workspace.state.value.settingsDraft!!)!!.join() }
-        onNodeWithTag("refresh-rates").assertIsDisplayed()
+        onNodeWithTag("refresh-rates").assertDoesNotExist()
         runOnIdle { workspace.editSettings { it.copy(autoSyncRates = true) } }
         runBlocking { workspace.saveSettings(workspace.state.value.settingsDraft!!)!!.join() }
         onNodeWithTag("refresh-rates").assertDoesNotExist()

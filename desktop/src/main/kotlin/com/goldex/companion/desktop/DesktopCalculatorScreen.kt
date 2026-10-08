@@ -655,7 +655,7 @@ private fun ResultPanel(
                     ) {
                         AnimatedPriceTicker(
                             text = result?.let { PersianNumberFormatter.formatPrice(it.totalPayable) } ?: "—",
-                            modifier = Modifier.testTag("total"),
+                            modifier = Modifier.alignByBaseline().testTag("total"),
                             color = Color(0xFFFBBF24),
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold
@@ -666,7 +666,7 @@ private fun ResultPanel(
                             color = Color(0xFFFBBF24),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.alignByBaseline()
+                            modifier = Modifier.alignByBaseline().testTag("total-unit")
                         )
                     }
                     Text(

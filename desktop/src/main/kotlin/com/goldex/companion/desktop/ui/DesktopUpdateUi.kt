@@ -25,40 +25,40 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /** Remains visible across pages; neither discovery nor download opens a modal. */
-@Composable internal fun WindowsUpdateHeader(updater: WindowsUpdater, canOpenPrompt: Boolean) {
+@Composable internal fun WindowsUpdateControl(updater: WindowsUpdater, canOpenPrompt: Boolean, modifier: Modifier = Modifier.width(176.dp), compact: Boolean = false) {
     val state by updater.state.collectAsState()
     val colors = LocalGoldExColors.current
     val active = state.phase in setOf(WindowsUpdatePhase.DOWNLOADING, WindowsUpdatePhase.VERIFYING, WindowsUpdatePhase.RESTARTING)
     if (active) {
         val progress = if (state.total > 0) (state.received.toFloat() / state.total).coerceIn(0f, 1f) else null
-        Surface(Modifier.width(176.dp).height(48.dp).testTag("update-download-box").semantics {
+        Surface(modifier.height(WorkspaceControlHeight).testTag("update-download-box").semantics {
             progressBarRangeInfo = if (progress == null) ProgressBarRangeInfo.Indeterminate else ProgressBarRangeInfo(progress, 0f..1f)
-        }, shape = RoundedCornerShape(14.dp), color = colors.surface, border = BorderStroke(.6.dp, colors.goldBorder.copy(alpha = .5f))) {
-            Box(Modifier.clip(RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+        }, shape = WorkspaceControlShape, color = colors.surface, border = BorderStroke(.6.dp, colors.goldBorder.copy(alpha = .5f))) {
+            Box(Modifier.clip(WorkspaceControlShape), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize()) {
                     drawRect(colors.goldPrimary.copy(alpha = .16f), size = Size(size.width * (progress ?: 0f), size.height))
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (state.phase != WindowsUpdatePhase.DOWNLOADING || progress == null) CircularProgressIndicator(Modifier.size(16.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (compact) 3.dp else 8.dp)) {
+                    if (!compact && (state.phase != WindowsUpdatePhase.DOWNLOADING || progress == null)) CircularProgressIndicator(Modifier.size(16.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
                     Text(when (state.phase) {
                         WindowsUpdatePhase.VERIFYING -> "بررسی فایل…"
                         WindowsUpdatePhase.RESTARTING -> "راه‌اندازی…"
                         else -> "دانلود ${progress?.let { PersianNumberFormatter.toPersianDigits((it * 100).toInt().toString()) + "٪" } ?: "…"}"
-                    }, color = colors.textMain, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    }, color = colors.textMain, fontSize = if (compact) 10.sp else 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 }
             }
         }
     } else if (state.release != null && state.phase in setOf(WindowsUpdatePhase.AVAILABLE, WindowsUpdatePhase.READY, WindowsUpdatePhase.FAILED)) {
-        GoldButton(when (state.phase) {
-            WindowsUpdatePhase.READY -> "نصب نسخه جدید"
+        WorkspaceControl(when (state.phase) {
+            WindowsUpdatePhase.READY -> if (compact) "نصب نسخه" else "نصب نسخه جدید"
             WindowsUpdatePhase.FAILED -> "تلاش دوباره"
             else -> "به‌روزرسانی"
-        }, updater::activate, Modifier.width(176.dp).testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt,
+        }, updater::activate, modifier.testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt, compact = compact,
             enabled = state.phase != WindowsUpdatePhase.READY || canOpenPrompt)
-    } else if (state.phase == WindowsUpdatePhase.CHECKING) {
-        CircularProgressIndicator(Modifier.size(20.dp).testTag("update-checking"), color = colors.goldPrimary, strokeWidth = 2.dp)
     } else if (state.phase == WindowsUpdatePhase.FAILED) {
-        TextButton({ updater.check() }, Modifier.testTag("retry-update-check")) { Text("بررسی دوباره آپدیت", color = colors.textSecondary, fontSize = 12.sp) }
+        WorkspaceControl("بررسی دوباره", { updater.check() }, modifier.testTag("retry-update-check"),
+            secondary = true, compact = compact)
+
     }
 }
 

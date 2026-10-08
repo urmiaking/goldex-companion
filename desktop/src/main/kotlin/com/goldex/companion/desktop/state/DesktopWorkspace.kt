@@ -59,7 +59,8 @@ class DesktopWorkspace(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository(),
     private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope),
-    ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory)
+    ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory),
+    private val waitForNextTick: suspend (Long) -> Unit = { delay(it) }
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
@@ -86,11 +87,14 @@ class DesktopWorkspace(
     fun start() = scope.launch {
         (connectivity as? WindowsConnectivityObserver)?.start()
         dashboard.select(dashboard.state.value.horizon)
-        if (state.value.settings.autoSyncRates && state.value.snapshot?.kind != QuoteKind.MANUAL) refreshRates().join()
+        // The legacy preference remains serialized for compatibility; desktop rates are always automatic.
+        refreshRates(background = true).join()
         while (isActive) {
-            delay(30_000)
+            waitForNextTick(30_000)
             mutable.update { it.copy(now = System.currentTimeMillis()) }
-            if (state.value.settings.autoSyncRates && state.value.snapshot?.kind != QuoteKind.MANUAL && state.value.snapshot?.isFresh(System.currentTimeMillis()) != true) refreshRates().join()
+            if (state.value.destination == DesktopDestination.DASHBOARD && !dashboard.state.value.loading)
+                dashboard.select(dashboard.state.value.horizon)
+            if (state.value.snapshot?.isFresh(System.currentTimeMillis()) != true) refreshRates(background = true).join()
         }
     }
 
@@ -154,7 +158,7 @@ class DesktopWorkspace(
             preferences.saveSettings(normalized)
             calculator.updateDefaults(normalized)
             mutable.update { it.copy(settings = normalized, settingsDraft = null, notice = "تنظیمات ذخیره شد؛ پیش‌فرض‌ها برای محاسبه جدید اعمال می‌شوند") }
-            if (previous.priceSource != normalized.priceSource && state.value.snapshot?.kind != QuoteKind.MANUAL) {
+            if (previous.priceSource != normalized.priceSource) {
                 mutable.update { it.copy(refreshing = true) }
                 try { market.setSource(normalized.priceSource) } catch (failure: CancellationException) { throw failure }
                 catch (_: Exception) { mutable.update { it.copy(error = "تنظیمات ذخیره شد؛ نرخ تازه دریافت نشد") } }
@@ -163,15 +167,15 @@ class DesktopWorkspace(
         }
     }
 
-    fun refreshRates(): Job {
+    fun refreshRates(background: Boolean = false): Job {
         if (state.value.refreshing) return scope.launch { }
-        mutable.update { it.copy(refreshing = true, error = null, notice = null) }
+        mutable.update { if (background) it.copy(refreshing = true) else it.copy(refreshing = true, error = null, notice = null) }
         if (state.value.destination == DesktopDestination.RATES) ratesBoard.refresh(force = true)
         return scope.launch {
             try {
                 if (market.currentSource.value != state.value.settings.priceSource) market.setSource(state.value.settings.priceSource) else market.refreshRates()
             } catch (failure: CancellationException) { throw failure }
-            catch (_: Exception) { mutable.update { it.copy(error = "نرخ تازه دریافت نشد؛ نرخ قبلی با زمان اصلی حفظ شده است. اینترنت را بررسی یا نرخ دستی ثبت کنید") } }
+            catch (_: Exception) { if (!background) mutable.update { it.copy(error = "نرخ تازه دریافت نشد؛ نرخ قبلی با زمان اصلی حفظ شده است. اتصال اینترنت را بررسی کنید") } }
             finally { mutable.update { it.copy(refreshing = false) } }
         }
     }

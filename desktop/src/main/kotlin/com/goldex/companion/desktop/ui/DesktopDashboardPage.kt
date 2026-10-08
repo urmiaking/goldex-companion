@@ -145,10 +145,10 @@ import com.goldex.companion.ui.theme.*
         // Bottom Row: Trend Chart + Recent Invoices
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             if (maxWidth >= 950.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1.4f)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot, autoSyncRates = state.settings.autoSyncRates) }
+                Box(Modifier.weight(1.4f)) { DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot) }
                 Box(Modifier.weight(1f)) { DashboardInvoices(workspace) }
             } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot, autoSyncRates = state.settings.autoSyncRates)
+                DashboardTrend(chart, state.now, state.reduceMotion, dashboard, state.snapshot)
                 DashboardInvoices(workspace)
             }
         }

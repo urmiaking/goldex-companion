@@ -121,6 +121,34 @@ class WindowsUpdateTest {
         } finally { updater.close() }
     }
 
+    @Test fun slowBackgroundRecheckKeepsAvailableActionAndNeverShowsCheckingPhase() = runBlocking {
+        val waiting = Channel<Unit>(Channel.UNLIMITED)
+        val finish = Channel<Unit>(Channel.UNLIMITED)
+        val item = release("bytes".toByteArray())
+        var checks = 0
+        val updater = WindowsUpdater(object : WindowsUpdateGateway {
+            override suspend fun check(): WindowsRelease? {
+                checks++
+                if (checks > 1) { waiting.send(Unit); finish.receive(); error("offline") }
+                return item
+            }
+            override suspend fun prepare(release: WindowsRelease, progress: (Long, Long) -> Unit, verifying: () -> Unit): PreparedWindowsUpdate = error("unused")
+            override suspend fun launch(update: PreparedWindowsUpdate) = error("unused")
+        })
+        try {
+            updater.check(background = true)!!.join()
+            val repeat = updater.check(background = true)!!
+            withTimeout(3000) { waiting.receive() }
+            assertEquals(WindowsUpdatePhase.AVAILABLE, updater.state.value.phase)
+            assertEquals(item, updater.state.value.release)
+            assertFalse(updater.state.value.busy)
+            assertNull(updater.check())
+            finish.send(Unit); repeat.join()
+            assertEquals(WindowsUpdatePhase.AVAILABLE, updater.state.value.phase)
+            assertFalse(updater.state.value.dialog)
+        } finally { updater.close() }
+    }
+
     @Test fun backgroundTicksKeepPostponedReadyUpdateQuietButManualCheckReopensIt() = runBlocking {
         val ticks = Channel<Unit>(Channel.UNLIMITED)
         val intervals = Channel<Long>(Channel.UNLIMITED)

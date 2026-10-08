@@ -51,8 +51,8 @@ private object RatesType {
     // Tether is hidden from this board; its stored data and provider contract stay compatible.
     val rows = BoardInstrument.values().filter { it != BoardInstrument.TETHER }
         .map { DesktopRatesBoardPolicy.row(it, state.snapshot, board, state.now) }
-    DisposableEffect(workspace.ratesBoard, state.settings.autoSyncRates) {
-        val subscription = workspace.ratesBoard.observe(state.settings.autoSyncRates)
+    DisposableEffect(workspace.ratesBoard) {
+        val subscription = workspace.ratesBoard.observe()
         onDispose { subscription.cancel() }
     }
     PageScroll {
@@ -60,7 +60,6 @@ private object RatesType {
             val compact = maxWidth < 860.dp
             val columns = if (maxWidth < 800.dp) 2 else 4
             Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                RatesWelcome(state, compact)
                 val featured = listOf(BoardInstrument.GOLD18, BoardInstrument.MELT, BoardInstrument.OUNCE, BoardInstrument.EMAMI)
                     .map { key -> rows.first { it.instrument == key } }
                 featured.chunked(columns).forEach { group ->
@@ -84,108 +83,21 @@ private object RatesType {
     }
 }
 
-@Composable internal fun RatesHeading(state: WorkspaceState, boardLoading: Boolean, onRefresh: () -> Unit,
-    updateAction: @Composable () -> Unit = {}) {
-    val c = LocalGoldExColors.current
-    Row(Modifier.fillMaxWidth().testTag("rates-heading"), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            RatesText("تابلوی نرخ‌ها", Modifier.semantics { heading() }, color = c.textMain, fontWeight = FontWeight.Black,
-                fontSize = 28.sp, lineHeight = 36.sp)
-            RatesText("قیمت‌ها همراه با منبع، زمان دریافت و تحلیل بازار", color = c.textMuted, fontSize = 11.sp)
-        }
-        updateAction()
-        val busy = state.refreshing || boardLoading
-        Button(onClick = onRefresh, enabled = !busy && !state.saving,
-            modifier = Modifier.width(174.dp).height(40.dp).testTag("rates-refresh"), shape = ButtonShape,
-            contentPadding = PaddingValues(0.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = c.goldButtonText,
-                disabledContainerColor = c.goldContainer, disabledContentColor = c.textMuted)) {
-            Row(Modifier.fillMaxSize().background(if (busy || state.saving) c.goldContainer else c.goldButtonContainer)
-                .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (busy) CircularProgressIndicator(Modifier.size(16.dp), color = c.goldPrimary, strokeWidth = 2.dp)
-                else Icon(Icons.Outlined.Refresh, null, Modifier.size(18.dp))
-                RatesText(if (busy) "در حال دریافت" else "دریافت آنلاین", Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                RatesText("TGJU", Modifier.background(c.surface.copy(alpha = .35f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 3.dp), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable private fun RatesWelcome(state: WorkspaceState, compact: Boolean) {
-    val c = LocalGoldExColors.current
-    val greeting: @Composable () -> Unit = {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(Modifier.size(48.dp).background(c.goldContainer, CircleShape)
-                .border(.6.dp, c.goldBorder, CircleShape), contentAlignment = Alignment.Center) {
-                RatesText(state.settings.managerName.firstOrNull()?.toString() ?: "ق", color = c.goldPrimary,
-                    fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                RatesText("${DesktopDashboard.greeting(state.now)}، ${state.settings.managerName.ifBlank { "همراه زرگر" }}",
-                    color = c.textMain, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                RatesText(state.settings.galleryName.ifBlank { "طلا و جواهر" }, color = c.textMuted, fontSize = 11.sp,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
-    if (compact) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        greeting()
-        MarketDatePill(state)
-    } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween) {
-        Box(Modifier.weight(1f).padding(end = 12.dp)) { greeting() }
-        MarketDatePill(state)
-    }
-}
-
-@Composable private fun MarketDatePill(state: WorkspaceState) {
-    val c = LocalGoldExColors.current
-    val online = state.connection == ConnectionStatus.ONLINE
-    val statusColor = if (online) c.marketGainText else c.textMuted
-    val now = Instant.ofEpochMilli(state.now).atZone(ZoneId.of("Asia/Tehran"))
-    val (year, month, day) = MarketHistoryConverter.gregorianToShamsi(now.year, now.monthValue, now.dayOfMonth)
-    val months = listOf("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
-    val weekdays = listOf("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یکشنبه")
-    val date = PersianNumberFormatter.toPersianDigits("${weekdays[now.dayOfWeek.value - 1]}، $day ${months[month - 1]} $year")
-    val time = state.snapshot?.observedAt?.let(::boardClock)
-    val timeLabel = if (state.snapshot?.kind == QuoteKind.MANUAL) "نرخ ثبت‌شده" else "آخرین دریافت بازار"
-    Surface(color = c.surface, shape = RoundedCornerShape(12.dp), border = c.hairlineBorder,
-        shadowElevation = if (c.isDark) 0.dp else 1.dp) {
-        Row(Modifier.testTag("rates-date-status").padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.testTag("connection-chip").background(statusColor.copy(alpha = .08f), RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Box(Modifier.size(6.dp).background(statusColor, CircleShape))
-                RatesText(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 10.sp)
-            }
-            Box(Modifier.width(.6.dp).height(16.dp).background(c.border))
-            Icon(Icons.Outlined.CalendarToday, null, Modifier.size(15.dp), tint = c.goldPrimary)
-            RatesText(date, color = c.textMain, fontSize = 11.sp)
-            Box(Modifier.width(.6.dp).height(16.dp).background(c.border))
-            RatesText(time?.let { "$timeLabel ($it)" } ?: "دریافت نشده", color = c.textMuted, fontSize = 11.sp)
-        }
-    }
-}
-
 private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersianDigits(
     Instant.ofEpochMilli(timestamp).atZone(ZoneId.of("Asia/Tehran")).format(DateTimeFormatter.ofPattern("HH:mm")))
 
-@Composable private fun BoardCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+@Composable private fun BoardCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalGoldExColors.current
     Surface(modifier, color = c.surface, shape = RoundedCornerShape(16.dp),
         border = BorderStroke(.6.dp, c.border.copy(alpha = if (c.isDark) .14f else .08f)), shadowElevation = if (c.isDark) 0.dp else 2.dp) {
-        Column(content = content)
+        Column(Modifier.then(if (onClick == null) Modifier else Modifier.clickable(role = Role.Button,
+            onClickLabel = "مشاهده جزئیات", onClick = onClick)), content = content)
     }
 }
 
 @Composable private fun SummaryQuote(row: BoardRow, reduceMotion: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val c = LocalGoldExColors.current
-    BoardCard(modifier.testTag("rates-summary-${row.instrument.name}")
-        .clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات ${row.instrument.title}", onClick = onClick)) {
+    BoardCard(modifier.testTag("rates-summary-${row.instrument.name}"), onClick = onClick) {
         Column(Modifier.fillMaxWidth().heightIn(min = 182.dp).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {

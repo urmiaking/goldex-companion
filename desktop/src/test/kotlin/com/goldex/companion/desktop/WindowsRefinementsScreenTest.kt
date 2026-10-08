@@ -51,6 +51,15 @@ class WindowsRefinementsScreenTest {
         setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.43", updater, { restarts++ }) } }
         waitUntil(5000) { updater!!.state.value.phase == WindowsUpdatePhase.AVAILABLE }
         assertEquals(0, downloads)
+        val action = onNodeWithTag("open-updater").fetchSemanticsNode().boundsInRoot
+        val theme = onNodeWithTag("workspace-theme").fetchSemanticsNode().boundsInRoot
+        val connection = onNodeWithTag("connection-chip").fetchSemanticsNode().boundsInRoot
+        val date = onNodeWithTag("workspace-date").fetchSemanticsNode().boundsInRoot
+        assertTrue(action.bottom <= theme.top)
+        assertEquals(action.height, theme.height)
+        assertEquals(action.height, connection.height)
+        assertEquals(connection.height, date.height)
+        onNodeWithTag("update-checking").assertDoesNotExist()
         onNodeWithTag("update-dialog").assertDoesNotExist()
         onNodeWithTag("nav-CALCULATOR").performClick()
         onNodeWithTag("calculator-rate-status").assertTextEquals("نرخ ذخیره‌شده")
@@ -78,6 +87,24 @@ class WindowsRefinementsScreenTest {
         onNodeWithTag("postpone-update").performClick()
         onNodeWithTag("update-dialog").assertDoesNotExist()
         assertEquals(1, downloads)
+    }
+
+    @Test fun updateAndThemeRemainVisibleAtMinimumWindowSize() = runDesktopComposeUiTest(width=940,height=700) {
+        val release = WindowsRelease(WindowsVersion(0,56,99), "windows-v0.56.99", "تغییرات", URI("https://github.com"), 100, "a".repeat(64))
+        updater = WindowsUpdater(object : WindowsUpdateGateway {
+            override suspend fun check() = release
+            override suspend fun prepare(release: WindowsRelease, progress: (Long,Long)->Unit, verifying: ()->Unit) =
+                PreparedWindowsUpdate(release, Path.of("app"), Path.of("stage"), Path.of("bundle"))
+            override suspend fun launch(update: PreparedWindowsUpdate) = error("unused")
+        })
+        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.48", updater) } }
+        waitUntil(5000) { updater!!.state.value.phase == WindowsUpdatePhase.AVAILABLE }
+        onNodeWithTag("open-updater").assertIsDisplayed().performClick()
+        waitUntil(5000) { updater!!.state.value.phase == WindowsUpdatePhase.READY }
+        onNodeWithTag("open-updater").assertIsDisplayed()
+        onNodeWithTag("workspace-theme").assertIsDisplayed()
+        onNodeWithTag("workspace-date").assertIsDisplayed()
+        save(onNodeWithTag("workspace-root"), "sidebar-update-compact.png")
     }
 
     @Test fun inventoryGivesMoreSpaceToSelectionAndUnitsStayOnLeftInBothThemes() = runDesktopComposeUiTest(width = 1400, height = 980) {
