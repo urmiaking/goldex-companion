@@ -37,8 +37,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable internal fun DashboardTrend(
-    state: DesktopDashboardState, now: Long, reduceMotion: Boolean, dashboard: DesktopDashboard, quote: MarketSnapshot?,
-    autoSyncRates: Boolean = true
+    state: DesktopDashboardState, now: Long, reduceMotion: Boolean, dashboard: DesktopDashboard, quote: MarketSnapshot?
 ) {
     val colors = LocalGoldExColors.current
     val active = state.active(now)
@@ -111,11 +110,7 @@ import kotlin.math.roundToInt
                     if (state.error != null) Text(state.error, color = colors.errorRed, fontSize = 12.sp, modifier = Modifier.testTag("history-error"))
                 }
             }
-            if (!autoSyncRates) {
-                TextButton({ dashboard.select(state.horizon, force = true) }, enabled = !state.loading, modifier = Modifier.testTag("refresh-history")) {
-                    Text(if (state.loading) "در حال بروزرسانی" else "بروزرسانی", color = colors.goldPrimary, fontSize = 12.sp)
-                }
-            }
+
         }
     }
 }

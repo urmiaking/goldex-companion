@@ -61,8 +61,8 @@ class DesktopRatesPageTest {
         onNodeWithTag("rates-summary-MELT").assertIsDisplayed()
         onNodeWithTag("rates-summary-OUNCE").assertIsDisplayed()
         onNodeWithTag("rates-summary-EMAMI").assertIsDisplayed()
-        onNodeWithTag("rates-heading").assertIsDisplayed()
-        onNodeWithTag("rates-date-status").assertIsDisplayed()
+        onNodeWithTag("workspace-header").assertIsDisplayed()
+        onNodeWithTag("workspace-date").assertIsDisplayed()
         onAllNodesWithTag("connection-chip").assertCountEquals(1)
         onNodeWithTag("rates-filter").assertDoesNotExist()
         onNodeWithTag("manual-rates").assertDoesNotExist()
@@ -76,7 +76,9 @@ class DesktopRatesPageTest {
         assertEquals(VazirmatnFamily, textLayouts.single().layoutInput.style.fontFamily)
         onNodeWithTag("rates-gold-currency").assertExists()
         onNodeWithTag("rates-coins").assertExists()
+        onNodeWithTag("rates-summary-GOLD18").performMouseInput { moveTo(center) }
         save(onNodeWithTag("workspace-root"),"rates-refined-header-light.png")
+        save(onNodeWithTag("rates-summary-GOLD18"),"rates-card-hover.png")
         onNodeWithTag("rates-gold-currency").performScrollTo()
         save(onNodeWithTag("rates-gold-currency"),"rates-refined-gold-light.png")
         onNodeWithTag("rate-row-AED").assertExists()
@@ -92,6 +94,19 @@ class DesktopRatesPageTest {
         onNodeWithTag("rate-row-AED").assertExists()
         onNodeWithTag("rate-row-GOLD18").assertExists()
         onNodeWithTag("rate-row-TETHER").assertDoesNotExist()
+    }
+
+    @Test fun everyPageSharesTodayAndConnectionWithGreetingOnlyOnDashboard() = runDesktopComposeUiTest(width=1280,height=1000) {
+        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.48") } }
+        val date = com.goldex.companion.desktop.ui.workspaceDate(workspace.state.value.now)
+        DesktopDestination.mainDestinations.forEach { page ->
+            onNodeWithTag("nav-${page.name}").performClick()
+            onAllNodesWithTag("connection-chip").assertCountEquals(1)
+            onNode(hasText(date) and hasAnyAncestor(hasTestTag("workspace-date"))).assertExists()
+            onNodeWithTag("refresh-rates").assertDoesNotExist()
+            onNodeWithTag("rates-refresh").assertDoesNotExist()
+            if (page != DesktopDestination.DASHBOARD) onNodeWithText(DesktopDashboard.greeting(workspace.state.value.now), substring=true).assertDoesNotExist()
+        }
     }
 
     @Test fun detailsUseSelectedGoldBasisAndPreserveOtherCalculatorInput() = runDesktopComposeUiTest(width=1280,height=1000) {
@@ -133,7 +148,7 @@ class DesktopRatesPageTest {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         waitUntil(5000) { workspace.state.value.connection == ConnectionStatus.OFFLINE && !workspace.ratesBoard.state.value.loading }
         onNodeWithText("آفلاین").assertExists()
-        onNodeWithTag("rates-refresh").assertIsEnabled()
+        onNodeWithTag("rates-refresh").assertDoesNotExist()
         onNodeWithTag("rate-detail-EMAMI").performScrollTo().performClick()
         onNodeWithTag("rate-details-dialog").assertExists()
         onNodeWithText("نرخ خرید یا توصیه معامله نیست.", substring=true).assertExists()
@@ -157,7 +172,7 @@ class DesktopRatesPageTest {
             onNodeWithTag("open-updater").assertIsDisplayed().performClick()
             onNodeWithTag("update-dialog").assertExists()
             onNodeWithTag("postpone-update").performClick()
-            onNodeWithTag("rates-heading").assertIsDisplayed()
+            onNodeWithTag("workspace-header").assertIsDisplayed()
         } finally { updater.close() }
     }
 

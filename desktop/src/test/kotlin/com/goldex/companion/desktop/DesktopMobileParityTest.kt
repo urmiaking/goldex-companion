@@ -36,6 +36,27 @@ class DesktopMobileParityTest {
     }
     @After fun cleanup() { workspace.close(); store.close() }
 
+    @Test fun settingsToolsShareRowAndHeightWithUnitAdornmentsAndNoRateToggle() = runDesktopComposeUiTest(width = 1400, height = 1000) {
+        workspace.navigate(DesktopDestination.SETTINGS)
+        setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.48") } }
+        onNodeWithText("دریافت خودکار").assertDoesNotExist()
+        onNodeWithText("به‌روزرسانی قیراط").assertDoesNotExist()
+        onNodeWithTag("field-unit-سود", useUnmergedTree=true).assertTextEquals("٪")
+        onNodeWithTag("field-unit-مالیات", useUnmergedTree=true).assertTextEquals("٪")
+        onNodeWithTag("settings-tools").performScrollTo()
+        val backup = onNodeWithTag("settings-backup").fetchSemanticsNode().boundsInRoot
+        val motion = onNodeWithTag("settings-motion").fetchSemanticsNode().boundsInRoot
+        assertEquals(backup.top, motion.top)
+        assertEquals(backup.height, motion.height)
+        onNodeWithTag("save-backup").assertIsDisplayed()
+        onNodeWithTag("reduce-motion").performClick()
+        waitUntil(5000) { workspace.state.value.reduceMotion }
+        save(onNodeWithTag("workspace-root"), "settings-polished-light.png")
+        onNodeWithTag("workspace-theme").performClick()
+        waitUntil(5000) { workspace.state.value.dark }
+        save(onNodeWithTag("workspace-root"), "settings-polished-dark.png")
+    }
+
     @Test fun settingsIdentifiersRenderWithoutPriceGroupingAndSurviveReopen() = runDesktopComposeUiTest(width = 1400, height = 980) {
         setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.42") } }
         onNodeWithTag("nav-SETTINGS").performClick()

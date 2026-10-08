@@ -8,7 +8,8 @@ data class WindowsUpdateState(
     val phase: WindowsUpdatePhase = WindowsUpdatePhase.IDLE,
     val release: WindowsRelease? = null,
     val received: Long = 0, val total: Long = 0,
-    val dialog: Boolean = false, val error: String? = null
+    val dialog: Boolean = false, val error: String? = null,
+    val checking: Boolean = false
 ) {
     val busy get() = phase in setOf(WindowsUpdatePhase.CHECKING, WindowsUpdatePhase.DOWNLOADING, WindowsUpdatePhase.VERIFYING, WindowsUpdatePhase.RESTARTING)
 }
@@ -23,6 +24,7 @@ class WindowsUpdater(
     val state = mutable.asStateFlow()
     private var prepared: PreparedWindowsUpdate? = null
     private var work: Job? = null
+    private var checkWork: Job? = null
     private var started = false
 
     @Synchronized fun start() {
@@ -35,25 +37,34 @@ class WindowsUpdater(
     }
 
     @Synchronized fun check(background: Boolean = false): Job? {
-        if (state.value.busy) return null
+        if (state.value.busy || state.value.checking) return null
         if (prepared != null) { if (!background) showDialog(); return null }
-        mutable.update { it.copy(phase = WindowsUpdatePhase.CHECKING, error = null) }
-        work = scope.launch {
+        mutable.update { it.copy(phase = if (background) it.phase else WindowsUpdatePhase.CHECKING, checking = true, error = null) }
+        checkWork = scope.launch {
+            val context = currentCoroutineContext()
             try {
                 val release = gateway.check()
-                if (release == null) { mutable.update { it.copy(phase = WindowsUpdatePhase.CURRENT, release = null, dialog = false) }; return@launch }
-                mutable.update { it.copy(phase = WindowsUpdatePhase.AVAILABLE, release = release, received = 0, total = release.size, dialog = false) }
+                synchronized(this@WindowsUpdater) {
+                    context.ensureActive()
+                    if (release == null) mutable.update { it.copy(phase = WindowsUpdatePhase.CURRENT, release = null, dialog = false) }
+                    else mutable.update { it.copy(phase = WindowsUpdatePhase.AVAILABLE, release = release, received = 0, total = release.size, dialog = false) }
+                }
             } catch (failure: CancellationException) { throw failure }
-            catch (_: Exception) { mutable.update { it.copy(phase = WindowsUpdatePhase.FAILED,
-                error = "بررسی به‌روزرسانی انجام نشد؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.") } }
+            catch (_: Exception) { synchronized(this@WindowsUpdater) {
+                context.ensureActive()
+                mutable.update { it.copy(phase = if (background) it.phase else WindowsUpdatePhase.FAILED,
+                    error = "بررسی به‌روزرسانی انجام نشد؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.") }
+            } }
+            finally { mutable.update { it.copy(checking = false) } }
         }
-        return work
+        return checkWork
     }
 
     /** Download is a user intent; discovering a release never interrupts the workspace. */
     @Synchronized fun download(): Job? {
         if (state.value.busy || prepared != null) return null
         val release = state.value.release ?: return null
+        checkWork?.cancel()
         mutable.update { it.copy(phase = WindowsUpdatePhase.DOWNLOADING, received = 0, total = release.size, dialog = false, error = null) }
         work = scope.launch {
             try {
@@ -82,7 +93,7 @@ class WindowsUpdater(
 
     @Synchronized fun cancelDownload() {
         if (state.value.phase !in setOf(WindowsUpdatePhase.CHECKING, WindowsUpdatePhase.DOWNLOADING, WindowsUpdatePhase.VERIFYING)) return
-        val job = work
+        val job = if (state.value.phase == WindowsUpdatePhase.CHECKING) checkWork else work
         job?.cancel()
         mutable.update { it.copy(phase = WindowsUpdatePhase.CHECKING) }
         work = scope.launch { job?.join(); mutable.update { it.copy(phase = if (it.release != null) WindowsUpdatePhase.AVAILABLE else WindowsUpdatePhase.IDLE, received = 0, dialog = false) } }

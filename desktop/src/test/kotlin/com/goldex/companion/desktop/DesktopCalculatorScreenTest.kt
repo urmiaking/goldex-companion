@@ -36,6 +36,23 @@ class DesktopCalculatorScreenTest {
         compose.runOnIdle { assertNull(calculator.state.value.result) }
     }
 
+    @Test fun finalPayableAmountAndTomanShareTextBaseline() {
+        val calculator = ManualGoldCalculator().apply {
+            setInput(CalculatorField.SPOT, "6000000")
+            setInput(CalculatorField.GROSS_WEIGHT, "2.125")
+        }
+        compose.setContent { GoldExCompanionTheme { DesktopCalculatorScreen(calculator, false) {} } }
+        val amount = com.goldex.companion.model.PersianNumberFormatter.formatPrice(calculator.state.value.result!!.totalPayable)
+        val number = compose.onNode(hasText(amount) and hasAnyAncestor(hasTestTag("total")), useUnmergedTree=true)
+        val unit = compose.onNodeWithTag("total-unit", useUnmergedTree=true)
+        fun baseline(node: SemanticsNodeInteraction): Float {
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            node.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            return node.fetchSemanticsNode().boundsInRoot.top + layouts.single().firstBaseline
+        }
+        kotlin.test.assertTrue(kotlin.math.abs(baseline(number) - baseline(unit)) < 1.1f)
+    }
+
     @Test fun invalidWeightDoesNotKeepPreviousTotalVisible() {
         val calculator = ManualGoldCalculator().apply {
             setInput(CalculatorField.SPOT, "6000000")

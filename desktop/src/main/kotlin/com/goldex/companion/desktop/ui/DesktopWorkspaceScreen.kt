@@ -60,65 +60,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
-                Sidebar(state, workspace, compact, version)
+                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
                 Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    if (state.destination == DesktopDestination.RATES) {
-                        val board by workspace.ratesBoard.state.collectAsState()
-                        RatesHeading(state, board.loading, onRefresh = workspace::refreshRates) {
-                            if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
-                        }
-                    } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Column(Modifier.weight(1f)) {
-                            val title = if (state.destination == DesktopDestination.CALCULATOR) "ماشین‌حساب تخصصی طلا" else state.destination.title
-                            val subtitle = if (state.destination == DesktopDestination.CALCULATOR) "محاسبه دقیق طلا بر اساس آخرین مظنه و نرخ لحظه‌ای بازار" else state.destination.subtitle
-                            Text(title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
-                            Text(subtitle, color = colors.textMuted, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        ConnectionChip(state)
-                        if (updater != null) WindowsUpdateHeader(updater, canOpenPrompt = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
-                        if (state.destination == DesktopDestination.CALCULATOR) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color.Transparent,
-                                modifier = Modifier
-                                    .height(38.dp)
-                                    .testTag("refresh-rates")
-                                    .clickable(enabled = !state.refreshing && !state.saving) { workspace.refreshRates() }
-                            ) {
-                                Box(
-                                    Modifier
-                                        .fillMaxHeight()
-                                        .background(
-                                            Brush.horizontalGradient(listOf(Color(0xFFF59E0B), Color(0xFFD97706))),
-                                            RoundedCornerShape(20.dp)
-                                        )
-                                        .padding(horizontal = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        if (state.refreshing) {
-                                            CircularProgressIndicator(Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                                        } else {
-                                            Icon(Icons.Outlined.Refresh, "دریافت آنلاین", tint = Color.White, modifier = Modifier.size(17.dp))
-                                        }
-                                        Text("دریافت آنلاین", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = Color.White.copy(alpha = 0.25f)
-                                        ) {
-                                            Text("TGJU", Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = Color.White, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
-                            }
-                        } else if (!state.settings.autoSyncRates) IconButton(onClick = { workspace.refreshRates() }, enabled = !state.refreshing && !state.saving, modifier = Modifier.testTag("refresh-rates")) {
-                            if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), color = colors.goldPrimary, strokeWidth = 2.dp)
-                            else Icon(Icons.Outlined.Refresh, "دریافت آنلاین نرخ‌ها", tint = colors.goldPrimary)
-                        }
-                    }
+                    WorkspaceHeader(state)
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -150,7 +94,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                     )
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
-                                    DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup, updater, version)
+                                    DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup)
                                     DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
                                     DesktopDestination.INVOICES -> DesktopInvoicesPage(state, workspace)
                                 }
@@ -187,11 +131,11 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     DesktopDestination.INVOICES -> Icons.Outlined.ReceiptLong
 }
 
-@Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String) {
+@Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String, updater: WindowsUpdater?, canOpenPrompt: Boolean) {
     val colors = LocalGoldExColors.current
     Surface(color = colors.surface, modifier = Modifier.width(if (compact) 108.dp else 218.dp).fillMaxHeight()) {
-        Column(Modifier.padding(horizontal = if (compact) 10.dp else 18.dp, vertical = 26.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth().padding(bottom = 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(horizontal = if (compact) 10.dp else 18.dp, vertical = if (compact) 18.dp else 26.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)) {
+            Row(Modifier.fillMaxWidth().padding(bottom = if (compact) 18.dp else 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Image(painterResource("mipmap-xxxhdpi/ic_launcher.png"), "نشان قیراط", Modifier.size(44.dp))
                 if (!compact) Column {
                     Text("قیراط", color = colors.goldPrimary, fontSize = 26.sp, fontWeight = FontWeight.Bold)
@@ -205,7 +149,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                 var focused by remember(destination) { mutableStateOf(false) }
                 Surface(color = selectionColor, shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
-                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Icon(icon(destination), null, Modifier.size(23.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else if (destination == DesktopDestination.INVOICES) "فاکتورها" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
                     } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -216,20 +160,13 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
             }
             Spacer(Modifier.weight(1f))
             HorizontalDivider(color = colors.border)
-            GoldButton(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() }, Modifier.fillMaxWidth().testTag("workspace-theme"), icon = if (state.dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, isSecondary = true, enabled = !state.saving)
+            if (updater != null) WindowsUpdateControl(updater, canOpenPrompt, Modifier.fillMaxWidth(), compact)
+            WorkspaceControl(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() },
+                Modifier.fillMaxWidth().testTag("workspace-theme"), icon = if (state.dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                secondary = true, enabled = !state.saving, compact = compact)
             Text(if (compact) "این رایانه" else "اطلاعات روی این رایانه ذخیره می‌شود", color = colors.textMuted, fontSize = 10.sp, maxLines = 2)
             Text("نسخه ${PersianNumberFormatter.toPersianDigits(version)}", color = colors.textMuted, fontSize = 11.sp)
         }
-    }
-}
-
-@Composable private fun ConnectionChip(state: WorkspaceState) {
-    val colors = LocalGoldExColors.current
-    val online = state.connection == com.goldex.companion.data.ConnectionStatus.ONLINE
-    val color = if (online) colors.marketGainText else colors.textMuted
-    Row(Modifier.testTag("connection-chip").background(color.copy(alpha = 0.08f), RoundedCornerShape(24.dp)).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(6.dp).background(color, RoundedCornerShape(3.dp)))
-        Text(if (online) "آنلاین" else "آفلاین", color = color, fontSize = 11.sp, maxLines = 1)
     }
 }
 
@@ -330,13 +267,17 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
     }
 }
 
-@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text, unit: String? = null) {
+@Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text, unit: String? = null, adornment: ImageVector? = null) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp, color = colors.textMain, textDirection = if (numeric) TextDirection.Ltr else TextDirection.ContentOrRtl),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            trailingIcon = unit?.let { { Text(it, Modifier.padding(horizontal = 10.dp).testTag("field-unit-$label"), color = colors.textMuted, fontSize = 12.sp, maxLines = 1) } },
+            trailingIcon = when {
+                unit != null -> { { Text(unit, Modifier.padding(horizontal = 10.dp).testTag("field-unit-$label"), color = colors.textMuted, fontSize = 12.sp, maxLines = 1) } }
+                adornment != null -> { { Icon(adornment, null, Modifier.size(19.dp), tint = colors.textMuted) } }
+                else -> null
+            },
             visualTransformation = if (monetary) ThousandsSeparatorVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary, focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
                 unfocusedLabelColor = colors.textMuted, focusedContainerColor = colors.surface, unfocusedContainerColor = colors.surface, cursorColor = colors.goldPrimary))
