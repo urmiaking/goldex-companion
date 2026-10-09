@@ -1,9 +1,12 @@
 package com.goldex.companion.desktop.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,27 +20,38 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.theme.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** RTL chronology, real timestamps, bounded rendering, pointer and keyboard access to the same values. */
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
-@Composable internal fun DesktopRateHistoryChart(history: RateHistorySnapshot,reduceMotion: Boolean) {
+@Composable internal fun DesktopRateHistoryChart(
+    history: RateHistorySnapshot,
+    reduceMotion: Boolean,
+    onPointSelected: ((RateHistoryPoint) -> Unit)? = null
+) {
     val c=LocalGoldExColors.current; val gold=if(c.isDark)c.goldSecondary else c.goldPrimary
     val points=history.points
     var selectedAt by remember(history.instrument,history.horizon) { mutableStateOf<Long?>(null) }
     val selected=points.indexOfFirst { it.at == selectedAt }.takeIf { it >= 0 } ?: points.lastIndex
     var focused by remember { mutableStateOf(false) }
     val point=points[selected]
+    LaunchedEffect(point) { onPointSelected?.invoke(point) }
     val insetPixels=with(androidx.compose.ui.platform.LocalDensity.current) { 12.dp.toPx() }
     val span=(points.last().at-points.first().at).coerceAtLeast(1)
     fun x(p: RateHistoryPoint) = 1f-(p.at-points.first().at).toDouble().div(span).toFloat()
     fun y(p: RateHistoryPoint) = if(history.high==history.low) .5f else (p.price-history.low).toDouble().div(history.high-history.low).toFloat()
-    fun selectAt(position: Float,width: Int) { selectedAt=points.minByOrNull { abs(x(it)*(width-2*insetPixels)+insetPixels-position) }?.at }
+    fun selectAt(position: Float,width: Int) {
+        val found = points.minByOrNull { abs(x(it)*(width-2*insetPixels)+insetPixels-position) }
+        selectedAt = found?.at
+        found?.let { onPointSelected?.invoke(it) }
+    }
     val description="${instrumentLabel(history.instrument)}؛ ${historyAmount(point.price,history.instrument)} ${if(history.instrument.dollar) "دلار" else "تومان"}، ${PersianNumberFormatter.toPersianDigits(point.label)}"
     Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
         BoxWithConstraints(Modifier.fillMaxWidth().height(260.dp).testTag("rate-history-chart").clipToBounds()
@@ -54,6 +68,7 @@ import kotlin.math.roundToInt
                 Key.MoveHome -> { selectedAt=points.first().at;true }; Key.MoveEnd -> { selectedAt=points.last().at;true }; else -> false
             } }.focusable()
             .pointerInput(history) { detectTapGestures { selectAt(it.x,size.width) } }
+            .pointerInput(history) { detectDragGestures(onDragStart = { selectAt(it.x, size.width) }, onDrag = { change, _ -> change.consume(); selectAt(change.position.x, size.width) }) }
             .pointerInput(history) { awaitPointerEventScope { while(true) {
                 val event=awaitPointerEvent()
                 if(event.type == PointerEventType.Move) event.changes.firstOrNull()?.let { selectAt(it.position.x,size.width) }
@@ -86,9 +101,38 @@ import kotlin.math.roundToInt
                     drawCircle(c.surface,6.dp.toPx(),p);drawCircle(gold,4.dp.toPx(),p)
                 }
             }
-            if(selectedAt != null || focused) Surface(Modifier.align(Alignment.TopCenter).testTag("rate-history-tooltip"),color=c.surfaceElevated,
-                shape=RoundedCornerShape(9.dp),border=BorderStroke(.6.dp,gold.copy(alpha=.5f))) {
-                DetailText(description,Modifier.padding(horizontal=12.dp,vertical=7.dp),size=11,bold=true)
+            if (selectedAt != null || focused) Surface(
+                Modifier.align(Alignment.TopCenter).testTag("rate-history-tooltip"),
+                color = c.surfaceElevated,
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(.8.dp, gold.copy(alpha = .6f)),
+                shadowElevation = 4.dp
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(Modifier.size(6.dp).background(gold, CircleShape))
+                    if (reduceMotion) {
+                        Text(
+                            text = historyAmount(point.price, history.instrument),
+                            color = c.textMain,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        AnimatedPriceTicker(
+                            text = historyAmount(point.price, history.instrument),
+                            color = c.textMain,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    DetailText(if (history.instrument.dollar) "دلار" else "تومان", muted = true, size = 10)
+                    DetailText("•", muted = true, size = 10)
+                    DetailText(PersianNumberFormatter.toPersianDigits(point.label), muted = true, size = 10)
+                }
             }
         }
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
