@@ -62,7 +62,33 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             Row(Modifier.fillMaxSize()) {
                 Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
                 Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    WorkspaceHeader(state)
+                    WorkspaceHeader(state, actions = {
+                        if (state.destination == DesktopDestination.INVENTORY) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                WorkspaceControl(
+                                    text = "کسر یا شارژ موجودی",
+                                    onClick = {
+                                        val target = inventoryState.selected ?: inventoryState.items.firstOrNull()
+                                        if (target != null) workspace.inventory.openMovement(target)
+                                    },
+                                    modifier = Modifier.testTag("inventory-adjust"),
+                                    icon = Icons.Outlined.SwapVert,
+                                    secondary = true,
+                                    enabled = !inventoryState.saving && inventoryState.items.isNotEmpty(),
+                                    compact = compact
+                                )
+                                WorkspaceControl(
+                                    text = "ثبت محصول جدید",
+                                    onClick = { workspace.inventory.open() },
+                                    modifier = Modifier.testTag("inventory-add"),
+                                    icon = Icons.Outlined.Add,
+                                    secondary = false,
+                                    enabled = !inventoryState.saving,
+                                    compact = compact
+                                )
+                            }
+                        }
+                    })
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
