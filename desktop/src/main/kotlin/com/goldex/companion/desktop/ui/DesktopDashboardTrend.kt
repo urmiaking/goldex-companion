@@ -83,20 +83,28 @@ import kotlin.math.roundToInt
             else (fadeIn(tween(240, easing = FastOutSlowInEasing)) + scaleIn(initialScale = .96f, animationSpec = tween(240, easing = FastOutSlowInEasing)))
                 .togetherWith(fadeOut(tween(180, easing = FastOutLinearInEasing)) + scaleOut(targetScale = .98f, animationSpec = tween(180, easing = FastOutLinearInEasing)))
         }, label = "dashboard-history-horizon") { horizon ->
-            val history = state.history[horizon]?.takeIf { it.belongsToToday(now) }
+            val history = state.history[horizon] ?: state.active(now)
             if (history != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("بیشینه: ${PersianNumberFormatter.formatPrice(history.high)} تومان", color = colors.marketGainText, fontSize = 11.sp)
                         Text("کمینه: ${PersianNumberFormatter.formatPrice(history.low)} تومان", color = colors.errorRed, fontSize = 11.sp)
                     }
-                    HistoryChart(history, reduceMotion)
+                    AnimatedContent(
+                        targetState = history,
+                        transitionSpec = {
+                            if (reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                            else fadeIn(tween(300, easing = FastOutSlowInEasing)).togetherWith(fadeOut(tween(200, easing = FastOutLinearInEasing)))
+                        },
+                        label = "chart-points-transition"
+                    ) { chartHistory ->
+                        HistoryChart(chartHistory, reduceMotion)
+                    }
                 }
             } else Box(Modifier.fillMaxWidth().height(130.dp).testTag("history-unavailable"), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (state.loading) CircularProgressIndicator(Modifier.size(26.dp), colors.goldPrimary, strokeWidth = 2.dp)
-                    else Icon(Icons.Outlined.CandlestickChart, null, Modifier.size(28.dp), tint = colors.textMuted.copy(alpha = .4f))
-                    Text(if (state.loading) "دریافت تاریخچه بازار…" else if (horizon == TimeHorizon.TODAY) "داده‌های نوسان امروز هنوز در دسترس نیست" else "داده‌های نمودار برای این بازه در دسترس نیست",
+                    Icon(Icons.Outlined.CandlestickChart, null, Modifier.size(28.dp), tint = colors.textMuted.copy(alpha = .4f))
+                    Text(if (horizon == TimeHorizon.TODAY) "داده‌های نوسان امروز هنوز در دسترس نیست" else "داده‌های نمودار برای این بازه در دسترس نیست",
                         color = colors.textMuted, fontSize = 11.5.sp)
                 }
             }

@@ -45,11 +45,11 @@ class ManualGoldCalculatorTest {
         assertEquals(before, assertNotNull(calculator.state.value.result).totalPayable)
     }
 
-    @Test fun changingWageUnitRequiresANewValue() {
+    @Test fun changingWageUnitPreservesCalculation() {
         val calculator = calculator()
         calculator.setWageType(WageType.TOMAN_PER_GRAM)
-        assertNull(calculator.state.value.result)
-        assertEquals("", calculator.state.value.input(CalculatorField.WAGE))
+        assertNotNull(calculator.state.value.result)
+        assertEquals("۱۰", calculator.state.value.input(CalculatorField.WAGE))
         calculator.setInput(CalculatorField.WAGE, "۵۰۰۰۰")
         assertEquals(100_000.0, assertNotNull(calculator.state.value.result).wageAmount)
     }

@@ -21,7 +21,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -223,36 +225,84 @@ private fun InputPanel(
                         fontSize = 12.sp
                     )
                 }
-                // Rate status and market button
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = if (rateState?.automatic == true)
-                            rateState.quote?.label(System.currentTimeMillis()) ?: "در انتظار نرخ بازار"
-                        else
-                            "نرخ دستی شما",
-                        modifier = Modifier.testTag("calculator-rate-status"),
-                        color = colors.goldPrimary,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (marketRates != null && rateState?.automatic == false) {
-                        TextButton(
-                            onClick = marketRates::useMarketRate,
-                            modifier = Modifier.testTag("calculator-use-market"),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                // Rate status and market toggle pill (Horizontally aligned side-by-side)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Status Chip
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = colors.goldContainer.copy(alpha = 0.45f),
+                            border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f))
                         ) {
-                            Text("دریافت نرخ بازار", color = colors.goldPrimary, fontSize = 11.5.sp)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Box(
+                                    Modifier.size(7.dp).background(
+                                        if (rateState?.automatic == true && rateState.quote?.isFresh(System.currentTimeMillis()) == true)
+                                            colors.marketGainText
+                                        else
+                                            colors.goldPrimary,
+                                        CircleShape
+                                    )
+                                )
+                                Text(
+                                    text = if (rateState?.automatic == true)
+                                        rateState.quote?.label(System.currentTimeMillis()) ?: "در انتظار نرخ بازار"
+                                    else
+                                        "نرخ دستی",
+                                    modifier = Modifier.testTag("calculator-rate-status"),
+                                    color = colors.goldPrimary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
-                    } else if (rateState?.automatic == true && rateState.quote != null) {
+
+                        if (marketRates != null && rateState?.automatic == false) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f)),
+                                modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { marketRates.useMarketRate() }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp).testTag("calculator-use-market"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Sync,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = "دریافت نرخ بازار",
+                                        color = colors.goldPrimary,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    rateState?.quote?.let { quote ->
                         val converted = when (state.priceBasis) {
                             PriceBasisTab.K18 -> false
-                            PriceBasisTab.K24 -> rateState.quote.rates.gold24 <= 0
-                            PriceBasisTab.MESGHAL -> rateState.quote.rates.goldMelt <= 0
+                            PriceBasisTab.K24 -> quote.rates.gold24 <= 0
+                            PriceBasisTab.MESGHAL -> quote.rates.goldMelt <= 0
                         }
                         Text(
-                            "${quoteSource(rateState.quote)} • ${DesktopPortfolioPolicy.observedTime(rateState.quote.observedAt)}${if (converted) " • معادل از ۱۸" else ""}",
+                            text = "${quoteSource(quote)} • ${DesktopPortfolioPolicy.observedTime(quote.observedAt)}${if (converted) " • معادل از ۱۸" else ""}",
                             color = colors.textMuted,
-                            fontSize = 10.5.sp
+                            fontSize = 11.sp
                         )
                     }
                 }
@@ -288,9 +338,9 @@ private fun InputPanel(
 
             // Spot / Basis rate field
             val spotLabel = when (state.priceBasis) {
-                PriceBasisTab.K18 -> "نرخ مبنا (قیمت هر گرم طلا ۱۸ عیار ۷۵۰):"
-                PriceBasisTab.K24 -> "نرخ مبنا (قیمت هر گرم طلا ۲۴ عیار):"
-                PriceBasisTab.MESGHAL -> "نرخ مبنا (قیمت یک مثقال طلا ۱۷ عیار ۷۰۵):"
+                PriceBasisTab.K18 -> "نرخ هر گرم طلای ۱۸ عیار (۷۵۰):"
+                PriceBasisTab.K24 -> "نرخ هر گرم طلای ۲۴ عیار (۹۹۹):"
+                PriceBasisTab.MESGHAL -> "مظنه طلا (قیمت یک مثقال ۱۷ عیار ۷۰۵):"
             }
             NumericInput(
                 state = state,
@@ -300,6 +350,58 @@ private fun InputPanel(
                 calculator = calculator,
                 marketRates = marketRates
             )
+
+            // Equivalent 18k basis rate display (matching Android)
+            AnimatedVisibility(
+                visible = state.priceBasis != PriceBasisTab.K18,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                val rawSpot = PersianNumberFormatter.parseToCleanLong(state.input(CalculatorField.SPOT)) ?: 0L
+                val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, state.priceBasis)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.goldContainer.copy(alpha = 0.2f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = "معادل هر گرم ۱۸ عیار (مبنای محاسبه فرمول):",
+                                fontSize = 12.sp,
+                                color = colors.textSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            AnimatedPriceTicker(
+                                text = PersianNumberFormatter.formatPrice(spot18k.toLong()),
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                            Text("تومان", fontSize = 11.5.sp, color = colors.textMuted)
+                        }
+                    }
+                }
+            }
 
             // Gross weight & stone weight row
             Row(
@@ -326,15 +428,78 @@ private fun InputPanel(
                 )
             }
 
-            // Karat field
-            NumericInput(
-                state = state,
-                field = CalculatorField.KARAT,
-                label = "عیار استاندارد قطعه:",
-                labelNote = "عیار رسمی بازار ایران: ۷۵۰",
-                unit = "عیار",
-                calculator = calculator
-            )
+            // Karat field with quick chips
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "عیار طلای کارشده (قطعه):",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "عیار رسمی بازار ایران: ۷۵۰",
+                        fontSize = 11.5.sp,
+                        color = colors.textMuted
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val presets = listOf(
+                        "750" to "۱۸ (۷۵۰)",
+                        "705" to "۱۷ (۷۰۵)",
+                        "875" to "۲۱ (۸۷۵)",
+                        "999" to "۲۴ (۹۹۹)"
+                    )
+                    presets.forEach { (karatVal, label) ->
+                        val isSelected = state.input(CalculatorField.KARAT) == karatVal
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                            border = BorderStroke(
+                                0.8.dp,
+                                if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, karatVal)
+                                    else calculator.setInput(CalculatorField.KARAT, karatVal)
+                                }
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(vertical = 7.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) colors.goldPrimary else colors.textSecondary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                NumericInput(
+                    state = state,
+                    field = CalculatorField.KARAT,
+                    label = "مقدار دقیق عیار استاندارد قطعه:",
+                    unit = "عیار",
+                    calculator = calculator,
+                    marketRates = marketRates
+                )
+            }
         }
     }
 
@@ -547,24 +712,14 @@ private fun NumericInput(
             singleLine = true,
             isError = error != null,
             trailingIcon = {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(1.dp, colors.border.copy(alpha = 0.5f)),
-                    modifier = Modifier.padding(start = 4.dp, end = 6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = unit,
-                            color = colors.textMuted,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+                Text(
+                    text = unit,
+                    color = colors.textMuted,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = VazirmatnFamily,
+                    modifier = Modifier.padding(end = 14.dp)
+                )
             },
             textStyle = TextStyle(
                 fontFamily = VazirmatnFamily,

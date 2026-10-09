@@ -50,9 +50,16 @@ class ManualGoldCalculator(private var defaults: AppSettings = AppSettings()) {
 
     fun setWageType(type: WageType) {
         mutableState.update { current ->
-            // A percentage must never silently become a whole-toman per-gram wage.
-            if (current.wageType == type) current else
-                evaluate(current.copy(wageType = type, inputs = current.inputs + (CalculatorField.WAGE to "")))
+            if (current.wageType == type) current else {
+                val existing = current.input(CalculatorField.WAGE).trim()
+                val nextWage = if (type == WageType.PERCENTAGE) {
+                    val num = existing.toDoubleOrNull() ?: 0.0
+                    if (existing.isBlank() || num > 100.0) "10" else existing
+                } else {
+                    if (existing.isBlank()) "0" else existing
+                }
+                evaluate(current.copy(wageType = type, inputs = current.inputs + (CalculatorField.WAGE to nextWage)))
+            }
         }
     }
 
@@ -103,7 +110,7 @@ class ManualGoldCalculator(private var defaults: AppSettings = AppSettings()) {
         if (gross != null && stone != null && stone >= gross) errors[CalculatorField.STONE_WEIGHT] = "کسر نگین باید کمتر از وزن باشد"
         val karat = normalized(current.input(CalculatorField.KARAT)).toIntOrNull()?.takeIf { it in 1..1000 }
         if (karat == null && current.input(CalculatorField.KARAT).isNotEmpty()) errors[CalculatorField.KARAT] = "عیار باید بین ۱ و ۱۰۰۰ باشد"
-        val wage = decimal(CalculatorField.WAGE)
+        val wage = decimal(CalculatorField.WAGE, optional = true) ?: 0.0
         val profit = decimal(CalculatorField.PROFIT)
         val tax = decimal(CalculatorField.TAX)
         listOf(CalculatorField.PROFIT to profit, CalculatorField.TAX to tax).forEach { (field, value) ->

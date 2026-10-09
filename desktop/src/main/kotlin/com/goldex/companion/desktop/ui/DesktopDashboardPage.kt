@@ -4,6 +4,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -350,22 +351,40 @@ private data class QuickAction(
                 onClick = { workspace.navigate(DesktopDestination.RATES) },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("< همه نرخ‌ها", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("همه نرخ‌ها", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 
-        // 4 Key Rates with Badges
+        // 5 Key Rates with Badges
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             MarketQuoteRow("طلای ۱۸ عیار", "(۷۵۰)", rates?.gold18, deltaPercent = "+۰.۴٪", isGain = true)
             MarketQuoteRow("مظنه آبشده", "(مثقال)", rates?.goldMelt, deltaPercent = "+۰.۸٪", isGain = true)
+            MarketQuoteRow("سکه تمام بهار", "(امامی)", rates?.coinEmami, deltaPercent = "+۰.۳٪", isGain = true)
             MarketQuoteRow("دلار آزاد", "آمریکا", rates?.usd, deltaPercent = "+۰.۵٪", isGain = true)
             MarketQuoteRow("انس طلای جهانی", null, rates?.ons?.toLong(), unit = "دلار", deltaPercent = "-۰.۲٪", isGain = false)
         }
 
-        // Footer Caption
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.weight(1f))
+
+        // Footer Caption pinned to bottom with spacing
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                if (state.snapshot == null) "منبع مرجع: TGJU" else if (state.snapshot.kind == QuoteKind.MANUAL) "ثبت‌شده توسط شما" else "منبع مرجع: سامانه شبکه اطلاع‌رسانی طلا و ارز (TGJU)",
+                if (state.snapshot == null) "منبع مرجع: سامانه TGJU" else if (state.snapshot.kind == QuoteKind.MANUAL) "ثبت‌شده توسط شما" else "منبع مرجع: سامانه شبکه اطلاع‌رسانی طلا و ارز (TGJU)",
                 color = colors.textMuted, fontSize = 10.5.sp
             )
             Text(
@@ -421,7 +440,18 @@ private data class QuickAction(
                 onClick = { workspace.navigate(DesktopDestination.INVOICES) },
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text("دفتر فاکتورها >", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("دفتر فاکتورها", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
 

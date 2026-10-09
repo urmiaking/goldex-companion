@@ -39,10 +39,10 @@ import kotlin.math.roundToLong
 
 // Rates-specific desktop scale from the supplied references; theme owns fonts and colors.
 private object RatesType {
-    val title = 13.5.sp
-    val secondary = 10.5.sp
-    val caption = 10.sp
-    val tableHeading = 11.sp
+    val title = 14.5.sp
+    val secondary = 12.sp
+    val caption = 11.sp
+    val tableHeading = 12.5.sp
 }
 
 @Composable internal fun RatesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
@@ -98,14 +98,14 @@ private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersi
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 InstrumentDot(row.instrument)
-                RatesText(summaryTitle(row.instrument), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium,
+                RatesText(summaryTitle(row.instrument), Modifier.weight(1f), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
                     color = c.textMain, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 PercentChange(row.daily)
             }
             HorizontalDivider(color = c.border.copy(alpha = .08f), thickness = .6.dp)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 BoardAmount(row.value, row.instrument.dollar, reduceMotion, size = 26)
-                RatesText(if (row.instrument.dollar) "دلار آمریکا" else "تومان", color = c.textMuted, fontSize = 11.sp)
+                RatesText(if (row.instrument.dollar) "دلار آمریکا" else "تومان", color = c.textMuted, fontSize = 12.sp)
             }
             HorizontalDivider(color = c.border.copy(alpha = .05f), thickness = .6.dp)
             SummaryContext(row)
@@ -140,23 +140,23 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
         horizontalArrangement = Arrangement.SpaceBetween) {
         when (row.instrument) {
             BoardInstrument.GOLD18 -> {
-                RatesText("کمینه: ${formatBoardNumber(row.daily?.low)}", color = c.textMuted, fontSize = 9.sp)
-                RatesText("بیشینه: ${formatBoardNumber(row.daily?.high)}", color = c.textMuted, fontSize = 9.sp)
+                RatesText("کمینه: ${formatBoardNumber(row.daily?.low)}", color = c.textMuted, fontSize = 10.5.sp)
+                RatesText("بیشینه: ${formatBoardNumber(row.daily?.high)}", color = c.textMuted, fontSize = 10.5.sp)
             }
             BoardInstrument.OUNCE -> {
-                RatesText("نوسان ۲۴ ساعته:", color = c.textMuted, fontSize = 9.sp)
+                RatesText("نوسان ۲۴ ساعته:", color = c.textMuted, fontSize = 10.5.sp)
                 RatesText(row.daily?.change?.let { "${signedBoardNumber(it)} دلار" } ?: "—",
-                    color = changeColor(row.daily?.change), fontSize = 10.sp)
+                    color = changeColor(row.daily?.change), fontSize = 11.5.sp)
             }
             BoardInstrument.EMAMI -> {
-                RatesText("حباب سکه:", color = c.textMuted, fontSize = 9.sp)
+                RatesText("حباب سکه:", color = c.textMuted, fontSize = 10.5.sp)
                 RatesText(DesktopRatesBoardPolicy.bubbleAmount(row)?.let { "${PersianNumberFormatter.format(it)} تومان" } ?: "—",
-                    color = c.goldPrimary, fontSize = 10.sp, maxLines = 1)
+                    color = c.goldPrimary, fontSize = 11.5.sp, maxLines = 1)
             }
             else -> {
                 // The provider has no melted-gold premium; do not fabricate a bubble from a daily change.
-                RatesText("حباب مظنه:", color = c.textMuted, fontSize = 9.sp)
-                RatesText("—", color = c.textMuted, fontSize = 10.sp)
+                RatesText("حباب مظنه:", color = c.textMuted, fontSize = 10.5.sp)
+                RatesText("—", color = c.textMuted, fontSize = 11.5.sp)
             }
         }
     }
@@ -282,8 +282,8 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
 
 @Composable private fun InlineQuote(row: BoardRow, reduceMotion: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        BoardAmount(row.value, row.instrument.dollar, reduceMotion, size = 15)
-        RatesText(if (row.instrument.dollar) "دلار" else "تومان", color = LocalGoldExColors.current.textMuted, fontSize = 10.sp)
+        BoardAmount(row.value, row.instrument.dollar, reduceMotion, size = 16)
+        RatesText(if (row.instrument.dollar) "دلار" else "تومان", color = LocalGoldExColors.current.textMuted, fontSize = 11.sp)
     }
 }
 
@@ -335,12 +335,17 @@ private fun signedBoardNumber(value: Double): String {
 
 @Composable private fun PercentChange(day: BoardDayQuote?) {
     val color = changeColor(day?.change)
-    Row(Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(
+        Modifier.background(color.copy(alpha = .12f), RoundedCornerShape(8.dp))
+            .border(0.6.dp, color.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
         day?.percent?.takeIf { it != 0.0 }?.let {
-            Icon(if (it < 0) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowUp, null, Modifier.size(12.dp))
+            Icon(if (it < 0) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowUp, null, Modifier.size(15.dp), tint = color)
         }
-        RatesText(day?.percent?.let { "${signedBoardNumber(it)}٪" } ?: "—", color = color, fontSize = 9.sp, maxLines = 1, textDirection = TextDirection.Ltr)
+        RatesText(day?.percent?.let { "${signedBoardNumber(it)}٪" } ?: "—", color = color, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, textDirection = TextDirection.Ltr)
     }
 }
 
@@ -353,13 +358,16 @@ private fun signedBoardNumber(value: Double): String {
             color = c.textSecondary, fontSize = RatesType.caption)
     } else {
         val color = changeColor(change)
-        Row(Modifier.background(color.copy(alpha = .06f), RoundedCornerShape(6.dp))
-            .border(.6.dp, color.copy(alpha = .2f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(
+            Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(6.dp))
+                .border(.6.dp, color.copy(alpha = .22f), RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             Icon(if (change < 0) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowUp, null,
-                Modifier.size(12.dp), tint = color)
+                Modifier.size(13.dp), tint = color)
             val pct = day.percent?.let { " (${signedBoardNumber(it)}٪)" }.orEmpty()
-            RatesText("${signedBoardNumber(change)}$pct", color = color, fontSize = if (small) 9.sp else RatesType.caption,
+            RatesText("${signedBoardNumber(change)}$pct", color = color, fontSize = if (small) 10.5.sp else RatesType.caption,
                 fontWeight = FontWeight.Medium, maxLines = 2, textDirection = TextDirection.Ltr)
         }
     }
@@ -369,7 +377,7 @@ private fun signedBoardNumber(value: Double): String {
     val c = LocalGoldExColors.current
     RatesText(DesktopRatesBoardPolicy.bubbleAmount(row)?.let { "${PersianNumberFormatter.format(it)} تومان" } ?: "—",
         color = if ((row.bubble?.bubbleAmount ?: 0.0) < 0) c.marketGainText else c.goldPrimary,
-        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
 }
 
 @Composable private fun BubblePercent(row: BoardRow) {
@@ -381,7 +389,7 @@ private fun signedBoardNumber(value: Double): String {
     RatesText(percent?.let {
         PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.2f٪", it)) + if (high) " (حباب بالا)" else ""
     } ?: "—", Modifier.background(color.copy(alpha = .08f), RoundedCornerShape(4.dp))
-        .padding(horizontal = 6.dp, vertical = 3.dp), color = color, fontSize = 9.sp, maxLines = 1)
+        .padding(horizontal = 6.dp, vertical = 3.dp), color = color, fontSize = 10.5.sp, maxLines = 1)
 }
 
 internal fun basis(row: BoardRow) = when (row.instrument) {
