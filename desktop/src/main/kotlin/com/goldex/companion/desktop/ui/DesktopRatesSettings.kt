@@ -4,9 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.*
@@ -80,7 +83,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val profile: @Composable () -> Unit = {
-                LuxuryCard {
+                LuxuryCard(Modifier.fillMaxHeight()) {
                     PageTitle("مشخصات گالری")
                     DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
                     DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
@@ -142,7 +145,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                 }
             }
             val preferences: @Composable () -> Unit = {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     LuxuryCard {
                         PageTitle("پیش‌فرض‌های محاسبه")
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -152,16 +155,26 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
                         Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
                     }
-                    LuxuryCard {
+                    LuxuryCard(Modifier.weight(1f).fillMaxWidth()) {
                         PageTitle("دریافت نرخ‌ها")
-                        ChoiceField("منبع ترجیحی", draft.priceSource, PriceSource.values().toList(), { it.labelFa }) { value -> workspace.editSettings { it.copy(priceSource = value) } }
-                        Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 12.sp)
-
+                        Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            PriceSource.values().forEach { src ->
+                                DesktopPriceSourceOption(
+                                    source = src,
+                                    isSelected = draft.priceSource == src,
+                                    onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
                     }
                 }
             }
-            if (maxWidth >= 850.dp) Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1f)) { profile() }; Box(Modifier.weight(1f)) { preferences() }
+            if (maxWidth >= 850.dp) Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Box(Modifier.weight(1f).fillMaxHeight()) { profile() }
+                Box(Modifier.weight(1f).fillMaxHeight()) { preferences() }
             } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(); preferences() }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -206,6 +219,109 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                 showSignaturePad = false
             }
         )
+    }
+}
+
+@Composable
+internal fun DesktopPriceSourceOption(
+    source: PriceSource,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalGoldExColors.current
+    val (badgeTitle, badgeColor) = when (source) {
+        PriceSource.TGJU -> "مرجع رسمی بازار" to colors.goldPrimary
+        PriceSource.TALA_IR -> "شبکه پایدار" to colors.profitGreen
+        PriceSource.ISIGNAL -> "سیگنال سریع" to androidx.compose.ui.graphics.Color(0xFF38BDF8)
+    }
+
+    val desc = when (source) {
+        PriceSource.TGJU -> "تابلوی اتحادیه طلا و جواهر تهران • مظنه آبشده و مسکوکات"
+        PriceSource.TALA_IR -> "شبکه اطلاع‌رسانی طلا و ارز • پوشش لحظه‌ای بازار"
+        PriceSource.ISIGNAL -> "شبکه هوشمند تحلیلی • پوشش انس جهانی و ارز آزاد"
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) colors.goldContainer.copy(alpha = 0.4f) else colors.surfaceElevated,
+        border = BorderStroke(
+            width = if (isSelected) 1.2.dp else 0.6.dp,
+            color = if (isSelected) colors.goldPrimary else colors.border
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onSelect)
+            .testTag("price-source-${source.name}")
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Radio Circle Dot
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .border(
+                        width = if (isSelected) 2.dp else 1.2.dp,
+                        color = if (isSelected) colors.goldPrimary else colors.textMuted,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(colors.goldPrimary)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = source.labelFa,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 12.5.sp,
+                        color = if (isSelected) colors.goldPrimary else colors.textMain
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = badgeColor.copy(alpha = 0.15f),
+                        border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = badgeTitle,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = badgeColor,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = desc,
+                    fontSize = 11.sp,
+                    color = colors.textMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 

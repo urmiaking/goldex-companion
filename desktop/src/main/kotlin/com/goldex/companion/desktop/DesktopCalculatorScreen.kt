@@ -3,6 +3,8 @@ package com.goldex.companion.desktop
 import com.goldex.companion.desktop.ui.programErrorText
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -506,7 +510,36 @@ private fun InputPanel(
                     )
                 }
 
-                // Karat field with quick chips
+                // Calculated Net Weight Badge (matching user request: moved above Karat)
+                val netWeight = state.result?.netWeight
+                    ?: (PersianNumberFormatter.parsePersianOrEnglish(state.input(CalculatorField.GROSS_WEIGHT)) ?: 0.0)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.goldContainer.copy(alpha = 0.2f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "وزن خالص محاسبه‌شده:",
+                            fontSize = 12.sp,
+                            color = colors.textSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        AnimatedPriceTicker(
+                            text = "${PersianNumberFormatter.formatWeight(netWeight)} گرم",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
+                    }
+                }
+
+                // Karat field with 5 items (18, 17, 21, 24, and custom inline chip matching Android)
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -537,73 +570,59 @@ private fun InputPanel(
                             "875" to "۲۱ (۸۷۵)",
                             "999" to "۲۴ (۹۹۹)"
                         )
+                        val standardKarats = listOf("750", "705", "875", "999")
+                        val currentKarat = state.input(CalculatorField.KARAT)
+                        val isCustomKarat = currentKarat.isNotBlank() && currentKarat !in standardKarats
+
                         presets.forEach { (karatVal, label) ->
-                            val isSelected = state.input(CalculatorField.KARAT) == karatVal
+                            val isSelected = !isCustomKarat && currentKarat == karatVal
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
                                 border = BorderStroke(
-                                    0.8.dp,
+                                    if (isSelected) 1.2.dp else 0.8.dp,
                                     if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, karatVal)
                                         else calculator.setInput(CalculatorField.KARAT, karatVal)
                                     }
                             ) {
                                 Box(
-                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = label,
-                                        fontSize = 12.sp,
+                                        fontSize = 11.5.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary
+                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
                         }
-                    }
 
-                    NumericInput(
-                        state = state,
-                        field = CalculatorField.KARAT,
-                        label = "مقدار دقیق عیار استاندارد قطعه:",
-                        unit = "عیار",
-                        calculator = calculator,
-                        marketRates = marketRates
-                    )
-                }
-
-                // Calculated Net Weight Badge (matching Android)
-                val netWeight = state.result?.netWeight
-                    ?: (PersianNumberFormatter.parsePersianOrEnglish(state.input(CalculatorField.GROSS_WEIGHT)) ?: 0.0)
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = colors.goldContainer.copy(alpha = 0.2f),
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "وزن خالص محاسبه‌شده:",
-                            fontSize = 12.sp,
-                            color = colors.textSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        AnimatedPriceTicker(
-                            text = "${PersianNumberFormatter.formatWeight(netWeight)} گرم",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary
+                        // 5th Item: Custom Karat Chip (with inline typing)
+                        DesktopInlineCustomKaratChip(
+                            value = if (isCustomKarat) currentKarat else "",
+                            onValueChange = { newVal ->
+                                if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, newVal)
+                                else calculator.setInput(CalculatorField.KARAT, newVal)
+                            },
+                            isSelected = isCustomKarat,
+                            onSelect = {
+                                if (!isCustomKarat) {
+                                    if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, "")
+                                    else calculator.setInput(CalculatorField.KARAT, "")
+                                }
+                            },
+                            modifier = Modifier.weight(1.1f).height(40.dp),
+                            placeholder = "سفارشی"
                         )
                     }
                 }
@@ -686,45 +705,55 @@ private fun InputPanel(
                     )
                 }
 
-                // Wage field (direct field without +/- buttons, keeping adornments)
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.WAGE,
-                    label = "اجرت ساخت:",
-                    sublabel = if (state.wageType == WageType.PERCENTAGE)
-                        "محاسبه درصدی از ارزش طلای خام"
-                    else
-                        "مبلغ به تومان به ازای هر گرم",
-                    unit = if (state.wageType == WageType.PERCENTAGE) "٪" else "تومان",
-                    calculator = calculator
-                )
+                // Wage field and equivalent value animated when wage type changes
+                AnimatedContent(
+                    targetState = state.wageType,
+                    transitionSpec = {
+                        (fadeIn(tween(180)) + slideInVertically(tween(220, easing = FastOutSlowInEasing)) { it / 6 })
+                            .togetherWith(fadeOut(tween(120)) + slideOutVertically(tween(180, easing = FastOutSlowInEasing)) { -it / 6 })
+                    },
+                    label = "wageTypeTransition"
+                ) { wageType ->
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        NumericInput(
+                            state = state,
+                            field = CalculatorField.WAGE,
+                            label = "اجرت ساخت:",
+                            sublabel = if (wageType == WageType.PERCENTAGE)
+                                "محاسبه درصدی از ارزش طلای خام"
+                            else
+                                "مبلغ به تومان به ازای هر گرم",
+                            unit = if (wageType == WageType.PERCENTAGE) "٪" else "تومان",
+                            calculator = calculator
+                        )
 
-                // Equivalent Toman Wage (if percentage and wageAmount > 0)
-                val wageAmount = state.result?.wageAmount ?: 0.0
-                if (state.wageType == WageType.PERCENTAGE && wageAmount > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.surfaceElevated,
-                        border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "معادل ریالی اجرت:",
-                                fontSize = 12.sp,
-                                color = colors.textSecondary,
-                                fontWeight = FontWeight.Medium
-                            )
-                            AnimatedPriceTicker(
-                                text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
+                        val wageAmount = state.result?.wageAmount ?: 0.0
+                        if (wageType == WageType.PERCENTAGE && wageAmount > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = colors.surfaceElevated,
+                                border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "معادل ریالی اجرت:",
+                                        fontSize = 12.sp,
+                                        color = colors.textSecondary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    AnimatedPriceTicker(
+                                        text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.goldPrimary
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -833,6 +862,74 @@ private fun InputPanel(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DesktopInlineCustomKaratChip(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "سفارشی"
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+        border = BorderStroke(
+            if (isSelected) 1.2.dp else 0.8.dp,
+            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+        ),
+        modifier = modifier
+            .height(40.dp)
+            .clickable { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = PersianNumberFormatter.toPersianDigits(value),
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() || ch in '\u06F0'..'\u06F9' }
+                    val clean = PersianNumberFormatter.toEnglishDigits(filtered)
+                    onValueChange(clean)
+                    onSelect()
+                },
+                singleLine = true,
+                textStyle = TextStyle(
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                    textDirection = TextDirection.Ltr
+                ),
+                cursorBrush = SolidColor(colors.goldPrimary),
+                modifier = Modifier.testTag("input-KARAT"),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                fontSize = 11.5.sp,
+                                color = colors.textMuted,
+                                fontFamily = VazirmatnFamily,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
         }
     }
 }
