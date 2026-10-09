@@ -13,6 +13,7 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
     DASHBOARD("پیشخوان", "موجودی ویترین و گاوصندوق و نبض بازار"),
     CALCULATOR("ماشین‌حساب", "محاسبه طلا با نرخ انتخابی شما"),
     RATES("تابلوی مظنه‌ها", "قیمت‌ها همراه با منبع و زمان دریافت"),
+    RATE_DETAIL("تحلیل و مظنه لحظه‌ای", "بررسی تاریخچه نرخ و آمار طلا و ارز"),
     INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت"),
     INVOICES("مدیریت فاکتورها", "فاکتورهای ثبت‌شده و تسویه زرگری"),
     PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
@@ -22,9 +23,10 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
         DASHBOARD -> 0
         CALCULATOR -> 1
         RATES -> 2
-        INVENTORY -> 3
-        INVOICES -> 4
-        PORTFOLIO, SETTINGS -> 5
+        RATE_DETAIL -> 3
+        INVENTORY -> 4
+        INVOICES -> 5
+        PORTFOLIO, SETTINGS -> 6
     }
 
     companion object {
@@ -60,10 +62,12 @@ class DesktopWorkspace(
     history: DesktopGoldHistoryGateway = DesktopGoldHistoryRepository(),
     private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope),
     ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory),
+    rateHistoryGateway: DesktopRateHistoryGateway = DesktopRateHistoryRepository(storage.directory),
     private val waitForNextTick: suspend (Long) -> Unit = { delay(it) }
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
+    val rateDetail = DesktopRateDetail(rateHistoryGateway, scope)
     val inventory = DesktopInventory(storage, scope)
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
@@ -101,6 +105,10 @@ class DesktopWorkspace(
     fun navigate(destination: DesktopDestination) {
         mutable.update { it.copy(destination = destination, notice = null) }
         if (destination == DesktopDestination.DASHBOARD) dashboard.select(dashboard.state.value.horizon)
+    }
+    fun openRateDetail(instrument: BoardInstrument) {
+        rateDetail.select(instrument)
+        navigate(DesktopDestination.RATE_DETAIL)
     }
     fun search(value: String) { mutable.update { it.copy(query = value) } }
     fun filter(category: PortfolioCategory?) { mutable.update { it.copy(categoryFilter = category) } }

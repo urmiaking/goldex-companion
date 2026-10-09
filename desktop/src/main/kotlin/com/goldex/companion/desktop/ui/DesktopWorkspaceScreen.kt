@@ -119,6 +119,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                         onThemeChange = { workspace.toggleTheme() }
                                     )
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
+                                    DesktopDestination.RATE_DETAIL -> DesktopRateDetailPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup)
                                     DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
@@ -150,7 +151,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
 private fun icon(destination: DesktopDestination): ImageVector = when (destination) {
     DesktopDestination.DASHBOARD -> Icons.Outlined.Dashboard
     DesktopDestination.CALCULATOR -> Icons.Outlined.Calculate
-    DesktopDestination.RATES -> Icons.Outlined.ShowChart
+    DesktopDestination.RATES, DesktopDestination.RATE_DETAIL -> Icons.Outlined.ShowChart
     DesktopDestination.PORTFOLIO -> Icons.Outlined.AccountBalanceWallet
     DesktopDestination.SETTINGS -> Icons.Outlined.Settings
     DesktopDestination.INVENTORY -> Icons.Outlined.Inventory2
@@ -169,7 +170,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                 }
             }
             DesktopDestination.mainDestinations.forEach { destination ->
-                val selected = state.destination == destination || (destination == DesktopDestination.SETTINGS && state.destination == DesktopDestination.PORTFOLIO)
+                val selected = state.destination == destination || (destination == DesktopDestination.RATES && state.destination == DesktopDestination.RATE_DETAIL) || (destination == DesktopDestination.SETTINGS && state.destination == DesktopDestination.PORTFOLIO)
                 val selectionColor by animateColorAsState(if (selected) colors.goldContainer else Color.Transparent,
                     tween(if (state.reduceMotion) 0 else 180), label = "sidebar-selection")
                 var focused by remember(destination) { mutableStateOf(false) }

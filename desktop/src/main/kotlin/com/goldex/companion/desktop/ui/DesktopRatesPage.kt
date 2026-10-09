@@ -47,7 +47,6 @@ private object RatesType {
 
 @Composable internal fun RatesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
     val board by workspace.ratesBoard.state.collectAsState()
-    var detail by remember { mutableStateOf<BoardInstrument?>(null) }
     // Tether is hidden from this board; its stored data and provider contract stay compatible.
     val rows = BoardInstrument.values().filter { it != BoardInstrument.TETHER }
         .map { DesktopRatesBoardPolicy.row(it, state.snapshot, board, state.now) }
@@ -65,28 +64,25 @@ private object RatesType {
                 featured.chunked(columns).forEach { group ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         group.forEach { row ->
-                            SummaryQuote(row, state.reduceMotion, { detail = row.instrument }, Modifier.weight(1f))
+                            SummaryQuote(row, state.reduceMotion, { workspace.openRateDetail(row.instrument) }, Modifier.weight(1f))
                         }
                     }
                 }
                 BoardTable("تابلوی طلا و ارزهای معتبر بازار", "نرخ‌های رسمی بنکداری، طلای خام، شمش و ارزهای پایه معاملاتی",
-                    rows.filter { it.instrument.coin == null }, false, compact, state, board, onDetail = { detail = it })
+                    rows.filter { it.instrument.coin == null }, false, compact, state, board, onDetail = workspace::openRateDetail)
                 BoardTable("تابلوی رسمی انواع مسکوکات بانکی و حباب", "نرخ اعلامی، ارزش ذاتی طلا و حباب محاسبه‌شده",
-                    rows.filter { it.instrument.coin != null }, true, compact, state, board, onDetail = { detail = it })
+                    rows.filter { it.instrument.coin != null }, true, compact, state, board, onDetail = workspace::openRateDetail)
                 board.error?.let { RatesText(it, Modifier.testTag("rates-board-error"), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp) }
             }
         }
     }
-    detail?.let { key ->
-        RateDetails(rows.first { it.instrument == key }, state, board, onDismiss = { detail = null },
-            onCalculator = { basis -> detail = null; workspace.applyQuoteToCalculator(basis) })
-    }
+
 }
 
 private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersianDigits(
     Instant.ofEpochMilli(timestamp).atZone(ZoneId.of("Asia/Tehran")).format(DateTimeFormatter.ofPattern("HH:mm")))
 
-@Composable private fun BoardCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+@Composable internal fun BoardCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalGoldExColors.current
     Surface(modifier, color = c.surface, shape = RoundedCornerShape(16.dp),
         border = BorderStroke(.6.dp, c.border.copy(alpha = if (c.isDark) .14f else .08f)), shadowElevation = if (c.isDark) 0.dp else 2.dp) {
@@ -259,7 +255,7 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
 
 @Composable private fun TableQuote(row: BoardRow, coins: Boolean, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    Row(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").heightIn(min = 70.dp)
+    Row(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").clickable(role=Role.Button,onClickLabel="مشاهده جزئیات ${row.instrument.title}") { onDetail(row.instrument) }.heightIn(min = 70.dp)
         .padding(horizontal = 20.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         InstrumentName(row, Modifier.weight(if (coins) 3.1f else 2.9f))
@@ -293,7 +289,7 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
 
 @Composable private fun CompactQuote(row: BoardRow, state: WorkspaceState, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    Column(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").padding(16.dp),
+    Column(Modifier.fillMaxWidth().testTag("rate-row-${row.instrument.name}").clickable(role=Role.Button,onClickLabel="مشاهده جزئیات ${row.instrument.title}") { onDetail(row.instrument) }.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             InstrumentName(row, Modifier.weight(1f))
@@ -324,7 +320,7 @@ private fun signedBoardNumber(value: Double): String {
         if (abs(value) % 1.0 > .00001) "%,.2f" else "%,.0f", abs(value)))
 }
 
-@Composable private fun BoardAmount(value: Double?, dollar: Boolean, reduceMotion: Boolean, modifier: Modifier = Modifier, size: Int = 18) {
+@Composable internal fun BoardAmount(value: Double?, dollar: Boolean, reduceMotion: Boolean, modifier: Modifier = Modifier, size: Int = 18) {
     val c = LocalGoldExColors.current
     val text = formatBoardNumber(value, dollar)
     if (reduceMotion) RatesText(text, modifier.clipToBounds(), fontSize = size.sp, color = c.textMain,
@@ -348,7 +344,7 @@ private fun signedBoardNumber(value: Double): String {
     }
 }
 
-@Composable private fun DayChange(day: BoardDayQuote?, small: Boolean = false) {
+@Composable internal fun DayChange(day: BoardDayQuote?, small: Boolean = false) {
     val c = LocalGoldExColors.current
     val change = day?.change
     if (change == null) RatesText("—", color = c.textMuted, fontSize = RatesType.secondary)
@@ -388,7 +384,7 @@ private fun signedBoardNumber(value: Double): String {
         .padding(horizontal = 6.dp, vertical = 3.dp), color = color, fontSize = 9.sp, maxLines = 1)
 }
 
-private fun basis(row: BoardRow) = when (row.instrument) {
+internal fun basis(row: BoardRow) = when (row.instrument) {
     BoardInstrument.GOLD18 -> PriceBasisTab.K18
     BoardInstrument.GOLD24 -> PriceBasisTab.K24
     BoardInstrument.MELT -> PriceBasisTab.MESGHAL
@@ -425,26 +421,4 @@ private fun basis(row: BoardRow) = when (row.instrument) {
         } }
         drawPath(path,color,style = Stroke(1.6.dp.toPx(),cap = StrokeCap.Round))
     }
-}
-@Composable private fun RateDetails(row: BoardRow, state: WorkspaceState, board: DesktopRatesBoardState, onDismiss: () -> Unit, onCalculator: (PriceBasisTab) -> Unit) {
-    val c = LocalGoldExColors.current
-    AlertDialog(onDismissRequest = onDismiss, modifier = Modifier.widthIn(max = 660.dp).testTag("rate-details-dialog"), title = { Text(row.instrument.title) }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            BoardAmount(row.value,row.instrument.dollar,state.reduceMotion,size = 28)
-            Text(if (row.instrument.dollar) "دلار آمریکا برای هر اونس" else "تومان",color = c.textMuted,fontSize = 12.sp)
-            DayChange(row.daily)
-            Text("کمینه: ${formatBoardNumber(row.daily?.low,row.instrument.dollar)} • بیشینه: ${formatBoardNumber(row.daily?.high,row.instrument.dollar)}",color = c.textSecondary,fontSize = 12.sp)
-            Sparkline(row.history,row.daily?.change,Modifier.fillMaxWidth().height(100.dp))
-            if (row.instrument.coin != null) {
-                Text("حباب محاسبه شده",color = c.textMain,fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { BubbleAmount(row); BubblePercent(row) }
-                Text("ارزش ذاتی: ${row.bubble?.intrinsicValue?.let { formatBoardNumber(it) } ?: "—"} تومان\nبر اساس انس، دلار، وزن خالص و حق ضرب؛ نرخ خرید یا توصیه معامله نیست.",color = c.textMuted,fontSize = 11.sp)
-            }
-            Text("${row.source} • ${if (row.instrument in listOf(BoardInstrument.AED,BoardInstrument.TETHER)) board.snapshot?.receivedAt?.let(DesktopPortfolioPolicy::observedTime) ?: "—" else state.snapshot?.observedAt?.let(DesktopPortfolioPolicy::observedTime) ?: "—"}",color = c.textMuted,fontSize = 11.sp)
-            if (row.history.isEmpty()) Text("تاریخچه معتبر و همسان در دسترس نیست.",color = c.textMuted,fontSize = 11.sp)
-        }
-    }, confirmButton = { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        GoldButton("بستن",onDismiss,isSecondary = true,modifier = Modifier.width(100.dp).testTag("rate-details-close"))
-        basis(row)?.let { selected -> GoldButton("محاسبه در فاکتور",{ onCalculator(selected) },enabled = row.value != null && !state.saving,modifier = Modifier.width(175.dp).testTag("rate-use-calculator")) }
-    } })
 }
