@@ -46,7 +46,7 @@ class DesktopRatesPageTest {
         val snapshot = BoardSnapshot(now,references,references.mapValues { (_,q) -> BoardHistory(listOf(q.price*.995,q.price*.997,q.price*.996,q.price),now) })
         workspace = DesktopWorkspace(store,market,connectivity=object : ConnectivityObserver {
             override val status = connection
-        },ratesBoardGateway=object : DesktopRatesBoardGateway {
+        },rateHistoryGateway=object : DesktopRateHistoryGateway { override suspend fun load(instrument: BoardInstrument,horizon: TimeHorizon): RateHistorySnapshot = error("Offline fixture") },ratesBoardGateway=object : DesktopRatesBoardGateway {
             override fun cached() = snapshot
             override suspend fun load(previous: BoardSnapshot?) = snapshot
         })
@@ -113,9 +113,9 @@ class DesktopRatesPageTest {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace,{},"0.56.47") } }
         runOnIdle { workspace.calculatorRates.setInput(CalculatorField.GROSS_WEIGHT,"2.125") }
         onNodeWithTag("rate-detail-GOLD24").performScrollTo().performClick()
-        onNodeWithTag("rate-details-dialog").assertExists()
-        save(onNodeWithTag("rate-details-dialog"),"rates-stitch-detail.png")
-        onNodeWithTag("rate-use-calculator").performClick()
+        onNodeWithTag("rate-details-page").assertExists()
+        save(onNodeWithTag("rate-details-page"),"rates-stitch-detail.png")
+        onNodeWithTag("rate-use-calculator").performScrollTo().performClick()
         runOnIdle {
             assertEquals(DesktopDestination.CALCULATOR,workspace.state.value.destination)
             assertEquals(PriceBasisTab.K24,workspace.calculator.state.value.priceBasis)
@@ -130,14 +130,15 @@ class DesktopRatesPageTest {
         onNodeWithTag("rate-row-GOLD24").performScrollTo()
         assertTrue(onAllNodes(hasText("—") and hasAnyAncestor(hasTestTag("rate-row-GOLD24")),useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
         onNodeWithTag("rate-detail-GOLD24").performClick()
-        onNodeWithTag("rate-use-calculator").assertIsNotEnabled()
-        onNodeWithTag("rate-details-close").performClick()
+        onNodeWithTag("rate-use-calculator").performScrollTo().assertIsNotEnabled()
+        onNodeWithTag("rate-details-close").performScrollTo().performClick()
         onNodeWithTag("rates-summary-GOLD18").performScrollTo()
         save(onNodeWithTag("workspace-root"),"rates-refined-compact-light.png")
         onNodeWithTag("manual-rates").assertDoesNotExist()
         onNodeWithTag("rates-summary-GOLD18").performClick()
-        onNodeWithText("تاریخچه معتبر و همسان در دسترس نیست.").assertExists()
-        onNodeWithTag("rate-details-close").performClick()
+        waitUntil(5000) { !workspace.rateDetail.state.value.loading }
+        onNodeWithText("تاریخچه معتبر برای این نماد و بازه در دسترس نیست.").assertExists()
+        onNodeWithTag("rate-details-close").performScrollTo().performClick()
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
         save(onNodeWithTag("workspace-root"),"rates-refined-compact-dark.png")
@@ -150,8 +151,8 @@ class DesktopRatesPageTest {
         onNodeWithText("آفلاین").assertExists()
         onNodeWithTag("rates-refresh").assertDoesNotExist()
         onNodeWithTag("rate-detail-EMAMI").performScrollTo().performClick()
-        onNodeWithTag("rate-details-dialog").assertExists()
-        onNodeWithText("نرخ خرید یا توصیه معامله نیست.", substring=true).assertExists()
+        onNodeWithTag("rate-details-page").assertExists()
+        onNodeWithText("نرخ خرید یا توصیه معامله نیست.", substring=true).performScrollTo().assertExists()
         onNodeWithTag("rate-use-calculator").assertDoesNotExist()
     }
 
