@@ -183,7 +183,7 @@ private data class QuickAction(
         shape = RoundedCornerShape(18.dp),
         color = Color.Transparent,
         border = colors.goldHairlineBorder,
-        shadowElevation = 4.dp
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp
     ) {
         Column(
             Modifier.fillMaxSize()

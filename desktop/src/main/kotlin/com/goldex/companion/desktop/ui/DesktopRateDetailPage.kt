@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -51,18 +52,30 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
     PageScroll {
         Column(Modifier.fillMaxWidth().testTag("rate-details-page"),verticalArrangement=Arrangement.spacedBy(20.dp)) {
             RateInstrumentSelector(detail,workspace)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                GoldButton(
-                    text = "تابلوی نرخ‌ها",
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IconButton(
                     onClick = { workspace.navigate(DesktopDestination.RATES) },
-                    isSecondary = true,
-                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
-                    modifier = Modifier.width(150.dp).testTag("rate-details-close")
-                )
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(LocalGoldExColors.current.surfaceElevated, RoundedCornerShape(10.dp))
+                        .border(0.6.dp, LocalGoldExColors.current.goldBorder.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .testTag("rate-details-close")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "بازگشت به تابلوی نرخ‌ها",
+                        tint = LocalGoldExColors.current.goldPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     PageTitle(row.instrument.title)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -378,7 +391,7 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
         color = c.surface,
         shape = RoundedCornerShape(16.dp),
         border = c.goldHairlineBorder,
-        shadowElevation = 3.dp
+        shadowElevation = if (c.isDark) 0.dp else 2.dp
     ) {
         Column {
             Box(

@@ -89,7 +89,7 @@ private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersi
         color = c.surface,
         shape = RoundedCornerShape(16.dp),
         border = c.goldHairlineBorder,
-        shadowElevation = 3.dp
+        shadowElevation = if (c.isDark) 0.dp else 2.dp
     ) {
         Column(
             Modifier.then(

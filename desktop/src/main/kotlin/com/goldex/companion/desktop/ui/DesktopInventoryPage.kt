@@ -175,7 +175,7 @@ private val GreenGainColor = Color(0xFF4ADE80)
         shape = RoundedCornerShape(if (spacious) 20.dp else 14.dp),
         color = DarkCardBg,
         border = colors.goldHairlineBorder,
-        shadowElevation = 4.dp
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp
     ) {
         Column {
             Box(
@@ -185,8 +185,8 @@ private val GreenGainColor = Color(0xFF4ADE80)
                     .background(brush = colors.specularHairlineBrush)
             )
             Column(
-                Modifier.padding(if (spacious) 18.dp else 10.dp),
-                verticalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 8.dp)
+                Modifier.padding(if (spacious) 14.dp else 8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (spacious) 10.dp else 6.dp)
             ) {
             // Header Row
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -621,7 +621,11 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     val colors = LocalGoldExColors.current
     val scroll = rememberScrollState()
     Box(modifier) {
-        LuxuryCard(Modifier.fillMaxSize().padding(end = 10.dp).verticalScroll(scroll).testTag("inventory-details"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        LuxuryCard(
+            modifier = Modifier.fillMaxSize().padding(end = 10.dp).verticalScroll(scroll).testTag("inventory-details"),
+            contentPadding = PaddingValues(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 InventoryImage(item.imageUrl, Modifier.size(80.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -188,7 +188,7 @@ private fun InputPanel(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = colors.goldHairlineBorder,
-        shadowElevation = 3.dp,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -516,7 +516,7 @@ private fun InputPanel(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = colors.goldHairlineBorder,
-        shadowElevation = 3.dp,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -780,7 +780,7 @@ private fun ResultPanel(
         shape = RoundedCornerShape(18.dp),
         color = Color(0xFF13151A),
         border = colors.goldHairlineBorder,
-        shadowElevation = 4.dp,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {
@@ -1089,7 +1089,7 @@ private fun FormulaCard() {
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = colors.goldHairlineBorder,
-        shadowElevation = 3.dp,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column {

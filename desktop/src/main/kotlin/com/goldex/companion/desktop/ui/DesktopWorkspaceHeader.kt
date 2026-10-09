@@ -154,8 +154,8 @@ internal fun workspaceDate(now: Long): String {
                 modifier = Modifier
                     .fillMaxHeight()
                     .then(
-                        if (!enabled) Modifier.background(colors.surfaceElevated)
-                        else Modifier.background(colors.goldButtonGradient)
+                        if (!enabled) Modifier.background(colors.surfaceElevated, WorkspaceControlShape)
+                        else Modifier.background(colors.goldButtonGradient, WorkspaceControlShape)
                     )
                     .padding(horizontal = if (compact) 10.dp else 18.dp),
                 contentAlignment = Alignment.Center

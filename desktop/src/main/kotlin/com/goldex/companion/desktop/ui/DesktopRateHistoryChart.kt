@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
@@ -29,117 +31,184 @@ import com.goldex.companion.ui.theme.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** RTL chronology, real timestamps, bounded rendering, pointer and keyboard access to the same values. */
+/** Chronological LTR chart (past on left, present on right), pointer drag and keyboard access. */
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable internal fun DesktopRateHistoryChart(
     history: RateHistorySnapshot,
     reduceMotion: Boolean,
     onPointSelected: ((RateHistoryPoint) -> Unit)? = null
 ) {
-    val c=LocalGoldExColors.current; val gold=if(c.isDark)c.goldSecondary else c.goldPrimary
-    val points=history.points
-    var selectedAt by remember(history.instrument,history.horizon) { mutableStateOf<Long?>(null) }
-    val selected=points.indexOfFirst { it.at == selectedAt }.takeIf { it >= 0 } ?: points.lastIndex
+    val c = LocalGoldExColors.current; val gold = if (c.isDark) c.goldSecondary else c.goldPrimary
+    val points = history.points
+    var selectedAt by remember(history.instrument, history.horizon) { mutableStateOf<Long?>(null) }
+    val selected = points.indexOfFirst { it.at == selectedAt }.takeIf { it >= 0 } ?: points.lastIndex
     var focused by remember { mutableStateOf(false) }
-    val point=points[selected]
+    val point = points[selected]
     LaunchedEffect(point) { onPointSelected?.invoke(point) }
-    val insetPixels=with(androidx.compose.ui.platform.LocalDensity.current) { 12.dp.toPx() }
-    val span=(points.last().at-points.first().at).coerceAtLeast(1)
-    fun x(p: RateHistoryPoint) = 1f-(p.at-points.first().at).toDouble().div(span).toFloat()
-    fun y(p: RateHistoryPoint) = if(history.high==history.low) .5f else (p.price-history.low).toDouble().div(history.high-history.low).toFloat()
-    fun selectAt(position: Float,width: Int) {
-        val found = points.minByOrNull { abs(x(it)*(width-2*insetPixels)+insetPixels-position) }
+    val insetPixels = with(LocalDensity.current) { 12.dp.toPx() }
+    val span = (points.last().at - points.first().at).coerceAtLeast(1)
+    fun x(p: RateHistoryPoint) = (p.at - points.first().at).toDouble().div(span).toFloat()
+    fun y(p: RateHistoryPoint) = if (history.high == history.low) .5f else (p.price - history.low).toDouble().div(history.high - history.low).toFloat()
+    fun selectAt(position: Float, width: Int) {
+        val found = points.minByOrNull { abs(x(it) * (width - 2 * insetPixels) + insetPixels - position) }
         selectedAt = found?.at
         found?.let { onPointSelected?.invoke(it) }
     }
-    val description="${instrumentLabel(history.instrument)}؛ ${historyAmount(point.price,history.instrument)} ${if(history.instrument.dollar) "دلار" else "تومان"}، ${PersianNumberFormatter.toPersianDigits(point.label)}"
-    Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        BoxWithConstraints(Modifier.fillMaxWidth().height(260.dp).testTag("rate-history-chart").clipToBounds()
-            .border(if(focused)1.dp else 0.dp,if(focused)gold else Color.Transparent,RoundedCornerShape(6.dp))
-            .semantics {
-                contentDescription="نمودار ${instrumentLabel(history.instrument)}؛ کف ${historyAmount(history.low,history.instrument)} و اوج ${historyAmount(history.high,history.instrument)}"
-                stateDescription=description
-                progressBarRangeInfo=ProgressBarRangeInfo(selected.toFloat(),0f..points.lastIndex.toFloat(),(points.size-2).coerceAtLeast(0))
-                setProgress { selectedAt=points[it.roundToInt().coerceIn(points.indices)].at; true }
-            }.onFocusChanged { focused=it.isFocused }
-            .onKeyEvent { e -> if(e.type != KeyEventType.KeyDown) false else when(e.key) {
-                Key.DirectionLeft -> { selectedAt=points[(selected+1).coerceAtMost(points.lastIndex)].at;true }
-                Key.DirectionRight -> { selectedAt=points[(selected-1).coerceAtLeast(0)].at;true }
-                Key.MoveHome -> { selectedAt=points.first().at;true }; Key.MoveEnd -> { selectedAt=points.last().at;true }; else -> false
-            } }.focusable()
-            .pointerInput(history) { detectTapGestures { selectAt(it.x,size.width) } }
-            .pointerInput(history) { detectDragGestures(onDragStart = { selectAt(it.x, size.width) }, onDrag = { change, _ -> change.consume(); selectAt(change.position.x, size.width) }) }
-            .pointerInput(history) { awaitPointerEventScope { while(true) {
-                val event=awaitPointerEvent()
-                if(event.type == PointerEventType.Move) event.changes.firstOrNull()?.let { selectAt(it.position.x,size.width) }
-            } } }) {
-            Canvas(Modifier.fillMaxSize()) {
-                val inset=12.dp.toPx();val width=(size.width-2*inset).coerceAtLeast(1f);val height=size.height-32.dp.toPx()
-                fun location(p: RateHistoryPoint)=Offset(inset+x(p)*width,16.dp.toPx()+(1-y(p))*height)
-                repeat(4) { i -> val gy=16.dp.toPx()+height*i/3
-                    drawLine(c.border.copy(alpha=.45f),Offset(inset,gy),Offset(size.width-inset,gy),strokeWidth=.6.dp.toPx(),pathEffect=PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(),5.dp.toPx()))) }
-                val positions=history.renderedPoints.map(::location)
-                val line=Path().apply {
-                    moveTo(positions.first().x,positions.first().y)
-                    for(i in 0 until positions.lastIndex) {
-                        val a=positions[i];val b=positions[i+1]
-                        val previous=positions.getOrElse(i-1) { a };val next=positions.getOrElse(i+2) { b }
-                        val low=minOf(a.y,b.y);val high=maxOf(a.y,b.y)
-                        // Neighbor tangents are clamped to actual endpoints, keeping extrema truthful.
-                        cubicTo(a.x+(b.x-a.x)/3,(a.y+(b.y-previous.y)/6).coerceIn(low,high),
-                            b.x-(b.x-a.x)/3,(b.y-(next.y-a.y)/6).coerceIn(low,high),b.x,b.y)
+    val description = "${instrumentLabel(history.instrument)}؛ ${historyAmount(point.price, history.instrument)} ${if (history.instrument.dollar) "دلار" else "تومان"}، ${PersianNumberFormatter.toPersianDigits(point.label)}"
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().height(260.dp).testTag("rate-history-chart").clipToBounds()
+                    .border(if (focused) 1.dp else 0.dp, if (focused) gold else Color.Transparent, RoundedCornerShape(6.dp))
+                    .semantics {
+                        contentDescription = "نمودار ${instrumentLabel(history.instrument)}؛ کف ${historyAmount(history.low, history.instrument)} و اوج ${historyAmount(history.high, history.instrument)}"
+                        stateDescription = description
+                        progressBarRangeInfo = ProgressBarRangeInfo(selected.toFloat(), 0f..points.lastIndex.toFloat(), (points.size - 2).coerceAtLeast(0))
+                        setProgress { selectedAt = points[it.roundToInt().coerceIn(points.indices)].at; true }
+                    }.onFocusChanged { focused = it.isFocused }
+                    .onKeyEvent { e ->
+                        if (e.type != KeyEventType.KeyDown) false else when (e.key) {
+                            Key.DirectionLeft -> { selectedAt = points[(selected - 1).coerceAtLeast(0)].at; true }
+                            Key.DirectionRight -> { selectedAt = points[(selected + 1).coerceAtMost(points.lastIndex)].at; true }
+                            Key.MoveHome -> { selectedAt = points.first().at; true }
+                            Key.MoveEnd -> { selectedAt = points.last().at; true }
+                            else -> false
+                        }
+                    }.focusable()
+                    .pointerInput(history) { detectTapGestures { selectAt(it.x, size.width) } }
+                    .pointerInput(history) { detectDragGestures(onDragStart = { selectAt(it.x, size.width) }, onDrag = { change, _ -> change.consume(); selectAt(change.position.x, size.width) }) }
+                    .pointerInput(history) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.type == PointerEventType.Move) event.changes.firstOrNull()?.let { selectAt(it.position.x, size.width) }
+                            }
+                        }
                     }
-                }
-                val fill=Path().apply { addPath(line);lineTo(positions.last().x,size.height);lineTo(positions.first().x,size.height);close() }
-                drawPath(fill,Brush.verticalGradient(listOf(gold.copy(alpha=.3f),gold.copy(alpha=.06f),Color.Transparent)))
-                drawPath(line,gold,style=Stroke(3.dp.toPx(),cap=StrokeCap.Round))
-                val peak=location(points.maxBy { it.price });drawCircle(c.surface,7.dp.toPx(),peak);drawCircle(gold,4.5.dp.toPx(),peak)
-                val latest=location(points.last());drawCircle(c.surface,7.dp.toPx(),latest);drawCircle(c.marketGainText,4.5.dp.toPx(),latest)
-                if(selectedAt != null) {
-                    val p=location(point)
-                    drawLine(gold.copy(alpha=.5f),Offset(p.x,0f),Offset(p.x,size.height),strokeWidth=1.dp.toPx(),pathEffect=PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(),4.dp.toPx())))
-                    drawCircle(c.surface,6.dp.toPx(),p);drawCircle(gold,4.dp.toPx(),p)
-                }
-            }
-            if (selectedAt != null || focused) Surface(
-                Modifier.align(Alignment.TopCenter).testTag("rate-history-tooltip"),
-                color = c.surfaceElevated,
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(.8.dp, gold.copy(alpha = .6f)),
-                shadowElevation = 4.dp
             ) {
-                Row(
-                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(Modifier.size(6.dp).background(gold, CircleShape))
-                    if (reduceMotion) {
-                        Text(
-                            text = historyAmount(point.price, history.instrument),
-                            color = c.textMain,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else {
-                        AnimatedPriceTicker(
-                            text = historyAmount(point.price, history.instrument),
-                            color = c.textMain,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold
+                Canvas(Modifier.fillMaxSize()) {
+                    val inset = 12.dp.toPx()
+                    val width = (size.width - 2 * inset).coerceAtLeast(1f)
+                    val height = size.height - 32.dp.toPx()
+                    fun location(p: RateHistoryPoint) = Offset(inset + x(p) * width, 16.dp.toPx() + (1 - y(p)) * height)
+
+                    repeat(4) { i ->
+                        val gy = 16.dp.toPx() + height * i / 3
+                        drawLine(
+                            c.border.copy(alpha = .45f),
+                            Offset(inset, gy),
+                            Offset(size.width - inset, gy),
+                            strokeWidth = .6.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 5.dp.toPx()))
                         )
                     }
-                    DetailText(if (history.instrument.dollar) "دلار" else "تومان", muted = true, size = 10)
-                    DetailText("•", muted = true, size = 10)
-                    DetailText(PersianNumberFormatter.toPersianDigits(point.label), muted = true, size = 10)
+
+                    val positions = history.renderedPoints.map(::location)
+                    val line = Path().apply {
+                        moveTo(positions.first().x, positions.first().y)
+                        for (i in 0 until positions.lastIndex) {
+                            val a = positions[i]; val b = positions[i + 1]
+                            val previous = positions.getOrElse(i - 1) { a }; val next = positions.getOrElse(i + 2) { b }
+                            val low = minOf(a.y, b.y); val high = maxOf(a.y, b.y)
+                            cubicTo(
+                                a.x + (b.x - a.x) / 3,
+                                (a.y + (b.y - previous.y) / 6).coerceIn(low, high),
+                                b.x - (b.x - a.x) / 3,
+                                (b.y - (next.y - a.y) / 6).coerceIn(low, high),
+                                b.x,
+                                b.y
+                            )
+                        }
+                    }
+
+                    val fill = Path().apply {
+                        addPath(line)
+                        lineTo(positions.last().x, size.height)
+                        lineTo(positions.first().x, size.height)
+                        close()
+                    }
+                    drawPath(fill, Brush.verticalGradient(listOf(gold.copy(alpha = .3f), gold.copy(alpha = .06f), Color.Transparent)))
+                    drawPath(line, gold, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round))
+
+                    val peak = location(points.maxBy { it.price })
+                    drawCircle(c.surface, 7.dp.toPx(), peak); drawCircle(gold, 4.5.dp.toPx(), peak)
+
+                    val latest = location(points.last())
+                    drawCircle(c.surface, 7.dp.toPx(), latest); drawCircle(c.marketGainText, 4.5.dp.toPx(), latest)
+
+                    if (selectedAt != null) {
+                        val p = location(point)
+                        drawLine(
+                            gold.copy(alpha = .5f),
+                            Offset(p.x, 0f),
+                            Offset(p.x, size.height),
+                            strokeWidth = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
+                        )
+                        drawCircle(c.surface, 6.dp.toPx(), p); drawCircle(gold, 4.dp.toPx(), p)
+                    }
+                }
+
+                if (selectedAt != null || focused) {
+                    val normX = x(point)
+                    val normY = y(point)
+                    val insetDp = 12.dp
+                    val chartWDp = maxWidth - (insetDp * 2)
+                    val ptXDp = insetDp + (chartWDp * normX)
+                    val ptYDp = 16.dp + ((maxHeight - 32.dp) * (1f - normY))
+
+                    val tooltipW = 145.dp
+                    val tooltipH = 36.dp
+                    val targetX = ptXDp - (tooltipW / 2)
+                    val clampedX = targetX.coerceIn(4.dp, (maxWidth - tooltipW - 4.dp).coerceAtLeast(4.dp))
+                    val targetY = ptYDp - tooltipH - 8.dp
+                    val clampedY = if (targetY >= 6.dp) targetY else ptYDp + 12.dp
+
+                    Surface(
+                        modifier = Modifier
+                            .offset(x = clampedX, y = clampedY)
+                            .testTag("rate-history-tooltip"),
+                        color = c.surfaceElevated,
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(.8.dp, gold.copy(alpha = .6f)),
+                        shadowElevation = if (c.isDark) 0.dp else 2.dp
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(Modifier.size(6.dp).background(gold, CircleShape))
+                            if (reduceMotion) {
+                                Text(
+                                    text = historyAmount(point.price, history.instrument),
+                                    color = c.textMain,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                AnimatedPriceTicker(
+                                    text = historyAmount(point.price, history.instrument),
+                                    color = c.textMain,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            DetailText(if (history.instrument.dollar) "دلار" else "تومان", muted = true, size = 10)
+                            DetailText("•", muted = true, size = 10)
+                            DetailText(PersianNumberFormatter.toPersianDigits(point.label), muted = true, size = 10)
+                        }
+                    }
+                }
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf(0, points.lastIndex / 4, points.lastIndex / 2, points.lastIndex * 3 / 4, points.lastIndex).distinct().forEach { index ->
+                    DetailText(PersianNumberFormatter.toPersianDigits(points[index].label), muted = true, size = 10)
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-            listOf(points.lastIndex,points.lastIndex*3/4,points.lastIndex/2,points.lastIndex/4,0).distinct().forEach { index ->
-                DetailText(PersianNumberFormatter.toPersianDigits(points[index].label),muted=true,size=10)
-            }
-        }
-        DetailText(description,Modifier.testTag("rate-history-selected"),muted=true,size=11,lines=2)
+        DetailText(description, Modifier.testTag("rate-history-selected"), muted = true, size = 11, lines = 2)
     }
 }
