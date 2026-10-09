@@ -84,10 +84,27 @@ private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersi
 
 @Composable internal fun BoardCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = LocalGoldExColors.current
-    Surface(modifier, color = c.surface, shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(.6.dp, c.border.copy(alpha = if (c.isDark) .14f else .08f)), shadowElevation = if (c.isDark) 0.dp else 2.dp) {
-        Column(Modifier.then(if (onClick == null) Modifier else Modifier.clickable(role = Role.Button,
-            onClickLabel = "مشاهده جزئیات", onClick = onClick)), content = content)
+    Surface(
+        modifier = modifier,
+        color = c.surface,
+        shape = RoundedCornerShape(16.dp),
+        border = c.goldHairlineBorder,
+        shadowElevation = 3.dp
+    ) {
+        Column(
+            Modifier.then(
+                if (onClick == null) Modifier
+                else Modifier.clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات", onClick = onClick)
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = c.specularHairlineBrush)
+            )
+            content()
+        }
     }
 }
 
@@ -109,7 +126,7 @@ private fun boardClock(timestamp: Long): String = PersianNumberFormatter.toPersi
             }
             HorizontalDivider(color = c.border.copy(alpha = .05f), thickness = .6.dp)
             SummaryContext(row)
-            Sparkline(row.history, row.daily?.change, Modifier.fillMaxWidth().height(28.dp))
+            Sparkline(effectiveSparkline(row), row.daily?.change, Modifier.fillMaxWidth().height(28.dp))
         }
     }
 }
@@ -261,7 +278,9 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
         InstrumentName(row, Modifier.weight(if (coins) 3.1f else 2.9f))
         Box(Modifier.weight(1.5f)) { InlineQuote(row, state.reduceMotion) }
         if (coins) {
-            RatesText("—", Modifier.weight(1.4f), color = c.textMuted, fontSize = RatesType.title)
+            Box(Modifier.weight(1.4f).padding(horizontal = 4.dp)) {
+                Sparkline(effectiveSparkline(row), row.daily?.change, Modifier.fillMaxWidth().height(24.dp))
+            }
             Box(Modifier.weight(1.65f)) { DayChange(row.daily) }
             Column(Modifier.weight(1.6f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BubbleAmount(row)
@@ -273,7 +292,7 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
             RatesText("${formatBoardNumber(row.daily?.low, row.instrument.dollar)} / ${formatBoardNumber(row.daily?.high, row.instrument.dollar)}",
                 Modifier.weight(1.65f), color = c.textMuted, fontSize = RatesType.secondary, maxLines = 2)
             Box(Modifier.weight(.85f).padding(horizontal = 4.dp)) {
-                Sparkline(row.history, row.daily?.change, Modifier.fillMaxWidth().height(24.dp))
+                Sparkline(effectiveSparkline(row), row.daily?.change, Modifier.fillMaxWidth().height(24.dp))
             }
             Box(Modifier.weight(1.05f)) { QuoteAction(row, onDetail) }
         }
@@ -299,7 +318,8 @@ private fun summaryTitle(instrument: BoardInstrument): String = when (instrument
             Box(Modifier.weight(1f)) { DayChange(row.daily) }
             if (row.instrument.coin != null) Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BubbleAmount(row); BubblePercent(row)
-            } else Sparkline(row.history, row.daily?.change, Modifier.width(72.dp).height(25.dp))
+            }
+            Sparkline(effectiveSparkline(row), row.daily?.change, Modifier.width(72.dp).height(25.dp))
             QuoteAction(row, onDetail)
         }
         if (row.instrument.coin == null) RatesText(
@@ -417,16 +437,49 @@ internal fun basis(row: BoardRow) = when (row.instrument) {
         overflow = overflow, softWrap = softWrap, lineHeight = lineHeight, style = LocalTextStyle.current.copy(textDirection = textDirection))
 }
 
+private fun effectiveSparkline(row: BoardRow): List<Double> {
+    if (row.history.size >= 2) return row.history
+    val p = row.value ?: return emptyList()
+    val ch = row.daily?.change ?: 0.0
+    val open = p - ch
+    val low = row.daily?.low ?: minOf(open, p)
+    val high = row.daily?.high ?: maxOf(open, p)
+    return if (ch >= 0) listOf(open, low, high, p)
+    else listOf(open, high, low, p)
+}
+
 @Composable private fun Sparkline(values: List<Double>, change: Double?, modifier: Modifier) {
     val c = LocalGoldExColors.current; val color = if ((change ?: 0.0) < 0) c.errorRed else c.marketGainText
-    if (values.size < 2) Box(modifier,contentAlignment = Alignment.Center) { Text("—",color = c.textMuted,fontSize = 12.sp) }
-    else Canvas(modifier.testTag("rate-sparkline").semantics { }) {
-        val lo = values.minOrNull()!!; val range = (values.maxOrNull()!! - lo)
-        val p = values.mapIndexed { i,v -> Offset(i.toFloat() / (values.size - 1) * size.width, if (range == 0.0) size.height/2 else (size.height - 4.dp.toPx()) * (1 - (v-lo)/range).toFloat()+2.dp.toPx()) }
-        val path = Path().apply { moveTo(p[0].x,p[0].y); for (i in 0 until p.lastIndex) {
-            val a = p[if (i == 0) i else i-1]; val b = p[i]; val d = p[i+1]; val e = p[minOf(i+2,p.lastIndex)]
-            cubicTo(b.x+(d.x-a.x)/6,b.y+(d.y-a.y)/6,d.x-(e.x-b.x)/6,d.y-(e.y-b.y)/6,d.x,d.y)
-        } }
-        drawPath(path,color,style = Stroke(1.6.dp.toPx(),cap = StrokeCap.Round))
+    Canvas(modifier.testTag("rate-sparkline").semantics { }) {
+        if (values.size < 2) {
+            drawLine(
+                color = color.copy(alpha = 0.5f),
+                start = Offset(0f, size.height / 2f),
+                end = Offset(size.width, size.height / 2f),
+                strokeWidth = 1.6.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            return@Canvas
+        }
+        val lo = values.minOrNull() ?: 0.0
+        val hi = values.maxOrNull() ?: lo
+        val range = (hi - lo).coerceAtLeast(0.0001)
+        val p = values.mapIndexed { i, v ->
+            Offset(
+                i.toFloat() / (values.size - 1) * size.width,
+                if (range == 0.0) size.height / 2 else (size.height - 4.dp.toPx()) * (1f - ((v - lo) / range).toFloat()) + 2.dp.toPx()
+            )
+        }
+        val path = Path().apply {
+            moveTo(p[0].x, p[0].y)
+            for (i in 0 until p.lastIndex) {
+                val a = p[if (i == 0) i else i - 1]
+                val b = p[i]
+                val d = p[i + 1]
+                val e = p[minOf(i + 2, p.lastIndex)]
+                cubicTo(b.x + (d.x - a.x) / 6, b.y + (d.y - a.y) / 6, d.x - (e.x - b.x) / 6, d.y - (e.y - b.y) / 6, d.x, d.y)
+            }
+        }
+        drawPath(path, color, style = Stroke(1.8.dp.toPx(), cap = StrokeCap.Round))
     }
 }

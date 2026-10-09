@@ -168,16 +168,26 @@ private val GreenGainColor = Color(0xFF4ADE80)
     val coinItems = remember(allItems) { allItems.filter { it.category == InventoryCategory.COINS || it.title.contains("سکه") } }
     val coinsPieces = remember(coinItems) { coinItems.sumOf { it.quantity.toLong() } }
 
+    val colors = LocalGoldExColors.current
+
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("inventory-summary"),
         shape = RoundedCornerShape(if (spacious) 20.dp else 14.dp),
         color = DarkCardBg,
-        border = BorderStroke(1.dp, CardBorderColor)
+        border = colors.goldHairlineBorder,
+        shadowElevation = 4.dp
     ) {
-        Column(
-            Modifier.padding(if (spacious) 18.dp else 10.dp),
-            verticalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 8.dp)
-        ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(
+                Modifier.padding(if (spacious) 18.dp else 10.dp),
+                verticalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 8.dp)
+            ) {
             // Header Row
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -351,6 +361,7 @@ private val GreenGainColor = Color(0xFF4ADE80)
             }
         }
     }
+}
 }
 
 @Composable private fun SubMetricCard(

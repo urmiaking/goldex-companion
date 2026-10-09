@@ -187,10 +187,17 @@ private fun InputPanel(
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
+        border = colors.goldHairlineBorder,
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             // Header
             Row(
                 Modifier.fillMaxWidth(),
@@ -502,15 +509,23 @@ private fun InputPanel(
             }
         }
     }
+}
 
     // Card 2: اجرت، سود و مالیات
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
+        border = colors.goldHairlineBorder,
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             // Header
             Row(
                 Modifier.fillMaxWidth(),
@@ -649,6 +664,7 @@ private fun InputPanel(
         }
     }
 }
+}
 
 @Composable
 private fun NumericInput(
@@ -763,13 +779,20 @@ private fun ResultPanel(
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = Color(0xFF13151A),
-        border = BorderStroke(1.dp, if (colors.isDark) Color(0x33D4AF37) else Color(0xFF262A33)),
+        border = colors.goldHairlineBorder,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(
+                Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1022,6 +1045,7 @@ private fun ResultPanel(
         }
     }
 }
+}
 
 @Composable
 private fun ObsidianResultLine(label: String, value: String?, unit: String) {
@@ -1064,36 +1088,44 @@ private fun FormulaCard() {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
-        border = BorderStroke(1.dp, colors.border),
+        border = colors.goldHairlineBorder,
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(
+                Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = colors.goldPrimary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    "فرمول نحوه محاسبه استاندارد:",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.5.sp,
-                    color = colors.textMain
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("۱. ارزش طلای خام = وزن خالص × قیمت هر گرم طلا ۱۸ عیار", fontSize = 11.5.sp, color = colors.textMuted)
-                Text("۲. اجرت ساخت = ارزش خام × درصد اجرت", fontSize = 11.5.sp, color = colors.textMuted)
-                Text("۳. سود طلافروش = (ارزش خام + اجرت) × درصد سود (۷٪)", fontSize = 11.5.sp, color = colors.textMuted)
-                Text("۴. مالیات بر ارزش افزوده = (اجرت ساخت + سود) × ۱۰٪", fontSize = 11.5.sp, color = colors.textMuted)
-                Text("مبلغ نهایی = ارزش خام + اجرت + سود + مالیات", fontSize = 11.5.sp, color = colors.goldPrimary, fontWeight = FontWeight.SemiBold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        "فرمول نحوه محاسبه استاندارد:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        color = colors.textMain
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("۱. ارزش طلای خام = وزن خالص × قیمت هر گرم طلا ۱۸ عیار", fontSize = 11.5.sp, color = colors.textMuted)
+                    Text("۲. اجرت ساخت = ارزش خام × درصد اجرت", fontSize = 11.5.sp, color = colors.textMuted)
+                    Text("۳. سود طلافروش = (ارزش خام + اجرت) × درصد سود (۷٪)", fontSize = 11.5.sp, color = colors.textMuted)
+                    Text("۴. مالیات بر ارزش افزوده = (اجرت ساخت + سود) × ۱۰٪", fontSize = 11.5.sp, color = colors.textMuted)
+                    Text("مبلغ نهایی = ارزش خام + اجرت + سود + مالیات", fontSize = 11.5.sp, color = colors.goldPrimary, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }

@@ -178,13 +178,26 @@ private data class QuickAction(
     val balanceSize = when { (balance?.length ?: 0) > 20 -> 22; (balance?.length ?: 0) > 16 -> 25; else -> 30 }
     val innerCardHeight = 118.dp
 
-    Column(
-        modifier.fillMaxWidth().testTag("dashboard-vault")
-            .background(colors.dashboardVaultGradient, RoundedCornerShape(18.dp))
-            .border(0.8.dp, colors.goldBorder.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+    Surface(
+        modifier = modifier.fillMaxWidth().testTag("dashboard-vault"),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
+        border = colors.goldHairlineBorder,
+        shadowElevation = 4.dp
     ) {
+        Column(
+            Modifier.fillMaxSize()
+                .background(colors.dashboardVaultGradient)
+        ) {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(
+                Modifier.fillMaxSize().padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
         // Vault Header
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -301,6 +314,8 @@ private data class QuickAction(
             )
         }
     }
+}
+}
 }
 
 @Composable private fun VaultMetric(title: String, value: String, unit: String, modifier: Modifier) {
