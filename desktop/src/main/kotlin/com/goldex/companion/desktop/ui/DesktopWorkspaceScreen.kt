@@ -128,6 +128,12 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             }
                         }
                     }
+                    DesktopRatesFooter(
+                        rates = state.snapshot?.rates,
+                        boardState = workspace.ratesBoard.state.collectAsState().value,
+                        reduceMotion = state.reduceMotion,
+                        onNavigateRates = { workspace.navigate(DesktopDestination.RATES) }
+                    )
                 }
             }
         }

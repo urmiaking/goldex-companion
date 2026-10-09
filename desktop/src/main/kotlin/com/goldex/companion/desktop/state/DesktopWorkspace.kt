@@ -69,6 +69,7 @@ class DesktopWorkspace(
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
     val rateDetail = DesktopRateDetail(rateHistoryGateway, scope)
     val inventory = DesktopInventory(storage, scope)
+    val dataDirectory: Path get() = storage.directory
     private val portfolio: PortfolioStore = storage
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())

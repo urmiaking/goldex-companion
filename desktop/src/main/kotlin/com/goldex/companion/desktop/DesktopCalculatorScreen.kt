@@ -151,12 +151,6 @@ fun DesktopCalculatorScreen(
                     }
                 }
             }
-
-            Text(
-                if (rateState?.automatic == true) "محاسبه با نرخ انتخابی بازار • مبالغ به تومان" else "محاسبه با نرخ واردشده شما • مبالغ به تومان",
-                color = colors.textMuted,
-                fontSize = 12.sp
-            )
         }
     }
 }
@@ -183,7 +177,7 @@ private fun InputPanel(
 ) {
     val colors = LocalGoldExColors.current
 
-    // Card 1: نرخ و مشخصات طلا
+    // Card 1: نرخ مبنای محاسبه
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
@@ -198,174 +192,396 @@ private fun InputPanel(
                     .background(brush = colors.specularHairlineBrush)
             )
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            // Header
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.goldContainer,
-                    border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    modifier = Modifier.size(44.dp)
+                // Header
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Outlined.Scale,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(24.dp)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer,
+                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Outlined.Paid,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "نرخ مبنای محاسبه",
+                            color = colors.textMain,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            "تنظیم پایه عیار و نرخ لحظه‌ای بازار",
+                            color = colors.textMuted,
+                            fontSize = 12.sp
                         )
                     }
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        "نرخ و مشخصات طلا",
-                        color = colors.textMain,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    )
-                    Text(
-                        "تنظیم عیار، وزن قطعه و نرخ مبنای لحظه‌ای",
-                        color = colors.textMuted,
-                        fontSize = 12.sp
-                    )
-                }
-                // Rate status and market toggle pill (Horizontally aligned side-by-side)
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Status Chip
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = colors.goldContainer.copy(alpha = 0.45f),
-                            border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f))
+                    // Rate status and market toggle pill
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            // Status Chip
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = colors.goldContainer.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f))
                             ) {
-                                Box(
-                                    Modifier.size(7.dp).background(
-                                        if (rateState?.automatic == true && rateState.quote?.isFresh(System.currentTimeMillis()) == true)
-                                            colors.marketGainText
-                                        else
-                                            colors.goldPrimary,
-                                        CircleShape
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Box(
+                                        Modifier.size(7.dp).background(
+                                            if (rateState?.automatic == true && rateState.quote?.isFresh(System.currentTimeMillis()) == true)
+                                                colors.marketGainText
+                                            else
+                                                colors.goldPrimary,
+                                            CircleShape
+                                        )
                                     )
-                                )
-                                Text(
-                                    text = if (rateState?.automatic == true)
-                                        rateState.quote?.label(System.currentTimeMillis()) ?: "در انتظار نرخ بازار"
-                                    else
-                                        "نرخ دستی",
-                                    modifier = Modifier.testTag("calculator-rate-status"),
-                                    color = colors.goldPrimary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                    Text(
+                                        text = if (rateState?.automatic == true)
+                                            rateState.quote?.label(System.currentTimeMillis()) ?: "در انتظار نرخ بازار"
+                                        else
+                                            "نرخ دستی",
+                                        modifier = Modifier.testTag("calculator-rate-status"),
+                                        color = colors.goldPrimary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
+                            if (marketRates != null && rateState?.automatic == false) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = colors.surfaceElevated,
+                                    border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f)),
+                                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { marketRates.useMarketRate() }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp).testTag("calculator-use-market"),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.Sync,
+                                            contentDescription = null,
+                                            tint = colors.goldPrimary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = "دریافت نرخ بازار",
+                                            color = colors.goldPrimary,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        if (marketRates != null && rateState?.automatic == false) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f)),
-                                modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { marketRates.useMarketRate() }
+                        rateState?.quote?.let { quote ->
+                            val converted = when (state.priceBasis) {
+                                PriceBasisTab.K18 -> false
+                                PriceBasisTab.K24 -> quote.rates.gold24 <= 0
+                                PriceBasisTab.MESGHAL -> quote.rates.goldMelt <= 0
+                            }
+                            Text(
+                                text = "${quoteSource(quote)} • ${DesktopPortfolioPolicy.observedTime(quote.observedAt)}${if (converted) " • معادل از ۱۸" else ""}",
+                                color = colors.textMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+
+                // Price basis selection
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "انتخاب پایه عیار یا مرجع قیمت:",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    LuxurySegmentedControl(
+                        items = PriceBasisTab.values().toList(),
+                        selectedItem = state.priceBasis,
+                        onItemSelected = {
+                            if (marketRates != null) marketRates.setPriceBasis(it) else calculator.setPriceBasis(it)
+                        },
+                        label = { tab ->
+                            val base = when (tab) {
+                                PriceBasisTab.K18 -> "۱۸ عیار"
+                                PriceBasisTab.K24 -> "۲۴ عیار"
+                                PriceBasisTab.MESGHAL -> "مظنه (مثقال)"
+                            }
+                            if (tab == state.priceBasis) "● $base" else base
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("basis"),
+                        height = 44.dp,
+                        fontSize = 13.sp
+                    )
+                }
+
+                // Spot / Basis rate field
+                val spotLabel = when (state.priceBasis) {
+                    PriceBasisTab.K18 -> "نرخ هر گرم طلای ۱۸ عیار (۷۵۰):"
+                    PriceBasisTab.K24 -> "نرخ هر گرم طلای ۲۴ عیار (۹۹۹):"
+                    PriceBasisTab.MESGHAL -> "مظنه طلا (قیمت یک مثقال ۱۷ عیار ۷۰۵):"
+                }
+                NumericInput(
+                    state = state,
+                    field = CalculatorField.SPOT,
+                    label = spotLabel,
+                    unit = "تومان",
+                    calculator = calculator,
+                    marketRates = marketRates
+                )
+
+                // Equivalent 18k basis rate display (matching Android)
+                AnimatedVisibility(
+                    visible = state.priceBasis != PriceBasisTab.K18,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    val rawSpot = PersianNumberFormatter.parseToCleanLong(state.input(CalculatorField.SPOT)) ?: 0L
+                    val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, state.priceBasis)
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.goldContainer.copy(alpha = 0.2f),
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp).testTag("calculator-use-market"),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                Icon(
+                                    Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = colors.goldPrimary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = "معادل هر گرم ۱۸ عیار (مبنای محاسبه فرمول):",
+                                    fontSize = 12.sp,
+                                    color = colors.textSecondary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                AnimatedPriceTicker(
+                                    text = PersianNumberFormatter.formatPrice(spot18k.toLong()),
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary
+                                )
+                                Text("تومان", fontSize = 11.5.sp, color = colors.textMuted)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Card 2: وزن و عیار طلای آبشده
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = colors.surface,
+        border = colors.goldHairlineBorder,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                // Header
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer,
+                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Outlined.Scale,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "وزن و عیار طلای آبشده",
+                            color = colors.textMain,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            "تنظیم عیار قطعه، وزن کل و کسر نگین",
+                            color = colors.textMuted,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Active Karat Badge (matching Android)
+                    val currentKaratNum = PersianNumberFormatter.parseToCleanLong(state.input(CalculatorField.KARAT))?.toInt() ?: 750
+                    val karatBadgeLabel = when (currentKaratNum) {
+                        750 -> "۱۸ عیار (۷۵۰)"
+                        875 -> "۲۱ عیار (۸۷۵)"
+                        999, 1000 -> "۲۴ عیار (۹۹۹)"
+                        705 -> "۱۷ عیار (۷۰۵)"
+                        else -> "عیار ${PersianNumberFormatter.toPersianDigits(currentKaratNum.toString())}"
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.goldContainer.copy(alpha = 0.45f),
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.6f))
+                    ) {
+                        Text(
+                            text = karatBadgeLabel,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                // Gross weight & stone weight row
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    NumericInput(
+                        state = state,
+                        field = CalculatorField.GROSS_WEIGHT,
+                        label = "وزن کل طلا:",
+                        sublabel = "(با احتساب متعلقات)",
+                        unit = "گرم",
+                        calculator = calculator,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NumericInput(
+                        state = state,
+                        field = CalculatorField.STONE_WEIGHT,
+                        label = "کسر نگین و سنگ:",
+                        sublabel = "(از کل کسر می‌گردد)",
+                        unit = "گرم",
+                        calculator = calculator,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Karat field with quick chips
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "عیار طلای کارشده (قطعه):",
+                            color = colors.textSecondary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            "عیار رسمی بازار ایران: ۷۵۰",
+                            fontSize = 11.5.sp,
+                            color = colors.textMuted
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val presets = listOf(
+                            "750" to "۱۸ (۷۵۰)",
+                            "705" to "۱۷ (۷۰۵)",
+                            "875" to "۲۱ (۸۷۵)",
+                            "999" to "۲۴ (۹۹۹)"
+                        )
+                        presets.forEach { (karatVal, label) ->
+                            val isSelected = state.input(CalculatorField.KARAT) == karatVal
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                                border = BorderStroke(
+                                    0.8.dp,
+                                    if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, karatVal)
+                                        else calculator.setInput(CalculatorField.KARAT, karatVal)
+                                    }
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(vertical = 7.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        Icons.Outlined.Sync,
-                                        contentDescription = null,
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(13.dp)
-                                    )
                                     Text(
-                                        text = "دریافت نرخ بازار",
-                                        color = colors.goldPrimary,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium
+                                        text = label,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary
                                     )
                                 }
                             }
                         }
                     }
 
-                    rateState?.quote?.let { quote ->
-                        val converted = when (state.priceBasis) {
-                            PriceBasisTab.K18 -> false
-                            PriceBasisTab.K24 -> quote.rates.gold24 <= 0
-                            PriceBasisTab.MESGHAL -> quote.rates.goldMelt <= 0
-                        }
-                        Text(
-                            text = "${quoteSource(quote)} • ${DesktopPortfolioPolicy.observedTime(quote.observedAt)}${if (converted) " • معادل از ۱۸" else ""}",
-                            color = colors.textMuted,
-                            fontSize = 11.sp
-                        )
-                    }
+                    NumericInput(
+                        state = state,
+                        field = CalculatorField.KARAT,
+                        label = "مقدار دقیق عیار استاندارد قطعه:",
+                        unit = "عیار",
+                        calculator = calculator,
+                        marketRates = marketRates
+                    )
                 }
-            }
 
-            // Price basis selection
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "انتخاب پایه عیار یا مرجع قیمت:",
-                    color = colors.textSecondary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                LuxurySegmentedControl(
-                    items = PriceBasisTab.values().toList(),
-                    selectedItem = state.priceBasis,
-                    onItemSelected = {
-                        if (marketRates != null) marketRates.setPriceBasis(it) else calculator.setPriceBasis(it)
-                    },
-                    label = { tab ->
-                        val base = when (tab) {
-                            PriceBasisTab.K18 -> "۱۸ عیار"
-                            PriceBasisTab.K24 -> "۲۴ عیار"
-                            PriceBasisTab.MESGHAL -> "مظنه (مثقال)"
-                        }
-                        if (tab == state.priceBasis) "● $base" else base
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("basis"),
-                    height = 44.dp,
-                    fontSize = 13.sp
-                )
-            }
-
-            // Spot / Basis rate field
-            val spotLabel = when (state.priceBasis) {
-                PriceBasisTab.K18 -> "نرخ هر گرم طلای ۱۸ عیار (۷۵۰):"
-                PriceBasisTab.K24 -> "نرخ هر گرم طلای ۲۴ عیار (۹۹۹):"
-                PriceBasisTab.MESGHAL -> "مظنه طلا (قیمت یک مثقال ۱۷ عیار ۷۰۵):"
-            }
-            NumericInput(
-                state = state,
-                field = CalculatorField.SPOT,
-                label = spotLabel,
-                unit = "تومان",
-                calculator = calculator,
-                marketRates = marketRates
-            )
-
-            // Equivalent 18k basis rate display (matching Android)
-            AnimatedVisibility(
-                visible = state.priceBasis != PriceBasisTab.K18,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                val rawSpot = PersianNumberFormatter.parseToCleanLong(state.input(CalculatorField.SPOT)) ?: 0L
-                val spot18k = GoldCalculationUseCases.toSpotPrice18k(rawSpot, state.priceBasis)
+                // Calculated Net Weight Badge (matching Android)
+                val netWeight = state.result?.netWeight
+                    ?: (PersianNumberFormatter.parsePersianOrEnglish(state.input(CalculatorField.GROSS_WEIGHT)) ?: 0.0)
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = colors.goldContainer.copy(alpha = 0.2f),
@@ -377,141 +593,25 @@ private fun InputPanel(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.Info,
-                                contentDescription = null,
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Text(
-                                text = "معادل هر گرم ۱۸ عیار (مبنای محاسبه فرمول):",
-                                fontSize = 12.sp,
-                                color = colors.textSecondary,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            AnimatedPriceTicker(
-                                text = PersianNumberFormatter.formatPrice(spot18k.toLong()),
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.goldPrimary
-                            )
-                            Text("تومان", fontSize = 11.5.sp, color = colors.textMuted)
-                        }
+                        Text(
+                            text = "وزن خالص محاسبه‌شده:",
+                            fontSize = 12.sp,
+                            color = colors.textSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        AnimatedPriceTicker(
+                            text = "${PersianNumberFormatter.formatWeight(netWeight)} گرم",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary
+                        )
                     }
                 }
-            }
-
-            // Gross weight & stone weight row
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.GROSS_WEIGHT,
-                    label = "وزن کل طلا:",
-                    sublabel = "(با احتساب متعلقات)",
-                    unit = "گرم",
-                    calculator = calculator,
-                    modifier = Modifier.weight(1f)
-                )
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.STONE_WEIGHT,
-                    label = "کسر نگین و سنگ:",
-                    sublabel = "(از کل کسر می‌گردد)",
-                    unit = "گرم",
-                    calculator = calculator,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Karat field with quick chips
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "عیار طلای کارشده (قطعه):",
-                        color = colors.textSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        "عیار رسمی بازار ایران: ۷۵۰",
-                        fontSize = 11.5.sp,
-                        color = colors.textMuted
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val presets = listOf(
-                        "750" to "۱۸ (۷۵۰)",
-                        "705" to "۱۷ (۷۰۵)",
-                        "875" to "۲۱ (۸۷۵)",
-                        "999" to "۲۴ (۹۹۹)"
-                    )
-                    presets.forEach { (karatVal, label) ->
-                        val isSelected = state.input(CalculatorField.KARAT) == karatVal
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
-                            border = BorderStroke(
-                                0.8.dp,
-                                if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
-                            ),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, karatVal)
-                                    else calculator.setInput(CalculatorField.KARAT, karatVal)
-                                }
-                        ) {
-                            Box(
-                                modifier = Modifier.padding(vertical = 7.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) colors.goldPrimary else colors.textSecondary
-                                )
-                            }
-                        }
-                    }
-                }
-
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.KARAT,
-                    label = "مقدار دقیق عیار استاندارد قطعه:",
-                    unit = "عیار",
-                    calculator = calculator,
-                    marketRates = marketRates
-                )
             }
         }
     }
-}
 
-    // Card 2: اجرت، سود و مالیات
+    // Card 3: اجرت ساخت طلا
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = colors.surface,
@@ -526,144 +626,215 @@ private fun InputPanel(
                     .background(brush = colors.specularHairlineBrush)
             )
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            // Header
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.goldContainer,
-                    border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    modifier = Modifier.size(44.dp)
+                // Header
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Outlined.ReceiptLong,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(24.dp)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer,
+                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Outlined.Build,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "اجرت ساخت طلا",
+                            color = colors.textMain,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            "تعیین نوع و مبلغ اجرت کارگاه",
+                            color = colors.textMuted,
+                            fontSize = 12.sp
                         )
                     }
                 }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+
+                // Wage type selection
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "اجرت، سود و مالیات",
-                        color = colors.textMain,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    )
-                    Text(
-                        "محاسبه بر مبنای قانون مالیات بر ارزش افزوده جدید",
-                        color = colors.textMuted,
-                        fontSize = 12.sp
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.surfaceElevated,
-                    border = BorderStroke(1.dp, colors.border.copy(alpha = 0.6f))
-                ) {
-                    Text(
-                        "قانون مصوب اتحادیه",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        "نوع اجرت ساخت کارگاه:",
                         color = colors.textSecondary,
-                        fontSize = 11.5.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
+                    LuxurySegmentedControl(
+                        items = WageType.values().toList(),
+                        selectedItem = state.wageType,
+                        onItemSelected = calculator::setWageType,
+                        label = { type ->
+                            when (type) {
+                                WageType.PERCENTAGE -> "اجرت درصدی (٪)"
+                                WageType.TOMAN_PER_GRAM -> "اجرت هر گرم (تومان)"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("wageType"),
+                        height = 44.dp,
+                        fontSize = 13.sp
+                    )
                 }
-            }
 
-            // Wage type selection
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "نوع اجرت ساخت کارگاه:",
-                    color = colors.textSecondary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                // Wage field (direct field without +/- buttons, keeping adornments)
+                NumericInput(
+                    state = state,
+                    field = CalculatorField.WAGE,
+                    label = "اجرت ساخت:",
+                    sublabel = if (state.wageType == WageType.PERCENTAGE)
+                        "محاسبه درصدی از ارزش طلای خام"
+                    else
+                        "مبلغ به تومان به ازای هر گرم",
+                    unit = if (state.wageType == WageType.PERCENTAGE) "٪" else "تومان",
+                    calculator = calculator
                 )
-                LuxurySegmentedControl(
-                    items = WageType.values().toList(),
-                    selectedItem = state.wageType,
-                    onItemSelected = calculator::setWageType,
-                    label = { type ->
-                        when (type) {
-                            WageType.PERCENTAGE -> "اجرت درصدی (٪)"
-                            WageType.TOMAN_PER_GRAM -> "اجرت هر گرم (تومان)"
+
+                // Equivalent Toman Wage (if percentage and wageAmount > 0)
+                val wageAmount = state.result?.wageAmount ?: 0.0
+                if (state.wageType == WageType.PERCENTAGE && wageAmount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "معادل ریالی اجرت:",
+                                fontSize = 12.sp,
+                                color = colors.textSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            AnimatedPriceTicker(
+                                text = "${PersianNumberFormatter.formatPrice(wageAmount)} تومان",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("wageType"),
-                    height = 44.dp,
-                    fontSize = 13.sp
-                )
-            }
-
-            // Wage field
-            NumericInput(
-                state = state,
-                field = CalculatorField.WAGE,
-                label = "اجرت ساخت:",
-                sublabel = if (state.wageType == WageType.PERCENTAGE)
-                    "محاسبه درصدی از ارزش طلای خام"
-                else
-                    "مبلغ به تومان به ازای هر گرم",
-                unit = if (state.wageType == WageType.PERCENTAGE) "٪" else "تومان",
-                calculator = calculator
-            )
-
-            // Profit & Tax fields row
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.PROFIT,
-                    label = "سود فروشنده (مغازه):",
-                    unit = "٪",
-                    calculator = calculator,
-                    modifier = Modifier.weight(1f)
-                )
-                NumericInput(
-                    state = state,
-                    field = CalculatorField.TAX,
-                    label = "مالیات بر ارزش افزوده:",
-                    unit = "٪",
-                    calculator = calculator,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Bottom informational banner
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = colors.goldContainer.copy(alpha = 0.12f),
-                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.3f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = colors.goldPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        "مالیات بر ارزش افزوده صرفاً بر روی حاصل جمع (اجرت ساخت + سود فروشنده) اعمال شده و اصل طلای خام طبق قانون کشوری از مالیات معاف است.",
-                        color = colors.textMuted,
-                        fontSize = 11.5.sp,
-                        lineHeight = 18.sp
-                    )
+                    }
                 }
             }
         }
     }
-}
+
+    // Card 4: سود و مالیات کنار هم
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = colors.surface,
+        border = colors.goldHairlineBorder,
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            Box(
+                Modifier.fillMaxWidth()
+                    .height(2.dp)
+                    .background(brush = colors.specularHairlineBrush)
+            )
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                // Header (قانون مصوب اتحادیه REMOVED completely)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.goldContainer,
+                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Outlined.ReceiptLong,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "سود فروشنده و مالیات",
+                            color = colors.textMain,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            "محاسبه بر مبنای قانون مالیات بر ارزش افزوده جدید",
+                            color = colors.textMuted,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                // Profit & Tax fields row side-by-side
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    NumericInput(
+                        state = state,
+                        field = CalculatorField.PROFIT,
+                        label = "سود فروشنده (مغازه):",
+                        unit = "٪",
+                        calculator = calculator,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NumericInput(
+                        state = state,
+                        field = CalculatorField.TAX,
+                        label = "مالیات بر ارزش افزوده:",
+                        unit = "٪",
+                        calculator = calculator,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Bottom informational banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = colors.goldContainer.copy(alpha = 0.12f),
+                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            "مالیات بر ارزش افزوده صرفاً بر روی حاصل جمع (اجرت ساخت + سود فروشنده) اعمال شده و اصل طلای خام طبق قانون کشوری از مالیات معاف است.",
+                            color = colors.textMuted,
+                            fontSize = 11.5.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
