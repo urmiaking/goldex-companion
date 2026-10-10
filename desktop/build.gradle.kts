@@ -1,5 +1,6 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
+import java.time.Duration
 
 val desktopVersion = Properties().apply { file("version.properties").inputStream().use { load(it) } }.getProperty("version")
 
@@ -48,6 +49,14 @@ tasks.processResources {
 }
 
 tasks.test {
+    timeout.set(Duration.ofMinutes(8))
     systemProperty("java.awt.headless", "false")
     systemProperty("qirato.screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
+    testLogging {
+        events("started", "passed", "skipped", "failed")
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
+

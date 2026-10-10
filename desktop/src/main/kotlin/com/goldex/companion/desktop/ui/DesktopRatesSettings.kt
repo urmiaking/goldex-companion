@@ -83,7 +83,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val profile: @Composable () -> Unit = {
-                LuxuryCard(Modifier.fillMaxHeight()) {
+                LuxuryCard {
                     PageTitle("مشخصات گالری")
                     DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
                     DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
@@ -145,7 +145,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                 }
             }
             val preferences: @Composable () -> Unit = {
-                Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     LuxuryCard {
                         PageTitle("پیش‌فرض‌های محاسبه")
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -155,7 +155,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
                         Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
                     }
-                    LuxuryCard(Modifier.weight(1f).fillMaxWidth()) {
+                    LuxuryCard(Modifier.fillMaxWidth()) {
                         PageTitle("دریافت نرخ‌ها")
                         Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,14 +167,13 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                                 )
                             }
                         }
-                        Spacer(Modifier.weight(1f))
                         Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
                     }
                 }
             }
-            if (maxWidth >= 850.dp) Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1f).fillMaxHeight()) { profile() }
-                Box(Modifier.weight(1f).fillMaxHeight()) { preferences() }
+            if (maxWidth >= 850.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Box(Modifier.weight(1f)) { profile() }
+                Box(Modifier.weight(1f)) { preferences() }
             } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(); preferences() }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
