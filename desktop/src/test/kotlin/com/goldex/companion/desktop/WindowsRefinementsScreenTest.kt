@@ -110,13 +110,11 @@ class WindowsRefinementsScreenTest {
     @Test fun inventoryGivesMoreSpaceToSelectionAndUnitsStayOnLeftInBothThemes() = runDesktopComposeUiTest(width = 1400, height = 980) {
         workspace.navigate(DesktopDestination.INVENTORY)
         setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.43") } }
-        onNodeWithTag("inventory-item-item-0").performClick().assertIsSelected()
-        val master = onNodeWithTag("inventory-master").fetchSemanticsNode().boundsInRoot
-        val detail = onNodeWithTag("inventory-detail-pane").fetchSemanticsNode().boundsInRoot
-        assertTrue(detail.width > master.width)
-        assertTrue(onNodeWithTag("inventory-item-item-0").fetchSemanticsNode().boundsInRoot.height < 100f)
+        onNodeWithTag("inventory-item-item-0").performClick()
+        onNodeWithTag("inventory-details").assertIsDisplayed()
         onNodeWithTag("inventory-charge").assertIsDisplayed()
         save(onNodeWithTag("workspace-root"), "inventory-refined-light.png")
+        onNodeWithTag("close-details").performClick()
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
         save(onNodeWithTag("workspace-root"), "inventory-refined-dark.png")

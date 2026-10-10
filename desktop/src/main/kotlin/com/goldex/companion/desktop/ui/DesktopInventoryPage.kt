@@ -18,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -68,10 +67,14 @@ private val GreenGainColor = Color(0xFF4ADE80)
 
     BoxWithConstraints(Modifier.fillMaxSize().testTag("inventory-page")) {
         val spacious = maxWidth >= 950.dp && maxHeight >= 740.dp
-        val wide = maxWidth >= 900.dp
-        val masterWidth = (maxWidth * .4f).coerceIn(340.dp, 440.dp)
+        val scrollState = rememberScrollState()
 
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (spacious) 12.dp else 8.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 10.dp)
+        ) {
             // 1. Dark Obsidian Hero Summary Card
             HeroSummaryCard(state, feature, spacious = spacious)
 
@@ -89,62 +92,38 @@ private val GreenGainColor = Color(0xFF4ADE80)
             )
 
             if (state.error != null || state.notice != null) {
-                Surface(color = if (state.error != null) colors.errorRed.copy(alpha = .08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(state.error ?: state.notice.orEmpty(), Modifier.weight(1f).testTag("inventory-message"), color = if (state.error != null) colors.errorRed else colors.textMain, fontSize = 12.sp)
-                        IconButton(feature::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام", tint = colors.textMuted) }
+                Surface(
+                    color = if (state.error != null) colors.errorRed.copy(alpha = .08f) else colors.goldContainer,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            state.error ?: state.notice.orEmpty(),
+                            Modifier.weight(1f).testTag("inventory-message"),
+                            color = if (state.error != null) colors.errorRed else colors.textMain,
+                            fontSize = 12.5.sp
+                        )
+                        IconButton(feature::clearMessage, modifier = Modifier.size(24.dp)) {
+                            Icon(Icons.Outlined.Close, "بستن پیام", tint = colors.textMuted, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }
 
-            // 4. Data Content: Master / Detail
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Column((if (wide) Modifier.width(masterWidth) else Modifier.weight(1f)).fillMaxHeight().testTag("inventory-master"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${digits(items.size.toLong())} کالا • ${state.category.titleFa}", Modifier.weight(1f), color = colors.textMuted, fontSize = 12.sp)
-                        }
-                        if (items.isEmpty()) {
-                            LuxuryCard(Modifier.fillMaxWidth()) {
-                                Icon(Icons.Outlined.Diamond, null, Modifier.size(40.dp), tint = colors.goldPrimary)
-                                PageTitle(if (state.items.isEmpty()) "ویترین شما از اینجا شروع می‌شود" else "کالایی پیدا نشد")
-                                Text(if (state.items.isEmpty()) "اولین قطعه را با وزن، عیار و اجرت ثبت کنید؛ سپس ورود و خروج آن را در همین انبار مدیریت کنید." else "کد یا نام کوتاه‌تری جست‌وجو کنید یا فیلتر دسته‌بندی را تغییر دهید.", color = colors.textMuted, fontSize = 13.sp)
-                                if (state.items.isNotEmpty()) TextButton({ feature.search(""); feature.filter(InventoryCategory.ALL) }) { Text("پاک‌کردن فیلترها") }
-                            }
-                        } else {
-                            val scroll = rememberLazyListStateCompat()
-                            Box(Modifier.weight(1f)) {
-                                LazyColumn(state = scroll, modifier = Modifier.fillMaxSize().padding(end = 8.dp).testTag("inventory-list"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    items(items, key = { it.id }) { item ->
-                                        InventoryListRow(item, state.selectedId == item.id) { feature.select(item.id) }
-                                    }
-                                }
-                                VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-                            }
-                        }
-                    }
-                    if (wide) {
-                        Box(Modifier.weight(1f).fillMaxHeight().testTag("inventory-detail-pane")) {
-                            if (state.selected != null) {
-                                InventoryDetails(state, feature, Modifier.fillMaxSize())
-                            } else {
-                                LuxuryCard(Modifier.fillMaxWidth()) {
-                                    Icon(Icons.Outlined.TouchApp, null, Modifier.size(32.dp), tint = colors.goldPrimary)
-                                    PageTitle("جزئیات و گردش کالا")
-                                    Text("کالا را انتخاب کنید تا اطلاعات کامل، برآورد قیمت و سوابق آن را ببینید.", color = colors.textMuted, fontSize = 13.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-                if (!wide && state.selected != null && !state.hasDialog) {
-                    AlertDialog(onDismissRequest = { feature.select(null) }, modifier = Modifier.width(570.dp),
-                        title = { Text("جزئیات کالا") }, text = { InventoryDetails(state, feature, Modifier.heightIn(max = 490.dp)) },
-                        confirmButton = { GoldButton("بستن", { feature.select(null) }, isSecondary = true) })
-                }
-            }
+            // 4. Full-width Luxury Data Table (replacing master-detail split)
+            InventoryDataTable(
+                items = items,
+                state = state,
+                feature = feature,
+                spacious = spacious
+            )
 
             SourceCaption(workspace)
+        }
+
+        // 5. Item Details Dialog (when an item is selected from table)
+        if (state.selected != null && !state.hasDialog) {
+            ItemDetailsDialog(state, feature, onDismiss = { feature.select(null) })
         }
     }
 }
@@ -185,93 +164,57 @@ private val GreenGainColor = Color(0xFF4ADE80)
                     .background(brush = colors.specularHairlineBrush)
             )
             Column(
-                Modifier.padding(if (spacious) 14.dp else 8.dp),
-                verticalArrangement = Arrangement.spacedBy(if (spacious) 10.dp else 6.dp)
+                Modifier.padding(if (spacious) 16.dp else 10.dp),
+                verticalArrangement = Arrangement.spacedBy(if (spacious) 12.dp else 8.dp)
             ) {
-            // Header Row
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier.size(if (spacious) 36.dp else 28.dp).background(Color(0xFF222B36), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Outlined.Lock, null, tint = GoldAccent, modifier = Modifier.size(if (spacious) 18.dp else 14.dp))
-                }
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "موجودی تجمیعی ویترین و خزانه‌داری مرکزی گالری",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (spacious) 15.sp else 12.sp,
-                        maxLines = 1
-                    )
-                    if (spacious) {
-                        Text("محاسبه آنلاین بر مبنای آخرین مظنه بازار طلا و ارز", color = SubtitleColor, fontSize = 11.sp)
-                    }
-                }
-                IconButton(
-                    onClick = { feature.togglePrivacy() },
-                    modifier = Modifier.size(if (spacious) 36.dp else 28.dp).testTag("inventory-privacy"),
-                    enabled = !state.saving
-                ) {
-                    Icon(
-                        if (state.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                        "نمایش موجودی",
-                        tint = SubtitleColor,
-                        modifier = Modifier.size(if (spacious) 20.dp else 16.dp)
-                    )
-                }
-                Spacer(Modifier.width(6.dp))
-                Surface(
-                    color = Color(0xFF1E2630),
-                    shape = RoundedCornerShape(20.dp),
-                    border = BorderStroke(1.dp, Color(0xFF2E3845))
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = if (spacious) 12.dp else 8.dp, vertical = if (spacious) 6.dp else 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Header Row
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(if (spacious) 36.dp else 30.dp).background(Color(0xFF222B36), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(Modifier.size(5.dp).background(GoldAccent, CircleShape))
+                        Icon(Icons.Outlined.Lock, null, tint = GoldAccent, modifier = Modifier.size(if (spacious) 18.dp else 15.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
                         Text(
-                            "${digits(summary.pieces)} قلم کالای فعال",
-                            color = GoldAccent,
-                            fontSize = if (spacious) 11.sp else 10.sp,
-                            fontWeight = FontWeight.Medium
+                            "موجودی تجمیعی ویترین و خزانه‌داری مرکزی گالری",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = if (spacious) 15.sp else 13.sp,
+                            maxLines = 1
+                        )
+                        if (spacious) {
+                            Text("محاسبه آنلاین بر مبنای آخرین مظنه بازار طلا و ارز", color = SubtitleColor, fontSize = 11.sp)
+                        }
+                    }
+                    IconButton(
+                        onClick = { feature.togglePrivacy() },
+                        modifier = Modifier.size(if (spacious) 36.dp else 28.dp).testTag("inventory-privacy"),
+                        enabled = !state.saving
+                    ) {
+                        Icon(
+                            if (state.visible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                            "نمایش موجودی",
+                            tint = SubtitleColor,
+                            modifier = Modifier.size(if (spacious) 20.dp else 16.dp)
                         )
                     }
-                }
-            }
-
-            // Two Large Metric Cards
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 8.dp)) {
-                // Right: وزن کل موجودی (استاندارد ۷۵۰)
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(if (spacious) 14.dp else 10.dp),
-                    color = DarkMetricCardBg,
-                    border = BorderStroke(1.dp, Color(0xFF242F3D))
-                ) {
-                    Column(
-                        Modifier.padding(if (spacious) 16.dp else 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(if (spacious) 6.dp else 2.dp)
+                    Spacer(Modifier.width(6.dp))
+                    Surface(
+                        color = Color(0xFF1E2630),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.dp, Color(0xFF2E3845))
                     ) {
-                        Text("وزن کل موجودی (استاندارد ۷۵۰)", color = SubtitleColor, fontSize = if (spacious) 12.sp else 11.sp, fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.Bottom) {
+                        Row(
+                            Modifier.padding(horizontal = if (spacious) 12.dp else 8.dp, vertical = if (spacious) 6.dp else 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(Modifier.size(6.dp).background(GoldAccent, CircleShape))
                             Text(
-                                if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••",
+                                "${digits(summary.pieces)} قلم کالای فعال و کدگذاری شده",
                                 color = GoldAccent,
-                                fontSize = if (spacious) 30.sp else 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.width(5.dp))
-                            Text("گرم", color = GoldAccent.copy(alpha = 0.85f), fontSize = if (spacious) 13.sp else 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.AutoMirrored.Outlined.TrendingUp, null, tint = GreenGainColor, modifier = Modifier.size(if (spacious) 15.dp else 13.dp))
-                            Text(
-                                if (state.visible) "معادل ${PersianNumberFormatter.formatWeight(summary.mesghal)} مثقال ۱۷ عیار" else "••••",
-                                color = GreenGainColor,
                                 fontSize = if (spacious) 11.sp else 10.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -279,89 +222,125 @@ private val GreenGainColor = Color(0xFF4ADE80)
                     }
                 }
 
-                // Left: ارزش کل دارایی بر اساس مظنه زنده بازار
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(if (spacious) 14.dp else 10.dp),
-                    color = DarkMetricCardBg,
-                    border = BorderStroke(1.dp, Color(0xFF242F3D))
-                ) {
-                    Column(
-                        Modifier.padding(if (spacious) 16.dp else 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(if (spacious) 6.dp else 2.dp)
+                // Two Large Metric Cards
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (spacious) 14.dp else 8.dp)) {
+                    // Right: وزن کل موجودی (استاندارد ۷۵۰)
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(if (spacious) 14.dp else 10.dp),
+                        color = DarkMetricCardBg,
+                        border = BorderStroke(1.dp, Color(0xFF242F3D))
                     ) {
-                        Text("ارزش کل دارایی (مظنه زنده بازار)", color = SubtitleColor, fontSize = if (spacious) 12.sp else 11.sp, fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                if (state.visible) (state.metalValue?.let(PersianNumberFormatter::formatPrice) ?: "—") else "••••",
-                                color = Color.White,
-                                fontSize = if (spacious) 30.sp else 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.width(5.dp))
-                            Text("تومان", color = Color.White.copy(alpha = 0.75f), fontSize = if (spacious) 13.sp else 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+                        Column(
+                            Modifier.padding(if (spacious) 16.dp else 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (spacious) 6.dp else 3.dp)
+                        ) {
+                            Text("وزن کل موجودی (استاندارد ۷۵۰)", color = SubtitleColor, fontSize = if (spacious) 12.sp else 11.sp, fontWeight = FontWeight.Medium)
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    if (state.visible) PersianNumberFormatter.formatWeight(summary.gold18) else "••••",
+                                    color = GoldAccent,
+                                    fontSize = if (spacious) 28.sp else 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text("گرم", color = GoldAccent.copy(alpha = 0.85f), fontSize = if (spacious) 13.sp else 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Icon(Icons.AutoMirrored.Outlined.TrendingUp, null, tint = GreenGainColor, modifier = Modifier.size(if (spacious) 15.dp else 13.dp))
+                                Text(
+                                    if (state.visible) "معادل ${PersianNumberFormatter.formatWeight(summary.mesghal)} مثقال طلای آبشده ۱۷ عیار" else "••••",
+                                    color = GreenGainColor,
+                                    fontSize = if (spacious) 11.sp else 10.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
-                        val mesghalRate = if (state.spot18 > 0) (state.spot18 * 4.3318).toLong() else 0L
-                        Text(
-                            if (state.visible && state.spot18 > 0) {
-                                if (spacious) "مظنه مثقال: ${PersianNumberFormatter.formatPrice(mesghalRate)} تومان   •   گرم ۱۸ عیار: ${PersianNumberFormatter.formatPrice(state.spot18)} تومان"
-                                else "گرم ۱۸ عیار: ${PersianNumberFormatter.formatPrice(state.spot18)} تومان"
-                            } else "گرم ۱۸ عیار: —",
-                            color = SubtitleColor,
-                            fontSize = if (spacious) 11.sp else 10.sp
+                    }
+
+                    // Left: ارزش کل دارایی بر اساس مظنه زنده بازار
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(if (spacious) 14.dp else 10.dp),
+                        color = DarkMetricCardBg,
+                        border = BorderStroke(1.dp, Color(0xFF242F3D))
+                    ) {
+                        Column(
+                            Modifier.padding(if (spacious) 16.dp else 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(if (spacious) 6.dp else 3.dp)
+                        ) {
+                            Text("ارزش کل دارایی بر اساس مظنه زنده بازار", color = SubtitleColor, fontSize = if (spacious) 12.sp else 11.sp, fontWeight = FontWeight.Medium)
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    if (state.visible) (state.metalValue?.let(PersianNumberFormatter::formatPrice) ?: "—") else "••••",
+                                    color = Color.White,
+                                    fontSize = if (spacious) 28.sp else 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text("تومان", color = Color.White.copy(alpha = 0.75f), fontSize = if (spacious) 13.sp else 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+                            }
+                            val mesghalRate = if (state.spot18 > 0) (state.spot18 * 4.3318).toLong() else 0L
+                            Text(
+                                if (state.visible && state.spot18 > 0) {
+                                    if (spacious) "مظنه مثقال: ${PersianNumberFormatter.formatPrice(mesghalRate)} تومان   •   گرم ۱۸ عیار: ${PersianNumberFormatter.formatPrice(state.spot18)} تومان"
+                                    else "گرم ۱۸ عیار: ${PersianNumberFormatter.formatPrice(state.spot18)} تومان"
+                                } else "گرم ۱۸ عیار: —",
+                                color = SubtitleColor,
+                                fontSize = if (spacious) 11.sp else 10.sp
+                            )
+                        }
+                    }
+                }
+
+                // Four Lower Sub-Metric Cards (spacious only)
+                if (spacious) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        SubMetricCard(
+                            icon = Icons.Outlined.Storefront,
+                            iconTint = SubtitleColor,
+                            label = "طلا در ویترین",
+                            badge = "${digits(showcasePieces)} قلم",
+                            badgeBg = Color(0xFF222B36),
+                            badgeText = SubtitleColor,
+                            value = if (state.visible) "${PersianNumberFormatter.formatWeight(showcaseWeight)} گرم" else "••••",
+                            modifier = Modifier.weight(1f)
+                        )
+                        SubMetricCard(
+                            icon = Icons.Outlined.Security,
+                            iconTint = GreenGainColor,
+                            label = "طلا در گاوصندوق",
+                            badge = "${digits(safePieces)} قلم",
+                            badgeBg = Color(0xFF173826),
+                            badgeText = GreenGainColor,
+                            value = if (state.visible) "${PersianNumberFormatter.formatWeight(safeWeight)} گرم" else "••••",
+                            modifier = Modifier.weight(1f)
+                        )
+                        SubMetricCard(
+                            icon = Icons.Outlined.Diamond,
+                            iconTint = GoldAccent,
+                            label = "آبشده و شمش",
+                            badge = "${digits(meltedPieces)} قلم",
+                            badgeBg = Color(0xFF382F1C),
+                            badgeText = GoldAccent,
+                            value = if (state.visible) "${PersianNumberFormatter.formatWeight(meltedWeight)} گرم" else "••••",
+                            modifier = Modifier.weight(1f)
+                        )
+                        SubMetricCard(
+                            icon = Icons.Outlined.MonetizationOn,
+                            iconTint = Color(0xFF38BDF8),
+                            label = "سکه و مسکوکات",
+                            badge = "بانکی وکیوم",
+                            badgeBg = Color(0xFF143045),
+                            badgeText = Color(0xFF38BDF8),
+                            value = if (state.visible) "${digits(coinsPieces)} قطعه" else "••••",
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
-
-            // Four Lower Sub-Metric Cards (spacious only)
-            if (spacious) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SubMetricCard(
-                        icon = Icons.Outlined.Storefront,
-                        iconTint = SubtitleColor,
-                        label = "طلا در ویترین",
-                        badge = "${digits(showcasePieces)} قلم",
-                        badgeBg = Color(0xFF222B36),
-                        badgeText = SubtitleColor,
-                        value = if (state.visible) "${PersianNumberFormatter.formatWeight(showcaseWeight)} گرم" else "••••",
-                        modifier = Modifier.weight(1f)
-                    )
-                    SubMetricCard(
-                        icon = Icons.Outlined.Security,
-                        iconTint = GreenGainColor,
-                        label = "طلا در گاوصندوق",
-                        badge = "${digits(safePieces)} قلم",
-                        badgeBg = Color(0xFF173826),
-                        badgeText = GreenGainColor,
-                        value = if (state.visible) "${PersianNumberFormatter.formatWeight(safeWeight)} گرم" else "••••",
-                        modifier = Modifier.weight(1f)
-                    )
-                    SubMetricCard(
-                        icon = Icons.Outlined.Diamond,
-                        iconTint = GoldAccent,
-                        label = "آبشده و شمش",
-                        badge = "${digits(meltedPieces)} قلم",
-                        badgeBg = Color(0xFF382F1C),
-                        badgeText = GoldAccent,
-                        value = if (state.visible) "${PersianNumberFormatter.formatWeight(meltedWeight)} گرم" else "••••",
-                        modifier = Modifier.weight(1f)
-                    )
-                    SubMetricCard(
-                        icon = Icons.Outlined.MonetizationOn,
-                        iconTint = Color(0xFF38BDF8),
-                        label = "سکه و مسکوکات",
-                        badge = "بانکی وکیوم",
-                        badgeBg = Color(0xFF143045),
-                        badgeText = Color(0xFF38BDF8),
-                        value = if (state.visible) "${digits(coinsPieces)} قطعه" else "••••",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
         }
     }
-}
 }
 
 @Composable private fun SubMetricCard(
@@ -394,20 +373,20 @@ private val GreenGainColor = Color(0xFF4ADE80)
     }
 }
 
-private data class CategoryTab(val category: InventoryCategory, val label: String, val fullLabel: String)
+private data class CategoryTab(val category: InventoryCategory, val label: String)
 
 @Composable private fun CategoryFilterPills(state: DesktopInventoryState, feature: DesktopInventory, compact: Boolean = false) {
     val colors = LocalGoldExColors.current
     val tabs = remember {
         listOf(
-            CategoryTab(InventoryCategory.ALL, "همه", "همه اقلام"),
-            CategoryTab(InventoryCategory.SETS, "سرویس", "سرویس و نیم‌ست"),
-            CategoryTab(InventoryCategory.BANGLES, "النگو", "دستبند و النگو"),
-            CategoryTab(InventoryCategory.RINGS, "انگشتر", "انگشتر و حلقه"),
-            CategoryTab(InventoryCategory.NECKLACES, "گردنبند", "گردنبند و مدال"),
-            CategoryTab(InventoryCategory.MISC, "آبشده", "طلای آبشده و شمش"),
-            CategoryTab(InventoryCategory.COINS, "سکه", "مسکوکات بانکی"),
-            CategoryTab(InventoryCategory.JEWELRY, "جواهر", "سنگ و جواهر")
+            CategoryTab(InventoryCategory.ALL, "همه"),
+            CategoryTab(InventoryCategory.SETS, "سرویس و نیم‌ست"),
+            CategoryTab(InventoryCategory.BANGLES, "دستبند و النگو"),
+            CategoryTab(InventoryCategory.RINGS, "انگشتر و حلقه"),
+            CategoryTab(InventoryCategory.NECKLACES, "گردنبند و مدال"),
+            CategoryTab(InventoryCategory.MISC, "طلای آبشده و شمش"),
+            CategoryTab(InventoryCategory.COINS, "مسکوکات بانکی"),
+            CategoryTab(InventoryCategory.JEWELRY, "سنگ و جواهر")
         )
     }
 
@@ -515,92 +494,442 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
     }
 }
 
-@Composable private fun InventoryListRow(item: InventoryItem, selected: Boolean, onSelect: () -> Unit) {
+/**
+ * Full-width High-density luxury Data Table matching the Stitch visual specification.
+ */
+@Composable private fun InventoryDataTable(
+    items: List<InventoryItem>,
+    state: DesktopInventoryState,
+    feature: DesktopInventory,
+    spacious: Boolean
+) {
     val colors = LocalGoldExColors.current
+    val pageSize = 8
+    var currentPage by remember { mutableStateOf(1) }
+
+    val totalPages = remember(items.size) { ((items.size + pageSize - 1) / pageSize).coerceAtLeast(1) }
+    LaunchedEffect(items.size) {
+        if (currentPage > totalPages) currentPage = totalPages
+        if (currentPage < 1) currentPage = 1
+    }
+
+    val pageItems = remember(items, currentPage) {
+        items.drop((currentPage - 1) * pageSize).take(pageSize)
+    }
+    val pageWeight = remember(pageItems) {
+        pageItems.sumOf { it.netGoldWeightGrams * it.quantity }
+    }
+
     Surface(
-        color = if (selected) colors.surfaceElevated else colors.surface,
+        modifier = Modifier.fillMaxWidth().testTag("inventory-table-container"),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(if (selected) 1.dp else 0.6.dp, if (selected) colors.goldPrimary else colors.border),
-        shadowElevation = if (colors.isDark || !selected) 0.dp else 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(selected, onClick = onSelect)
-            .testTag("inventory-item-${item.id}")
+        color = colors.surface,
+        border = BorderStroke(0.8.dp, colors.border),
+        shadowElevation = if (colors.isDark) 0.dp else 2.dp
     ) {
-        Row(
-            Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
-                Modifier
-                    .width(3.dp)
-                    .height(38.dp)
-                    .background(if (selected) colors.goldPrimary else Color.Transparent, RoundedCornerShape(2.dp))
-            )
-            InventoryImage(item.imageUrl, Modifier.size(38.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        item.title,
-                        Modifier.weight(1f),
-                        color = colors.textMain,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = if (item.quantity == 0) colors.syncWarning.copy(alpha = 0.15f) else Color(0xFF1E2630),
-                        border = BorderStroke(0.5.dp, if (item.quantity == 0) colors.syncWarning else Color(0xFF2E3845))
-                    ) {
-                        Text(
-                            "${digits(item.quantity.toLong())} قطعه",
-                            color = if (item.quantity == 0) colors.syncWarning else colors.textSecondary,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-                            maxLines = 1
-                        )
-                    }
+        Column(Modifier.fillMaxWidth()) {
+            // Table Header Row
+            Surface(
+                color = colors.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("مشخصات کالا", modifier = Modifier.weight(2.2f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("شناسه / RFID", modifier = Modifier.weight(1.1f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("موقعیت", modifier = Modifier.weight(1.2f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("وزن ناخالص", modifier = Modifier.weight(1.1f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("طلای ۱۸", modifier = Modifier.weight(1.0f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("عیار", modifier = Modifier.weight(1.0f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("اجرت", modifier = Modifier.weight(1.1f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("قیمت روز", modifier = Modifier.weight(1.3f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
+                    Text("عملیات", modifier = Modifier.weight(1.3f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textSecondary)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        "${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}",
-                        color = colors.textMuted,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFC5A059).copy(alpha = 0.12f),
-                        border = BorderStroke(0.6.dp, Color(0xFFC5A059).copy(alpha = 0.45f))
-                    ) {
+            }
+            HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
+
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 40.dp, horizontal = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(Icons.Outlined.Diamond, null, Modifier.size(42.dp), tint = colors.goldPrimary)
                         Text(
-                            "${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams)} گرم",
-                            color = colors.goldPrimary,
-                            fontSize = 10.sp,
+                            if (state.items.isEmpty()) "ویترین و انبار شما از اینجا شروع می‌شود" else "کالایی با این مشخصات پیدا نشد",
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                            fontSize = 14.sp,
+                            color = colors.textMain
                         )
+                        Text(
+                            if (state.items.isEmpty()) "اولین قطعه را با استفاده از دکمه «ثبت محصول جدید» اضافه کنید." else "کد، نام یا دسته‌بندی دیگری را جست‌وجو کنید.",
+                            color = colors.textMuted,
+                            fontSize = 12.5.sp
+                        )
+                        if (state.items.isNotEmpty()) {
+                            TextButton({ feature.search(""); feature.filter(InventoryCategory.ALL) }) {
+                                Text("پاک‌کردن فیلترها")
+                            }
+                        }
                     }
                 }
-                Text(
-                    "${digits(item.customKaratValue.toLong())} عیار • ${item.location}",
-                    color = colors.textSecondary,
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            } else {
+                // Table Rows
+                Column(Modifier.fillMaxWidth()) {
+                    pageItems.forEachIndexed { index, item ->
+                        val isSelected = state.selectedId == item.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { feature.select(item.id) }
+                                .testTag("inventory-item-${item.id}")
+                                .background(if (isSelected) colors.goldContainer.copy(alpha = 0.35f) else Color.Transparent)
+                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // مشخصات کالا
+                            Row(modifier = Modifier.weight(2.2f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                InventoryImage(item.imageUrl, Modifier.size(42.dp))
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(item.title, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(item.workshop.ifBlank { item.category.titleFa }, fontSize = 11.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+
+                            // شناسه / RFID
+                            Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(PersianNumberFormatter.toPersianDigits(item.code), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = colors.textMain, maxLines = 1)
+                                Text(if (item.rfidTag.isNotBlank()) PersianNumberFormatter.toPersianDigits(item.rfidTag) else "RF-${item.code.takeLast(4)}", fontSize = 10.sp, color = colors.textMuted, maxLines = 1)
+                            }
+
+                            // موقعیت
+                            Box(modifier = Modifier.weight(1.2f)) {
+                                val (borderColor, iconVector) = when {
+                                    item.location.contains("ویترین") || item.location.contains("سینی") -> Color(0xFFD97706) to Icons.Outlined.Storefront
+                                    item.location.contains("گاوصندوق") || item.location.contains("انبار") -> Color(0xFF10B981) to Icons.Outlined.Security
+                                    item.location.contains("خزانه") -> Color(0xFF38BDF8) to Icons.Outlined.Shield
+                                    else -> colors.border to Icons.Outlined.LocationOn
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = borderColor.copy(alpha = 0.12f),
+                                    border = BorderStroke(0.8.dp, borderColor.copy(alpha = 0.5f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(iconVector, null, tint = borderColor, modifier = Modifier.size(13.dp))
+                                        Text(item.location, fontSize = 11.sp, color = colors.textMain, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                            }
+
+                            // وزن ناخالص
+                            Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("${PersianNumberFormatter.formatWeight(item.grossWeightGrams)}", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                if (item.stoneWeightGrams > 0) {
+                                    Text("-${PersianNumberFormatter.formatWeight(item.stoneWeightGrams)} نگین", fontSize = 10.sp, color = Color(0xFFEF4444))
+                                } else {
+                                    Text("بدون کسر", fontSize = 10.sp, color = colors.textMuted)
+                                }
+                            }
+
+                            // طلای ۱۸
+                            Box(modifier = Modifier.weight(1.0f)) {
+                                Text(PersianNumberFormatter.formatWeight(item.weightIn18kGrams), fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                            }
+
+                            // عیار
+                            Box(modifier = Modifier.weight(1.0f)) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFFC5A059).copy(alpha = 0.15f),
+                                    border = BorderStroke(0.6.dp, Color(0xFFC5A059).copy(alpha = 0.45f))
+                                ) {
+                                    val karatLabel = when (item.customKaratValue) {
+                                        750 -> "۱۸ (۷۵۰)"
+                                        705 -> "۱۷ (۷۰۵)"
+                                        875 -> "۲۱ (۸۷۵)"
+                                        900 -> "۲۱.۶ (۹۰۰)"
+                                        999, 1000 -> "۲۴ (۹۹۹)"
+                                        else -> "${digits(item.customKaratValue.toLong())}"
+                                    }
+                                    Text(karatLabel, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                                }
+                            }
+
+                            // اجرت
+                            Box(modifier = Modifier.weight(1.1f)) {
+                                val wageText = if (item.wageType == WageType.PERCENTAGE) {
+                                    "${PersianNumberFormatter.toPersianDigits(item.wageValue.toString())}٪"
+                                } else {
+                                    "${PersianNumberFormatter.formatPrice(item.wageValue.toLong())} ت"
+                                }
+                                Text(wageText, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
+                            }
+
+                            // قیمت روز
+                            Box(modifier = Modifier.weight(1.3f)) {
+                                val price = InventoryForm.price(item, state.spot18)?.total
+                                Text(
+                                    if (price != null && price > 0) "${PersianNumberFormatter.formatPrice(price)}" else "—",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = colors.textMain
+                                )
+                            }
+
+                            // عملیات
+                            Row(
+                                modifier = Modifier.weight(1.3f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                IconButton(onClick = { feature.printLabel(item) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Outlined.Print, "چاپ اتیکت", tint = colors.textMuted, modifier = Modifier.size(15.dp))
+                                }
+                                IconButton(onClick = { feature.select(item.id) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Outlined.Edit, "مشاهده و ویرایش", tint = colors.goldPrimary, modifier = Modifier.size(15.dp))
+                                }
+                                IconButton(onClick = { feature.openMovement(item) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Outlined.SwapVert, "گردش موجودی", tint = colors.textSecondary, modifier = Modifier.size(15.dp))
+                                }
+                                IconButton(onClick = { feature.requestDelete(item) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Outlined.DeleteOutline, "حذف", tint = colors.errorRed.copy(alpha = 0.8f), modifier = Modifier.size(15.dp))
+                                }
+                            }
+                        }
+                        if (index < pageItems.lastIndex) {
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.35f))
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
+
+                // Table Footer with Pagination
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    val startIdx = (currentPage - 1) * pageSize + 1
+                    val endIdx = (currentPage * pageSize).coerceAtMost(items.size)
+                    Text(
+                        "نمایش ${digits(startIdx.toLong())} تا ${digits(endIdx.toLong())} از ${digits(items.size.toLong())} قلم موجودی   •   مجموع وزنی اقلام این صفحه: ${PersianNumberFormatter.formatWeight(pageWeight)} گرم",
+                        fontSize = 11.5.sp,
+                        color = colors.textMuted
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Previous page
+                        IconButton(
+                            onClick = { if (currentPage > 1) currentPage-- },
+                            enabled = currentPage > 1,
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(Icons.Outlined.ChevronRight, "صفحه قبل", tint = if (currentPage > 1) colors.textMain else colors.textMuted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                        }
+
+                        // Numbered page pills
+                        (1..totalPages).forEach { pageNum ->
+                            val isCurrent = pageNum == currentPage
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isCurrent) GoldPillBg else Color.Transparent,
+                                border = if (isCurrent) null else BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clickable { currentPage = pageNum }
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        digits(pageNum.toLong()),
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isCurrent) Color.White else colors.textSecondary
+                                    )
+                                }
+                            }
+                        }
+
+                        // Next page
+                        IconButton(
+                            onClick = { if (currentPage < totalPages) currentPage++ },
+                            enabled = currentPage < totalPages,
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(Icons.Outlined.ChevronLeft, "صفحه بعد", tint = if (currentPage < totalPages) colors.textMain else colors.textMuted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-@Composable private fun rememberLazyListStateCompat() = androidx.compose.foundation.lazy.rememberLazyListState()
+/**
+ * Dedicated Modal Dialog for Item Details & Actions (as requested by user instead of master-detail).
+ */
+@Composable private fun ItemDetailsDialog(
+    state: DesktopInventoryState,
+    feature: DesktopInventory,
+    onDismiss: () -> Unit
+) {
+    val item = state.selected ?: return
+    val colors = LocalGoldExColors.current
+    val scroll = rememberScrollState()
+
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.width(660.dp).testTag("inventory-details-dialog"),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.5f)),
+            shadowElevation = if (colors.isDark) 0.dp else 4.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(22.dp)
+                    .testTag("inventory-details"),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier.size(36.dp).background(colors.goldContainer, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.Diamond, null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
+                        }
+                        Column {
+                            Text("شناسنامه و جزئیات کالا", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                            Text(item.title, fontSize = 12.sp, color = colors.textSecondary)
+                        }
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.testTag("close-details")) {
+                        Icon(Icons.Outlined.Close, "بستن", tint = colors.textMuted)
+                    }
+                }
+
+                HorizontalDivider(color = colors.border)
+
+                // Body (Scrollable)
+                Box(Modifier.fillMaxWidth().heightIn(max = 480.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp)
+                            .verticalScroll(scroll),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Quick Identity Card
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                InventoryImage(item.imageUrl, Modifier.size(76.dp))
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                                    Text("کد کالا: ${PersianNumberFormatter.toPersianDigits(item.code)}   •   دسته: ${item.category.titleFa}", fontSize = 12.sp, color = colors.textMuted)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Surface(shape = RoundedCornerShape(6.dp), color = colors.goldContainer) {
+                                            Text("${digits(item.quantity.toLong())} قطعه موجود", color = colors.goldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                        }
+                                        Text("محل: ${item.location}", fontSize = 11.5.sp, color = colors.textSecondary)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Price Preview Card (inventory-price)
+                        PricePreview(state.selectedPrice)
+
+                        // Action Buttons: ورود و خروج
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            GoldButton("ورود موجودی", { feature.openMovement(item, StockAdjustmentType.CHARGE) }, Modifier.weight(1f).testTag("inventory-charge"), enabled = !state.saving)
+                            GoldButton("خروج موجودی", { feature.openMovement(item, StockAdjustmentType.DEDUCT) }, Modifier.weight(1f).testTag("inventory-deduct"), isSecondary = true, enabled = !state.saving && item.quantity > 0)
+                        }
+
+                        // Action Buttons: ویرایش، چاپ، حذف
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            GoldButton("ویرایش مشخصات", { feature.open(item) }, Modifier.weight(1f).testTag("inventory-edit"), isSecondary = true, enabled = !state.saving)
+                            GoldButton("چاپ اتیکت", { feature.printLabel(item) }, Modifier.weight(1f).testTag("inventory-print"), isSecondary = true, icon = Icons.Outlined.Print, enabled = !state.saving)
+                            IconButton(onClick = { feature.requestDelete(item) }, modifier = Modifier.testTag("inventory-delete"), enabled = !state.saving) {
+                                Icon(Icons.Outlined.DeleteOutline, "حذف کالا", tint = colors.errorRed)
+                            }
+                        }
+
+                        // Specifications Card
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("مشخصات فنی و وزنی", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                                HorizontalDivider(color = colors.border.copy(alpha = 0.5f))
+                                InventoryDetailRow("موجودی", "${digits(item.quantity.toLong())} قطعه")
+                                InventoryDetailRow("ناخالص / نگین", "${PersianNumberFormatter.formatWeight(item.grossWeightGrams)} / ${PersianNumberFormatter.formatWeight(item.stoneWeightGrams)} گرم")
+                                InventoryDetailRow("خالص هر قطعه", "${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams)} گرم")
+                                InventoryDetailRow("معادل ۱۸ عیار", "${PersianNumberFormatter.formatWeight(item.weightIn18kGrams)} گرم")
+                                InventoryDetailRow("عیار", digits(item.customKaratValue.toLong()))
+                                InventoryDetailRow("محل نگهداری", item.location)
+                                if (item.workshop.isNotBlank()) InventoryDetailRow("کارگاه سازنده", item.workshop)
+                                if (item.rfidTag.isNotBlank()) InventoryDetailRow("RFID", PersianNumberFormatter.toPersianDigits(item.rfidTag))
+                                InventoryDetailRow("اجرت", if (item.wageType == WageType.PERCENTAGE) "${PersianNumberFormatter.toPersianDigits(item.wageValue.toString())}٪" else "${PersianNumberFormatter.formatPrice(item.wageValue.toLong())} تومان / گرم")
+                                InventoryDetailRow("سود / مالیات", "${PersianNumberFormatter.toPersianDigits(item.profitPercent.toString())}٪ / ${PersianNumberFormatter.toPersianDigits(item.taxPercent.toString())}٪")
+                            }
+                        }
+
+                        // Recent Movements
+                        val history = state.history.filter { it.itemId == item.id }.sortedByDescending { it.timestamp }
+                        if (history.isNotEmpty()) {
+                            Text("آخرین گردش‌های این کالا", color = colors.textMain, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            history.take(3).forEach { MovementRow(it) }
+                        }
+                    }
+                    VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
+                }
+
+                HorizontalDivider(color = colors.border)
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    GoldButton("بستن پنجره", onDismiss, modifier = Modifier.width(130.dp), isSecondary = true)
+                }
+            }
+        }
+    }
+}
+
 private fun digits(value: Long) = PersianNumberFormatter.toPersianDigits(value.toString())
 private fun categoryShort(value: InventoryCategory) = when(value) {
     InventoryCategory.ALL -> "همه"; InventoryCategory.RINGS -> "انگشتر"; InventoryCategory.BANGLES -> "النگو"; InventoryCategory.NECKLACES -> "زنجیر"
@@ -616,78 +945,46 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     }
 }
 
-@Composable private fun InventoryDetails(state: DesktopInventoryState, feature: DesktopInventory, modifier: Modifier) {
-    val item = state.selected ?: return
-    val colors = LocalGoldExColors.current
-    val scroll = rememberScrollState()
-    Box(modifier) {
-        LuxuryCard(
-            modifier = Modifier.fillMaxSize().padding(end = 10.dp).verticalScroll(scroll).testTag("inventory-details"),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                InventoryImage(item.imageUrl, Modifier.size(80.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(item.title, color = colors.textMain, fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("${PersianNumberFormatter.toPersianDigits(item.code)} • ${item.category.titleFa}", color = colors.textMuted, fontSize = 12.sp)
-                    Text("${digits(item.quantity.toLong())} قطعه • ${item.location}", color = colors.textSecondary, fontSize = 12.sp)
-                }
-            }
-            Text("برآورد فروش هر قطعه", color = colors.textMuted, fontSize = 11.sp)
-            Amount(state.selectedPrice?.total?.let { PersianNumberFormatter.formatPrice(it) }, size = 23)
-            Text(if (state.selectedPrice == null) "نرخ موجود نیست" else "تومان • بر پایه نرخ انتخابی", color = colors.textMuted, fontSize = 10.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GoldButton("ورود", { feature.openMovement(item) }, Modifier.weight(1f).testTag("inventory-charge"), enabled = !state.saving)
-                GoldButton("خروج", { feature.openMovement(item, StockAdjustmentType.DEDUCT) }, Modifier.weight(1f).testTag("inventory-deduct"), isSecondary = true, enabled = !state.saving && item.quantity > 0)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GoldButton("ویرایش", { feature.open(item) }, Modifier.weight(1f).testTag("inventory-edit"), isSecondary = true, enabled = !state.saving)
-                IconButton({ feature.requestDelete(item) }, Modifier.testTag("inventory-delete"), enabled = !state.saving) { Icon(Icons.Outlined.DeleteOutline, "حذف کالا", tint = colors.errorRed) }
-            }
-            HorizontalDivider(color = colors.border)
-            InventoryDetailRow("موجودی", "${digits(item.quantity.toLong())} قطعه")
-            InventoryDetailRow("ناخالص / نگین", "${PersianNumberFormatter.formatWeight(item.grossWeightGrams)} / ${PersianNumberFormatter.formatWeight(item.stoneWeightGrams)} گرم")
-            InventoryDetailRow("خالص هر قطعه", "${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams)} گرم")
-            InventoryDetailRow("عیار", digits(item.customKaratValue.toLong()))
-            InventoryDetailRow("محل", item.location)
-            InventoryDetailRow("کارگاه", item.workshop)
-            if (item.rfidTag.isNotBlank()) InventoryDetailRow("RFID", PersianNumberFormatter.toPersianDigits(item.rfidTag))
-            InventoryDetailRow("اجرت", if (item.wageType == WageType.PERCENTAGE) "${PersianNumberFormatter.toPersianDigits(item.wageValue.toString())}٪" else "${PersianNumberFormatter.formatPrice(item.wageValue.toLong())} تومان / گرم")
-            InventoryDetailRow("سود / مالیات", "${PersianNumberFormatter.toPersianDigits(item.profitPercent.toString())}٪ / ${PersianNumberFormatter.toPersianDigits(item.taxPercent.toString())}٪")
-            HorizontalDivider(color = colors.border)
-            PricePreview(state.selectedPrice)
-            GoldButton("چاپ اتیکت کالا", { feature.printLabel(item) }, Modifier.fillMaxWidth().testTag("inventory-print"), isSecondary = true, icon = Icons.Outlined.Print, enabled = !state.saving)
-            val history = state.history.filter { it.itemId == item.id }.sortedByDescending { it.timestamp }
-            if (history.isNotEmpty()) {
-                Text("آخرین گردش‌ها", color = colors.textMain, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                history.take(3).forEach { MovementRow(it) }
-            }
-        }
-        VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
-    }
-}
-
 @Composable private fun InventoryDetailRow(label: String, value: String) {
     val colors = LocalGoldExColors.current
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
-        Text(label, Modifier.width(90.dp), color = colors.textMuted, fontSize = 11.sp)
+        Text(label, Modifier.width(110.dp), color = colors.textMuted, fontSize = 11.5.sp)
         Text(value, Modifier.weight(1f), color = colors.textMain, fontSize = 12.sp)
     }
 }
 
 @Composable private fun PricePreview(price: InventoryPriceBreakdown?) {
     val colors = LocalGoldExColors.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.testTag("inventory-price")) {
-        Text("برآورد فروش هر قطعه", color = colors.textMain, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        if (price == null) Text("برای برآورد، اطلاعات معتبر و نرخ طلای ۱۸ لازم است.", color = colors.textMuted, fontSize = 11.sp)
-        else {
-            InventoryDetailRow("طلای خام", "${PersianNumberFormatter.formatPrice(price.raw)} تومان")
-            InventoryDetailRow("اجرت", "${PersianNumberFormatter.formatPrice(price.wage)} تومان")
-            InventoryDetailRow("سود", "${PersianNumberFormatter.formatPrice(price.profit)} تومان")
-            InventoryDetailRow("مالیات", "${PersianNumberFormatter.formatPrice(price.tax)} تومان")
-            Amount(PersianNumberFormatter.formatPrice(price.total), size = 22)
-            Text("تومان • مالیات فقط بر اجرت و سود", color = colors.textMuted, fontSize = 10.sp)
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.35f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+                .testTag("inventory-price"),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("برآورد فروش هر قطعه", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                Text("تومان • محاسبه بر مبنای مظنه زنده", fontSize = 10.5.sp, color = colors.textMuted)
+            }
+            HorizontalDivider(color = colors.border.copy(alpha = 0.5f))
+            if (price == null) {
+                Text("برای برآورد، اطلاعات معتبر و نرخ طلای ۱۸ لازم است.", color = colors.textMuted, fontSize = 11.sp)
+            } else {
+                InventoryDetailRow("طلای خام", "${PersianNumberFormatter.formatPrice(price.raw)} تومان")
+                InventoryDetailRow("اجرت", "${PersianNumberFormatter.formatPrice(price.wage)} تومان")
+                InventoryDetailRow("سود", "${PersianNumberFormatter.formatPrice(price.profit)} تومان")
+                InventoryDetailRow("مالیات (بر اجرت و سود)", "${PersianNumberFormatter.formatPrice(price.tax)} تومان")
+                HorizontalDivider(color = colors.border.copy(alpha = 0.5f))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("قیمت کل برآوردی:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                    Amount(PersianNumberFormatter.formatPrice(price.total), size = 20)
+                }
+            }
         }
     }
 }
