@@ -1,6 +1,7 @@
 package com.goldex.companion.desktop.ui
 
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,13 +21,16 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
@@ -1328,6 +1332,86 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     }
 }
 
+@Composable
+private fun DesktopInlineKaratChip(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "سفارشی"
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+        border = BorderStroke(
+            if (isSelected) 1.2.dp else 0.8.dp,
+            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+        ),
+        modifier = modifier
+            .height(40.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { onSelect() }
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(modifier = Modifier.testTag("inventory-purity")) {
+                    BasicTextField(
+                        value = PersianNumberFormatter.toPersianDigits(value),
+                        onValueChange = {
+                            val filtered = it.filter { ch -> ch.isDigit() || ch in '\u06F0'..'\u06F9' }
+                            val clean = PersianNumberFormatter.toEnglishDigits(filtered)
+                            onValueChange(clean)
+                            onSelect()
+                        },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontFamily = VazirmatnFamily,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            color = if (isSelected) colors.goldPrimary else colors.textMain,
+                            textDirection = TextDirection.Ltr
+                        ),
+                        cursorBrush = SolidColor(colors.goldPrimary),
+                        decorationBox = { innerTextField ->
+                            Box(contentAlignment = Alignment.Center) {
+                                if (value.isEmpty()) {
+                                    Text(
+                                        text = placeholder,
+                                        fontSize = 11.sp,
+                                        color = colors.textMuted,
+                                        fontFamily = VazirmatnFamily,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+                }
+                Text(
+                    "از ۱۰۰۰",
+                    fontSize = 9.sp,
+                    color = if (isSelected && value.isNotEmpty()) colors.textMuted else Color.Transparent,
+                    modifier = Modifier.testTag("field-unit-عیار دقیق")
+                )
+            }
+        }
+    }
+}
+
 /**
  * Luxury "Add / Edit Product" Modal matching Stitch design and sovereign styling.
  */
@@ -1339,6 +1423,8 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     val colors = LocalGoldExColors.current
     val focus = remember { FocusRequester() }
     val scroll = rememberScrollState()
+    var showNewLocationDialog by remember { mutableStateOf(false) }
+    var newLocationInput by remember { mutableStateOf("") }
 
     // Top 4 Category tab grouping
     val topCategory = when (draft.category) {
@@ -1354,16 +1440,17 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
     val net18 = ((grossD - stoneD).coerceAtLeast(0.0) * purityI.toDouble()) / 750.0
 
     Dialog(onDismissRequest = feature::dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
-            modifier = Modifier
-                .widthIn(max = 980.dp)
-                .fillMaxWidth(0.94f)
-                .testTag("inventory-dialog"),
-            shape = RoundedCornerShape(18.dp),
-            color = colors.surface,
-            border = colors.goldHairlineBorder,
-            shadowElevation = if (colors.isDark) 0.dp else 6.dp
-        ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Surface(
+                modifier = Modifier
+                    .widthIn(max = 980.dp)
+                    .fillMaxWidth(0.94f)
+                    .testTag("inventory-dialog"),
+                shape = RoundedCornerShape(18.dp),
+                color = colors.surface,
+                border = colors.goldHairlineBorder,
+                shadowElevation = if (colors.isDark) 0.dp else 6.dp
+            ) {
             Column(Modifier.fillMaxWidth()) {
                 // Top Specular Gold Sheen
                 Box(
@@ -1420,43 +1507,18 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                             }
                         }
 
-                        // System ID & Close (Left in RTL)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        // Close Button (Left in RTL)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { feature.dismiss() }
                         ) {
-                            val displayCode = if (draft.code.isNotBlank()) draft.code else (draft.id?.takeLast(5) ?: "۱۰۴۹۳")
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.7.dp, colors.border.copy(alpha = 0.8f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(Icons.Outlined.ContentCopy, null, modifier = Modifier.size(13.dp), tint = colors.textMuted)
-                                    Text(
-                                        "شناسه سیستمی: PRD-${PersianNumberFormatter.toPersianDigits(displayCode)}",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.textSecondary
-                                    )
-                                }
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { feature.dismiss() }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Outlined.Close, "بستن", tint = colors.textMuted, modifier = Modifier.size(16.dp))
-                                }
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Outlined.Close, "بستن", tint = colors.textMuted, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -1544,7 +1606,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Box(Modifier.width(3.dp).height(14.dp).clip(RoundedCornerShape(2.dp)).background(colors.goldPrimary))
-                                    Text("مشخصات و دسته‌بندی کالا", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                    Text("مشخصات پایه و دسته‌بندی کالا", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                 }
                                 Text("اطلاعات پایه ثبت سند و اتیکت", fontSize = 10.5.sp, color = colors.textMuted)
                             }
@@ -1570,33 +1632,34 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                             label = "نام کالا",
                                             value = draft.title,
                                             feature = feature,
-                                            modifier = Modifier.weight(1.8f).focusRequester(focus)
+                                            modifier = Modifier.weight(1.6f).focusRequester(focus)
                                         ) { it.copy(title = this) }
                                         LaunchedEffect(draft.id) { focus.requestFocus() }
 
-                                        // رسته و دسته‌بندی Dropdown
+                                        // رسته و دسته‌بندی Dropdown (استایل و تراز کاملاً یکدست با فیلدهای برنامه)
                                         var categoryExpanded by remember { mutableStateOf(false) }
-                                        Column(modifier = Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text("رسته و دسته‌بندی *", fontSize = 12.sp, color = colors.textMuted)
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = colors.surface,
-                                                border = BorderStroke(1.dp, colors.border),
+                                        Box(modifier = Modifier.weight(1.2f)) {
+                                            GoldOutlinedTextField(
+                                                value = draft.category.titleFa,
+                                                onValueChange = {},
+                                                readOnly = true,
+                                                label = { Text("رسته و دسته‌بندی", fontSize = 13.sp) },
+                                                trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, null, tint = colors.textMuted) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                singleLine = true,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = colors.goldPrimary,
+                                                    unfocusedBorderColor = colors.border,
+                                                    focusedContainerColor = colors.surface,
+                                                    unfocusedContainerColor = colors.surface
+                                                )
+                                            )
+                                            Box(
                                                 modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(48.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .matchParentSize()
+                                                    .clip(RoundedCornerShape(10.dp))
                                                     .clickable { categoryExpanded = true }
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(draft.category.titleFa, fontSize = 13.sp, color = colors.textMain, fontWeight = FontWeight.Medium)
-                                                    Icon(Icons.Outlined.ArrowDropDown, null, tint = colors.textMuted)
-                                                }
-                                            }
+                                            )
                                             DropdownMenu(
                                                 expanded = categoryExpanded,
                                                 onDismissRequest = { categoryExpanded = false }
@@ -1613,15 +1676,74 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                             }
                                         }
 
-                                        // محل نگهداری
-                                        DraftField(
-                                            draft = draft,
-                                            key = "location",
-                                            label = "محل نگهداری",
-                                            value = draft.location,
-                                            feature = feature,
-                                            modifier = Modifier.weight(1.3f)
-                                        ) { it.copy(location = this) }
+                                        // محل نگهداری (انتخاب هوشمند از زیرساخت انبار با قابلیت افزودن محل جدید)
+                                        val standardLocations = listOf("ویترین اصلی", "گاوصندوق مرکزی", "خزانه طلا")
+                                        val availableLocations = remember(state.items) {
+                                            (standardLocations + state.items.map { it.location }.filter { it.isNotBlank() }).distinct()
+                                        }
+                                        var locationExpanded by remember { mutableStateOf(false) }
+                                        Box(modifier = Modifier.weight(1.3f)) {
+                                            GoldOutlinedTextField(
+                                                value = draft.location,
+                                                onValueChange = { newVal -> feature.edit { it.copy(location = newVal) } },
+                                                label = { Text("محل نگهداری", fontSize = 13.sp) },
+                                                trailingIcon = {
+                                                    IconButton(onClick = { locationExpanded = true }) {
+                                                        Icon(Icons.Outlined.ArrowDropDown, "انتخاب محل نگهداری", tint = colors.textMuted)
+                                                    }
+                                                },
+                                                modifier = Modifier.fillMaxWidth().testTag("inventory-location"),
+                                                singleLine = true,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = colors.goldPrimary,
+                                                    unfocusedBorderColor = colors.border,
+                                                    focusedContainerColor = colors.surface,
+                                                    unfocusedContainerColor = colors.surface
+                                                )
+                                            )
+                                            DropdownMenu(
+                                                expanded = locationExpanded,
+                                                onDismissRequest = { locationExpanded = false }
+                                            ) {
+                                                availableLocations.forEach { loc ->
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(loc, fontSize = 12.5.sp)
+                                                                if (draft.location == loc) {
+                                                                    Icon(Icons.Outlined.Check, null, tint = colors.goldPrimary, modifier = Modifier.size(16.dp))
+                                                                }
+                                                            }
+                                                        },
+                                                        onClick = {
+                                                            feature.edit { it.copy(location = loc) }
+                                                            locationExpanded = false
+                                                        }
+                                                    )
+                                                }
+                                                HorizontalDivider(color = colors.border.copy(alpha = 0.5f))
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Icon(Icons.Outlined.Add, null, tint = colors.goldPrimary, modifier = Modifier.size(16.dp))
+                                                            Text("افزودن محل نگهداری جدید...", fontSize = 12.sp, color = colors.goldPrimary, fontWeight = FontWeight.Bold)
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        locationExpanded = false
+                                                        newLocationInput = ""
+                                                        showNewLocationDialog = true
+                                                    }
+                                                )
+                                            }
+                                        }
 
                                         // کد کالا / بارکد
                                         DraftField(
@@ -1633,35 +1755,10 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                             modifier = Modifier.weight(1.1f)
                                         ) { it.copy(code = this) }
                                     }
-
-                                    // Quick location presets
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("پیش‌فرض‌های محل:", fontSize = 10.5.sp, color = colors.textMuted)
-                                        listOf("ویترین اصلی - سینی ۱", "ویترین اصلی - سینی ۴", "گاوصندوق مرکزی", "خزانه طلا").forEach { preset ->
-                                            val isPresSelected = draft.location == preset
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = if (isPresSelected) colors.goldContainer else colors.surfaceElevated,
-                                                border = BorderStroke(0.6.dp, if (isPresSelected) colors.goldPrimary else colors.border),
-                                                modifier = Modifier.clickable { feature.edit { it.copy(location = preset) } }
-                                            ) {
-                                                Text(
-                                                    preset,
-                                                    color = if (isPresSelected) colors.goldPrimary else colors.textSecondary,
-                                                    fontSize = 10.5.sp,
-                                                    fontWeight = if (isPresSelected) FontWeight.Bold else FontWeight.Normal,
-                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-                                    }
                                 }
                             }
 
-                            // === SECTION 2: توزین دقیق و عیار طلا ===
+                            // === SECTION 2: توزین طلا و کسر نگین ===
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1669,52 +1766,16 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Box(Modifier.width(3.dp).height(14.dp).clip(RoundedCornerShape(2.dp)).background(colors.goldPrimary))
-                                    Text("توزین دقیق و عیار طلا", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
-                                    // Scale Status Badge
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFF10B981).copy(alpha = 0.12f),
-                                        border = BorderStroke(0.6.dp, Color(0xFF10B981).copy(alpha = 0.4f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                        ) {
-                                            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF10B981)))
-                                            Text("متصل به ترازوی AND ژاپن (پورت سریال)", fontSize = 10.5.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Medium)
-                                        }
-                                    }
-                                }
-
-                                // Scale Refresh Button
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = colors.goldContainer,
-                                    border = BorderStroke(0.6.dp, colors.goldPrimary.copy(alpha = 0.6f)),
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            if (draft.gross.isBlank()) feature.edit { it.copy(gross = "۱۸٫۴۵۰", stone = "۲٫۱۰۰") }
-                                        }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(Icons.Outlined.Sync, null, tint = colors.goldPrimary, modifier = Modifier.size(14.dp))
-                                        Text("خوانش مجدد از ترازو", fontSize = 11.sp, color = colors.goldPrimary, fontWeight = FontWeight.SemiBold)
-                                    }
+                                    Text("توزین طلا و کسر نگین", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                 }
                             }
 
-                            // 3 Weight Cards
+                            // ۳ کارت توزین با ارتفاع، تراز و ساختار کاملاً یکسان
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                // 1. وزن ناخالص کالا
+                                // ۱. وزن ناخالص کالا
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = colors.surfaceVariant.copy(alpha = 0.35f),
@@ -1722,17 +1783,12 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                            Text("وزن ناخالص کالا", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                            Surface(shape = RoundedCornerShape(4.dp), color = colors.surfaceElevated, border = BorderStroke(0.5.dp, colors.border)) {
-                                                Text("سنسور ترازو", fontSize = 9.5.sp, color = colors.textMuted, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
-                                            }
-                                        }
+                                        Text("وزن ناخالص کالا", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
                                         DraftField(draft, "gross", "وزن ناخالص", draft.gross, feature, numeric = true) { it.copy(gross = this) }
                                     }
                                 }
 
-                                // 2. کسر نگین و متعلقات
+                                // ۲. کسر نگین و متعلقات
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = colors.surfaceVariant.copy(alpha = 0.35f),
@@ -1740,17 +1796,12 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                            Text("کسر نگین و متعلقات", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFF59E0B).copy(alpha = 0.12f), border = BorderStroke(0.5.dp, Color(0xFFF59E0B).copy(alpha = 0.4f))) {
-                                                Text("سنگ و قفل", fontSize = 9.5.sp, color = Color(0xFFD97706), modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
-                                            }
-                                        }
+                                        Text("کسر نگین و متعلقات", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
                                         DraftField(draft, "stone", "وزن نگین", draft.stone, feature, numeric = true) { it.copy(stone = this) }
                                     }
                                 }
 
-                                // 3. وزن خالص طلا (۱۸ عیار)
+                                // ۳. وزن خالص طلا (۱۸ عیار)
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = colors.goldContainer.copy(alpha = 0.25f),
@@ -1764,26 +1815,34 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                                 Text("مبنای تسویه", fontSize = 9.5.sp, color = colors.goldPrimary, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
                                             }
                                         }
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = colors.surface,
-                                            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.4f)),
-                                            modifier = Modifier.fillMaxWidth().height(48.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(PersianNumberFormatter.formatWeight(net18), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
-                                                Text("گرم", fontSize = 12.sp, color = colors.textMuted)
-                                            }
-                                        }
+                                        GoldOutlinedTextField(
+                                            value = PersianNumberFormatter.formatWeight(net18),
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("وزن خالص معادل ۱۸", fontSize = 13.sp) },
+                                            trailingIcon = { Text("گرم", Modifier.padding(horizontal = 10.dp), color = colors.goldPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth().testTag("inventory-net-gold"),
+                                            textStyle = TextStyle(
+                                                fontFamily = VazirmatnFamily,
+                                                fontFeatureSettings = VazirmatnFeatureSettings,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.goldPrimary,
+                                                textDirection = TextDirection.Ltr
+                                            ),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = colors.goldPrimary,
+                                                unfocusedBorderColor = colors.goldBorder.copy(alpha = 0.6f),
+                                                focusedContainerColor = colors.surface,
+                                                unfocusedContainerColor = colors.surface
+                                            )
+                                        )
                                     }
                                 }
                             }
 
-                            // === SECTION 3: اجرت ساخت، عیار و کارگاه سازنده ===
+                            // === SECTION 3: عیار طلا، اجرت ساخت و تعداد ===
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1791,9 +1850,8 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Box(Modifier.width(3.dp).height(14.dp).clip(RoundedCornerShape(2.dp)).background(colors.goldPrimary))
-                                    Text("اجرت ساخت، عیار و کارگاه سازنده", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                    Text("عیار طلا، اجرت ساخت و تعداد", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                 }
-                                Text("تنظیمات کارمزد و سازنده", fontSize = 10.5.sp, color = colors.textMuted)
                             }
 
                             Surface(
@@ -1807,183 +1865,194 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.Top
                                     ) {
-                                        // عیار استاندارد
-                                        Column(modifier = Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Text("عیار استاندارد", fontSize = 11.5.sp, color = colors.textMuted)
-                                            LuxurySegmentedControl(
-                                                listOf(Karat.K18, Karat.K21, Karat.K24),
-                                                draft.karat,
-                                                feature::karat,
-                                                label = { when (it) { Karat.K18 -> "۷۵۰ (۱۸)"; Karat.K24 -> "۹۹۹ (۲۴)"; Karat.K21 -> "۸۷۵ (۲۱)" } },
+                                        // ۱. عیار طلا (همانند ماشین حساب با ۵ آیتم: ۱۸، ۱۷، ۲۱، ۲۴ و سفارشی)
+                                        Column(modifier = Modifier.weight(1.4f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text("عیار طلا (استاندارد)", fontSize = 11.5.sp, color = colors.textMuted)
+                                            Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                height = 40.dp,
-                                                fontSize = 11.5.sp
-                                            )
-                                            DraftField(draft, "purity", "عیار دقیق", draft.purity, feature, numeric = true) { it.copy(purity = this) }
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                val presets = listOf(
+                                                    "750" to "۱۸ (۷۵۰)",
+                                                    "705" to "۱۷ (۷۰۵)",
+                                                    "875" to "۲۱ (۸۷۵)",
+                                                    "999" to "۲۴ (۹۹۹)"
+                                                )
+                                                val standardKarats = listOf("750", "705", "875", "999")
+                                                val isCustom = draft.purity.isNotBlank() && draft.purity !in standardKarats
+
+                                                presets.forEach { (karatVal, label) ->
+                                                    val isSelected = !isCustom && draft.purity == karatVal
+                                                    Surface(
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                                                        border = BorderStroke(
+                                                            if (isSelected) 1.2.dp else 0.8.dp,
+                                                            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+                                                        ),
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .height(40.dp)
+                                                            .clip(RoundedCornerShape(10.dp))
+                                                            .clickable {
+                                                                                feature.edit {
+                                                                    it.copy(
+                                                                        purity = karatVal,
+                                                                        karat = when (karatVal) {
+                                                                            "750" -> Karat.K18
+                                                                            "875" -> Karat.K21
+                                                                            "999" -> Karat.K24
+                                                                            else -> Karat.K18
+                                                                        }
+                                                                    )
+                                                                }
+                                                            }
+                                                    ) {
+                                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                            Text(
+                                                                text = label,
+                                                                fontSize = 11.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                                textAlign = TextAlign.Center
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                // چیپ سفارشی با ورودی درون‌خطی
+                                                DesktopInlineKaratChip(
+                                                    value = if (isCustom) draft.purity else "",
+                                                    onValueChange = { newVal ->
+                                                        feature.edit {
+                                                            it.copy(
+                                                                purity = newVal,
+                                                                karat = when (newVal) {
+                                                                    "750" -> Karat.K18
+                                                                    "875" -> Karat.K21
+                                                                    "999" -> Karat.K24
+                                                                    else -> Karat.K18
+                                                                }
+                                                            )
+                                                        }
+                                                    },
+                                                    isSelected = isCustom,
+                                                    onSelect = {
+                                                        if (!isCustom) {
+                                                            feature.edit { it.copy(purity = "", karat = Karat.K18) }
+                                                        }
+                                                    },
+                                                    modifier = Modifier.weight(1.1f).height(40.dp),
+                                                    placeholder = "سفارشی"
+                                                )
+                                            }
                                         }
 
-                                        // اجرت ساخت
+                                        // ۲. اجرت ساخت
                                         Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Text("اجرت ساخت (درصد یا مبلغ)", fontSize = 11.5.sp, color = colors.textMuted)
-                                            LuxurySegmentedControl(
-                                                WageType.values().toList(),
-                                                draft.wageType,
-                                                { value -> feature.edit { it.copy(wageType = value, wage = "0") } },
-                                                label = { if (it == WageType.PERCENTAGE) "اجرت درصدی" else "اجرت هر گرم" },
+                                            Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                height = 40.dp,
-                                                fontSize = 11.5.sp
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                LuxurySegmentedControl(
+                                                    WageType.values().toList(),
+                                                    draft.wageType,
+                                                    { value -> feature.edit { it.copy(wageType = value, wage = "0") } },
+                                                    label = { if (it == WageType.PERCENTAGE) "اجرت درصدی" else "اجرت هر گرم" },
+                                                    modifier = Modifier.weight(1f),
+                                                    height = 40.dp,
+                                                    fontSize = 11.sp
+                                                )
+                                                DraftField(
+                                                    draft = draft,
+                                                    key = "wage",
+                                                    label = "اجرت",
+                                                    value = draft.wage,
+                                                    feature = feature,
+                                                    numeric = true,
+                                                    modifier = Modifier.weight(1.1f)
+                                                ) { it.copy(wage = this) }
+                                            }
+                                        }
+
+                                        // ۳. تعداد قطعات
+                                        Column(modifier = Modifier.weight(0.7f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text("موجودی کالا", fontSize = 11.5.sp, color = colors.textMuted)
+                                            DesktopField(
+                                                value = draft.quantity,
+                                                onChange = { value -> feature.edit { it.copy(quantity = value) } },
+                                                label = "تعداد",
+                                                modifier = Modifier.fillMaxWidth().testTag("inventory-quantity"),
+                                                numeric = true,
+                                                error = draft.errors["quantity"],
+                                                enabled = draft.id == null,
+                                                unit = "قطعه"
                                             )
-                                            DraftField(draft, "wage", "اجرت", draft.wage, feature, numeric = true) { it.copy(wage = this) }
                                         }
-
-                                        // کارگاه سازنده
-                                        Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Text("کارگاه سازنده و بنکدار", fontSize = 11.5.sp, color = colors.textMuted)
-                                            DraftField(draft, "workshop", "کارگاه سازنده", draft.workshop, feature) { it.copy(workshop = this) }
-                                        }
-                                    }
-
-                                    // Supplementary fields: تعداد, سود, مالیات
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        DesktopField(
-                                            value = draft.quantity,
-                                            onChange = { value -> feature.edit { it.copy(quantity = value) } },
-                                            label = "تعداد",
-                                            modifier = Modifier.weight(1f).testTag("inventory-quantity"),
-                                            numeric = true,
-                                            error = draft.errors["quantity"],
-                                            enabled = draft.id == null,
-                                            unit = "قطعه"
-                                        )
-                                        DraftField(draft, "profit", "سود", draft.profit, feature, Modifier.weight(1f), numeric = true) { it.copy(profit = this) }
-                                        DraftField(draft, "tax", "مالیات", draft.tax, feature, Modifier.weight(1f), numeric = true) { it.copy(tax = this) }
                                     }
                                 }
                             }
 
-                            // === SECTION 4: دو کارت پایین (محاسبه ارزش روز + یادداشت و شناسنامه) ===
-                            val priceBreakdown = state.preview
-                            val net18Weight = net18
-
+                            // === SECTION 4: مشخصات تکمیلی، شناسنامه و تصویر ===
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // کارت مشکی آبسیدین: محاسبه ارزش و قیمت روز
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFF14171A),
-                                    border = BorderStroke(0.8.dp, Color(0xFFC5A059).copy(alpha = 0.5f)),
-                                    shadowElevation = 3.dp,
-                                    modifier = Modifier.weight(1.1f).testTag("inventory-price")
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFD4AF37)))
-                                                Text("محاسبه ارزش و قیمت روز", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                            }
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = Color(0xFF064E3B).copy(alpha = 0.8f),
-                                                border = BorderStroke(0.5.dp, Color(0xFF10B981).copy(alpha = 0.5f))
-                                            ) {
-                                                Text(
-                                                    "${PersianNumberFormatter.formatPrice(state.spot18 ?: 0L)} ت/گرم",
-                                                    color = Color(0xFF34D399),
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                )
-                                            }
-                                        }
-
-                                        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("ارزش طلای خام (${PersianNumberFormatter.formatWeight(net18Weight)} گرم):", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                            Text("${PersianNumberFormatter.formatPrice(priceBreakdown?.raw ?: 0L)} تومان", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                                        }
-
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            val wageDetail = if (draft.wageType == WageType.PERCENTAGE) "${PersianNumberFormatter.toPersianDigits(draft.wage)}٪" else "${PersianNumberFormatter.formatPrice(draft.wage.toLongOrNull() ?: 0L)} ت"
-                                            Text("اجرت ساخت ($wageDetail و ملحقات):", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                            Text("${PersianNumberFormatter.formatPrice(priceBreakdown?.wage ?: 0L)} تومان", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                                        }
-
-                                        HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("تخمین قیمت فروش ویترین:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFCBD5E1))
-                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Text(
-                                                    PersianNumberFormatter.formatPrice(priceBreakdown?.total ?: 0L),
-                                                    fontSize = 18.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFFFFD700)
-                                                )
-                                                Text("تومان", fontSize = 11.sp, color = Color(0xFFE2E8F0))
-                                            }
-                                        }
-                                    }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Box(Modifier.width(3.dp).height(14.dp).clip(RoundedCornerShape(2.dp)).background(colors.goldPrimary))
+                                    Text("مشخصات تکمیلی، شناسنامه و تصویر", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
                                 }
+                            }
 
-                                // کارت یادداشت و مشخصات شناسنامه + تصویر
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = colors.surfaceVariant.copy(alpha = 0.35f),
-                                    border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.7f)),
-                                    modifier = Modifier.weight(1.3f)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = colors.surfaceVariant.copy(alpha = 0.35f),
+                                border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.7f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    verticalAlignment = Alignment.Top
                                 ) {
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        DraftField(
+                                            draft = draft,
+                                            key = "rfid",
+                                            label = "شناسه RFID / مشخصات شناسنامه و نگین‌ها",
+                                            value = draft.rfid,
+                                            feature = feature,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) { it.copy(rfid = this) }
+                                        Text(
+                                            "شامل مشخصات شناسنامه، تعداد و تراش نگین‌ها و قفل ایمن",
+                                            fontSize = 11.sp,
+                                            color = colors.textMuted
+                                        )
+                                    }
                                     Column(
-                                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        modifier = Modifier.width(110.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text("یادداشت و مشخصات شناسنامه", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                            verticalAlignment = Alignment.Top
-                                        ) {
-                                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                DraftField(draft, "rfid", "شناسه RFID / مشخصات", draft.rfid, feature, modifier = Modifier.fillMaxWidth()) { it.copy(rfid = this) }
-                                                Text("شامل مشخصات شناسنامه، نگین‌ها، تراش سنگ‌ها و قفل ایمن", fontSize = 10.sp, color = colors.textMuted)
-                                            }
-                                            Column(
-                                                modifier = Modifier.width(96.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                InventoryImage(draft.image, Modifier.size(68.dp))
-                                                GoldButton(
-                                                    if (draft.image.isBlank()) "انتخاب تصویر" else "تغییر تصویر",
-                                                    { selectInventoryPhoto(feature) },
-                                                    Modifier.fillMaxWidth().testTag("inventory-photo"),
-                                                    isSecondary = true,
-                                                    enabled = !state.saving
-                                                )
-                                                if (draft.image.isNotBlank()) {
-                                                    TextButton({ feature.edit { it.copy(image = "") } }, enabled = !state.saving) {
-                                                        Text("حذف تصویر", fontSize = 10.sp)
-                                                    }
-                                                }
+                                        InventoryImage(draft.image, Modifier.size(68.dp))
+                                        GoldButton(
+                                            if (draft.image.isBlank()) "انتخاب تصویر" else "تغییر تصویر",
+                                            { selectInventoryPhoto(feature) },
+                                            Modifier.fillMaxWidth().testTag("inventory-photo"),
+                                            isSecondary = true,
+                                            enabled = !state.saving
+                                        )
+                                        if (draft.image.isNotBlank()) {
+                                            TextButton({ feature.edit { it.copy(image = "") } }, enabled = !state.saving) {
+                                                Text("حذف تصویر", fontSize = 10.sp, color = colors.errorRed)
                                             }
                                         }
                                     }
@@ -2000,50 +2069,53 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
                     HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Security Badge (Right in RTL)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Outlined.Security, null, tint = Color(0xFF10B981), modifier = Modifier.size(17.dp))
-                            Text("محاسبات بر پایه مظنه تابلوی اتحادیه و ذخیره‌سازی امن محلی", fontSize = 11.5.sp, color = colors.textMuted)
-                        }
-
-                        // Action Buttons (Left in RTL)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            GoldButton("انصراف", feature::dismiss, modifier = Modifier.width(90.dp), isSecondary = true, enabled = !state.saving)
+                            GoldButton("انصراف", feature::dismiss, modifier = Modifier.width(110.dp), isSecondary = true, enabled = !state.saving)
                             GoldButton(
                                 if (state.saving) "در حال ذخیره" else (if (draft.id == null) "ثبت محصول" else "ذخیره تغییرات"),
                                 { feature.save() },
-                                modifier = Modifier.width(120.dp).testTag("inventory-save"),
+                                modifier = Modifier.width(150.dp).testTag("inventory-save"),
                                 enabled = !state.saving
                             )
-                            Button(
-                                onClick = { feature.saveAndPrint() },
-                                enabled = !state.saving,
-                                modifier = Modifier.testTag("inventory-save-print"),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = colors.goldPrimary,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Icon(Icons.Outlined.Print, null, modifier = Modifier.size(16.dp))
-                                    Text("ثبت در انبار و چاپ فوری اتیکت", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+        if (showNewLocationDialog) {
+            AlertDialog(
+                onDismissRequest = { showNewLocationDialog = false },
+                title = { Text("افزودن محل نگهداری جدید", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("نام موقعیت نگهداری جدید در طلافروشی را وارد کنید:", fontSize = 12.sp, color = colors.textMuted)
+                        DesktopField(
+                            value = newLocationInput,
+                            onChange = { newLocationInput = it },
+                            label = "نام محل نگهداری"
+                        )
+                    }
+                },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        GoldButton("انصراف", { showNewLocationDialog = false }, isSecondary = true)
+                        GoldButton("افزودن و انتخاب", {
+                            if (newLocationInput.isNotBlank()) {
+                                feature.edit { it.copy(location = newLocationInput.trim()) }
+                                showNewLocationDialog = false
+                            }
+                        })
+                    }
+                }
+            )
         }
     }
 }
