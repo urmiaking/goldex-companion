@@ -136,46 +136,42 @@ internal fun workspaceDate(now: Long): String {
             }
         }
     } else {
+        val backgroundModifier = if (!enabled) {
+            Modifier.background(colors.surfaceElevated, WorkspaceControlShape)
+        } else {
+            Modifier.background(colors.goldButtonGradient, WorkspaceControlShape)
+        }
         Button(
             onClick = onClick,
-            modifier = modifier.height(WorkspaceControlHeight),
+            modifier = modifier
+                .height(WorkspaceControlHeight)
+                .then(backgroundModifier),
             enabled = enabled,
             shape = WorkspaceControlShape,
             border = if (enabled) null else colors.hairlineBorder,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,
                 contentColor = colors.goldButtonText,
-                disabledContainerColor = colors.surfaceElevated,
+                disabledContainerColor = Color.Transparent,
                 disabledContentColor = colors.textMuted
             ),
-            contentPadding = PaddingValues(0.dp)
+            contentPadding = PaddingValues(horizontal = if (compact) 10.dp else 18.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .then(
-                        if (!enabled) Modifier.background(colors.surfaceElevated, WorkspaceControlShape)
-                        else Modifier.background(colors.goldButtonGradient, WorkspaceControlShape)
-                    )
-                    .padding(horizontal = if (compact) 10.dp else 18.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    if (icon != null && !compact) {
-                        Icon(icon, null, Modifier.size(18.dp), tint = colors.goldButtonText)
-                        Spacer(Modifier.width(6.dp))
-                    }
-                    Text(
-                        text = text,
-                        fontSize = if (compact) 11.sp else 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.goldButtonText,
-                        maxLines = 1
-                    )
+                if (icon != null && !compact) {
+                    Icon(icon, null, Modifier.size(18.dp), tint = colors.goldButtonText)
+                    Spacer(Modifier.width(6.dp))
                 }
+                Text(
+                    text = text,
+                    fontSize = if (compact) 11.sp else 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.goldButtonText,
+                    maxLines = 1
+                )
             }
         }
     }

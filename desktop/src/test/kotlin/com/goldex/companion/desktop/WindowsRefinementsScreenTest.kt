@@ -122,7 +122,9 @@ class WindowsRefinementsScreenTest {
         fun unit(label: String, tag: String, text: String) {
             val node = onNodeWithTag("field-unit-$label", useUnmergedTree = true)
             node.assertTextEquals(text)
-            assertTrue(node.fetchSemanticsNode().boundsInRoot.center.x < field(tag).fetchSemanticsNode().boundsInRoot.center.x)
+            val uX = node.fetchSemanticsNode().boundsInRoot.center.x
+            val fX = field(tag).fetchSemanticsNode().boundsInRoot.center.x
+            assertTrue(uX < fX)
         }
         unit("وزن ناخالص", "inventory-gross", "گرم")
         unit("وزن نگین", "inventory-stone", "گرم")
