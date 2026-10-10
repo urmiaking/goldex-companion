@@ -21,6 +21,7 @@ import kotlin.test.*
 @OptIn(ExperimentalTestApi::class)
 class DesktopMobileParityTest {
     @get:Rule val temporary = TemporaryFolder()
+    @get:Rule val testTimeout = org.junit.rules.Timeout.seconds(45)
     private lateinit var store: DesktopDataStore
     private lateinit var workspace: DesktopWorkspace
     private val item = InventoryItem(id = "stock", code = "ST-1", title = "قطعه آزمون", grossWeightGrams = 4.125, stoneWeightGrams = .125, customKaratValue = 875, quantity = 3)

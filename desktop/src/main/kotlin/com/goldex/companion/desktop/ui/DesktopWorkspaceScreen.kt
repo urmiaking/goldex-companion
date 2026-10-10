@@ -61,32 +61,26 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
                 Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
-                Column(Modifier.weight(1f).fillMaxHeight().padding(if (compact) 20.dp else 28.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                Column(
+                    Modifier.weight(1f).fillMaxHeight().padding(
+                        start = if (compact) 16.dp else 24.dp,
+                        top = if (compact) 16.dp else 24.dp,
+                        end = if (compact) 16.dp else 24.dp,
+                        bottom = if (compact) 6.dp else 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
                     WorkspaceHeader(state, actions = {
                         if (state.destination == DesktopDestination.INVENTORY) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                WorkspaceControl(
-                                    text = "کسر یا شارژ موجودی",
-                                    onClick = {
-                                        val target = inventoryState.selected ?: inventoryState.items.firstOrNull()
-                                        if (target != null) workspace.inventory.openMovement(target)
-                                    },
-                                    modifier = Modifier.testTag("inventory-adjust"),
-                                    icon = Icons.Outlined.SwapVert,
-                                    secondary = true,
-                                    enabled = !inventoryState.saving && inventoryState.items.isNotEmpty(),
-                                    compact = compact
-                                )
-                                WorkspaceControl(
-                                    text = "ثبت محصول جدید",
-                                    onClick = { workspace.inventory.open() },
-                                    modifier = Modifier.testTag("inventory-add"),
-                                    icon = Icons.Outlined.Add,
-                                    secondary = false,
-                                    enabled = !inventoryState.saving,
-                                    compact = compact
-                                )
-                            }
+                            WorkspaceControl(
+                                text = "ثبت محصول جدید",
+                                onClick = { workspace.inventory.open() },
+                                modifier = Modifier.testTag("inventory-add"),
+                                icon = Icons.Outlined.Add,
+                                secondary = false,
+                                enabled = !inventoryState.saving,
+                                compact = compact
+                            )
                         }
                     })
                     if (state.error != null || state.notice != null) {

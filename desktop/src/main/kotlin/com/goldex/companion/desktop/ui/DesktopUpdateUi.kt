@@ -25,13 +25,13 @@ import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
 
 /** Remains visible across pages; neither discovery nor download opens a modal. */
-@Composable internal fun WindowsUpdateControl(updater: WindowsUpdater, canOpenPrompt: Boolean, modifier: Modifier = Modifier.width(176.dp), compact: Boolean = false) {
+@Composable internal fun WindowsUpdateControl(updater: WindowsUpdater, canOpenPrompt: Boolean, modifier: Modifier = Modifier.fillMaxWidth(), compact: Boolean = false) {
     val state by updater.state.collectAsState()
     val colors = LocalGoldExColors.current
     val active = state.phase in setOf(WindowsUpdatePhase.DOWNLOADING, WindowsUpdatePhase.VERIFYING, WindowsUpdatePhase.RESTARTING)
     if (active) {
         val progress = if (state.total > 0) (state.received.toFloat() / state.total).coerceIn(0f, 1f) else null
-        Surface(modifier.height(WorkspaceControlHeight).testTag("update-download-box").semantics {
+        Surface(modifier.fillMaxWidth().height(WorkspaceControlHeight).testTag("update-download-box").semantics {
             progressBarRangeInfo = if (progress == null) ProgressBarRangeInfo.Indeterminate else ProgressBarRangeInfo(progress, 0f..1f)
         }, shape = WorkspaceControlShape, color = colors.surface, border = BorderStroke(.6.dp, colors.goldBorder.copy(alpha = .5f))) {
             Box(Modifier.clip(WorkspaceControlShape), contentAlignment = Alignment.Center) {
@@ -53,10 +53,10 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
             WindowsUpdatePhase.READY -> if (compact) "نصب نسخه" else "نصب نسخه جدید"
             WindowsUpdatePhase.FAILED -> "تلاش دوباره"
             else -> "به‌روزرسانی"
-        }, updater::activate, modifier.testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt, compact = compact,
+        }, updater::activate, modifier.fillMaxWidth().testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt, compact = compact,
             enabled = state.phase != WindowsUpdatePhase.READY || canOpenPrompt)
     } else if (state.phase == WindowsUpdatePhase.FAILED) {
-        WorkspaceControl("بررسی دوباره", { updater.check() }, modifier.testTag("retry-update-check"),
+        WorkspaceControl("بررسی دوباره", { updater.check() }, modifier.fillMaxWidth().testTag("retry-update-check"),
             secondary = true, compact = compact)
 
     }

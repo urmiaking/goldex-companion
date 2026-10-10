@@ -114,7 +114,7 @@ fun DesktopRatesFooter(
             .fillMaxWidth()
             .testTag("desktop-rates-footer")
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         allItems.forEach { item ->
@@ -141,26 +141,26 @@ private fun FooterTickerPill(
         } else Modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
                 text = item.title,
-                fontSize = 11.5.sp,
+                fontSize = 11.sp,
                 color = colors.textSecondary,
                 fontFamily = VazirmatnFamily
             )
             AnimatedPriceTicker(
                 text = item.value,
-                fontSize = 12.sp,
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textMain
             )
             if (item.delta.isNotBlank()) {
                 Text(
                     text = item.delta,
-                    fontSize = 10.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = deltaColor,
                     fontFamily = VazirmatnFamily
