@@ -36,6 +36,7 @@ class DesktopInventoryScreenTest {
         setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.41") } }
         onNodeWithTag("inventory-item-item-0").performClick()
         onNodeWithTag("inventory-details").assertIsDisplayed()
+        onNodeWithTag("close-details").performClick()
         onNodeWithTag("inventory-privacy").performClick()
         waitUntil(5000) { workspace.inventory.state.value.visible }
         save(onNodeWithTag("workspace-root"), "inventory-wide-light.png")
@@ -72,6 +73,7 @@ class DesktopInventoryScreenTest {
         waitUntil(5000) { workspace.inventory.state.value.movement == null && !workspace.inventory.state.value.saving }
         assertEquals(0, store.inventory.getItems().first { it.id == item.id }.quantity)
         assertEquals(1, store.inventory.getAdjustments().size)
+        onNodeWithTag("close-details").performClick()
         onNodeWithTag("inventory-history").performClick(); onNodeWithTag("inventory-history-list").assertIsDisplayed()
     }
     @Test fun compactWindowHasCompleteFormAndRetainsDraftAcrossNavigation() = runDesktopComposeUiTest(width = 940, height = 700) {
