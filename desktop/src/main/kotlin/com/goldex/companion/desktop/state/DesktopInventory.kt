@@ -87,6 +87,18 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
             reload { it.copy(draft = null, selectedId = item.id, notice = "کالا ذخیره شد") }
         }
     }
+    fun saveAndPrint(): Job? {
+        val draft = state.value.draft ?: return null
+        val errors = InventoryForm.validate(draft).toMutableMap()
+        if (state.value.items.any { it.id != draft.id && it.code.equals(draft.code.trim(), true) }) errors["code"] = "این کد قبلاً برای کالای دیگری ثبت شده است"
+        if (errors.isNotEmpty()) { mutable.update { it.copy(draft = draft.copy(errors = errors)) }; return null }
+        return operation("ذخیره کالا انجام نشد؛ اطلاعات قبلی حفظ شده‌اند") {
+            val item = InventoryForm.toItem(draft)
+            if (draft.id == null) store.addItem(item) else store.updateItem(item)
+            reload { it.copy(draft = null, selectedId = item.id, notice = "کالا ذخیره شد و اتیکت به صف چاپ ارسال گردید") }
+            com.goldex.companion.desktop.data.InventoryLabelPrinter.print(item)
+        }
+    }
     fun photo(path: Path): Job? = if (state.value.draft == null) null else operation("تصویر قابل ورود نیست؛ PNG یا JPEG با حجم کمتر از ۲۰ مگابایت انتخاب کنید") {
         val image = InventoryPhoto.read(path)
         mutable.update { it.copy(draft = it.draft?.copy(image = image)) }
