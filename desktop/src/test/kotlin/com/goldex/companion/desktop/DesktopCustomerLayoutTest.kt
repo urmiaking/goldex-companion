@@ -19,6 +19,8 @@ class DesktopCustomerLayoutTest {
     @get:Rule val temporary = TemporaryFolder()
 
     @Test fun wideWorkspaceHasThreeCardsAndOneEqualHeightSearchFilterRow() = verifyLayout(1440, 3)
+    @Test fun threeColumnsAtTheirMinimumWidthKeepReadableActions() = verifyLayout(1268, 3)
+
     @Test fun mediumWorkspaceHasTwoColumnsAndAccessibleHeaderActions() = verifyLayout(1100, 2)
     @Test fun narrowWorkspaceStacksCardsAndToolsWithoutLosingActions() = verifyLayout(760, 1)
 

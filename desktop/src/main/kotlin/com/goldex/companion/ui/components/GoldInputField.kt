@@ -1,5 +1,7 @@
 package com.goldex.companion.ui.components
 
+import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
+
 // Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
 
 import androidx.compose.foundation.layout.*
@@ -41,7 +43,7 @@ fun GoldInputField(
     val isText = effectiveKeyboardType == KeyboardType.Text
 
     Column(modifier = modifier) {
-        GoldOutlinedTextField(
+        DesktopOutlinedTextField(
             value = value,
             onValueChange = { next -> onValueChange(if (isText) next else
                 com.goldex.companion.model.PersianNumberFormatter.toEnglishDigits(next).replace('٫', '.')
@@ -93,7 +95,6 @@ fun GoldInputField(
                 color = colors.textMain,
                 textDirection = if (isText) TextDirection.Rtl else TextDirection.Ltr
             ),
-            shape = RoundedCornerShape(14.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = colors.surfaceElevated,

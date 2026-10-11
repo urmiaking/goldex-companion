@@ -263,11 +263,11 @@ Hardcoded demo content must be named as demo content in code and removed or disa
 The Persian Sovereign Aurum design system is a product contract.
 
 - Reuse tokens from `ui/theme/Color.kt`, `Type.kt`, `Shape.kt`, and `Theme.kt`.
-- Button and interactive control curvature is standardized to `ButtonShape` (`ButtonCornerRadius = 12.dp` in `Shape.kt`), mirroring the header notification button and dashboard card curvature.
+- Shared `ButtonShape` remains 12dp. Windows uses the context-specific contract in `desktop/ui/controls/DesktopControls.kt`: 12dp body/dialog actions, icon buttons, outlined inputs and search; 24dp header/nav capsules and independent filter options. See [Windows controls](docs/design/windows-controls.md) and [ADR 0024](docs/adr/0024-windows-control-presentation-contract.md). Android shared tokens remain unchanged.
 - Preserve RTL at the screen boundary.
 - Keep Persian number formatting centralized.
 - Do not introduce screen-specific colors for existing semantic states.
-- Keep reusable components under `ui/components/` unless they are truly feature-specific.
+- Keep reusable components under shared `ui/components/`; Windows host presentation adapters live in `desktop/ui/controls/` and do not own business state or persistence.
 - Visual refactors must not alter calculations, persistence, or navigation behavior.
 
 ## 10. Security and release readiness
@@ -324,7 +324,7 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - Phase 2 formally completed: Dashboard, Live Rates, and dedicated Stitch calculator screens (`KaratConvertScreen`, `CoinBubbleScreen`, `MeltCalcScreen`, `StandardFormulasScreen`) are fully established.
 - Standardized two-action dialog button layout across all modals and dialogs (Cancel on right, Save/Confirm on left in RTL) governed by `.agents/rules/dialog-button-layout.md`.
 - Weight and price-based wage inputs unified to 18sp with strict LTR decimal entry semantics under RTL layouts.
-- Unified corner radius across all buttons, icon buttons, filter capsules, and action surfaces to 12.dp (`ButtonShape` in `ui/theme/Shape.kt`), eliminating arbitrary radii (pill, 20.dp, 24.dp, 50%, CircleShape) in favor of the single source of truth defined by the header notification bell and primary dashboard cards.
+- Shared action curvature uses 12dp `ButtonShape`; Windows now distinguishes body actions/inputs, header/navigation capsules and independent filter choices by role rather than claiming a universal shape. Desktop action icons are required, labels are 14sp and one line, and dashboard shortcuts are Android-derived icon tiles. Existing Windows calculator modes retain their approved presentation. Rate-detail identity/back lives in WorkspaceHeader. No domain or persisted contracts changed ([ADR 0024](docs/adr/0024-windows-control-presentation-contract.md)).
 - Onboarding Wizard module established in `ui/wizard/` (`OnboardingWizardScreen`, `WizardIntroSlides`, `WizardProfileStep`, `WizardFinancialStep`, `WizardInventoryStep`, `WizardCompletionStep`) featuring a fixed sticky stepper header, scrollable `AnimatedContent` horizontal slide/fade middle body, sticky fixed footer navigation with strict RTL button semantics, auto-advancing intro slider with progress-filling indicators, interactive store logo and commercial stamp asset uploading (`ui/components/BrandAssetComponents.kt`), RTL-native gesture direction, subtle hero-image zoom, `LuxurySegmentedControl` financial selectors, and animated confetti celebration.
 - Market and dashboard motion is presentation-owned: Live Rates uses the shared filter enter/exit transition, while the dashboard keeps price and fluctuation counters outside the chart transition so their digits animate independently when the horizon changes.
 - User-facing tax guidance derives its displayed percentage from `AppSettings`; legal article labels and fixed tax-rate claims are not UI sources of truth.

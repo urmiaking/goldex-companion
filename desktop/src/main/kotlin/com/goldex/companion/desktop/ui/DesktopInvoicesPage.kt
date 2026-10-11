@@ -1,5 +1,11 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.desktop.state.DesktopWorkspace
 import com.goldex.companion.desktop.state.WorkspaceState
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.marketGainText
@@ -127,27 +132,20 @@ internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorksp
             )
         }
 
-        // Filters and Search
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            DesktopField(
-                value = searchQuery,
-                onChange = { searchQuery = it },
-                label = "جست‌وجوی مشتری یا شماره فاکتور",
-                modifier = Modifier.weight(1f).testTag("invoices-search")
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilterChip(
-                    selected = selectedFilter == null,
-                    onClick = { selectedFilter = null },
-                    label = { Text("همه (${PersianNumberFormatter.toPersianDigits(sampleInvoices.size.toString())})") }
-                )
-                SettlementStatus.values().forEach { status ->
-                    FilterChip(
-                        selected = selectedFilter == status,
-                        onClick = { selectedFilter = status },
-                        label = { Text(status.label) }
-                    )
-                }
+        // Search and independent selection use the same 48dp desktop row.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val filters: @Composable (Modifier) -> Unit = { modifier ->
+                DesktopFilterRow(listOf(null) + SettlementStatus.values().toList(), selectedFilter, { selectedFilter = it },
+                    { it?.label ?: "همه" }, modifier, count = { status -> sampleInvoices.count { status == null || it.settlementStatus == status } })
+            }
+            if (maxWidth >= 960.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                DesktopSearchField(searchQuery, { searchQuery = it }, "جستجوی مشتری یا شماره فاکتور",
+                    Modifier.weight(1f).testTag("invoices-search"))
+                filters(Modifier.width(550.dp))
+            } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DesktopSearchField(searchQuery, { searchQuery = it }, "جستجوی مشتری یا شماره فاکتور",
+                    Modifier.fillMaxWidth().testTag("invoices-search"))
+                filters(Modifier.fillMaxWidth())
             }
         }
 
@@ -190,10 +188,10 @@ internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorksp
                                 StatusBadge(invoice.settlementStatus)
                             }
                             Row(Modifier.width(88.dp), horizontalArrangement = Arrangement.End) {
-                                IconButton(onClick = { /* Print/PDF */ }, Modifier.size(32.dp)) {
+                                IconButton(onClick = { /* Print/PDF */ }, Modifier.size(44.dp)) {
                                     Icon(Icons.Outlined.Print, "چاپ فاکتور", tint = colors.textMuted, modifier = Modifier.size(18.dp))
                                 }
-                                IconButton(onClick = { /* View details */ }, Modifier.size(32.dp)) {
+                                IconButton(onClick = { /* View details */ }, Modifier.size(44.dp)) {
                                     Icon(Icons.Outlined.Visibility, "مشاهده جزئیات", tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
                                 }
                             }

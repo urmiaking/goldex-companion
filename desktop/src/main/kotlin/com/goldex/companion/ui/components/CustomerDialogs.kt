@@ -1,5 +1,12 @@
 package com.goldex.companion.ui.components
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.outlined.*
+import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
+
 // Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
 
 import androidx.compose.foundation.rememberScrollState
@@ -217,7 +224,7 @@ fun CustomerPickerDialog(
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(44.dp)
                                 .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
                                 .border(0.6.dp, colors.goldBorder, ButtonShape)
@@ -251,47 +258,14 @@ fun CustomerPickerDialog(
                             },
                             isSecondary = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        , icon = Icons.Outlined.PersonOutline)
                     }
 
                     // Search Field
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("جستجو بر اساس نام، شماره تلفن یا کد ملی...", fontSize = 11.sp) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = SearchIconVector,
-                                contentDescription = null,
-                                tint = colors.goldPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        trailingIcon = if (searchQuery.isNotEmpty()) {
-                            {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "پاک کردن",
-                                        tint = colors.textMuted,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        } else null,
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = colors.surfaceElevated,
-                            unfocusedContainerColor = colors.surfaceElevated,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
-                            focusedTextColor = colors.textMain,
-                            unfocusedTextColor = colors.textMain,
-                            cursorColor = colors.goldPrimary
-                        )
-                    )
+                    com.goldex.companion.desktop.ui.controls.DesktopSearchField(
+                        searchQuery, { searchQuery = it }, "جستجو بر اساس نام، شماره تلفن یا کد ملی",
+                        Modifier.fillMaxWidth())
+
 
                     // Customer List
                     if (filteredList.isEmpty()) {
@@ -420,7 +394,7 @@ fun CustomerPickerDialog(
                                             if (onUpdateCustomer != null) {
                                                 IconButton(
                                                     onClick = { customerToEdit = customer },
-                                                    modifier = Modifier.size(28.dp)
+                                                    modifier = Modifier.size(44.dp)
                                                 ) {
                                                     Icon(
                                                         imageVector = EditIconVector,
@@ -433,7 +407,7 @@ fun CustomerPickerDialog(
 
                                             IconButton(
                                                 onClick = { customerToDelete = customer },
-                                                modifier = Modifier.size(28.dp)
+                                                modifier = Modifier.size(44.dp)
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.Delete,
@@ -499,7 +473,7 @@ fun CustomerPickerDialog(
                                     isSecondary = true,
                                     modifier = Modifier.weight(1f),
                                     height = 44.dp
-                                )
+                                , icon = Icons.Outlined.Close)
                                 // Primary/Delete action MUST be on the left (second child in Row)
                                 GoldButton(
                                     text = "حذف نهایی",
@@ -510,7 +484,7 @@ fun CustomerPickerDialog(
                                     },
                                     modifier = Modifier.weight(1f),
                                     height = 44.dp
-                                )
+                                , icon = Icons.Outlined.DeleteOutline)
                             }
                         }
                     }
@@ -579,7 +553,7 @@ fun AddCustomerDialog(
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(44.dp)
                                 .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
                                 .border(0.6.dp, colors.goldBorder, ButtonShape)
@@ -601,18 +575,16 @@ fun AddCustomerDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textSecondary
                         )
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
                             selectedItem = selectedRole,
                             onItemSelected = { selectedRole = it },
                             label = { it },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 36.dp
-                        )
+                            modifier = Modifier.fillMaxWidth())
                     }
 
                     // Name (Required)
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = name,
                         onValueChange = {
                             name = it
@@ -621,7 +593,6 @@ fun AddCustomerDialog(
                         label = { Text("نام و نام‌خانوادگی خریدار *", fontSize = 11.sp) },
                         isError = hasError,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-name").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -641,13 +612,12 @@ fun AddCustomerDialog(
                     }
 
                     // Phone
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = phone,
                         onValueChange = { phone = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() || c == '+' } },
                         label = { Text("شماره همراه (اختیاری)", fontSize = 11.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-phone").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -660,13 +630,12 @@ fun AddCustomerDialog(
                     )
 
                     // National ID
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = nationalId,
                         onValueChange = { nationalId = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() } },
                         label = { Text("کد ملی / شناسه اقتصادی (اختیاری)", fontSize = 11.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-national-id").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -679,13 +648,12 @@ fun AddCustomerDialog(
                     )
 
                     // Note
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = note,
                         onValueChange = { note = it },
                         label = { Text("توضیحات و یادداشت (اختیاری)", fontSize = 11.sp) },
                         singleLine = false,
                         maxLines = 2,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-note").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -710,7 +678,7 @@ fun AddCustomerDialog(
                             onClick = onDismiss,
                             isSecondary = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        , icon = Icons.Outlined.Close)
 
                         GoldButton(
                             text = "ثبت و انتخاب",
@@ -730,7 +698,7 @@ fun AddCustomerDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f)
-                        )
+                        , icon = Icons.Outlined.Save)
                     }
                 }
             }
@@ -788,7 +756,7 @@ fun EditCustomerDialog(
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(44.dp)
                                 .clip(ButtonShape)
                                 .background(colors.surfaceElevated)
                                 .border(0.6.dp, colors.goldBorder, ButtonShape)
@@ -810,18 +778,16 @@ fun EditCustomerDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textSecondary
                         )
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
                             selectedItem = selectedRole,
                             onItemSelected = { selectedRole = it },
                             label = { it },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 36.dp
-                        )
+                            modifier = Modifier.fillMaxWidth())
                     }
 
                     // Name
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = name,
                         onValueChange = {
                             name = it
@@ -830,7 +796,6 @@ fun EditCustomerDialog(
                         label = { Text("نام و نام‌خانوادگی خریدار *", fontSize = 11.sp) },
                         isError = hasError,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-name").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -850,13 +815,12 @@ fun EditCustomerDialog(
                     }
 
                     // Phone
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = phone,
                         onValueChange = { phone = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() || c == '+' } },
                         label = { Text("شماره همراه (اختیاری)", fontSize = 11.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-phone").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -869,13 +833,12 @@ fun EditCustomerDialog(
                     )
 
                     // National ID
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = nationalId,
                         onValueChange = { nationalId = PersianNumberFormatter.toEnglishDigits(it).filter { c -> c.isDigit() } },
                         label = { Text("کد ملی / شناسه اقتصادی (اختیاری)", fontSize = 11.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-national-id").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -888,13 +851,12 @@ fun EditCustomerDialog(
                     )
 
                     // Note
-                    GoldOutlinedTextField(
+                    DesktopOutlinedTextField(
                         value = note,
                         onValueChange = { note = it },
                         label = { Text("توضیحات و یادداشت (اختیاری)", fontSize = 11.sp) },
                         singleLine = false,
                         maxLines = 2,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("customer-note").fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
@@ -919,7 +881,7 @@ fun EditCustomerDialog(
                             onClick = onDismiss,
                             isSecondary = true,
                             modifier = Modifier.weight(1f)
-                        )
+                        , icon = Icons.Outlined.Close)
 
                         GoldButton(
                             text = "ذخیره تغییرات",
@@ -939,7 +901,7 @@ fun EditCustomerDialog(
                                 }
                             },
                             modifier = Modifier.weight(1f)
-                        )
+                        , icon = Icons.Outlined.Save)
                     }
                 }
             }

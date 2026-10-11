@@ -1,5 +1,10 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -57,27 +62,11 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(
-                    onClick = { workspace.navigate(DesktopDestination.RATES) },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .background(LocalGoldExColors.current.surfaceElevated, RoundedCornerShape(10.dp))
-                        .border(0.6.dp, LocalGoldExColors.current.goldBorder.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .testTag("rate-details-close")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "بازگشت به تابلوی نرخ‌ها",
-                        tint = LocalGoldExColors.current.goldPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    PageTitle(row.instrument.title)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         BoardAmount(row.value, row.instrument.dollar, workspaceState.reduceMotion, size = 23)
                         DetailText(if (row.instrument.dollar) "دلار آمریکا" else "تومان", muted = true)
@@ -113,67 +102,8 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
         BoardInstrument.BAHAR, BoardInstrument.QUARTER, BoardInstrument.GERAMI,
         BoardInstrument.USD, BoardInstrument.AED
     )
-    val scroll = rememberScrollState()
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    LaunchedEffect(detail.instrument) {
-        val index = items.indexOf(detail.instrument).coerceAtLeast(0)
-        scroll.animateScrollTo(with(density) { (index * 135.dp).roundToPx() })
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scroll)
-                .padding(vertical = 4.dp)
-                .testTag("rate-instrument-selector"),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { inst ->
-                val isSelected = inst == detail.instrument
-                val bgColor = if (isSelected) {
-                    if (colors.isDark) colors.goldPrimary.copy(alpha = 0.22f) else colors.goldPrimary.copy(alpha = 0.12f)
-                } else {
-                    colors.surface
-                }
-                val borderColor = if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.4f)
-                val borderWidth = if (isSelected) 1.dp else 0.6.dp
-                val textColor = if (isSelected) (if (colors.isDark) colors.goldSecondary else colors.goldPrimary) else colors.textMuted
-                val fontWt = if (isSelected) FontWeight.Bold else FontWeight.Medium
-
-                Surface(
-                    onClick = { workspace.rateDetail.select(inst) },
-                    shape = RoundedCornerShape(20.dp),
-                    color = bgColor,
-                    border = BorderStroke(borderWidth, borderColor),
-                    shadowElevation = if (isSelected && !colors.isDark) 2.dp else 0.dp,
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(colors.goldPrimary, CircleShape)
-                            )
-                        }
-                        Text(
-                            text = instrumentLabel(inst),
-                            color = textColor,
-                            fontSize = 12.sp,
-                            fontWeight = fontWt,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-        HorizontalScrollbar(rememberScrollbarAdapter(scroll), Modifier.fillMaxWidth().height(4.dp))
-    }
+    DesktopFilterRow(items, detail.instrument, { workspace.rateDetail.select(it) }, ::instrumentLabel,
+        Modifier.fillMaxWidth().testTag("rate-instrument-selector"))
 }
 
 @Composable private fun RateChartCard(detail: DesktopRateDetailState, reduceMotion: Boolean, onHorizon: (TimeHorizon) -> Unit, onRetry: () -> Unit) {
@@ -246,12 +176,11 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 }
             }
             val selector: @Composable () -> Unit = {
-                LuxurySegmentedControl(
+                DesktopFilterRow(
                     RateDetailHorizons, detail.horizon, onHorizon, ::horizonLabel,
-                    Modifier.width(240.dp).testTag("rate-detail-horizon"), height = 38.dp, fontSize = 11.sp
-                )
+                    Modifier.width(360.dp).testTag("rate-detail-horizon"))
             }
-            if (maxWidth >= 600.dp) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { title(); selector() }
+            if (maxWidth >= 820.dp) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { title(); selector() }
             else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) { title(); selector() }
         }
         Spacer(Modifier.height(20.dp))
@@ -260,7 +189,7 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 if (detail.loading) CircularProgressIndicator(Modifier.size(28.dp), color = c.goldPrimary, strokeWidth = 2.dp)
                 else Icon(Icons.Outlined.ShowChart, null, Modifier.size(40.dp), tint = c.textMuted)
                 DetailText(if (detail.loading) "در حال دریافت تاریخچه این نماد…" else "تاریخچه معتبر برای این نماد و بازه در دسترس نیست.", muted = true)
-                if (!detail.loading) GoldButton("تلاش دوباره", onRetry, isSecondary = true, modifier = Modifier.width(140.dp).testTag("rate-history-retry"))
+                if (!detail.loading) GoldButton("تلاش دوباره", onRetry, isSecondary = true, modifier = Modifier.width(140.dp).testTag("rate-history-retry"), icon = Icons.Outlined.Refresh)
             }
         } else {
             Surface(shape = RoundedCornerShape(14.dp), color = c.surfaceElevated, border = BorderStroke(.6.dp, c.goldBorder.copy(alpha = .5f))) {

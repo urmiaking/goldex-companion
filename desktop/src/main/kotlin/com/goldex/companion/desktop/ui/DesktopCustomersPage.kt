@@ -1,5 +1,8 @@
 package com.goldex.companion.desktop.ui
 
+import androidx.compose.material.icons.outlined.*
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,17 +31,17 @@ import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import kotlin.math.abs
 
-@Composable internal fun CustomerHeaderActions(feature: DesktopCustomers, compact: Boolean) {
+@Composable internal fun CustomerHeaderActions(feature: DesktopCustomers) {
     val state by feature.manager.uiState.collectAsState()
     val customer = state.selectedCustomerForStatement
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (customer == null) WorkspaceControl("مشتری جدید", { feature.manager.setAddCustomerDialogVisible(true) },
-            Modifier.testTag("customer-add"), icon = Icons.Outlined.Add, enabled = !feature.saving, compact = compact)
+            Modifier.testTag("customer-add"), icon = Icons.Outlined.Add, enabled = !feature.saving)
         else {
             WorkspaceControl("ثبت سند مستقل", { feature.manager.openAddLedgerEntry(customer) },
-                Modifier.testTag("customer-independent-entry"), secondary = true, enabled = !feature.saving, compact = compact)
+                Modifier.testTag("customer-independent-entry"), icon = Icons.Outlined.NoteAdd, secondary = true, enabled = !feature.saving)
             WorkspaceControl("ثبت دریافت / پرداخت", { feature.openPayment(customer) },
-                Modifier.testTag("customer-payment"), icon = Icons.Outlined.Add, enabled = !feature.saving, compact = compact)
+                Modifier.testTag("customer-payment"), icon = Icons.Outlined.Add, enabled = !feature.saving)
         }
     }
 }
@@ -109,10 +112,10 @@ import kotlin.math.abs
                     color = LocalGoldExColors.current.errorRed, fontSize = 13.sp)
                 RecordListStatus(state.isSaving, state.error, {})
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WorkspaceControl("انصراف", manager::cancelCustomerDeletion,
-                        Modifier.weight(1f).testTag("customer-delete-cancel"), secondary = true, enabled = !feature.saving)
-                    WorkspaceControl("حذف نهایی", { manager.deleteCustomer(customer.id) { manager.cancelCustomerDeletion() } },
-                        Modifier.weight(1f).testTag("customer-delete-final"), enabled = !feature.saving && settled)
+                    DesktopActionButton("انصراف", manager::cancelCustomerDeletion,
+                        Modifier.weight(1f).testTag("customer-delete-cancel"), isSecondary = true, icon = Icons.Outlined.Close, enabled = !feature.saving)
+                    DesktopActionButton("حذف نهایی", { manager.deleteCustomer(customer.id) { manager.cancelCustomerDeletion() } },
+                        Modifier.weight(1f).testTag("customer-delete-final"), icon = Icons.Outlined.DeleteOutline, enabled = !feature.saving && settled)
                 }
             }
         }

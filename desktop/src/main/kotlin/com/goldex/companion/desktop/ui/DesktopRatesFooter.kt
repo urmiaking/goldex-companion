@@ -8,11 +8,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +27,8 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.goldHairlineBorder
+import com.goldex.companion.desktop.ui.controls.DesktopControls
 import java.util.Locale
 
 internal data class FooterRatePillItem(
@@ -132,22 +138,25 @@ private fun FooterTickerPill(
     val deltaColor = if (item.isPositive) colors.profitGreen else colors.errorRed
 
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = DesktopControls.BodyShape,
         color = colors.surfaceElevated,
-        border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
+        border = colors.goldHairlineBorder,
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = if (onClick != null) {
-            Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick)
+            Modifier.heightIn(min = 44.dp).clip(DesktopControls.BodyShape)
+                .clickable(role = Role.Button, onClickLabel = "مشاهده تابلوی نرخ‌ها", onClick = onClick)
         } else Modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.5.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
+            if (onClick != null) Icon(Icons.Outlined.ShowChart, null, Modifier.size(20.dp), tint = colors.goldPrimary)
             Text(
                 text = item.title,
-                fontSize = 11.sp,
+                fontSize = 14.sp,
+                maxLines = 1,
                 color = colors.textSecondary,
                 fontFamily = VazirmatnFamily
             )
