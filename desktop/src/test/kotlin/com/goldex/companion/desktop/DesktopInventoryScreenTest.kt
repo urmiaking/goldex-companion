@@ -101,8 +101,9 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-title"))
         runOnIdle { workspace.navigate(DesktopDestination.RATES) }
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).assertTextContains("پیش‌نویس محفوظ")
-        onNodeWithText("انصراف").performClick(); onNodeWithText("بستن بدون ذخیره؟").assertExists()
-        onNodeWithText("ادامه ویرایش").performClick(); assertNotNull(workspace.inventory.state.value.draft)
+        onNodeWithText("انصراف").performClick()
+        onNodeWithText("بستن بدون ذخیره؟").assertDoesNotExist()
+        assertNull(workspace.inventory.state.value.draft)
     }
     @Test fun editInDarkThemePreservesStoredFinancialMetadataAndQuantity() = runDesktopComposeUiTest(width = 1400, height = 980) {
         val original = store.inventory.getItems().first().copy(profitPercent = 13.5, taxPercent = 10.0, customKaratValue = 735,
@@ -112,18 +113,57 @@ class DesktopInventoryScreenTest {
         setContent { GoldExCompanionTheme(isDarkTheme = true) { DesktopWorkspaceScreen(workspace, {}, "0.56.60") } }
         fun field(tag: String) = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
         field("inventory-title").performTextReplacement("حلقه ویرایش‌شده")
-        onNode(hasText("انگشتر") and hasAnyAncestor(hasTestTag("inventory-dialog"))).performClick()
+        onNodeWithTag("inventory-category-open").performClick()
+        onNode(hasText(original.category.titleFa) and hasAnyAncestor(hasTestTag("inventory-category-menu"))).performClick()
         field("inventory-purity").performTextReplacement("۷۵۰")
         field("inventory-purity").assertExists() // Typing a preset must not remove the focused custom input.
         save(onNodeWithTag("inventory-dialog"), "inventory-form-dark-top.png")
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-quantity"))
         field("inventory-quantity").assertIsNotEnabled()
-        field("inventory-location").performTextReplacement("سینی جدید")
+        onNodeWithTag("inventory-location-open").performClick()
+        onNodeWithTag("inventory-location-add").performScrollTo().performClick()
+        onNodeWithTag("inventory-location-new").performTextInput("سینی جدید")
+        onNodeWithTag("inventory-location-create").performClick()
+        waitUntil(5000) { workspace.inventory.state.value.draft?.location == "سینی جدید" && !workspace.inventory.state.value.saving }
         save(onNodeWithTag("inventory-dialog"), "inventory-form-dark.png")
         onNodeWithTag("inventory-save").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
         val saved = store.inventory.getItems().first { it.id == original.id }
         assertEquals(original.copy(title = "حلقه ویرایش‌شده", location = "سینی جدید", customKaratValue = 750), saved)
+    }
+    @Test fun inlineDropdownCreationAndWideAlignment() = runDesktopComposeUiTest(width = 1400, height = 980) {
+        setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.62") } }
+        onNodeWithTag("inventory-add").performClick()
+        onNodeWithTag("inventory-code").assertDoesNotExist()
+        val dialog = onNodeWithTag("inventory-dialog").fetchSemanticsNode().boundsInRoot
+        assertTrue(dialog.width >= 1000f)
+        assertTrue(dialog.height < 650f)
+        val title = onNodeWithTag("inventory-title").fetchSemanticsNode().boundsInRoot
+        val category = onNodeWithTag("inventory-category").fetchSemanticsNode().boundsInRoot
+        assertTrue(kotlin.math.abs(title.top - category.top) < 1f)
+        assertTrue(title.left > category.right)
+        onNodeWithTag("inventory-category-open").performClick()
+        onNodeWithTag("inventory-category-add").performScrollTo().performClick()
+        onNodeWithTag("inventory-category-create").performClick()
+        onNodeWithText("نام را وارد کنید؛ حداکثر ۵۰ حرف").assertExists()
+        onNodeWithTag("inventory-category-new").performTextInput("آویز")
+        save(onNodeWithTag("inventory-category-menu"), "inventory-category-create.png")
+        onNodeWithTag("inventory-category-create").performClick()
+        waitUntil(5000) { workspace.inventory.state.value.draftCategoryTitle == "آویز" && !workspace.inventory.state.value.saving }
+        onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).performTextInput("آویز جدید")
+        onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-gross"))).performTextInput("۱٫۱۲۵")
+        onNodeWithText("سفارشی").performClick()
+        onNodeWithTag("inventory-custom-purity").performTextInput("۷۳۵")
+        onNodeWithTag("inventory-save").performClick()
+        waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
+        val item = workspace.inventory.state.value.selected!!
+        assertTrue(item.code.matches(Regex("[0-9]{1,7}")))
+        assertEquals("آویز", workspace.inventory.state.value.categoryTitle(item))
+        onNodeWithTag("close-details").performClick()
+        val categoryId = workspace.inventory.state.value.options.categories.single().id
+        onNodeWithTag("inventory-filter-$categoryId").performClick()
+        onNodeWithTag("inventory-item-${item.id}").assertExists()
+        onNodeWithTag("inventory-item-item-0").assertDoesNotExist()
     }
     @Test fun importedPhotoRendersAndSurvivesRemovalOfSourceFile() = runDesktopComposeUiTest(width = 1400, height = 980) {
         val file = temporary.newFile("synthetic-photo.png")

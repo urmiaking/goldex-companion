@@ -2,13 +2,14 @@ package com.goldex.companion.desktop.state
 
 import com.goldex.companion.data.InventoryStore
 import com.goldex.companion.desktop.data.DesktopDataStore
+import com.goldex.companion.desktop.data.InventoryOptions
+import com.goldex.companion.desktop.data.DesktopInventoryOptions
 import com.goldex.companion.desktop.data.InventoryPhoto
 import com.goldex.companion.model.*
 import com.goldex.companion.presentation.inventory.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.nio.file.Path
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 data class StockDraft(val itemId: String, val type: StockAdjustmentType = StockAdjustmentType.CHARGE,
@@ -21,9 +22,20 @@ data class DesktopInventoryState(
     val visible: Boolean = false, val selectedId: String? = null, val draft: InventoryDraft? = null,
     val movement: StockDraft? = null, val pendingDelete: InventoryItem? = null, val showHistory: Boolean = false,
     val saving: Boolean = false, val error: String? = null, val notice: String? = null, val discard: Boolean = false,
-    val spot18: Long = 0
+    val spot18: Long = 0,
+    val options: InventoryOptions = InventoryOptions(),
+    val draftCategoryId: String? = null,
+    val filterCategoryId: String? = null
 ) {
-    val filtered get() = items.filter { (category == InventoryCategory.ALL || it.category == category) && InventoryForm.matches(it, query) }
+    fun categoryTitle(item: InventoryItem): String =
+        options.categories.firstOrNull { it.id == options.categoryIds[item.id] }?.name ?: item.category.titleFa
+    val draftCategoryTitle get() = options.categories.firstOrNull { it.id == draftCategoryId }?.name ?: draft?.category?.titleFa.orEmpty()
+    val locations get() = (DesktopInventoryOptions.defaultLocations + options.locations.map { it.name } + items.map { it.location }).filter { it.isNotBlank() }.distinct()
+    val filtered get() = items.filter {
+        (if (filterCategoryId != null) options.categoryIds[it.id] == filterCategoryId
+            else category == InventoryCategory.ALL || it.category == category && it.id !in options.categoryIds) &&
+            (InventoryForm.matches(it, query) || categoryTitle(it).contains(query.trim()))
+    }
     val selected get() = items.firstOrNull { it.id == selectedId }
     val summary get(): InventorySummary {
         val gold = items.sumOf { it.weightIn18kGrams * it.quantity }
@@ -46,14 +58,14 @@ data class DesktopInventoryState(
 /** Business workspace feature owner, independent of UI and Android state holders. */
 class DesktopInventory(private val storage: DesktopDataStore, private val scope: CoroutineScope) {
     private val store: InventoryStore = storage.inventory
-    private val mutable = MutableStateFlow(DesktopInventoryState(items = store.getItems(), history = store.getAdjustments(), visible = storage.loadInventoryVisible()))
+    private val mutable = MutableStateFlow(DesktopInventoryState(items = store.getItems(), history = store.getAdjustments(), visible = storage.loadInventoryVisible(), options = storage.loadInventoryOptions()))
     val state = mutable.asStateFlow()
     private val writing = AtomicBoolean(false)
-    private var baseline: InventoryDraft? = null
     private var movementBaseline: StockDraft? = null
     fun quote(spot: Long) { mutable.update { it.copy(spot18 = spot) } }
     fun search(value: String) { mutable.update { it.copy(query = value) } }
-    fun filter(value: InventoryCategory) { mutable.update { it.copy(category = value, selectedId = null) } }
+    fun filter(value: InventoryCategory) { mutable.update { it.copy(category = value, filterCategoryId = null, selectedId = null) } }
+    fun filterCustomCategory(id: String) { mutable.update { it.copy(category = InventoryCategory.MISC, filterCategoryId = id, selectedId = null) } }
     fun select(id: String?) { mutable.update { it.copy(selectedId = id) } }
     fun clearMessage() { mutable.update { it.copy(error = null, notice = null) } }
     fun togglePrivacy(): Job? = operation("نمایش موجودی ذخیره نشد") {
@@ -61,42 +73,64 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
     }
     fun open(item: InventoryItem? = null) {
         if (state.value.saving || state.value.hasDialog) return
-        baseline = item?.let(InventoryForm::from) ?: InventoryDraft(code = "GLD-" + UUID.randomUUID().toString().take(8).uppercase())
-        mutable.update { it.copy(draft = baseline, error = null, notice = null) }
+        val draft = runCatching { item?.let(InventoryForm::from) ?: InventoryDraft(code = storage.nextInventoryCode()) }.getOrElse {
+            mutable.update { it.copy(error = "کد عددی آزاد برای کالای جدید موجود نیست") }
+            return
+        }
+        mutable.update { it.copy(draft = draft, draftCategoryId = item?.id?.let(it.options.categoryIds::get), error = null, notice = null) }
     }
     fun edit(change: (InventoryDraft) -> InventoryDraft) {
         if (!state.value.saving) mutable.update { current -> current.copy(draft = current.draft?.let(change)?.copy(errors = emptyMap())) }
     }
-    fun category(value: InventoryCategory) = edit { it.copy(category = value, profit = when(value) { InventoryCategory.JEWELRY -> "20"; InventoryCategory.COINS -> "0"; else -> "7" }) }
+    fun category(value: InventoryCategory) {
+        if (state.value.saving || state.value.draft?.let { it.category == value && state.value.draftCategoryId == null } != false) return
+        edit { it.copy(category = value, profit = when(value) { InventoryCategory.JEWELRY -> "20"; InventoryCategory.COINS -> "0"; else -> "7" }) }
+        mutable.update { it.copy(draftCategoryId = null) }
+    }
+    fun customCategory(id: String) {
+        if (state.value.saving || state.value.draft == null || state.value.options.categories.none { it.id == id }) return
+        if (state.value.draftCategoryId != id) edit { it.copy(category = InventoryCategory.MISC, profit = "7") }
+        mutable.update { it.copy(draftCategoryId = id) }
+    }
+    fun addCategory(name: String): Job? = if (state.value.draft == null) null else operation("دسته‌بندی اضافه نشد؛ دوباره تلاش کنید") {
+        val option = storage.addInventoryOption(DesktopInventoryOptions.CATEGORIES, name)
+        mutable.update { current -> current.copy(options = storage.loadInventoryOptions(), draftCategoryId = option.id,
+            draft = current.draft?.copy(category = InventoryCategory.MISC, profit = "7", errors = emptyMap())) }
+    }
+    fun addLocation(name: String): Job? = if (state.value.draft == null) null else operation("محل نگهداری اضافه نشد؛ دوباره تلاش کنید") {
+        val option = storage.addInventoryOption(DesktopInventoryOptions.LOCATIONS, name)
+        mutable.update { current -> current.copy(options = storage.loadInventoryOptions(),
+            draft = current.draft?.copy(location = option.name, errors = emptyMap())) }
+    }
     fun karat(value: Karat) = edit { it.copy(karat = value, purity = when(value) { Karat.K21 -> "875"; Karat.K24 -> "999"; else -> "750" }) }
     fun dismiss() {
         if (state.value.saving) return
-        val changed = state.value.draft?.copy(errors = emptyMap())?.let { it != baseline } == true || state.value.movement?.copy(errors = emptyMap())?.let { it != movementBaseline } == true
+        val changed = state.value.movement?.copy(errors = emptyMap())?.let { it != movementBaseline } == true
         if (changed) mutable.update { it.copy(discard = true) } else discard()
     }
     fun cancelDiscard() { mutable.update { it.copy(discard = false) } }
-    fun discard() { if (!state.value.saving) mutable.update { it.copy(draft = null, movement = null, discard = false) } }
+    fun discard() { if (!state.value.saving) mutable.update { it.copy(draft = null, draftCategoryId = null, movement = null, discard = false) } }
     fun save(): Job? {
         val draft = state.value.draft ?: return null
+        val categoryId = state.value.draftCategoryId
         val errors = InventoryForm.validate(draft).toMutableMap()
-        if (state.value.items.any { it.id != draft.id && it.code.equals(draft.code.trim(), true) }) errors["code"] = "این کد قبلاً برای کالای دیگری ثبت شده است"
+        if (draft.id != null && state.value.items.any { it.id != draft.id && it.code.equals(draft.code.trim(), true) }) errors["code"] = "این کد قبلاً برای کالای دیگری ثبت شده است"
         if (errors.isNotEmpty()) { mutable.update { it.copy(draft = draft.copy(errors = errors)) }; return null }
         return operation("ذخیره کالا انجام نشد؛ اطلاعات قبلی حفظ شده‌اند") {
-            val item = InventoryForm.toItem(draft)
-            if (draft.id == null) store.addItem(item) else store.updateItem(item)
+            val item = storage.saveInventoryProduct(InventoryForm.toItem(draft), draft.id == null, categoryId)
             reload { it.copy(draft = null, selectedId = item.id, notice = "کالا ذخیره شد") }
         }
     }
     fun saveAndPrint(): Job? {
         val draft = state.value.draft ?: return null
+        val categoryId = state.value.draftCategoryId
         val errors = InventoryForm.validate(draft).toMutableMap()
-        if (state.value.items.any { it.id != draft.id && it.code.equals(draft.code.trim(), true) }) errors["code"] = "این کد قبلاً برای کالای دیگری ثبت شده است"
+        if (draft.id != null && state.value.items.any { it.id != draft.id && it.code.equals(draft.code.trim(), true) }) errors["code"] = "این کد قبلاً برای کالای دیگری ثبت شده است"
         if (errors.isNotEmpty()) { mutable.update { it.copy(draft = draft.copy(errors = errors)) }; return null }
         return operation("ذخیره کالا انجام نشد؛ اطلاعات قبلی حفظ شده‌اند") {
-            val item = InventoryForm.toItem(draft)
-            if (draft.id == null) store.addItem(item) else store.updateItem(item)
+            val item = storage.saveInventoryProduct(InventoryForm.toItem(draft), draft.id == null, categoryId)
             reload { it.copy(draft = null, selectedId = item.id, notice = "کالا ذخیره شد و اتیکت به صف چاپ ارسال گردید") }
-            com.goldex.companion.desktop.data.InventoryLabelPrinter.print(item)
+            com.goldex.companion.desktop.data.InventoryLabelPrinter.print(item, state.value.categoryTitle(item))
         }
     }
     fun photo(path: Path): Job? = if (state.value.draft == null) null else operation("تصویر قابل ورود نیست؛ PNG یا JPEG با حجم کمتر از ۲۰ مگابایت انتخاب کنید") {
@@ -104,7 +138,7 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
         mutable.update { it.copy(draft = it.draft?.copy(image = image)) }
     }
     fun printLabel(item: InventoryItem): Job? = operation("چاپ انجام نشد؛ اتصال و تنظیمات چاپگر را بررسی کنید") {
-        val printed = com.goldex.companion.desktop.data.InventoryLabelPrinter.print(item)
+        val printed = com.goldex.companion.desktop.data.InventoryLabelPrinter.print(item, state.value.categoryTitle(item))
         mutable.update { it.copy(notice = if (printed) "اتیکت به چاپگر ارسال شد" else "چاپ لغو شد") }
     }
     fun requestDelete(item: InventoryItem?) { if (!state.value.saving) mutable.update { it.copy(pendingDelete = item) } }
@@ -145,7 +179,8 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
     }
     private fun reload(change: (DesktopInventoryState) -> DesktopInventoryState) {
         val items = store.getItems(); val history = store.getAdjustments()
-        mutable.update { change(it.copy(items = items, history = history)) }
+        val options = storage.loadInventoryOptions()
+        mutable.update { change(it.copy(items = items, history = history, options = options, draftCategoryId = null)) }
     }
     private fun operation(error: String, block: suspend () -> Unit): Job? {
         if (!writing.compareAndSet(false, true)) return null

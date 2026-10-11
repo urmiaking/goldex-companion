@@ -129,7 +129,7 @@ class WindowsRefinementsScreenTest {
         unit("وزن ناخالص", "inventory-gross", "گرم")
         unit("وزن نگین", "inventory-stone", "گرم")
         onNodeWithText("سفارشی").performClick()
-        unit("عیار دقیق", "inventory-purity", "از ۱۰۰۰")
+        onNodeWithTag("inventory-custom-purity").assertIsDisplayed()
         unit("تعداد", "inventory-quantity", "قطعه")
         unit("اجرت", "inventory-wage", "٪")
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasText("هر گرم"))
