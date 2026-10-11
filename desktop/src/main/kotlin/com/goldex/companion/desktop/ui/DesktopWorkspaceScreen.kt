@@ -53,7 +53,8 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val inventoryState by workspace.inventory.state.collectAsState()
     val customerState by workspace.customers.manager.uiState.collectAsState()
     val settlementState by workspace.customers.settlement.state.collectAsState()
-    val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || settlementState.customer != null
+    val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
+    val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
     val focus = LocalFocusManager.current
@@ -85,7 +86,14 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                 compact = compact
                             )
                         }
-                    })
+                        if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers, compact)
+                    }, titleOverride = statementCustomer?.name,
+                        subtitleOverride = statementCustomer?.let { customer ->
+                            listOf("گردش حساب", customer.role,
+                                customer.accountCode.takeIf { it.isNotBlank() }?.let { "حساب ${PersianNumberFormatter.toPersianDigits(it)}" },
+                                customer.phone.takeIf { it.isNotBlank() }?.let(PersianNumberFormatter::toPersianDigits)).filterNotNull().joinToString(" • ")
+                        }, onBack = if (statementCustomer != null) workspace.customers.manager::closeCustomerStatement else null,
+                        inlineActions = state.destination == DesktopDestination.CUSTOMERS)
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {

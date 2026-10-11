@@ -36,6 +36,8 @@ data class CustomerManagerUiState(
     val searchQuery: String = "",
     val activeCustomerTransactions: List<LedgerTransaction> = emptyList(),
     val editingLedgerTransaction: LedgerTransaction? = null,
+    val editingCustomer: Customer? = null,
+    val pendingDeleteCustomer: Customer? = null,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
@@ -252,6 +254,17 @@ class CustomerManagerViewModel(
     fun setSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
     }
+
+    fun editCustomer(customer: Customer) {
+        if (_uiState.value.isSaving) return
+        _uiState.update { it.copy(editingCustomer = customer, error = null) }
+    }
+    fun closeCustomerEdit() { _uiState.update { it.copy(editingCustomer = null) } }
+    fun requestCustomerDeletion(customer: Customer) {
+        if (_uiState.value.isSaving) return
+        _uiState.update { it.copy(pendingDeleteCustomer = customer, error = null) }
+    }
+    fun cancelCustomerDeletion() { _uiState.update { it.copy(pendingDeleteCustomer = null) } }
 
     fun setLedgerFilter(filter: CustomerLedgerFilterTab) {
         _uiState.update { it.copy(selectedLedgerFilter = filter) }

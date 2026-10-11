@@ -48,7 +48,7 @@ class DesktopCustomersScreenTest {
         compose.runOnIdle { assertEquals("09123456789", workspace.customers.repository.getCustomers().single().phone) }
     }
 
-    @Test fun ledgerAndStatementKeepAndroidVisualsInBothThemesAndNavigation() {
+    @Test fun ledgerAndStatementUseWorkspaceHeaderInBothThemesAndNavigation() {
         val contact = Customer(id = "synthetic", name = "بنکدار آزمون", goldDebtGrams = 2.125, cashDebtTomans = -12_500_000, accountCode = "1042")
         workspace.customers.repository.addCustomer(contact)
         workspace.customers.repository.addTransaction(LedgerTransaction(id = "gold", customerId = contact.id,
@@ -61,6 +61,10 @@ class DesktopCustomersScreenTest {
         screenshot("customers-ledger-light.png")
         compose.runOnIdle { workspace.customers.manager.openCustomerStatement(contact) }
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.activeCustomerTransactions.isNotEmpty() }
+        compose.onNode(hasText(contact.name) and hasTestTag("workspace-heading")).assertExists()
+        compose.onNodeWithTag("customer-payment").assertIsDisplayed()
+        compose.onNodeWithTag("customer-independent-entry").assertIsDisplayed()
+        compose.onNodeWithContentDescription("اشتراک‌گذاری").assertDoesNotExist()
         screenshot("customers-statement-light.png")
         compose.runOnIdle { workspace.toggleTheme() }
         compose.waitUntil(10_000) { workspace.state.value.dark }
@@ -68,7 +72,8 @@ class DesktopCustomersScreenTest {
         compose.onNodeWithTag("nav-RATES").performClick()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.runOnIdle { assertEquals(contact.id, workspace.customers.manager.uiState.value.selectedCustomerForStatement!!.id) }
-        compose.runOnIdle { workspace.customers.manager.closeCustomerStatement() }
+        compose.onNodeWithTag("customer-back").performClick()
+        compose.onNodeWithTag("customer-add").assertIsDisplayed()
         screenshot("customers-ledger-dark.png")
     }
 
@@ -116,16 +121,35 @@ class DesktopCustomersScreenTest {
         workspace.customers.manager.loadCustomers()
         render()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
-        compose.onNodeWithTag("customer-manage").performClick()
-        compose.onNodeWithContentDescription("ویرایش مشتری").performClick()
+        compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.size == 1 }
+        compose.onNodeWithTag("customer-edit-edit").performClick()
         field("customer-name").performTextReplacement("مشتری ویرایش‌شده")
         compose.onNodeWithText("ذخیره تغییرات").performScrollTo().performClick()
-        compose.waitUntil(10_000) { workspace.customers.repository.getCustomers().single().name == "مشتری ویرایش‌شده" }
-        compose.onNodeWithContentDescription("حذف مشتری").performClick()
-        compose.onNodeWithText("حذف نهایی").performClick()
-        compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.error != null }
-        compose.onNode(hasText("پیش از حذف طرف‌حساب، مانده حساب را تسویه کنید") and hasAnyAncestor(hasTestTag("customer-delete-dialog"))).assertExists()
+        compose.waitUntil(10_000) { workspace.customers.repository.getCustomers().single().name == "مشتری ویرایش‌شده" && !workspace.customers.hasDialog }
+        compose.onNodeWithTag("customer-delete-edit").performClick()
+        compose.onNodeWithTag("customer-delete-final").assertIsNotEnabled()
+        compose.onNode(hasText("پیش از حذف طرف‌حساب، مانده حساب را تسویه کنید") and hasAnyAncestor(hasTestTag("customer-delete-confirmation"))).assertExists()
         compose.runOnIdle { assertEquals(1.0, workspace.customers.repository.getCustomers().single().goldDebtGrams) }
+        compose.onNodeWithTag("customer-delete-cancel").performClick()
+        compose.onNodeWithTag("customer-delete-confirmation").assertDoesNotExist()
+    }
+
+    @Test fun settledDeletionRequiresConfirmationAndCancelPreservesCustomer() {
+        workspace.customers.repository.addCustomer(Customer(id = "settled", name = "مشتری تسویه‌شده"))
+        workspace.customers.manager.loadCustomers()
+        render()
+        compose.onNodeWithTag("nav-CUSTOMERS").performClick()
+        compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.size == 1 }
+        compose.onNodeWithTag("customer-delete-settled").performClick()
+        val cancel = compose.onNodeWithTag("customer-delete-cancel").fetchSemanticsNode().boundsInRoot
+        val delete = compose.onNodeWithTag("customer-delete-final").fetchSemanticsNode().boundsInRoot
+        Assert.assertTrue(cancel.center.x > delete.center.x)
+        compose.onNodeWithTag("customer-delete-cancel").performClick()
+        compose.runOnIdle { assertEquals(1, workspace.customers.repository.getCustomers().size) }
+        compose.onNodeWithTag("customer-delete-settled").performClick()
+        compose.onNodeWithTag("customer-delete-final").performClick()
+        compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.isEmpty() && !workspace.customers.hasDialog }
+        compose.onNodeWithTag("customer-delete-confirmation").assertDoesNotExist()
     }
 
     private fun screenshot(name: String, tag: String = "workspace-root") {
