@@ -1,5 +1,9 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -61,7 +65,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             }
         }, confirmButton = {
             Row(Modifier.width(350.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !state.saving)
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Close)
                 GoldButton("ثبت نرخ‌ها", {
                     val parsed = inputs.map { input -> DesktopPortfolioPolicy.normalized(input).let { text -> if (text.isBlank()) 0L else text.takeIf { it.matches(Regex("[0-9]+")) }?.toLongOrNull() } }
                     errors = parsed.mapIndexedNotNull { i, number -> if (number == null || number !in 0..9_000_000_000_000L || (i == 0 && number == 0L)) i to "نرخ معتبر به تومان وارد کنید" else null }.toMap()
@@ -70,7 +74,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         val rates = DesktopMarketRepository.emptyRates(state.settings.priceSource).copy(gold18 = p[0], gold24 = p[1], goldMelt = p[2], coinEmami = p[3], coinBahar = p[4], coinHalf = p[5], coinQuarter = p[6], coinGerami = p[7], usd = p[8])
                         workspace.saveManualRates(rates)?.let { job -> scope.launch { job.join(); if (workspace.state.value.error == null) onDismiss() } }
                     }
-                }, enabled = !state.saving, modifier = Modifier.weight(1.3f).testTag("save-manual-rates"))
+                }, enabled = !state.saving, modifier = Modifier.weight(1.3f).testTag("save-manual-rates"), icon = Icons.Outlined.Save)
             }
         })
 }
@@ -177,13 +181,13 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(); preferences() }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, enabled = dirty && !state.saving)
+            GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Undo, enabled = dirty && !state.saving)
             GoldButton(if (state.saving) "در حال ذخیره" else "ذخیره تنظیمات", { workspace.saveSettings(draft) }, Modifier.weight(1f).testTag("save-settings"), enabled = dirty && !state.saving, icon = Icons.Outlined.Save)
         }
         if (state.assets.rows.isNotEmpty()) LuxuryCard {
             PageTitle("سبد قبلی")
             Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
-            GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
+            GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true, icon = Icons.Outlined.AccountBalanceWallet)
         }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-tools"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-backup")) {
@@ -372,16 +376,9 @@ internal fun DesktopBrandAssetTile(
             }
             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = onPick,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text(actionLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
-                }
+                GoldButton(actionLabel, onPick, modifier = Modifier, icon = Icons.Outlined.Image, isSecondary = true)
                 if (onClear != null) {
-                    IconButton(onClick = onClear, modifier = Modifier.size(30.dp)) {
+                    IconButton(onClick = onClear, modifier = Modifier.size(44.dp)) {
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = "حذف $title",
@@ -504,25 +501,16 @@ internal fun DesktopSignaturePadDialog(
                         fontSize = 11.sp,
                         color = colors.textMuted
                     )
-                    OutlinedButton(
-                        onClick = {
+                    GoldButton("پاک‌کردن", {
                             strokes.clear()
                             currentStroke = emptyList()
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(30.dp).testTag("clear-signature-pad"),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                    ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.errorRed)
-                        Spacer(Modifier.width(4.dp))
-                        Text("پاک‌کردن", fontSize = 10.5.sp, color = colors.errorRed)
-                    }
+                        }, modifier = Modifier.testTag("clear-signature-pad"), icon = Icons.Outlined.DeleteOutline, isSecondary = true)
                 }
             }
         },
         confirmButton = {
             Row(Modifier.width(360.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true)
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Close)
                 GoldButton(
                     "تأیید و ذخیره امضا",
                     onClick = {
@@ -533,7 +521,7 @@ internal fun DesktopSignaturePadDialog(
                     },
                     modifier = Modifier.weight(1.3f).testTag("save-signature-btn"),
                     enabled = strokes.isNotEmpty() || currentStroke.isNotEmpty()
-                )
+                , icon = Icons.Outlined.Save)
             }
         }
     )

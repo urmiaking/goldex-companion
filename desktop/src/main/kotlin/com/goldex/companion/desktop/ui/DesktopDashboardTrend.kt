@@ -1,5 +1,7 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -54,12 +56,12 @@ import kotlin.math.roundToInt
                 }
             }
             val selector: @Composable () -> Unit = {
-                LuxurySegmentedControl(items = listOf(TimeHorizon.TODAY, TimeHorizon.ONE_WEEK, TimeHorizon.ONE_MONTH),
+                DesktopFilterRow(items = listOf(TimeHorizon.TODAY, TimeHorizon.ONE_WEEK, TimeHorizon.ONE_MONTH),
                     selectedItem = state.horizon, onItemSelected = { dashboard.select(it) },
                     label = { when (it) { TimeHorizon.TODAY -> "امروز"; TimeHorizon.ONE_WEEK -> "هفتگی"; else -> "ماهانه" } },
-                    modifier = Modifier.width(184.dp).testTag("chart-horizon"), height = 32.dp, fontSize = 10.5.sp)
+                    modifier = Modifier.width(290.dp).testTag("chart-horizon"))
             }
-            if (maxWidth >= 380.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { heading(); selector() }
+            if (maxWidth >= 700.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { heading(); selector() }
             else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { heading(); selector() }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {

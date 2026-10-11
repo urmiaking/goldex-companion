@@ -1,5 +1,11 @@
 package com.goldex.companion.desktop.customers
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.grid.*
@@ -85,40 +91,23 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
 ) {
     val colors = LocalGoldExColors.current
     val search: @Composable (Modifier) -> Unit = { modifier ->
-        Surface(modifier.height(WorkspaceControlHeight).testTag("customer-search-container"), shape = WorkspaceControlShape,
-            color = colors.surface, border = colors.hairlineBorder) {
-            Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = colors.goldPrimary)
-                BasicTextField(state.searchQuery, onSearch, singleLine = true,
-                    textStyle = TextStyle(fontFamily = VazirmatnFamily, fontSize = 14.sp, color = colors.textMain),
-                    modifier = Modifier.weight(1f).testTag("customer-search").semantics { contentDescription = "جستجوی مشتریان" },
-                    decorationBox = { field ->
-                        Box {
-                            if (state.searchQuery.isEmpty()) Text("جستجوی نام، شماره یا کد حساب", color = colors.textMuted,
-                                fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            field()
-                        }
-                    })
-                if (state.searchQuery.isNotEmpty()) IconButton({ onSearch("") }, Modifier.size(44.dp)) {
-                    Icon(Icons.Outlined.Close, "پاک کردن جستجو", Modifier.size(18.dp), tint = colors.textMuted)
-                } else Spacer(Modifier.width(12.dp))
-            }
-        }
+        DesktopSearchField(state.searchQuery, onSearch, "جستجوی نام، شماره یا کد حساب",
+            modifier.testTag("customer-search-container"), inputTag = "customer-search")
     }
     val filters: @Composable (Modifier) -> Unit = { modifier ->
-        LuxurySegmentedControl(items = CustomerLedgerFilterTab.values().toList(), selectedItem = state.selectedLedgerFilter,
-            onItemSelected = onFilter, height = WorkspaceControlHeight,
-            modifier = modifier.testTag("customer-filters"), label = { tab ->
-                val (label, count) = when (tab) {
-                    CustomerLedgerFilterTab.ALL -> "همه" to state.totalActiveCount
-                    CustomerLedgerFilterTab.DEBTORS -> "بدهکار" to state.debtorsCount
-                    CustomerLedgerFilterTab.CREDITORS -> "بستانکار" to state.creditorsCount
-                    CustomerLedgerFilterTab.SETTLED -> "تسویه‌شده" to state.settledCount
-                }
-                "$label (${PersianNumberFormatter.toPersianDigits(count.toString())})"
-            })
+        DesktopFilterRow(CustomerLedgerFilterTab.values().toList(), state.selectedLedgerFilter, onFilter,
+            label = { when (it) {
+                CustomerLedgerFilterTab.ALL -> "همه"; CustomerLedgerFilterTab.DEBTORS -> "بدهکار"
+                CustomerLedgerFilterTab.CREDITORS -> "بستانکار"; CustomerLedgerFilterTab.SETTLED -> "تسویه‌شده"
+            } }, count = { when (it) {
+                CustomerLedgerFilterTab.ALL -> state.totalActiveCount; CustomerLedgerFilterTab.DEBTORS -> state.debtorsCount
+                CustomerLedgerFilterTab.CREDITORS -> state.creditorsCount; CustomerLedgerFilterTab.SETTLED -> state.settledCount
+            } }, countColor = { when (it) {
+                CustomerLedgerFilterTab.DEBTORS -> colors.errorRed; CustomerLedgerFilterTab.CREDITORS -> colors.marketGainText
+                else -> colors.goldPrimary
+            } }, modifier = modifier.testTag("customer-filters"))
     }
+
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val filterWidth = minOf(540.dp, maxWidth * .55f)
         if (maxWidth >= 780.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -148,10 +137,10 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("customer-name-${customer.id}"))
                 Text(customer.role, fontSize = 12.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconButton(onEdit, Modifier.size(36.dp).testTag("customer-edit-${customer.id}"), enabled = !saving) {
+            IconButton(onEdit, Modifier.size(44.dp).testTag("customer-edit-${customer.id}"), enabled = !saving) {
                 Icon(Icons.Outlined.Edit, "ویرایش مشتری", Modifier.size(18.dp), tint = colors.goldPrimary)
             }
-            IconButton(onDelete, Modifier.size(36.dp).testTag("customer-delete-${customer.id}"), enabled = !saving) {
+            IconButton(onDelete, Modifier.size(44.dp).testTag("customer-delete-${customer.id}"), enabled = !saving) {
                 Icon(Icons.Outlined.DeleteOutline, "حذف مشتری", Modifier.size(18.dp), tint = colors.errorRed)
             }
         }
@@ -178,11 +167,11 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
             Text(customer.lastActivityTime, color = colors.textMuted, fontSize = 11.sp, maxLines = 1)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WorkspaceControl("گردش حساب", onOpenStatement, Modifier.weight(1f).testTag("customer-statement-${customer.id}"), secondary = true, compact = true)
-            WorkspaceControl("ثبت سند", onOpenAddEntry, Modifier.weight(1f).testTag("customer-entry-${customer.id}"), enabled = !saving, compact = true)
-            WorkspaceControl("ثبت فاکتور", {}, Modifier.weight(1f).testTag("customer-invoice-${customer.id}").semantics {
+            DesktopActionButton("گردش", onOpenStatement, Modifier.weight(1f).testTag("customer-statement-${customer.id}").semantics { contentDescription = "گردش حساب" }, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
+            DesktopActionButton("ثبت سند", onOpenAddEntry, Modifier.weight(1f).testTag("customer-entry-${customer.id}"), enabled = !saving, icon = Icons.Outlined.NoteAdd)
+            DesktopActionButton("فاکتور", {}, Modifier.weight(1f).testTag("customer-invoice-${customer.id}").semantics {
                 contentDescription = "ثبت فاکتور؛ به‌زودی"
-            }, enabled = false, secondary = true, compact = true)
+            }, enabled = false, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
         }
     }
 }

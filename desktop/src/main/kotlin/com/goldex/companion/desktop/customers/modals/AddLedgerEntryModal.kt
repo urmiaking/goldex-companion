@@ -1,5 +1,13 @@
 package com.goldex.companion.desktop.customers.modals
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopControls
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.outlined.*
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
+
 // Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
 
 import kotlin.math.abs
@@ -38,7 +46,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,9 +78,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
-import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.desktop.customers.LedgerAccountBalanceVector
 import com.goldex.companion.desktop.customers.LedgerArrowPayVector
 import com.goldex.companion.desktop.customers.LedgerArrowReceiveVector
@@ -507,7 +512,7 @@ fun AddLedgerEntryModal(
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(44.dp)
                             .clip(ButtonShape)
                             .background(colors.surfaceElevated)
                             .border(0.6.dp, colors.goldBorder, ButtonShape)
@@ -672,12 +677,12 @@ fun AddLedgerEntryModal(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
+                        shape = DesktopControls.BodyShape,
                         color = receiveBgColor,
                         border = BorderStroke(if (isReceiveSelected) 1.2.dp else 0.6.dp, receiveBorderColor),
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(DesktopControls.BodyShape)
                             .clickable { selectedDirectionIndex = 0 }
                     ) {
                         Row(
@@ -694,7 +699,7 @@ fun AddLedgerEntryModal(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "دریافت از طرف‌حساب",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 fontWeight = if (isReceiveSelected) FontWeight.Bold else FontWeight.Medium,
                                 color = receiveTextColor,
                                 fontFamily = VazirmatnFamily
@@ -720,12 +725,12 @@ fun AddLedgerEntryModal(
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
+                        shape = DesktopControls.BodyShape,
                         color = payBgColor,
                         border = BorderStroke(if (isPaySelected) 1.2.dp else 0.6.dp, payBorderColor),
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(DesktopControls.BodyShape)
                             .clickable { selectedDirectionIndex = 1 }
                     ) {
                         Row(
@@ -742,7 +747,7 @@ fun AddLedgerEntryModal(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "پرداخت به طرف‌حساب",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 fontWeight = if (isPaySelected) FontWeight.Bold else FontWeight.Medium,
                                 color = payTextColor,
                                 fontFamily = VazirmatnFamily
@@ -752,15 +757,12 @@ fun AddLedgerEntryModal(
                 }
 
                 // 4. Settlement Mode Segmented Control (تسویه وزنی و طلا vs تسویه نقدی و ریالی)
-                LuxurySegmentedControl(
+                DesktopChoiceRow(
                     items = listOf(0, 1),
                     selectedItem = selectedModeIndex,
                     onItemSelected = { selectedModeIndex = it },
                     label = { mode -> if (mode == 0) "تسویه وزنی و طلا" else "تسویه نقدی و ریالی" },
-                    modifier = Modifier.fillMaxWidth(),
-                    height = 42.dp,
-                    fontSize = 12.sp
-                )
+                    modifier = Modifier.fillMaxWidth())
 
                 // =========================================================================
                 // 5A. GOLD MODE FORM (Screen 1)
@@ -768,15 +770,12 @@ fun AddLedgerEntryModal(
                 if (isGoldMode) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         // Category Switching Box (Segmented Control)
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf("آبشده", "مصنوعات", "سکه و شمش"),
                             selectedItem = goldCategory,
                             onItemSelected = { goldCategory = it },
                             label = { it },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 36.dp,
-                            fontSize = 11.5.sp
-                        )
+                            modifier = Modifier.fillMaxWidth())
 
                         // Inputs Box: Conditional based on goldCategory
                         Surface(
@@ -1004,15 +1003,12 @@ fun AddLedgerEntryModal(
 
                                     "سکه و شمش" -> {
                                         // Sub-selection of Coin or Bar (Full Width Switching Control - Issue #86)
-                                        LuxurySegmentedControl(
+                                        DesktopChoiceRow(
                                             items = listOf("سکه تمام", "نیم سکه", "ربع سکه", "سکه گرمی", "شمش طلا"),
                                             selectedItem = selectedCoinOrBar,
                                             onItemSelected = { selectedCoinOrBar = it },
                                             label = { it },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            height = 36.dp,
-                                            fontSize = 10.5.sp
-                                        )
+                                            modifier = Modifier.fillMaxWidth())
 
                                         if (selectedCoinOrBar != "شمش طلا") {
                                             // Coin specific fields
@@ -1222,15 +1218,12 @@ fun AddLedgerEntryModal(
                 if (!isGoldMode) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         // Payment Method Switching Box (Segmented Control)
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf("حواله بانکی / پایا", "چک صیادی", "کارتخوان (POS)", "اسکناس نقد"),
                             selectedItem = paymentMethod,
                             onItemSelected = { paymentMethod = it },
                             label = { it },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 36.dp,
-                            fontSize = 10.5.sp
-                        )
+                            modifier = Modifier.fillMaxWidth())
 
                         // Cash Inputs Container
                         Surface(
@@ -1286,51 +1279,20 @@ fun AddLedgerEntryModal(
                                             .padding(top = 8.dp),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        listOf(10_000_000L to "+ ۱۰ م", 50_000_000L to "+ ۵۰ م", 100_000_000L to "+ ۱۰۰ م").forEach { (increment, label) ->
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = colors.surface,
-                                                border = BorderStroke(0.5.dp, colors.border),
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .clickable {
-                                                        val cur = PersianNumberFormatter.parseToCleanLong(cashAmountInput) ?: 0L
-                                                        cashAmountInput = (cur + increment).toString()
-                                                    }
-                                            ) {
-                                                Text(
-                                                    text = label,
-                                                    fontSize = 10.5.sp,
-                                                    color = colors.textSecondary,
-                                                    textAlign = TextAlign.Center,
-                                                    fontFamily = VazirmatnFamily,
-                                                    modifier = Modifier.padding(vertical = 5.dp)
-                                                )
-                                            }
+                                        listOf(10_000_000L to "۱۰ م", 50_000_000L to "۵۰ م", 100_000_000L to "۱۰۰ م").forEach { (increment, label) ->
+                                            GoldButton(label, {
+                                                val cur = PersianNumberFormatter.parseToCleanLong(cashAmountInput) ?: 0L
+                                                cashAmountInput = (cur + increment).toString()
+                                            }, Modifier.weight(1f), icon = Icons.Outlined.Add, isSecondary = true)
+
                                         }
 
                                         // Settle entire balance button
                                         if (customer.cashDebtTomans != 0L) {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = colors.goldContainer,
-                                                border = BorderStroke(0.5.dp, colors.goldBorder),
-                                                modifier = Modifier
-                                                    .weight(1.3f)
-                                                    .clickable {
-                                                        cashAmountInput = Math.abs(customer.cashDebtTomans).toString()
-                                                    }
-                                            ) {
-                                                Text(
-                                                    text = "تسویه کل مانده",
-                                                    fontSize = 10.5.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = colors.goldPrimary,
-                                                    textAlign = TextAlign.Center,
-                                                    fontFamily = VazirmatnFamily,
-                                                    modifier = Modifier.padding(vertical = 5.dp)
-                                                )
-                                            }
+                                            GoldButton("کل مانده", {
+                                                cashAmountInput = Math.abs(customer.cashDebtTomans).toString()
+                                            }, Modifier.weight(1.3f), icon = Icons.Outlined.DoneAll, isSecondary = true)
+
                                         }
                                     }
                                 }
@@ -1756,7 +1718,7 @@ fun AddLedgerEntryModal(
                         onClick = onDismiss,
                         isSecondary = true,
                         modifier = Modifier.weight(1f)
-                    )
+                    , icon = Icons.Outlined.Close)
 
                     GoldButton(
                         text = if (editingTransaction != null) "ویرایش و ذخیره سند" else "ثبت نهایی سند در معین",

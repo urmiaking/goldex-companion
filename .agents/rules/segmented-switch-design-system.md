@@ -1,7 +1,9 @@
 # Segmented Switch & Selector Invariant (`segmented-switch-design-system.md`)
 
 ## 1. Core Principle
-Whenever the user can select between two, three, or more mutually exclusive modes, timeframes, or categories (e.g., Benchmark Rate in Calculator, Wage Mode, Trend Chart Timeframe, Karat Convert Mode), a dedicated animated segmented control (`LuxurySegmentedControl`) MUST be used.
+Distinguish a calculation mode switch from a record/category/time filter. Android's existing calculation mode selectors and the user-approved Windows calculator mode controls may retain `LuxurySegmentedControl`. This is not permission to use a sliding segmented track for Windows filters.
+
+Windows MUST use independent `DesktopFilterRow`/`DesktopFilterChip` for customer/invoice/stock categories, locations, instruments and chart horizons, matching Android customer-ledger reference options. Form choices use `DesktopChoiceRow`. Follow [windows-design-system.md](windows-design-system.md) and [the detailed contract](../../docs/design/windows-controls.md), including count badges, 14sp labels, keyboard selection, overflow and reduced motion. The following motion specifications apply only to retained segmented controls.
 
 ## 2. Inviolable Design & Motion Rules
 - **Sliding Indicator Transition**: The active selection indicator must glide smoothly between options using a physical spring transition (`spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)`). Instant snapping without motion is prohibited.

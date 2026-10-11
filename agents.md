@@ -160,6 +160,8 @@ Different entities may use different conflict policies. Invoice sync must not au
 
 ## 10. Design-system rules
 
+- Windows UI MUST follow [the context-specific Windows control rule](.agents/rules/windows-design-system.md) and [its detailed specification](docs/design/windows-controls.md): capsules only for header/navigation and independent filter choices, 12dp body/dialog actions and inputs, mandatory action icons, readable 14sp labels, and Android-derived quick-access tiles. This explicitly supersedes older blanket pill-button/segmented-filter guidance for Windows.
+
 - Reuse `ui/theme/Color.kt`, `Type.kt`, and `Theme.kt`.
 - Reuse existing components before creating variants.
 - Use semantic colors for market positive, negative, warning, and neutral states.

@@ -131,14 +131,14 @@ class DesktopRatesPageTest {
         assertTrue(onAllNodes(hasText("—") and hasAnyAncestor(hasTestTag("rate-row-GOLD24")),useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
         onNodeWithTag("rate-detail-GOLD24").performClick()
         onNodeWithTag("rate-use-calculator").performScrollTo().assertIsNotEnabled()
-        onNodeWithTag("rate-details-close").performScrollTo().performClick()
+        onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("rates-summary-GOLD18").performScrollTo()
         save(onNodeWithTag("workspace-root"),"rates-refined-compact-light.png")
         onNodeWithTag("manual-rates").assertDoesNotExist()
         onNodeWithTag("rates-summary-GOLD18").performClick()
         waitUntil(5000) { !workspace.rateDetail.state.value.loading }
         onNodeWithText("تاریخچه معتبر برای این نماد و بازه در دسترس نیست.").assertExists()
-        onNodeWithTag("rate-details-close").performScrollTo().performClick()
+        onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
         save(onNodeWithTag("workspace-root"),"rates-refined-compact-dark.png")

@@ -85,7 +85,7 @@ class DesktopInventoryScreenTest {
     @Test fun compactWindowHasCompleteFormAndRetainsDraftAcrossNavigation() = runDesktopComposeUiTest(width = 940, height = 700) {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.41") } }
         save(onNodeWithTag("workspace-root"), "inventory-compact.png")
-        onNodeWithTag("inventory-item-item-0").performClick(); onNodeWithTag("inventory-details").assertIsDisplayed()
+        onNodeWithTag("inventory-item-item-0").performScrollTo().performClick(); onNodeWithTag("inventory-details").assertIsDisplayed()
         runOnIdle { workspace.inventory.select(null) }
         onNodeWithTag("inventory-add").performClick()
         onNodeWithTag("inventory-save").assertIsDisplayed()

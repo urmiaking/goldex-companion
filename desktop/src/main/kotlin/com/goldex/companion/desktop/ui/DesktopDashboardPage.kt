@@ -1,5 +1,13 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.*
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -105,12 +113,11 @@ import com.goldex.companion.ui.theme.*
                 if (maxWidth >= 780.dp) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         actions.forEach { action ->
-                            GoldButton(
+                            DesktopQuickAccessTile(
                                 text = action.title,
                                 onClick = action.onClick,
-                                modifier = Modifier.weight(if (action.isPrimary) 1.25f else 1f).testTag(action.tag),
-                                icon = action.icon,
-                                isSecondary = !action.isPrimary
+                                modifier = Modifier.weight(1f).testTag(action.tag),
+                                icon = action.icon
                             )
                         }
                     }
@@ -118,23 +125,21 @@ import com.goldex.companion.ui.theme.*
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             actions.take(2).forEach { action ->
-                                GoldButton(
+                                DesktopQuickAccessTile(
                                     text = action.title,
                                     onClick = action.onClick,
                                     modifier = Modifier.weight(1f).testTag(action.tag),
-                                    icon = action.icon,
-                                    isSecondary = !action.isPrimary
+                                    icon = action.icon
                                 )
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             actions.drop(2).forEach { action ->
-                                GoldButton(
+                                DesktopQuickAccessTile(
                                     text = action.title,
                                     onClick = action.onClick,
                                     modifier = Modifier.weight(1f).testTag(action.tag),
-                                    icon = action.icon,
-                                    isSecondary = true
+                                    icon = action.icon
                                 )
                             }
                         }
@@ -227,7 +232,7 @@ private data class QuickAction(
             }
             IconButton(
                 onClick = { workspace.inventory.togglePrivacy() },
-                Modifier.size(38.dp).testTag("dashboard-privacy"),
+                Modifier.size(44.dp).testTag("dashboard-privacy"),
                 enabled = !inventory.saving
             ) {
                 Icon(
@@ -362,23 +367,9 @@ private data class QuickAction(
                 Box(Modifier.size(8.dp).background(colors.goldPrimary, CircleShape))
                 PageTitle("تابلوی مظنه‌های زنده بازار")
             }
-            TextButton(
-                onClick = { workspace.navigate(DesktopDestination.RATES) },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("همه نرخ‌ها", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                        contentDescription = null,
-                        tint = colors.goldPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+            GoldButton("همه نرخ‌ها", { workspace.navigate(DesktopDestination.RATES) },
+                icon = Icons.Outlined.ShowChart, isSecondary = true)
+
         }
 
         // 5 Key Rates with Badges
@@ -451,23 +442,7 @@ private data class QuickAction(
     LuxuryCard(Modifier.testTag("dashboard-invoices"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             PageTitle("آخرین فاکتورهای ثبت‌شده", Modifier.weight(1f))
-            TextButton(
-                onClick = { workspace.navigate(DesktopDestination.INVOICES) },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("دفتر فاکتورها", color = colors.goldPrimary, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                        contentDescription = null,
-                        tint = colors.goldPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+            GoldButton("دفتر فاکتورها", { workspace.navigate(DesktopDestination.INVOICES) }, modifier = Modifier, icon = Icons.Outlined.ReceiptLong, isSecondary = true)
         }
 
         // 3 Recent Invoices from Stitch Design
