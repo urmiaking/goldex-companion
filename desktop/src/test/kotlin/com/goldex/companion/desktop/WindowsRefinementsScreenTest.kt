@@ -128,10 +128,12 @@ class WindowsRefinementsScreenTest {
         }
         unit("وزن ناخالص", "inventory-gross", "گرم")
         unit("وزن نگین", "inventory-stone", "گرم")
+        onNodeWithText("سفارشی").performClick()
         unit("عیار دقیق", "inventory-purity", "از ۱۰۰۰")
         unit("تعداد", "inventory-quantity", "قطعه")
         unit("اجرت", "inventory-wage", "٪")
-        onNodeWithText("اجرت هر گرم").performClick()
+        onNodeWithTag("inventory-form-scroll").performScrollToNode(hasText("هر گرم"))
+        onNodeWithText("هر گرم").performClick()
         unit("اجرت", "inventory-wage", "تومان / گرم")
         field("inventory-wage").performTextReplacement("123456")
         field("inventory-gross").performTextReplacement("۲٫۱۲۵")
