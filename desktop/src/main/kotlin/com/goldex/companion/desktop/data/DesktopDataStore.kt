@@ -92,11 +92,39 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
 
     @Synchronized private fun inventoryItems() = PersistenceJsonCodecs.decodeInventoryItems((document.optJSONArray("inventory") ?: JSONArray()).toString()).toList()
     @Synchronized private fun inventoryAdjustments() = PersistenceJsonCodecs.decodeStockAdjustments((document.optJSONArray("stockAdjustments") ?: JSONArray()).toString()).toList()
-    @Synchronized private fun saveInventory(item: InventoryItem, mustExist: Boolean) {
+    @Synchronized fun loadInventoryOptions() = DesktopInventoryOptions.read(document)
+
+    @Synchronized fun addInventoryOption(key: String, name: String): InventoryOption {
+        require(key == DesktopInventoryOptions.CATEGORIES || key == DesktopInventoryOptions.LOCATIONS)
+        val clean = name.trim()
+        require(clean.isNotEmpty() && clean.length <= 50)
+        val options = loadInventoryOptions()
+        val existing = if (key == DesktopInventoryOptions.CATEGORIES) options.categories else options.locations
+        existing.firstOrNull { it.name == clean }?.let { return it }
+        val option = InventoryOption(java.util.UUID.randomUUID().toString(), clean)
         val next = cloneDocument()
+        val records = next.optJSONArray(key) ?: JSONArray()
+        records.put(JSONObject().put("id", option.id).put("name", option.name))
+        commit(next.put(key, records))
+        return option
+    }
+
+    @Synchronized fun nextInventoryCode() = DesktopInventoryOptions.nextCode(inventoryItems(), document.optInt("inventoryCodeSequence", 999_999))
+
+    /** Assign generated identifiers and custom category metadata in the same atomic write. */
+    @Synchronized fun saveInventoryProduct(item: InventoryItem, isNew: Boolean, categoryId: String?): InventoryItem {
+        val saved = if (isNew) item.copy(code = nextInventoryCode()) else item
+        saveInventory(saved, !isNew, categoryId, updateCategory = true, generatedCode = if (isNew) saved.code.toInt() else null)
+        return saved
+    }
+
+    @Synchronized private fun saveInventory(item: InventoryItem, mustExist: Boolean, categoryId: String? = null, updateCategory: Boolean = false, generatedCode: Int? = null) {
+        val next = cloneDocument()
+        if (generatedCode != null) next.put("inventoryCodeSequence", generatedCode)
         val old = next.optJSONArray("inventory") ?: JSONArray()
         require((0 until old.length()).none { val record = old.getJSONObject(it); record.getString("id") != item.id && record.getString("code").equals(item.code, true) }) { "کد کالا قبلاً ثبت شده است" }
         val encoded = JSONArray(PersistenceJsonCodecs.encodeInventoryItems(listOf(item))).getJSONObject(0)
+        if (updateCategory) encoded.put("customCategoryId", categoryId ?: JSONObject.NULL)
         val records = JSONArray()
         var found = false
         for (index in 0 until old.length()) {
@@ -216,6 +244,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
 
         fun validate(value: JSONObject) {
             require(value.get("schemaVersion").toString() == "1") { "نسخه فایل اطلاعات پشتیبانی نمی‌شود" }
+            DesktopInventoryOptions.read(value)
             DesktopCustomerDocuments.validate(value)
             val settings = value.getJSONObject("settings")
             for ((field, names) in listOf("priceSource" to PriceSource.values().map { it.name }, "defaultWageType" to WageType.values().map { it.name })) {

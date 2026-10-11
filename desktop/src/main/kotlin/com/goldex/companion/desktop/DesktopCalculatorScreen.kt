@@ -867,13 +867,15 @@ private fun InputPanel(
 }
 
 @Composable
-private fun DesktopInlineCustomKaratChip(
+internal fun DesktopInlineCustomKaratChip(
     value: String,
     onValueChange: (String) -> Unit,
     isSelected: Boolean,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "سفارشی"
+    placeholder: String = "سفارشی",
+    enabled: Boolean = true,
+    inputTag: String = "input-KARAT"
 ) {
     val colors = LocalGoldExColors.current
     Surface(
@@ -885,7 +887,7 @@ private fun DesktopInlineCustomKaratChip(
         ),
         modifier = modifier
             .height(40.dp)
-            .clickable { onSelect() }
+            .clickable(enabled = enabled) { onSelect() }
     ) {
         Box(
             modifier = Modifier
@@ -902,8 +904,10 @@ private fun DesktopInlineCustomKaratChip(
                     onSelect()
                 },
                 singleLine = true,
+                enabled = enabled,
                 textStyle = TextStyle(
                     fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings,
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     textAlign = TextAlign.Center,
@@ -911,7 +915,7 @@ private fun DesktopInlineCustomKaratChip(
                     textDirection = TextDirection.Ltr
                 ),
                 cursorBrush = SolidColor(colors.goldPrimary),
-                modifier = Modifier.testTag("input-KARAT"),
+                modifier = Modifier.testTag(inputTag),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier.fillMaxWidth(),

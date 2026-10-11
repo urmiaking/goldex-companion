@@ -116,7 +116,7 @@ class DesktopInventoryStoreTest {
             try {
                 store.inventory.addItem(item()); val feature = DesktopInventory(store, scope)
                 feature.open(); feature.edit { it.copy(title = "حلقه", gross = "NaN") }; assertNull(feature.save()); assertTrue("gross" in feature.state.value.draft!!.errors)
-                feature.dismiss(); assertTrue(feature.state.value.discard); feature.cancelDiscard(); assertNotNull(feature.state.value.draft); feature.discard()
+                feature.dismiss(); assertFalse(feature.state.value.discard); assertNull(feature.state.value.draft)
                 feature.openMovement(item(), StockAdjustmentType.DEDUCT); feature.editMovement { it.copy(count = "3") }
                 assertEquals(0 to 0.0, feature.adjustedPreview()); feature.saveMovement()!!.join()
                 assertEquals(0, feature.state.value.items.single().quantity); assertEquals(6.0, feature.state.value.history.single().weightGrams)

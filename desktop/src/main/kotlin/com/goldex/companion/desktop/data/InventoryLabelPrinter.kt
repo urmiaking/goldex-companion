@@ -23,7 +23,7 @@ object InventoryLabelPrinter {
             for (y in 0 until height) for (x in 0 until width) setRGB(x, y, if (matrix[x, y]) Color.BLACK.rgb else Color.WHITE.rgb)
         }
     }
-    fun render(item: InventoryItem): BufferedImage {
+    fun render(item: InventoryItem, categoryTitle: String = item.category.titleFa): BufferedImage {
         val image = BufferedImage(600, 420, BufferedImage.TYPE_INT_RGB)
         val graphics = image.createGraphics()
         try {
@@ -42,13 +42,13 @@ object InventoryLabelPrinter {
             val barcode = barcode(item)
             graphics.drawImage(barcode, (image.width - barcode.width) / 2, 100, null); barcode.flush()
             line(item.code.take(80), 330, 20f)
-            line("قیراط • ${item.category.titleFa}", 370, 19f)
+            line("قیراط • ${categoryTitle.take(50)}", 370, 19f)
         } finally { graphics.dispose() }
         return image
     }
     /** Called from IO; the dialog is on EDT, printer I/O never blocks the Compose UI. */
-    fun print(item: InventoryItem): Boolean {
-        val image = render(item)
+    fun print(item: InventoryItem, categoryTitle: String = item.category.titleFa): Boolean {
+        val image = render(item, categoryTitle)
         try {
             val job = PrinterJob.getPrinterJob()
             job.jobName = "Qirato inventory label"

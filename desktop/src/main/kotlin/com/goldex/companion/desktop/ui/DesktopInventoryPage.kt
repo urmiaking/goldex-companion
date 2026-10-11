@@ -83,6 +83,7 @@ private val GreenGainColor = Color(0xFF4ADE80)
 
             // 2. Category Filter Pills Row
             CategoryFilterPills(state, feature, compact = !spacious)
+            CustomCategoryFilters(state, feature)
 
             // 3. Search and Filter Bar
             SearchAndFilterBar(
@@ -143,7 +144,9 @@ private val GreenGainColor = Color(0xFF4ADE80)
     val safeWeight = remember(safeItems) { safeItems.sumOf { it.netGoldWeightGrams * it.quantity } }
     val safePieces = remember(safeItems) { safeItems.sumOf { it.quantity.toLong() } }
 
-    val meltedItems = remember(allItems) { allItems.filter { it.category == InventoryCategory.MISC || it.title.contains("شمش") || it.title.contains("آبشده") } }
+    val meltedItems = remember(allItems, state.options.categoryIds) {
+        allItems.filter { it.category == InventoryCategory.MISC && it.id !in state.options.categoryIds || it.title.contains("شمش") || it.title.contains("آبشده") }
+    }
     val meltedWeight = remember(meltedItems) { meltedItems.sumOf { it.netGoldWeightGrams * it.quantity } }
     val meltedPieces = remember(meltedItems) { meltedItems.sumOf { it.quantity.toLong() } }
 
@@ -536,10 +539,10 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
         verticalAlignment = Alignment.CenterVertically
     ) {
         tabs.forEach { tab ->
-            val selected = state.category == tab.category
-            val count = remember(state.items, tab.category) {
+            val selected = state.filterCategoryId == null && state.category == tab.category
+            val count = remember(state.items, state.options.categoryIds, tab.category) {
                 if (tab.category == InventoryCategory.ALL) state.items.sumOf { it.quantity }
-                else state.items.filter { it.category == tab.category }.sumOf { it.quantity }
+                else state.items.filter { it.category == tab.category && it.id !in state.options.categoryIds }.sumOf { it.quantity }
             }
 
             Surface(
@@ -567,6 +570,23 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
                         fontSize = if (compact) 10.sp else 11.sp
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable private fun CustomCategoryFilters(state: DesktopInventoryState, feature: DesktopInventory) {
+    val colors = LocalGoldExColors.current
+    if (state.options.categories.isEmpty()) return
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        state.options.categories.forEach { option ->
+            val selected = state.filterCategoryId == option.id
+            Surface(shape = RoundedCornerShape(16.dp), color = if (selected) colors.goldContainer else colors.surfaceElevated,
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                modifier = Modifier.clickable { feature.filterCustomCategory(option.id) }.testTag("inventory-filter-${option.id}")) {
+                Text(option.name, Modifier.padding(horizontal = 14.dp, vertical = 8.dp).widthIn(max = 160.dp),
+                    color = if (selected) colors.goldPrimary else colors.textMain, fontSize = 12.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -879,7 +899,7 @@ private fun TableActionTooltip(
                                 InventoryImage(item.imageUrl, Modifier.size(42.dp))
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     Text(item.title, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(item.workshop.ifBlank { item.category.titleFa }, fontSize = 11.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(state.categoryTitle(item), fontSize = 11.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
 
@@ -1145,7 +1165,7 @@ private fun TableActionTooltip(
                                 InventoryImage(item.imageUrl, Modifier.size(76.dp))
                                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                    Text("کد کالا: ${PersianNumberFormatter.toPersianDigits(item.code)}   •   دسته: ${item.category.titleFa}", fontSize = 12.sp, color = colors.textMuted)
+                                    Text("کد کالا: ${PersianNumberFormatter.toPersianDigits(item.code)}   •   دسته: ${state.categoryTitle(item)}", fontSize = 12.sp, color = colors.textMuted)
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Surface(shape = RoundedCornerShape(6.dp), color = colors.goldContainer) {
                                             Text("${digits(item.quantity.toLong())} قطعه موجود", color = colors.goldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
