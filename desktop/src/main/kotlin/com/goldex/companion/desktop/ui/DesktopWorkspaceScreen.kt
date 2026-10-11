@@ -51,6 +51,9 @@ import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
 fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, version: String, updater: WindowsUpdater? = null, onRestart: () -> Unit = {}) {
     val state by workspace.state.collectAsState()
     val inventoryState by workspace.inventory.state.collectAsState()
+    val customerState by workspace.customers.manager.uiState.collectAsState()
+    val settlementState by workspace.customers.settlement.state.collectAsState()
+    val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || settlementState.customer != null
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
     val focus = LocalFocusManager.current
@@ -60,7 +63,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
-                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
+                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
                 Column(
                     Modifier.weight(1f).fillMaxHeight().padding(
                         start = if (compact) 16.dp else 24.dp,
@@ -118,6 +121,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup)
                                     DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
                                     DesktopDestination.INVOICES -> DesktopInvoicesPage(state, workspace)
+                                    DesktopDestination.CUSTOMERS -> DesktopCustomersPage(workspace)
                                 }
                             }
                         }
@@ -133,7 +137,8 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         }
         state.draft?.let { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)
-        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog)
+        DesktopCustomerDialogs(workspace.customers)
+        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
         state.pendingDelete?.let { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
@@ -156,6 +161,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     DesktopDestination.SETTINGS -> Icons.Outlined.Settings
     DesktopDestination.INVENTORY -> Icons.Outlined.Inventory2
     DesktopDestination.INVOICES -> Icons.Outlined.ReceiptLong
+    DesktopDestination.CUSTOMERS -> Icons.Outlined.PeopleAlt
 }
 
 @Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String, updater: WindowsUpdater?, canOpenPrompt: Boolean) {

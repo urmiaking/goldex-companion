@@ -16,6 +16,7 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
     RATE_DETAIL("تحلیل و مظنه لحظه‌ای", "بررسی تاریخچه نرخ و آمار طلا و ارز"),
     INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت"),
     INVOICES("مدیریت فاکتورها", "فاکتورهای ثبت‌شده و تسویه زرگری"),
+    CUSTOMERS("مدیریت مشتریان", "دفتر حساب، گردش طلا و تومان و تسویه طرف‌حساب‌ها"),
     PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
     SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات");
 
@@ -26,11 +27,12 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
         RATE_DETAIL -> 3
         INVENTORY -> 4
         INVOICES -> 5
+        CUSTOMERS -> 6
         PORTFOLIO, SETTINGS -> 6
     }
 
     companion object {
-        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, INVOICES, SETTINGS)
+        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, INVOICES, CUSTOMERS, SETTINGS)
     }
 }
 
@@ -74,6 +76,9 @@ class DesktopWorkspace(
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())
     val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
+    val customers = com.goldex.companion.desktop.customers.DesktopCustomers(storage, scope) {
+        market.snapshot.value?.rates ?: DesktopMarketRepository.emptyRates()
+    }
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()

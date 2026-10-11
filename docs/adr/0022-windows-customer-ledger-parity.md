@@ -1,0 +1,30 @@
+# ADR 0022: Windows customer management and ledger parity
+
+## Context
+
+Android owns the customer directory, gold/cash ledger, independent receipts, historical statements and cross-unit settlement UI. Windows has a locked, atomic workspace document and reusable Persian Sovereign Aurum theme primitives. Customer records and settlement policies/codecs already belong to core. The Windows customer slice must preserve Android's presentation and financial rules while concurrent feature work remains isolated.
+
+## Decision
+
+- Windows hosts the Android customer screen, vectors, picker/add/edit forms, independent receipt form, settlement form and LuxuryMotion/animated-number specifications from source snapshot `7d94001`. They retain RTL, Vazirmatn, source spacing, colors, filter transitions, spring selectors and cancel-right/confirm-left action rows. Shared theme/button/input/selector primitives are reused. Windows-only copies live under `desktop`; Android and shared module runtime ownership remain unchanged. No new dependency or toolchain is needed.
+- `DesktopCustomers` is the feature composition root. `CustomerManagerViewModel` and `CustomerSettlementViewModel` are desktop state holders with injected coroutine lifetime/dispatcher instead of Android lifecycle inheritance. Rendering emits intents. The host supplies its market quote stream; offline rates are not presented as live. The shared `CustomerSettlementPolicy`, `RecordCustomerSettlementUseCase`, stored `balanceEffect` and `customerStatementBalances` remain the financial sources of truth.
+- `DesktopCustomerStore` implements CustomerStore and SyncUnitOfWork over DesktopDataStore. Optional `customers`, `ledgerTransactions`, `deletedCustomers`, `invoices` and `barterInvoices` collections are additive to schemaVersion 1, with absent collections interpreted as empty. No Android data is opened or imported. Customer/receipt IDs and the existing core JSON shapes are retained. Documents are checked before tolerant decoders so malformed financial rows, duplicate IDs, unsupported enum values or invalid settlement metadata cannot disappear silently. Unknown root/record/settlement fields survive editing.
+- `financialTransaction` stages nested customer/receipt/invoice writes while holding the workspace writer lock. The outer operation validates and atomically replaces the document once. An exception discards the staged document; success writes a complete previous-document backup before replacing the current document. A receipt and its balance cannot become durable independently. Export includes all optional collections without overwriting an existing export file.
+- Contact metadata edits retain the latest stored financial balances. Manual receipt edits reverse the current stored effect before applying the replacement, preserve timestamp/invoice links and reject an obsolete editor snapshot. Receipt deletion reverses its stored signed effects once, including cross-unit settlement effects and an allocated invoice payment row.
+- Removing a contact requires a settled account and explicit confirmation. The directory row is retained in `deletedCustomers`, including unknown fields, and ledger history survives. This is a desktop data-preservation guard; Android's contact deletion is unchanged. The archive is available in the complete exported workspace for recovery.
+- Native Windows adaptations are bounded/scrollable customer dialogs, visible save/failure feedback, Persian numeric input normalization, `tel:` handler dispatch and copying the complete unfiltered statement to the clipboard on explicit share. A missing phone handler or clipboard failure is shown to the user. No report/customer data is logged.
+- Forms are mounted outside page transitions, preserve drafts across sidebar navigation and block updater restart/application exit while writing. Ctrl+7 opens customers. Existing inventory/calculator shortcuts remain intact.
+
+## Consequences and rollback
+
+The customer slice publishes Windows only. It changes no Android persisted shape, Room schema, financial formula, VAT policy, signing identity or shared design token. Customer workflows operate on real locally persisted records; the separate illustrative invoice page does not feed customer balances. The invoice adapter retains actual invoice links for settlement when saved invoices are present; full Windows invoice issuance and cloud synchronization remain separate slices.
+
+For rollback/recovery: close Qirato, preserve the current workspace and export, verify a previous/exported document, then restore it as workspace.json. Restoring an older export intentionally removes later records from the active view, so retain the current file. A deleted contact can be recovered by transferring its unchanged archived row back to customers in a verified copy. Never replace Android data or signing files. Older Windows versions preserve these optional collections as unknown fields but cannot display them.
+
+The Android-derived UI is duplicated within the Windows host at this stage. Record its source snapshot and compare source when Android customer UI changes; extract shared platform-free rendering/state when both hosts next change together. No cloud authority/conflict policy is introduced by local SyncUnitOfWork use.
+
+## Verification and revisit
+
+Run local Android compile/unit gates and desktop tests. Customer tests exercise atomic rollback, reopen/backup compatibility, corruption rejection, stable IDs and unknown fields, edit/delete reversal, stale-contact balance protection, historical filtered balances, manual-rate settlement, Persian decimal entry, customer CRUD/error feedback and RTL action positions. Compose screenshots cover customer directory, statement and dialogs in light/dark themes. Verify the packaged runtime locally and publish through the existing Windows CI jobs.
+
+Revisit persistence before introducing multiple writers, growing journal queries, import or cloud sync. Define identity, stable deletion markers, retry and conflict ownership before adding sync. Consolidate the copied UI/state when shared presentation boundaries are explicitly migrated.
