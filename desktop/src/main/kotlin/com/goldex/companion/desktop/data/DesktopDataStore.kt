@@ -29,6 +29,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
     private val lockChannel: FileChannel
     private val fileLock: FileLock
     private var document: JSONObject
+    private var financialDraft: JSONObject? = null
     private val mutableSettings: MutableStateFlow<AppSettings>
     override val settings get() = mutableSettings.asStateFlow()
     // InventoryStore and PortfolioStore intentionally have different getItems return types.
@@ -158,10 +159,33 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
         FileChannel.open(target, CREATE_NEW, WRITE).use { writeFully(it, document.toString(2).toByteArray(Charsets.UTF_8)); it.force(true) }
     }
 
-    private fun cloneDocument() = JSONObject(document.toString())
+    private fun cloneDocument() = JSONObject((financialDraft ?: document).toString())
+
+    @Synchronized internal fun records(key: String): JSONArray =
+        JSONArray((financialDraft ?: document).optJSONArray(key)?.toString() ?: "[]")
+
+    @Synchronized internal fun replaceRecords(key: String, records: JSONArray) {
+        commit(cloneDocument().put(key, records))
+    }
+
+    /** A receipt and its customer balance become durable together, or neither does. */
+    @Synchronized internal fun <T> financialTransaction(action: () -> T): T {
+        if (financialDraft != null) return action()
+        financialDraft = cloneDocument()
+        try {
+            val result = action()
+            val next = requireNotNull(financialDraft)
+            financialDraft = null
+            commit(next)
+            return result
+        } finally {
+            financialDraft = null
+        }
+    }
     private fun readSettings(value: JSONObject) = PersistenceJsonCodecs.decodeSettings(value.getJSONObject("settings").toString())
 
     private fun commit(next: JSONObject) {
+        if (financialDraft != null) { financialDraft = next; return }
         validate(next)
         val bytes = next.toString(2).toByteArray(Charsets.UTF_8)
         require(bytes.size <= 100_000_000) { "حجم اطلاعات از سقف مجاز بیشتر است" }
@@ -192,6 +216,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
 
         fun validate(value: JSONObject) {
             require(value.get("schemaVersion").toString() == "1") { "نسخه فایل اطلاعات پشتیبانی نمی‌شود" }
+            DesktopCustomerDocuments.validate(value)
             val settings = value.getJSONObject("settings")
             for ((field, names) in listOf("priceSource" to PriceSource.values().map { it.name }, "defaultWageType" to WageType.values().map { it.name })) {
                 require(!settings.has(field) || settings.getString(field) in names) { "تنظیم ناشناخته در فایل" }
