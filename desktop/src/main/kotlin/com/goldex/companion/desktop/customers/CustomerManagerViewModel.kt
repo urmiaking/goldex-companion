@@ -220,7 +220,7 @@ class CustomerManagerViewModel(
 
     fun refreshAfterSettlement() { work.submit { refreshStatementData() } }
 
-    private fun write(action: () -> Unit) { if(unit == null) action() else unit.transaction(action) }
+    private fun <T> write(action: () -> T): T = if (unit == null) action() else unit.transaction(action)
 
     private fun refreshStatementData() {
         val updatedCustomers = repository.getCustomers()
@@ -300,10 +300,11 @@ class CustomerManagerViewModel(
         if (_uiState.value.isSaving) return
         _uiState.update { it.copy(isSaving = true, error = null) }
         work.submit(onSuccess = onComplete) {
-            val fresh = requireNotNull(repository.getCustomers().firstOrNull { it.id == customer.id }) { "طرف‌حساب یافت نشد" }
-            val contact = customer.copy(goldDebtGrams = fresh.goldDebtGrams, cashDebtTomans = fresh.cashDebtTomans,
-                createdAt = fresh.createdAt, lastActivityTime = fresh.lastActivityTime)
-            repository.updateCustomer(contact)
+            val contact = write {
+                val fresh = requireNotNull(repository.getCustomers().firstOrNull { it.id == customer.id }) { "طرف‌حساب یافت نشد" }
+                customer.copy(goldDebtGrams = fresh.goldDebtGrams, cashDebtTomans = fresh.cashDebtTomans,
+                    createdAt = fresh.createdAt, lastActivityTime = fresh.lastActivityTime).also(repository::updateCustomer)
+            }
             val updated = repository.getCustomers()
             val totals = CustomerListTotals(updated)
             _uiState.update {

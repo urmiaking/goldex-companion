@@ -114,7 +114,7 @@ private fun launchWorkspace() {
                         Key.Six -> workspace.navigate(DesktopDestination.INVENTORY)
                         Key.Seven -> workspace.navigate(DesktopDestination.CUSTOMERS)
                         Key.R -> { workspace.refreshRates() }
-                        Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && !workspace.inventory.state.value.hasDialog) {
+                        Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && !workspace.inventory.state.value.hasDialog && !workspace.customers.hasDialog && !workspace.customers.saving) {
                             workspace.openInventoryItem()
                         }
                         Key.S -> if (workspace.inventory.state.value.draft != null) workspace.inventory.save()

@@ -85,6 +85,49 @@ class DesktopCustomerStateTest {
         }
     }
 
+    @Test fun simultaneousContactEditAndFinancialWritePreserveBothChanges() {
+        DesktopDataStore(temporary.newFolder().toPath()).use { store ->
+            val customers = DesktopCustomerStore(store)
+            customers.addCustomer(contact)
+            val armed = java.util.concurrent.atomic.AtomicBoolean(false)
+            val contactRead = java.util.concurrent.CountDownLatch(1)
+            val financialFinished = java.util.concurrent.CountDownLatch(1)
+            val competingFailure = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val pausedRead = object : CustomerStore by customers {
+                override fun getCustomers(): List<Customer> {
+                    val snapshot = customers.getCustomers()
+                    if (armed.compareAndSet(true, false)) {
+                        contactRead.countDown()
+                        financialFinished.await(250, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    }
+                    return snapshot
+                }
+            }
+            val scope = scope()
+            val writer = Thread {
+                try {
+                    check(contactRead.await(5, java.util.concurrent.TimeUnit.SECONDS))
+                    customers.transaction {
+                        val latest = customers.getCustomers().single()
+                        customers.updateCustomer(latest.copy(cashDebtTomans = latest.cashDebtTomans + 3_000))
+                    }
+                } catch (failure: Throwable) { competingFailure.set(failure) }
+                finally { financialFinished.countDown() }
+            }
+            try {
+                val manager = CustomerManagerViewModel(pausedRead, customers, DesktopCustomerInvoiceStore(store, customers), scope, Dispatchers.Unconfined)
+                armed.set(true)
+                writer.start()
+                manager.updateCustomer(contact.copy(name = "نام جدید"))
+                writer.join(5_000)
+                assertFalse(writer.isAlive)
+                assertNull(competingFailure.get())
+                assertEquals(3_000L, customers.getCustomers().single().cashDebtTomans)
+                assertEquals("نام جدید", customers.getCustomers().single().name)
+            } finally { scope.cancel(); writer.join(5_000) }
+        }
+    }
+
     @Test fun settlementCannotPresentOfflineOrUnknownTimeAsLiveRate() {
         DesktopDataStore(temporary.newFolder().toPath()).use { store ->
             val customers = DesktopCustomerStore(store)
