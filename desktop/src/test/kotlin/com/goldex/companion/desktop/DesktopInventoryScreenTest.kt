@@ -51,17 +51,23 @@ class DesktopInventoryScreenTest {
     @Test fun fullFormValidationSaveAndStockMovement() = runDesktopComposeUiTest(width = 1400, height = 980) {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.41") } }
         onNodeWithTag("inventory-add").performClick()
+        onNodeWithText("برآورد ارزش ریالی ویترین").assertDoesNotExist()
+        onNodeWithText("مالیات بر ارزش‌افزوده: ۹٪ (روی اجرت و سود)").assertDoesNotExist()
         onNodeWithTag("inventory-save").performClick()
         onNodeWithText("نام کالا را وارد کنید؛ حداکثر ۱۵۰ حرف").assertExists()
         fun field(tag: String) = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
         field("inventory-title").performTextInput("گردنبند آزمایشی")
         field("inventory-gross").performTextInput("۲٫۱۲۵")
         field("inventory-stone").performTextReplacement("۰٫۱۲۵")
+        onNodeWithText("سفارشی").performClick()
+        field("inventory-purity").performTextInput("۷۳۵")
         save(onNodeWithTag("inventory-dialog"), "inventory-form-light.png")
         onNodeWithTag("inventory-save").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
         assertEquals(4, workspace.inventory.state.value.items.size)
         val item = workspace.inventory.state.value.selected!!
+        assertEquals(735, item.customKaratValue)
+        assertEquals(2.0, item.netGoldWeightGrams)
         onNodeWithTag("inventory-details").performScrollToNode(hasTestTag("inventory-deduct"))
         onNodeWithTag("inventory-deduct").performClick()
         field("movement-count").performTextReplacement("۲")
@@ -82,12 +88,42 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("inventory-item-item-0").performClick(); onNodeWithTag("inventory-details").assertIsDisplayed()
         runOnIdle { workspace.inventory.select(null) }
         onNodeWithTag("inventory-add").performClick()
+        onNodeWithTag("inventory-save").assertIsDisplayed()
+        val cancelBounds = onNodeWithText("انصراف").fetchSemanticsNode().boundsInRoot
+        val saveBounds = onNodeWithTag("inventory-save").fetchSemanticsNode().boundsInRoot
+        assertTrue(cancelBounds.left > saveBounds.right, "RTL cancel must stay to the right of save")
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).performTextInput("پیش‌نویس محفوظ")
         save(onNodeWithTag("inventory-dialog"), "inventory-form-compact.png")
+        onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-photo"))
+        onNodeWithTag("inventory-photo").assertIsDisplayed()
+        onNodeWithTag("inventory-save").assertIsDisplayed()
+        save(onNodeWithTag("inventory-dialog"), "inventory-form-compact-bottom.png")
+        onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-title"))
         runOnIdle { workspace.navigate(DesktopDestination.RATES) }
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).assertTextContains("پیش‌نویس محفوظ")
         onNodeWithText("انصراف").performClick(); onNodeWithText("بستن بدون ذخیره؟").assertExists()
         onNodeWithText("ادامه ویرایش").performClick(); assertNotNull(workspace.inventory.state.value.draft)
+    }
+    @Test fun editInDarkThemePreservesStoredFinancialMetadataAndQuantity() = runDesktopComposeUiTest(width = 1400, height = 980) {
+        val original = store.inventory.getItems().first().copy(profitPercent = 13.5, taxPercent = 10.0, customKaratValue = 735,
+            wageType = WageType.TOMAN_PER_GRAM, wageValue = 125_000.0, wagePercent = 0.0)
+        store.inventory.updateItem(original)
+        workspace.inventory.open(original)
+        setContent { GoldExCompanionTheme(isDarkTheme = true) { DesktopWorkspaceScreen(workspace, {}, "0.56.60") } }
+        fun field(tag: String) = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
+        field("inventory-title").performTextReplacement("حلقه ویرایش‌شده")
+        onNode(hasText("انگشتر") and hasAnyAncestor(hasTestTag("inventory-dialog"))).performClick()
+        field("inventory-purity").performTextReplacement("۷۵۰")
+        field("inventory-purity").assertExists() // Typing a preset must not remove the focused custom input.
+        save(onNodeWithTag("inventory-dialog"), "inventory-form-dark-top.png")
+        onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-quantity"))
+        field("inventory-quantity").assertIsNotEnabled()
+        field("inventory-location").performTextReplacement("سینی جدید")
+        save(onNodeWithTag("inventory-dialog"), "inventory-form-dark.png")
+        onNodeWithTag("inventory-save").performClick()
+        waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
+        val saved = store.inventory.getItems().first { it.id == original.id }
+        assertEquals(original.copy(title = "حلقه ویرایش‌شده", location = "سینی جدید", customKaratValue = 750), saved)
     }
     @Test fun importedPhotoRendersAndSurvivesRemovalOfSourceFile() = runDesktopComposeUiTest(width = 1400, height = 980) {
         val file = temporary.newFile("synthetic-photo.png")
