@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -15,12 +17,31 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.desktop.customers.*
 import com.goldex.companion.desktop.customers.modals.*
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LuxuryMotion
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import kotlin.math.abs
+
+@Composable internal fun CustomerHeaderActions(feature: DesktopCustomers, compact: Boolean) {
+    val state by feature.manager.uiState.collectAsState()
+    val customer = state.selectedCustomerForStatement
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (customer == null) WorkspaceControl("مشتری جدید", { feature.manager.setAddCustomerDialogVisible(true) },
+            Modifier.testTag("customer-add"), icon = Icons.Outlined.Add, enabled = !feature.saving, compact = compact)
+        else {
+            WorkspaceControl("ثبت سند مستقل", { feature.manager.openAddLedgerEntry(customer) },
+                Modifier.testTag("customer-independent-entry"), secondary = true, enabled = !feature.saving, compact = compact)
+            WorkspaceControl("ثبت دریافت / پرداخت", { feature.openPayment(customer) },
+                Modifier.testTag("customer-payment"), icon = Icons.Outlined.Add, enabled = !feature.saving, compact = compact)
+        }
+    }
+}
 
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable internal fun DesktopCustomersPage(workspace: DesktopWorkspace) {
@@ -28,46 +49,33 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     val manager = feature.manager
     val state by manager.uiState.collectAsState()
     val reduced = workspace.state.collectAsState().value.reduceMotion
-    val statement = state.selectedCustomerForStatement
-    Column(Modifier.fillMaxSize()) {
-        state.notice?.let { Text(it, color = LocalGoldExColors.current.goldPrimary) }
-        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            WorkspaceControl("اطلاعات طرف‌حساب‌ها", { manager.setCustomerManagerVisible(true) },
-                Modifier.testTag("customer-manage"), secondary = true, enabled = !feature.saving)
-            if (statement != null) WorkspaceControl("ثبت سند مستقل", { manager.openAddLedgerEntry(statement) },
-                Modifier.testTag("customer-independent-entry"), secondary = true, enabled = !feature.saving)
-        }
-        AnimatedContent(targetState = state, contentKey = { it.selectedCustomerForStatement?.id }, modifier = Modifier.weight(1f).clipToBounds(), transitionSpec = {
+    AnimatedContent(targetState = state, contentKey = { it.selectedCustomerForStatement?.id },
+        modifier = Modifier.fillMaxSize().clipToBounds(), transitionSpec = {
             if (reduced) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
             else LuxuryMotion.ScreenPushEnter.togetherWith(LuxuryMotion.ScreenPopExit)
         }, label = "customer-statement-navigation") { pageState ->
-            val displayed = pageState.selectedCustomerForStatement
-            val outgoing = displayed?.id != state.selectedCustomerForStatement?.id
-            Box(Modifier.fillMaxSize().then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
-                awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
-            } else Modifier)) {
+        val displayed = pageState.selectedCustomerForStatement
+        val outgoing = displayed?.id != state.selectedCustomerForStatement?.id
+        Box(Modifier.fillMaxSize().then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
+            awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
+        } else Modifier)) {
             if (displayed == null) CustomerLedgerScreen(
                 uiState = pageState, onSearchQueryChange = manager::setSearchQuery, onFilterSelect = manager::setLedgerFilter,
                 onOpenStatement = manager::openCustomerStatement, onOpenAddEntry = feature::openPayment,
-                onAddNewCustomer = { manager.setAddCustomerDialogVisible(true) },
-                onBack = { workspace.navigate(DesktopDestination.DASHBOARD) }, onRetry = manager::loadCustomers)
+                onEditCustomer = manager::editCustomer, onDeleteCustomer = manager::requestCustomerDeletion,
+                onRetry = manager::loadCustomers)
             else CustomerStatementScreen(customer = displayed, transactions = pageState.filteredStatementTransactions,
                 allTransactions = pageState.activeCustomerTransactions, selectedFilter = pageState.selectedStatementFilter,
-                onFilterSelect = manager::setStatementFilter, onOpenAddEntry = { feature.openPayment(displayed) },
+                onFilterSelect = manager::setStatementFilter,
                 onEditTransaction = { if (it.settlement == null) manager.openEditLedgerEntry(it) },
-                onDeleteTransaction = { manager.deleteLedgerEntry(it) }, onBack = manager::closeCustomerStatement,
+                onDeleteTransaction = { tx, done -> manager.deleteLedgerEntry(tx, done) },
                 onRetry = { manager.openCustomerStatement(displayed) }, isLoading = pageState.isLoading,
-                error = pageState.error, runningBalances = pageState.statementBalances,
-                onCall = { DesktopCustomerActions.call(it).onFailure { manager.showMessage(error = "برنامه تماس روی این رایانه در دسترس نیست") } },
-                onShare = { DesktopCustomerActions.share(displayed, pageState.activeCustomerTransactions, pageState.statementBalances)
-                    .onSuccess { manager.showMessage(notice = "گردش حساب برای اشتراک‌گذاری کپی شد") }
-                    .onFailure { manager.showMessage(error = "کپی گردش حساب انجام نشد؛ دوباره تلاش کنید") } })
-            }
+                isSaving = pageState.isSaving, error = pageState.error, runningBalances = pageState.statementBalances)
         }
     }
 }
 
-/** Mounted outside page transitions, so switching the sidebar cannot abandon an unsaved form. */
+/** Mounted outside transitions; navigation cannot abandon an unsaved form. */
 @Composable internal fun DesktopCustomerDialogs(feature: DesktopCustomers) {
     val manager = feature.manager
     val state by manager.uiState.collectAsState()
@@ -82,6 +90,33 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     if (state.isAddCustomerDialogVisible) AddCustomerDialog(
         onDismiss = { if (!feature.saving) manager.setAddCustomerDialogVisible(false) },
         onSaveCustomer = { manager.addCustomer(it, autoSelect = false) }, isSaving = state.isSaving, error = state.error)
+    state.editingCustomer?.let { customer ->
+        key(customer.id) { EditCustomerDialog(customer,
+            onDismiss = { if (!feature.saving) manager.closeCustomerEdit() },
+            onSaveCustomer = { manager.updateCustomer(it) { manager.closeCustomerEdit() } },
+            isSaving = state.isSaving, error = state.error) }
+    }
+    state.pendingDeleteCustomer?.let { pending ->
+        val customer = state.customerList.firstOrNull { it.id == pending.id } ?: pending
+        val settled = abs(customer.goldDebtGrams) <= 1e-10 && customer.cashDebtTomans == 0L
+        Dialog(onDismissRequest = { if (!feature.saving) manager.cancelCustomerDeletion() },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth().testTag("customer-delete-confirmation")) {
+                Text("حذف طرف‌حساب «${customer.name}»", fontSize = 16.sp, color = LocalGoldExColors.current.textMain)
+                Text("حذف پس از تسویه کامل امکان‌پذیر است. اطلاعات مشتری بایگانی می‌شود و سوابق دفترکل حفظ می‌شود.",
+                    fontSize = 13.sp, color = LocalGoldExColors.current.textSecondary)
+                if (!settled) Text("پیش از حذف طرف‌حساب، مانده حساب را تسویه کنید",
+                    color = LocalGoldExColors.current.errorRed, fontSize = 13.sp)
+                RecordListStatus(state.isSaving, state.error, {})
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WorkspaceControl("انصراف", manager::cancelCustomerDeletion,
+                        Modifier.weight(1f).testTag("customer-delete-cancel"), secondary = true, enabled = !feature.saving)
+                    WorkspaceControl("حذف نهایی", { manager.deleteCustomer(customer.id) { manager.cancelCustomerDeletion() } },
+                        Modifier.weight(1f).testTag("customer-delete-final"), enabled = !feature.saving && settled)
+                }
+            }
+        }
+    }
     if (state.isAddLedgerEntryModalVisible) state.ledgerEntryTargetCustomer?.let { customer ->
         AddLedgerEntryModal(customer = customer, editingTransaction = state.editingLedgerTransaction,
             onDismiss = { if (!feature.saving) manager.closeAddLedgerEntry() }, onSaveEntry = { manager.saveLedgerEntry(it) },

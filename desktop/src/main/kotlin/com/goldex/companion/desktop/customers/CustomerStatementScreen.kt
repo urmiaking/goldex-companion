@@ -1,723 +1,105 @@
 package com.goldex.companion.desktop.customers
 
-// Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
-
 import kotlin.math.abs
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.goldex.companion.ui.theme.ButtonShape
-import com.goldex.companion.desktop.customers.HubArrowRight
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.domain.customers.balanceEffect
-import com.goldex.companion.model.Customer
-import com.goldex.companion.model.LedgerDirection
-import com.goldex.companion.model.LedgerEntryType
-import com.goldex.companion.model.LedgerTransaction
-import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.model.StatementFilterTab
-import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.LuxuryMotion
-import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.model.*
+import com.goldex.companion.ui.components.*
+import com.goldex.companion.ui.theme.*
+import com.goldex.companion.desktop.ui.WorkspaceControl
+import com.goldex.companion.desktop.ui.WorkspaceControlHeight
 
-@Composable
-fun CustomerStatementScreen(
+/** Main workspace header owns identity, back navigation and registration actions. */
+@Composable fun CustomerStatementScreen(
     customer: Customer,
     transactions: List<LedgerTransaction>,
     allTransactions: List<LedgerTransaction> = transactions,
     selectedFilter: StatementFilterTab,
     onFilterSelect: (StatementFilterTab) -> Unit,
-    onOpenAddEntry: () -> Unit,
     onEditTransaction: (LedgerTransaction) -> Unit = {},
-    onDeleteTransaction: (LedgerTransaction) -> Unit = {},
-    onBack: () -> Unit,
+    onDeleteTransaction: (LedgerTransaction, () -> Unit) -> Unit = { _, _ -> },
     onRetry: () -> Unit = {},
     isLoading: Boolean = false,
+    isSaving: Boolean = false,
     error: String? = null,
     modifier: Modifier = Modifier,
-    onCall: (String) -> Unit = {},
-    onShare: () -> Unit = {},
     runningBalances: Map<String, Pair<Double, Long>> = emptyMap()
 ) {
     val colors = LocalGoldExColors.current
-    var transactionToDelete by remember { mutableStateOf<LedgerTransaction?>(null) }
-
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Scaffold(
-            modifier = modifier
-                .fillMaxSize()
-                .background(colors.background),
-            containerColor = colors.background,
-            topBar = {
-                Surface(
-                    color = colors.surface,
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    shadowElevation = 3.dp
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(ButtonShape)
-                                    .background(colors.surfaceElevated)
-                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
-                            ) {
-                                Icon(
-                                    imageVector = HubArrowRight,
-                                    contentDescription = "بازگشت",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFDFB35A))
-                                    )
-                                    Text(
-                                        text = customer.name,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMain,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                    if (customer.isVerified) {
-                                        Icon(
-                                            imageVector = LedgerVerifiedVector,
-                                            contentDescription = "همکار تایید شده",
-                                            tint = colors.goldPrimary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = "${customer.role} • کد ${PersianNumberFormatter.toPersianDigits(customer.accountCode)}",
-                                    fontSize = 10.5.sp,
-                                    color = colors.textMuted,
-                                    fontFamily = VazirmatnFamily
-                                )
-                            }
-                        }
-
-                        // Right action buttons (Call & Share) with proper spacing
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (customer.phone.isNotBlank()) {
-                                IconButton(
-                                    onClick = {
-                                        onCall(customer.phone)
-                                    },
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(ButtonShape)
-                                        .background(colors.surfaceElevated)
-                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
-                                ) {
-                                    Icon(
-                                        imageVector = LedgerPhoneVector,
-                                        contentDescription = "تماس با طرف حساب",
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    onShare()
-                                },
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(ButtonShape)
-                                    .background(colors.surfaceElevated)
-                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
-                            ) {
-                                Icon(
-                                    imageVector = LedgerShareVector,
-                                    contentDescription = "اشتراک گذاری صورت حساب",
-                                    tint = colors.textSecondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
+    var transactionToDelete by remember(customer.id) { mutableStateOf<LedgerTransaction?>(null) }
+    LazyColumn(modifier.fillMaxSize().testTag("customer-statement-page"),
+        verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(bottom = 12.dp)) {
+        item(key = "summary") {
+            CustomerAccountSummary("تراز حساب مشتری", "${PersianNumberFormatter.toPersianDigits(allTransactions.size.toString())} سند",
+                AccountSummaryMetric("مانده طلا", gold = abs(customer.goldDebtGrams),
+                    caption = when { customer.goldDebtGrams > 1e-10 -> "بدهکار • عیار ۷۵۰"; customer.goldDebtGrams < -1e-10 -> "بستانکار • عیار ۷۵۰"; else -> "تسویه‌شده • عیار ۷۵۰" }),
+                AccountSummaryMetric("مانده نقدی", cash = abs(customer.cashDebtTomans),
+                    caption = when { customer.cashDebtTomans > 0 -> "بدهکار"; customer.cashDebtTomans < 0 -> "بستانکار"; else -> "تسویه‌شده" }),
+                Modifier.testTag("customer-statement-summary"))
+        }
+        if (isLoading || error != null) item(key = "status") { RecordListStatus(isLoading, error, onRetry) }
+        item(key = "filters") {
+            LuxurySegmentedControl(StatementFilterTab.values().toList(), selectedFilter, onFilterSelect,
+                label = { tab ->
+                    val count = when (tab) {
+                        StatementFilterTab.ALL -> allTransactions.size
+                        StatementFilterTab.GOLD_SALE -> allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.PAY }
+                        StatementFilterTab.GOLD_RECEIPT -> allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.RECEIVE }
+                        StatementFilterTab.CASH_DEPOSIT -> allTransactions.count { it.type == LedgerEntryType.CASH_RIAL }
+                        StatementFilterTab.SETTLEMENT -> allTransactions.count { it.title.contains("تسویه") || it.note.contains("تسویه") || it.tagBadge.contains("تهاتر") }
                     }
-                }
-            }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // Scrollable List Content with Hero Card & Filters as Header
-                LazyColumn(
-                    modifier = Modifier.testTag("statement-list")
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (isLoading || error != null) {
-                        item(key = "loadStatus", contentType = "loadStatus") {
-                            com.goldex.companion.ui.components.RecordListStatus(isLoading, error, onRetry)
-                        }
-                    }
-
-                    // Item A: Customer Hero Balance Card (Obsidian)
-                    item {
-                        Surface(
-                            shape = RoundedCornerShape(18.dp),
-                            color = Color(0xFF141B2B),
-                            border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                            shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(Color(0xFF242E44)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = LedgerAccountBalanceVector,
-                                                contentDescription = null,
-                                                tint = Color(0xFFFFE088),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "تراز طلایی و ریالی معین",
-                                            fontSize = 12.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White,
-                                            fontFamily = VazirmatnFamily
-                                        )
-                                    }
-
-                                    val isDebtor = customer.goldDebtGrams > 1e-10 || customer.cashDebtTomans > 0L
-                                    val isCreditor = customer.goldDebtGrams < -1e-10 || customer.cashDebtTomans < 0L
-
-                                    val heroStatusText = if (isDebtor) "بدهکار به ما"
-                                    else if (isCreditor) "بستانکار"
-                                    else "تسویه‌شده (بی‌حساب)"
-
-                                    val heroStatusColor = if (isDebtor) Color(0xFFEF4444)
-                                    else if (isCreditor) Color(0xFF10B981)
-                                    else colors.textMuted
-
-                                    Surface(
-                                        shape = RoundedCornerShape(20.dp),
-                                        color = heroStatusColor.copy(alpha = 0.15f),
-                                        border = BorderStroke(0.5.dp, heroStatusColor.copy(alpha = 0.4f))
-                                    ) {
-                                        Text(
-                                            text = heroStatusText,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = heroStatusColor,
-                                            fontFamily = VazirmatnFamily,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                        )
-                                    }
-                                }
-
-                                // 2-Column Balance Matrix (Debtor Red, Creditor Green)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    // Gold Balance
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFF1D263B),
-                                        border = BorderStroke(0.5.dp, Color(0xFF334155)),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Column(modifier = Modifier.padding(10.dp)) {
-                                            Text(
-                                                text = "مانده وزنی طلا",
-                                                fontSize = 10.sp,
-                                                color = Color(0xFF94A3B8),
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${PersianNumberFormatter.formatAccountWeight(abs(customer.goldDebtGrams))} گرم",
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Black,
-                                                    color = when {
-                                                        customer.goldDebtGrams > 1e-10 -> Color(0xFFFB7185)
-                                                        customer.goldDebtGrams < -1e-10 -> Color(0xFF34D399)
-                                                        else -> Color(0xFFFFE088)
-                                                    },
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                                if (customer.goldDebtGrams > 1e-10 || customer.goldDebtGrams < -1e-10) {
-                                                    val goldStatusText = if (customer.goldDebtGrams > 1e-10) "بدهکار" else "بستانکار"
-                                                    val goldStatusColor = if (customer.goldDebtGrams > 1e-10) Color(0xFFFB7185) else Color(0xFF34D399)
-                                                    Surface(
-                                                        shape = RoundedCornerShape(4.dp),
-                                                        color = goldStatusColor.copy(alpha = 0.15f)
-                                                    ) {
-                                                        Text(
-                                                            text = goldStatusText,
-                                                            fontSize = 8.5.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = goldStatusColor,
-                                                            fontFamily = VazirmatnFamily,
-                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            Text(
-                                                text = "معادل طلای ۷۵۰ (۱۸ عیار)",
-                                                fontSize = 9.sp,
-                                                color = Color(0xFF64748B),
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                        }
-                                    }
-
-                                    // Cash Balance
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFF1D263B),
-                                        border = BorderStroke(0.5.dp, Color(0xFF334155)),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Column(modifier = Modifier.padding(10.dp)) {
-                                            Text(
-                                                text = "مانده وجه نقدی",
-                                                fontSize = 10.sp,
-                                                color = Color(0xFF94A3B8),
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Text(
-                                                    text = PersianNumberFormatter.formatPrice(abs(customer.cashDebtTomans)),
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Black,
-                                                    color = when {
-                                                        customer.cashDebtTomans > 0L -> Color(0xFFFB7185)
-                                                        customer.cashDebtTomans < 0L -> Color(0xFF34D399)
-                                                        else -> Color.White
-                                                    },
-                                                    fontFamily = VazirmatnFamily
-                                                )
-                                                if (customer.cashDebtTomans != 0L) {
-                                                    val cashStatusText = if (customer.cashDebtTomans > 0L) "بدهکار" else "بستانکار"
-                                                    val cashStatusColor = if (customer.cashDebtTomans > 0L) Color(0xFFFB7185) else Color(0xFF34D399)
-                                                    Surface(
-                                                        shape = RoundedCornerShape(4.dp),
-                                                        color = cashStatusColor.copy(alpha = 0.15f)
-                                                    ) {
-                                                        Text(
-                                                            text = cashStatusText,
-                                                            fontSize = 8.5.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = cashStatusColor,
-                                                            fontFamily = VazirmatnFamily,
-                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            Text(
-                                                text = "تومان ایران",
-                                                fontSize = 9.sp,
-                                                color = Color(0xFF64748B),
-                                                fontFamily = VazirmatnFamily
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Item B: Filter Chips Row (Matching CustomerLedgerScreen styling & selection animation)
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            StatementFilterTab.values().forEach { tab ->
-                                val selected = selectedFilter == tab
-                                val (count, badgeBg, badgeTextColor) = when (tab) {
-                                    StatementFilterTab.ALL -> Triple(
-                                        allTransactions.size,
-                                        if (colors.isDark) Color(0x33F59E0B) else Color(0x20F59E0B),
-                                        if (selected) Color(0xFFFDE68A) else if (colors.isDark) Color(0xFFFCD34D) else Color(0xFFB45309)
-                                    )
-                                    StatementFilterTab.GOLD_SALE -> Triple(
-                                        allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.PAY },
-                                        Color(0x26EF4444),
-                                        Color(0xFFEF4444)
-                                    )
-                                    StatementFilterTab.GOLD_RECEIPT -> Triple(
-                                        allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.RECEIVE },
-                                        Color(0x2610B981),
-                                        Color(0xFF10B981)
-                                    )
-                                    StatementFilterTab.CASH_DEPOSIT -> Triple(
-                                        allTransactions.count { it.type == LedgerEntryType.CASH_RIAL },
-                                        Color(0x263B82F6),
-                                        Color(0xFF3B82F6)
-                                    )
-                                    StatementFilterTab.SETTLEMENT -> Triple(
-                                        allTransactions.count { it.title.contains("تسویه") || it.note.contains("تسویه") || it.tagBadge.contains("تهاتر") },
-                                        Color(0x268B5CF6),
-                                        Color(0xFF8B5CF6)
-                                    )
-                                }
-
-                                StatementFilterCapsuleItem(
-                                    title = tab.titleFa,
-                                    count = count,
-                                    isSelected = selected,
-                                    badgeBg = badgeBg,
-                                    badgeTextColor = badgeTextColor,
-                                    onClick = { onFilterSelect(tab) }
-                                )
-                            }
-                        }
-                    }
-
-                    // Item C: Section Title
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "ریز رویدادهای اسناد حسابداری",
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textMain,
-                                fontFamily = VazirmatnFamily
-                            )
-                            Text(
-                                text = "${PersianNumberFormatter.toPersianDigits(transactions.size.toString())} سند",
-                                fontSize = 10.5.sp,
-                                color = colors.goldPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = VazirmatnFamily
-                            )
-                        }
-                    }
-
-                    // Each record is a lazy item; off-screen cards are not composed.
-                    if (transactions.isEmpty() && !isLoading && error == null) {
-                        item(key = "empty", contentType = "empty") {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = LedgerReceiptVector,
-                                        contentDescription = null,
-                                        tint = colors.textMuted,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                    Text(
-                                        text = "سندی در این دسته‌بندی یافت نشد",
-                                        fontSize = 12.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.textMuted,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        items(transactions, key = { "statement-list:${it.id}" }, contentType = { "StatementTransactionCard" }) { tx ->
-                            val balances = runningBalances[tx.id]
-                            val computedGold = balances?.first ?: tx.resultingGoldBalance
-                            val computedCash = balances?.second ?: tx.resultingCashBalance
-                            StatementTransactionCard(
-                                transaction = tx,
-                                computedGoldBalance = computedGold,
-                                computedCashBalance = computedCash,
-                                onEditClick = { onEditTransaction(tx) },
-                                onDeleteClick = { transactionToDelete = tx }
-                            )
-                        }
-                    }
-
-                    // Spacer for bottom clearance
-                    item {
-                        Spacer(modifier = Modifier.height(84.dp))
-                    }
-                }
-
-                // Floating Sticky Action Button ("ثبت دریافت / پرداخت جدید")
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    colors.background.copy(alpha = 0.85f),
-                                    colors.background
-                                )
-                            )
-                        )
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    GoldButton(
-                        text = "تسویه حساب / ثبت دریافت و پرداخت",
-                        icon = Icons.Default.Add,
-                        onClick = onOpenAddEntry,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
-            // Delete Transaction Confirmation Dialog
-            if (transactionToDelete != null) {
-                Dialog(
-                    onDismissRequest = { transactionToDelete = null },
-                    properties = DialogProperties(usePlatformDefaultWidth = false)
-                ) {
-                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                        Surface(
-                            shape = RoundedCornerShape(18.dp),
-                            color = colors.surface,
-                            border = BorderStroke(0.6.dp, colors.goldBorder),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Text(
-                                    text = "حذف سند در دفتر معین",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = colors.textMain,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Text(
-                                    text = "آیا از حذف سند شماره ${PersianNumberFormatter.toPersianDigits(transactionToDelete?.cleanDocumentNumber ?: "")} («${transactionToDelete?.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
-                                    fontSize = 13.sp,
-                                    color = colors.textSecondary,
-                                    lineHeight = 20.sp,
-                                    fontFamily = VazirmatnFamily
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // RTL: Secondary/Cancel action MUST be on the right (first child in Row)
-                                    GoldButton(
-                                        text = "انصراف",
-                                        onClick = { transactionToDelete = null },
-                                        isSecondary = true,
-                                        modifier = Modifier.weight(1f),
-                                        height = 44.dp
-                                    )
-                                    // RTL: Primary/Delete action MUST be on the left (second child in Row)
-                                    GoldButton(
-                                        text = "حذف قطعی",
-                                        onClick = {
-                                            val toDel = transactionToDelete
-                                            transactionToDelete = null
-                                            toDel?.let {
-                                                onDeleteTransaction(it)
-                                                
-                                            }
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        height = 44.dp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                    "${tab.titleFa} (${PersianNumberFormatter.toPersianDigits(count.toString())})"
+                }, height = WorkspaceControlHeight, modifier = Modifier.fillMaxWidth().testTag("customer-statement-filters"), fontSize = 12.sp)
+        }
+        item(key = "heading") {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("ریز رویدادهای اسناد حسابداری", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                Text("${PersianNumberFormatter.toPersianDigits(transactions.size.toString())} سند", fontSize = 12.sp, color = colors.goldPrimary)
             }
         }
+        if (transactions.isEmpty() && !isLoading && error == null) item(key = "empty") {
+            LuxuryCard { Text("سندی در این دسته‌بندی یافت نشد", fontSize = 14.sp, color = colors.textMuted) }
+        }
+        items(transactions, key = { "statement-list:${it.id}" }, contentType = { "transaction" }) { tx ->
+            val balances = runningBalances[tx.id]
+            StatementTransactionCard(tx, balances?.first ?: tx.resultingGoldBalance, balances?.second ?: tx.resultingCashBalance,
+                onEditClick = { if (!isSaving) onEditTransaction(tx) }, onDeleteClick = { if (!isSaving) transactionToDelete = tx })
+        }
     }
-}
-
-@Composable
-private fun StatementFilterCapsuleItem(
-    title: String,
-    count: Int,
-    isSelected: Boolean,
-    badgeBg: Color,
-    badgeTextColor: Color,
-    onClick: () -> Unit
-) {
-    val colors = LocalGoldExColors.current
-
-    val animatedBg by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFF1E232E) else colors.surface,
-        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
-        label = "statementCapsuleBg"
-    )
-    val animatedBorder by animateColorAsState(
-        targetValue = if (isSelected) Color(0x66F59E0B) else colors.border,
-        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
-        label = "statementCapsuleBorder"
-    )
-    val animatedTextColor by animateColorAsState(
-        targetValue = if (isSelected) Color(0xFFFCD34D) else colors.textSecondary,
-        animationSpec = tween(durationMillis = 200, easing = LuxuryMotion.StandardEasing),
-        label = "statementCapsuleTextColor"
-    )
-
-    Box(
-        modifier = Modifier
-            .clip(ButtonShape)
-            .background(animatedBg)
-            .border(1.dp, animatedBorder, ButtonShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = title,
-                fontSize = 11.5.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = animatedTextColor,
-                fontFamily = VazirmatnFamily
-            )
-
-            // Count badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(badgeBg)
-                    .padding(horizontal = 6.dp, vertical = 1.dp)
-            ) {
-                Text(
-                    text = PersianNumberFormatter.toPersianDigits(count.toString()),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = badgeTextColor,
-                    fontFamily = VazirmatnFamily
-                )
+    transactionToDelete?.let { tx ->
+        Dialog(onDismissRequest = { if (!isSaving) transactionToDelete = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
+                Text("حذف سند در دفتر معین", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = colors.textMain)
+                Text("آیا از حذف سند شماره ${PersianNumberFormatter.toPersianDigits(tx.cleanDocumentNumber)} («${tx.title}») اطمینان دارید؟ اثر مالی این سند از مانده حساب مشتری کسر/معکوس خواهد شد.",
+                    fontSize = 13.sp, color = colors.textSecondary, lineHeight = 22.sp)
+                RecordListStatus(isSaving, error, onRetry)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WorkspaceControl("انصراف", { transactionToDelete = null }, Modifier.weight(1f), secondary = true, enabled = !isSaving)
+                    WorkspaceControl("حذف قطعی", { onDeleteTransaction(tx) { transactionToDelete = null } }, Modifier.weight(1f), enabled = !isSaving)
+                }
             }
         }
     }
@@ -754,7 +136,7 @@ private fun MethodChip(
     ) {
         Text(
             text = text,
-            fontSize = 9.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = chipText,
             fontFamily = VazirmatnFamily,
@@ -775,18 +157,12 @@ private fun StatementTransactionCard(
     val isGold = transaction.type == LedgerEntryType.GOLD_WEIGHT
     val isReceive = transaction.direction == LedgerDirection.RECEIVE
 
-    Surface(
-        shape = RoundedCornerShape(13.dp),
-        color = colors.surface,
-        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.35f)),
-        shadowElevation = if (colors.isDark) 0.dp else 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    LuxuryCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+                .padding(0.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Row 1: Header - Icon + Title & Doc/Date + Direction Badge + Edit/Delete
             Row(
@@ -847,7 +223,7 @@ private fun StatementTransactionCard(
                                 ) {
                                     Text(
                                         text = badgeText,
-                                        fontSize = 8.5.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = colors.goldPrimary,
                                         fontFamily = VazirmatnFamily,
@@ -867,7 +243,7 @@ private fun StatementTransactionCard(
                         }
                         Text(
                             text = headerSubtitle,
-                            fontSize = 9.5.sp,
+                            fontSize = 12.sp,
                             color = colors.textMuted,
                             fontFamily = VazirmatnFamily
                         )
@@ -876,7 +252,7 @@ private fun StatementTransactionCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Direction badge
                     val dirColor = if (isReceive) colors.profitGreen else colors.errorRed
@@ -888,7 +264,7 @@ private fun StatementTransactionCard(
                     ) {
                         Text(
                             text = dirText,
-                            fontSize = 9.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = dirColor,
                             fontFamily = VazirmatnFamily,
@@ -987,7 +363,7 @@ private fun StatementTransactionCard(
                             if (detailsText.isNotBlank()) {
                                 Text(
                                     text = detailsText,
-                                    fontSize = 9.5.sp,
+                                    fontSize = 12.sp,
                                     color = colors.textSecondary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -1003,7 +379,7 @@ private fun StatementTransactionCard(
                             } else {
                                 "${PersianNumberFormatter.formatPrice(transaction.amountTomans)} تومان"
                             },
-                            fontSize = 14.5.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
                             color = if (isReceive) colors.profitGreen else colors.errorRed,
                             fontFamily = VazirmatnFamily
@@ -1014,7 +390,7 @@ private fun StatementTransactionCard(
                     if (transaction.note.isNotBlank()) {
                         Text(
                             text = "یادداشت: ${transaction.note}",
-                            fontSize = 9.sp,
+                            fontSize = 12.sp,
                             color = colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -1032,7 +408,7 @@ private fun StatementTransactionCard(
             ) {
                 Text(
                     text = "مانده معین پس از ثبت:",
-                    fontSize = 9.5.sp,
+                    fontSize = 12.sp,
                     color = colors.textMuted,
                     fontFamily = VazirmatnFamily
                 )
@@ -1054,7 +430,7 @@ private fun StatementTransactionCard(
                         ) {
                             Text(
                                 text = "${PersianNumberFormatter.formatAccountWeight(abs(computedGoldBalance))} گرم",
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = goldColor,
                                 fontFamily = VazirmatnFamily
@@ -1077,7 +453,7 @@ private fun StatementTransactionCard(
 
                         Text(
                             text = "•",
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             color = colors.textMuted
                         )
 
@@ -1090,7 +466,7 @@ private fun StatementTransactionCard(
                         ) {
                             Text(
                                 text = "${PersianNumberFormatter.formatPrice(abs(computedCashBalance))} ت",
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = cashColor,
                                 fontFamily = VazirmatnFamily
@@ -1121,7 +497,7 @@ private fun StatementTransactionCard(
                     ) {
                         Text(
                             text = "${PersianNumberFormatter.formatAccountWeight(abs(bal))} گرم",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = statusColor,
                             fontFamily = VazirmatnFamily
@@ -1133,7 +509,7 @@ private fun StatementTransactionCard(
                         ) {
                             Text(
                                 text = statusText,
-                                fontSize = 8.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = statusColor,
                                 fontFamily = VazirmatnFamily,
@@ -1151,7 +527,7 @@ private fun StatementTransactionCard(
                     ) {
                         Text(
                             text = "${PersianNumberFormatter.formatPrice(abs(bal))} تومان",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = statusColor,
                             fontFamily = VazirmatnFamily
@@ -1163,7 +539,7 @@ private fun StatementTransactionCard(
                         ) {
                             Text(
                                 text = statusText,
-                                fontSize = 8.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = statusColor,
                                 fontFamily = VazirmatnFamily,
@@ -1179,7 +555,7 @@ private fun StatementTransactionCard(
                     ) {
                         Text(
                             text = "تسویه‌شده (تراز صفر)",
-                            fontSize = 9.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.profitGreen,
                             fontFamily = VazirmatnFamily,

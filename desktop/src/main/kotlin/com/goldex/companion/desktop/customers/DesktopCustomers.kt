@@ -32,7 +32,7 @@ class DesktopCustomers(storage: DesktopDataStore, scope: CoroutineScope, marketQ
         RecordCustomerSettlementUseCase(repository, invoices, repository), scope, marketQuote = marketQuote)
     val saving get() = manager.uiState.value.isSaving || settlement.state.value.isSaving
     val hasDialog get() = with(manager.uiState.value) {
-        isAddCustomerDialogVisible || isCustomerManagerVisible || isAddLedgerEntryModalVisible || settlement.state.value.customer != null
+        isAddCustomerDialogVisible || isCustomerManagerVisible || isAddLedgerEntryModalVisible || editingCustomer != null || pendingDeleteCustomer != null || settlement.state.value.customer != null
     }
     fun openPayment(customer: Customer) {
         if (abs(customer.goldDebtGrams) > 1e-10 || customer.cashDebtTomans != 0L) settlement.open(customer)
@@ -44,6 +44,8 @@ class DesktopCustomers(storage: DesktopDataStore, scope: CoroutineScope, marketQ
             settlement.state.value.customer != null -> settlement.close()
             manager.uiState.value.isAddLedgerEntryModalVisible -> manager.closeAddLedgerEntry()
             manager.uiState.value.isAddCustomerDialogVisible -> manager.setAddCustomerDialogVisible(false)
+            manager.uiState.value.editingCustomer != null -> manager.closeCustomerEdit()
+            manager.uiState.value.pendingDeleteCustomer != null -> manager.cancelCustomerDeletion()
             manager.uiState.value.isCustomerManagerVisible -> manager.setCustomerManagerVisible(false)
             else -> manager.closeCustomerStatement()
         }

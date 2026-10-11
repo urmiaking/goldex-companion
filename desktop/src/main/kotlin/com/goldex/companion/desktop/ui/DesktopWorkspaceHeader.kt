@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,22 +39,32 @@ internal fun workspaceDate(now: Long): String {
     return PersianNumberFormatter.toPersianDigits("${weekdays[today.dayOfWeek.value - 1]} $day ${months[month - 1]} $year")
 }
 
-@Composable internal fun WorkspaceHeader(state: WorkspaceState, actions: (@Composable () -> Unit)? = null) {
+@Composable internal fun WorkspaceHeader(state: WorkspaceState, actions: (@Composable () -> Unit)? = null,
+    titleOverride: String? = null, subtitleOverride: String? = null, onBack: (() -> Unit)? = null,
+    inlineActions: Boolean = false) {
     val colors = LocalGoldExColors.current
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("workspace-header")) {
         val heading: @Composable () -> Unit = {
-            Column {
-                val title = when (state.destination) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (onBack != null) Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder) {
+                    IconButton(onBack, Modifier.size(WorkspaceControlHeight).testTag("customer-back")) {
+                        Icon(Icons.Outlined.ArrowForward, "بازگشت به مشتریان", Modifier.size(20.dp), tint = colors.goldPrimary)
+                    }
+                }
+                Column(Modifier.weight(1f)) {
+                val title = titleOverride ?: when (state.destination) {
                     DesktopDestination.CALCULATOR -> "ماشین‌حساب تخصصی طلا"
                     DesktopDestination.RATES -> "تابلوی نرخ‌ها"
                     else -> state.destination.title
                 }
-                val subtitle = when (state.destination) {
+                val subtitle = subtitleOverride ?: when (state.destination) {
                     DesktopDestination.INVENTORY -> "مدیریت جامع انبار، ویترین و ترازوی طلا"
                     else -> state.destination.subtitle
                 }
-                Text(title, style = MaterialTheme.typography.headlineMedium, color = colors.textMain, fontWeight = FontWeight.Bold)
+                Text(title, modifier = Modifier.testTag("workspace-heading"), style = MaterialTheme.typography.headlineMedium,
+                    color = colors.textMain, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(subtitle, color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
         val status: @Composable () -> Unit = {
@@ -78,7 +89,7 @@ internal fun workspaceDate(now: Long): String {
                 }
             }
         }
-        if (maxWidth < 950.dp) {
+        if (maxWidth < 950.dp && !inlineActions) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { heading() }
