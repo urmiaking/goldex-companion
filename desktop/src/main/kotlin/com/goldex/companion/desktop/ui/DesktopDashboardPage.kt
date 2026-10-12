@@ -159,7 +159,6 @@ import com.goldex.companion.ui.theme.*
             }
         }
 
-        Text("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.", color = colors.textMuted, fontSize = 11.5.sp)
     }
 }
 
@@ -442,7 +441,8 @@ private data class QuickAction(
     LuxuryCard(Modifier.testTag("dashboard-invoices"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             PageTitle("آخرین فاکتورهای ثبت‌شده", Modifier.weight(1f))
-            GoldButton("دفتر فاکتورها", { workspace.navigate(DesktopDestination.INVOICES) }, modifier = Modifier, icon = Icons.Outlined.ReceiptLong, isSecondary = true)
+            DesktopNavigationLink("دفتر فاکتورها", { workspace.navigate(DesktopDestination.INVOICES) },
+                Icons.AutoMirrored.Outlined.ArrowForward, Modifier.testTag("dashboard-invoice-ledger"))
         }
 
         // 3 Recent Invoices from Stitch Design

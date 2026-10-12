@@ -31,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,71 +87,82 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     var showSignaturePad by remember { mutableStateOf(false) }
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val profile: @Composable () -> Unit = {
-                LuxuryCard {
-                    PageTitle("مشخصات گالری")
-                    DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
-                    DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
-                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone, adornment = Icons.Outlined.Phone)
-                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Badge)
-                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Verified)
-                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false, adornment = Icons.Outlined.LocationOn)
+            val wide = maxWidth >= 850.dp
+            val density = LocalDensity.current
+            // LuxuryCard adds 16dp top/bottom padding and a 2dp hairline around natural content.
+            var profileHeight by remember { mutableStateOf(0.dp) }
+            var rateContentHeight by remember { mutableStateOf(0.dp) }
+            var defaultsHeight by remember { mutableStateOf(0.dp) }
+            val preferencesHeight = defaultsHeight + 20.dp + rateContentHeight
+            val profile: @Composable (Modifier) -> Unit = { modifier ->
+                LuxuryCard(modifier.testTag("settings-profile")) {
+                    Column(Modifier.fillMaxWidth().onSizeChanged { profileHeight = with(density) { it.height.toDp() } + 34.dp },
+                        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        PageTitle("مشخصات گالری")
+                        DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
+                        DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
+                        DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone, adornment = Icons.Outlined.Phone)
+                        DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Badge)
+                        DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Verified)
+                        DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false, adornment = Icons.Outlined.LocationOn)
 
-                    // Logo & Signature section (matching Android functionality for invoices)
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (colors.isDark) colors.surfaceElevated else androidx.compose.ui.graphics.Color(0xFFFCFAF5),
-                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth().testTag("settings-brand-assets")
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        // Logo & Signature section (matching Android functionality for invoices)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (colors.isDark) colors.surfaceElevated else androidx.compose.ui.graphics.Color(0xFFFCFAF5),
+                            border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().testTag("settings-brand-assets")
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
-                                Text("لوگو و امضای دیجیتال (برای فاکتورها)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                DesktopBrandAssetTile(
-                                    title = "لوگوی واحد صنفی",
-                                    actionLabel = if (draft.invoiceLogoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
-                                    bitmap = rememberBrandAssetBitmap(draft.invoiceLogoUri),
-                                    fallback = draft.galleryName.trim().take(2).ifBlank { "لوگو" },
-                                    onPick = {
-                                        val picked = selectBrandLogoFile()
-                                        if (picked != null) {
-                                            val brandDir = workspace.dataDirectory.resolve("brand_assets")
-                                            Files.createDirectories(brandDir)
-                                            val dest = brandDir.resolve("hub_logo.png")
-                                            Files.copy(picked.toPath(), dest, StandardCopyOption.REPLACE_EXISTING)
-                                            workspace.editSettings { it.copy(invoiceLogoUri = dest.toFile().absolutePath) }
-                                        }
-                                    },
-                                    onClear = if (draft.invoiceLogoUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceLogoUri = "") } }) else null,
-                                    modifier = Modifier.weight(1f).testTag("settings-logo-tile")
-                                )
-                                DesktopBrandAssetTile(
-                                    title = "امضای دیجیتال زرگر",
-                                    actionLabel = if (draft.invoiceSignatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
-                                    bitmap = rememberBrandAssetBitmap(draft.invoiceSignatureUri),
-                                    fallback = "امضا",
-                                    onPick = { showSignaturePad = true },
-                                    onClear = if (draft.invoiceSignatureUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceSignatureUri = "") } }) else null,
-                                    modifier = Modifier.weight(1f).testTag("settings-signature-tile")
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
+                                    Text("لوگو و امضای دیجیتال (برای فاکتورها)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    DesktopBrandAssetTile(
+                                        title = "لوگوی واحد صنفی",
+                                        actionLabel = if (draft.invoiceLogoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
+                                        bitmap = rememberBrandAssetBitmap(draft.invoiceLogoUri),
+                                        fallback = draft.galleryName.trim().take(2).ifBlank { "لوگو" },
+                                        onPick = {
+                                            val picked = selectBrandLogoFile()
+                                            if (picked != null) {
+                                                val brandDir = workspace.dataDirectory.resolve("brand_assets")
+                                                Files.createDirectories(brandDir)
+                                                val dest = brandDir.resolve("hub_logo.png")
+                                                Files.copy(picked.toPath(), dest, StandardCopyOption.REPLACE_EXISTING)
+                                                workspace.editSettings { it.copy(invoiceLogoUri = dest.toFile().absolutePath) }
+                                            }
+                                        },
+                                        onClear = if (draft.invoiceLogoUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceLogoUri = "") } }) else null,
+                                        modifier = Modifier.weight(1f).testTag("settings-logo-tile")
+                                    )
+                                    DesktopBrandAssetTile(
+                                        title = "امضای دیجیتال زرگر",
+                                        actionLabel = if (draft.invoiceSignatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
+                                        bitmap = rememberBrandAssetBitmap(draft.invoiceSignatureUri),
+                                        fallback = "امضا",
+                                        onPick = { showSignaturePad = true },
+                                        onClear = if (draft.invoiceSignatureUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceSignatureUri = "") } }) else null,
+                                        modifier = Modifier.weight(1f).testTag("settings-signature-tile")
+                                    )
+                                }
                             }
                         }
+
                     }
                 }
             }
-            val preferences: @Composable () -> Unit = {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    LuxuryCard {
+            val preferences: @Composable (Modifier, Boolean) -> Unit = { modifier, stretch ->
+                Column(modifier.testTag("settings-preferences"), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    LuxuryCard(Modifier.onSizeChanged { defaultsHeight = with(density) { it.height.toDp() } }) {
                         PageTitle("پیش‌فرض‌های محاسبه")
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DesktopField(draft.defaultProfitPercent, { value -> workspace.editSettings { it.copy(defaultProfitPercent = value) } }, "سود", Modifier.weight(1f).testTag("settings-profit"), numeric = true, unit = "٪")
@@ -159,26 +171,33 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
                         Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
                     }
-                    LuxuryCard(Modifier.fillMaxWidth()) {
-                        PageTitle("دریافت نرخ‌ها")
-                        Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PriceSource.values().forEach { src ->
-                                DesktopPriceSourceOption(
-                                    source = src,
-                                    isSelected = draft.priceSource == src,
-                                    onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
-                                )
+                    LuxuryCard(Modifier.fillMaxWidth().then(if (stretch)
+                        Modifier.heightIn(min = (profileHeight - defaultsHeight - 20.dp).coerceAtLeast(0.dp)) else Modifier)
+                        .testTag("settings-rate-sources")) {
+                        Column(Modifier.fillMaxWidth().onSizeChanged { rateContentHeight = with(density) { it.height.toDp() } + 34.dp },
+                        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            PageTitle("دریافت نرخ‌ها")
+                            Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                PriceSource.values().forEach { src ->
+                                    DesktopPriceSourceOption(
+                                        source = src,
+                                        isSelected = draft.priceSource == src,
+                                        onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
+                                    )
+                                }
                             }
+                            Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
+
                         }
-                        Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
                     }
                 }
             }
-            if (maxWidth >= 850.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1f)) { profile() }
-                Box(Modifier.weight(1f)) { preferences() }
-            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(); preferences() }
+            // Use measured natural content heights: intrinsic queries through six outlined fields are expensive.
+            if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                profile(Modifier.weight(1f).heightIn(min = preferencesHeight))
+                preferences(Modifier.weight(1f), true)
+            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(Modifier); preferences(Modifier, false) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Undo, enabled = dirty && !state.saving)

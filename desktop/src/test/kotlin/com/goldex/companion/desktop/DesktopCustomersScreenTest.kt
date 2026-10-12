@@ -36,6 +36,7 @@ class DesktopCustomersScreenTest {
         render()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.onNodeWithText("مشتری جدید").performClick()
+        compose.onNodeWithText("همکار و بنکدار").performClick().assertIsSelected()
         field("customer-name").performTextReplacement("مشتری آزمون")
         field("customer-phone").performTextReplacement("۰۹۱۲۳۴۵۶۷۸۹")
         screenshot("customers-add-light.png", "customer-form")
@@ -45,7 +46,10 @@ class DesktopCustomersScreenTest {
         field("customer-search").performTextReplacement("نام ناموجود")
         compose.onNodeWithText("طرف‌حسابی با این مشخصات یافت نشد").assertExists()
         field("customer-search").performTextReplacement("")
-        compose.runOnIdle { assertEquals("09123456789", workspace.customers.repository.getCustomers().single().phone) }
+        compose.runOnIdle {
+            assertEquals("09123456789", workspace.customers.repository.getCustomers().single().phone)
+            assertEquals("همکار و بنکدار", workspace.customers.repository.getCustomers().single().role)
+        }
     }
 
     @Test fun ledgerAndStatementUseWorkspaceHeaderInBothThemesAndNavigation() {

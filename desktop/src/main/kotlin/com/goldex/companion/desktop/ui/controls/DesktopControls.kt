@@ -89,10 +89,24 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     }
 }
 
-@Composable internal fun DesktopDropdownControl(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+/** Compact text navigation, retained for the dashboard's invoice ledger shortcut. */
+@Composable internal fun DesktopNavigationLink(text: String, onClick: () -> Unit, icon: ImageVector, modifier: Modifier = Modifier) {
+    val c = LocalGoldExColors.current
+    TextButton(onClick, modifier, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text, color = c.goldPrimary, fontFamily = VazirmatnFamily, fontSize = 12.5.sp,
+                fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Icon(icon, null, Modifier.size(16.dp), tint = c.goldPrimary)
+        }
+    }
+}
+
+@Composable internal fun DesktopDropdownControl(text: String, onClick: () -> Unit, modifier: Modifier = Modifier,
+    icon: ImageVector? = null) {
     val c = LocalGoldExColors.current
     OutlinedButton(onClick, modifier.height(DesktopControls.Height), shape = DesktopControls.BodyShape,
         border = c.hairlineBorder, contentPadding = PaddingValues(horizontal = 12.dp)) {
+        icon?.let { Icon(it, null, Modifier.size(20.dp), tint = c.goldPrimary); Spacer(Modifier.width(6.dp)) }
         Text(text, Modifier.weight(1f), fontSize = 14.sp, color = c.textMain, fontFamily = VazirmatnFamily,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         Icon(Icons.Outlined.ExpandMore, null, Modifier.size(20.dp), tint = c.goldPrimary)

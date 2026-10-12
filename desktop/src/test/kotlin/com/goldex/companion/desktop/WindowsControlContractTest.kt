@@ -88,7 +88,7 @@ class WindowsControlContractTest {
             val source = Files.readString(path)
             val name = path.fileName.toString()
             if (name == "DesktopCalculatorScreen.kt" || path.toString().contains("controls")) return@forEach
-            if (Regex("\\b(?:Button|OutlinedButton|TextButton|FilterChip|LuxurySegmentedControl|OutlinedTextField|GoldOutlinedTextField|BasicTextField)\\s*\\(").containsMatchIn(source))
+            if (Regex("\\b(?:Button|OutlinedButton|TextButton|FilterChip|OutlinedTextField|GoldOutlinedTextField|BasicTextField)\\s*\\(").containsMatchIn(source))
                 violations += "$name contains a raw action, filter or input control"
             if (Regex("\\bGoldButton\\s*\\(").containsMatchIn(source) &&
                 !source.contains("import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton"))
@@ -96,6 +96,17 @@ class WindowsControlContractTest {
             if (Regex("\\bIconButton\\s*\\(").containsMatchIn(source) && name != "DesktopWorkspaceHeader.kt" &&
                 !source.contains("import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton"))
                 violations += "$name uses an icon action outside the desktop body-shape adapter"
+            val segmentedOwners = mapOf(
+                "DesktopDashboardTrend.kt" to setOf("DashboardTrend"),
+                "DesktopRateDetailPage.kt" to setOf("RateChartCard"),
+                "CustomerDialogs.kt" to setOf("CustomerRoleSelector")
+            )
+            Regex("\\bLuxurySegmentedControl\\s*\\(").findAll(source).forEach { call ->
+                val owner = Regex("\\bfun\\s+([A-Za-z0-9_]+)\\s*\\(")
+                    .findAll(source.take(call.range.first)).lastOrNull()?.groupValues?.get(1)
+                if (owner !in segmentedOwners[name].orEmpty())
+                    violations += "$name:$owner uses a segmented selector outside an approved role"
+            }
             val headerOwners = mapOf(
                 "DesktopWorkspaceHeader.kt" to setOf("WorkspaceHeader"),
                 "DesktopWorkspaceScreen.kt" to setOf("DesktopWorkspaceScreen", "Sidebar"),

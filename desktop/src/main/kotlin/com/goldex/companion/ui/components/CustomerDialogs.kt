@@ -575,12 +575,7 @@ fun AddCustomerDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textSecondary
                         )
-                        DesktopChoiceRow(
-                            items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
-                            selectedItem = selectedRole,
-                            onItemSelected = { selectedRole = it },
-                            label = { it },
-                            modifier = Modifier.fillMaxWidth())
+                        CustomerRoleSelector(selectedRole, { selectedRole = it })
                     }
 
                     // Name (Required)
@@ -778,12 +773,7 @@ fun EditCustomerDialog(
                             fontWeight = FontWeight.SemiBold,
                             color = colors.textSecondary
                         )
-                        DesktopChoiceRow(
-                            items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
-                            selectedItem = selectedRole,
-                            onItemSelected = { selectedRole = it },
-                            label = { it },
-                            modifier = Modifier.fillMaxWidth())
+                        CustomerRoleSelector(selectedRole, { selectedRole = it })
                     }
 
                     // Name
@@ -907,4 +897,12 @@ fun EditCustomerDialog(
             }
         }
     }
+}
+
+/** Retained shared sliding selector for account type in both create and edit forms. */
+@Composable private fun CustomerRoleSelector(selectedRole: String, onSelect: (String) -> Unit) {
+    LuxurySegmentedControl(
+        items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
+        selectedItem = selectedRole, onItemSelected = onSelect, label = { it },
+        modifier = Modifier.fillMaxWidth().testTag("customer-role-selector"), height = 36.dp)
 }

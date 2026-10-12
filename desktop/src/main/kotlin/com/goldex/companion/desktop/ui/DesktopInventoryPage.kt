@@ -569,9 +569,25 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
     onShowHistory: () -> Unit,
     compact: Boolean = false
 ) {
-    val locations = listOf(null, "ویترین", "گاوصندوق", "خزانه")
+    var locationMenuExpanded by remember { mutableStateOf(false) }
+    fun locationLabel(location: String?) = when (location) {
+        "ویترین" -> "ویترین‌ها"
+        "گاوصندوق" -> "گاوصندوق‌ها"
+        "خزانه" -> "خزانه مرکزی"
+        else -> "همه موقعیت‌ها (کل گالری)"
+    }
     val filters: @Composable (Modifier) -> Unit = { modifier ->
-        DesktopFilterRow(locations, locationFilter, onLocationFilterChange, { it ?: "همه موقعیت‌ها" }, modifier)
+        Box(modifier) {
+            DesktopDropdownControl(locationLabel(locationFilter), { locationMenuExpanded = true },
+                Modifier.fillMaxWidth().testTag("inventory-location-selector"), icon = Icons.Outlined.Store)
+            DropdownMenu(locationMenuExpanded, { locationMenuExpanded = false }) {
+                listOf(null, "ویترین", "گاوصندوق", "خزانه").forEach { location ->
+                    DropdownMenuItem(text = { Text(locationLabel(location), fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
+                        onClick = { onLocationFilterChange(location); locationMenuExpanded = false },
+                        modifier = Modifier.testTag("inventory-location-${location ?: "all"}"))
+                }
+            }
+        }
     }
     val history: @Composable () -> Unit = {
         val c = LocalGoldExColors.current
@@ -582,10 +598,10 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
         }
     }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= 1000.dp) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (maxWidth >= 550.dp) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DesktopSearchField(query, onSearch, "جستجوی نام، بارکد، کد اتیکت یا سازنده",
                 Modifier.weight(1f).testTag("inventory-search"))
-            filters(Modifier.width(480.dp)); history()
+            filters(Modifier.width(240.dp)); history()
         } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             DesktopSearchField(query, onSearch, "جستجوی نام، بارکد، کد اتیکت یا سازنده",
                 Modifier.fillMaxWidth().testTag("inventory-search"))

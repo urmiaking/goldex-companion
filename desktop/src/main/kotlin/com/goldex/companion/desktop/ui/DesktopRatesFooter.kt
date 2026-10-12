@@ -32,6 +32,7 @@ import com.goldex.companion.desktop.ui.controls.DesktopControls
 import java.util.Locale
 
 internal data class FooterRatePillItem(
+    val instrument: BoardInstrument,
     val title: String,
     val value: String,
     val delta: String,
@@ -49,7 +50,7 @@ fun DesktopRatesFooter(
     modifier: Modifier = Modifier,
     boardState: DesktopRatesBoardState? = null,
     reduceMotion: Boolean = false,
-    onNavigateRates: (() -> Unit)? = null
+    onNavigateRate: ((BoardInstrument) -> Unit)? = null
 ) {
     if (rates == null) return
 
@@ -78,36 +79,42 @@ fun DesktopRatesFooter(
 
     val allItems = listOf(
         FooterRatePillItem(
+            instrument = BoardInstrument.GOLD18,
             title = "طلا ۱۸:",
             value = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
             delta = g18Delta,
             isPositive = g18Pos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.MELT,
             title = "مظنه مثقال:",
             value = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
             delta = meltDelta,
             isPositive = meltPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.GOLD24,
             title = "طلا ۲۴:",
             value = "${PersianNumberFormatter.formatPrice(rates.gold24.toDouble())} ت",
             delta = g24Delta,
             isPositive = g24Pos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.EMAMI,
             title = "سکه امامی:",
             value = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
             delta = emamiDelta,
             isPositive = emamiPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.USD,
             title = "دلار آزاد:",
             value = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
             delta = usdDelta,
             isPositive = usdPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.OUNCE,
             title = "انس جهانی:",
             value = "${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", rates.ons))} $",
             delta = onsDelta,
@@ -124,7 +131,7 @@ fun DesktopRatesFooter(
         verticalAlignment = Alignment.CenterVertically
     ) {
         allItems.forEach { item ->
-            FooterTickerPill(item = item, onClick = onNavigateRates)
+            FooterTickerPill(item = item, onClick = onNavigateRate?.let { navigate -> { navigate(item.instrument) } })
         }
     }
 }
@@ -143,8 +150,8 @@ private fun FooterTickerPill(
         border = colors.goldHairlineBorder,
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = if (onClick != null) {
-            Modifier.heightIn(min = 44.dp).clip(DesktopControls.BodyShape)
-                .clickable(role = Role.Button, onClickLabel = "مشاهده تابلوی نرخ‌ها", onClick = onClick)
+            Modifier.testTag("footer-rate-${item.instrument.name}").heightIn(min = 44.dp).clip(DesktopControls.BodyShape)
+                .clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات ${item.title.removeSuffix(":")}", onClick = onClick)
         } else Modifier
     ) {
         Row(

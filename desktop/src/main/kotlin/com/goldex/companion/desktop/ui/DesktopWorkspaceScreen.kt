@@ -150,7 +150,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                         rates = state.snapshot?.rates,
                         boardState = workspace.ratesBoard.state.collectAsState().value,
                         reduceMotion = state.reduceMotion,
-                        onNavigateRates = { workspace.navigate(DesktopDestination.RATES) }
+                        onNavigateRate = workspace::openRateDetail
                     )
                 }
             }
