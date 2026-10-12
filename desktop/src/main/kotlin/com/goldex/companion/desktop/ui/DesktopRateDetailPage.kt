@@ -176,11 +176,11 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 }
             }
             val selector: @Composable () -> Unit = {
-                DesktopFilterRow(
+                LuxurySegmentedControl(
                     RateDetailHorizons, detail.horizon, onHorizon, ::horizonLabel,
-                    Modifier.width(360.dp).testTag("rate-detail-horizon"))
+                    Modifier.width(240.dp).testTag("rate-detail-horizon"), height = 38.dp, fontSize = 11.sp)
             }
-            if (maxWidth >= 820.dp) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { title(); selector() }
+            if (maxWidth >= 600.dp) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { title(); selector() }
             else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) { title(); selector() }
         }
         Spacer(Modifier.height(20.dp))
