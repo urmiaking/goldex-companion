@@ -105,14 +105,14 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
             } }, countColor = { when (it) {
                 CustomerLedgerFilterTab.DEBTORS -> colors.errorRed; CustomerLedgerFilterTab.CREDITORS -> colors.marketGainText
                 else -> colors.goldPrimary
-            } }, modifier = modifier.testTag("customer-filters"))
+            } }, modifier = modifier.testTag("customer-filters"), fillWidth = false)
     }
 
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    BoxWithConstraints(Modifier.fillMaxWidth().testTag("customer-toolbar")) {
         val filterWidth = minOf(540.dp, maxWidth * .55f)
-        if (maxWidth >= 780.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (maxWidth >= 780.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             search(Modifier.weight(1f))
-            filters(Modifier.width(filterWidth))
+            filters(Modifier.widthIn(max = filterWidth))
         } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             search(Modifier.fillMaxWidth()); filters(Modifier.fillMaxWidth())
         }

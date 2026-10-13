@@ -366,8 +366,8 @@ private data class QuickAction(
                 Box(Modifier.size(8.dp).background(colors.goldPrimary, CircleShape))
                 PageTitle("تابلوی مظنه‌های زنده بازار")
             }
-            GoldButton("همه نرخ‌ها", { workspace.navigate(DesktopDestination.RATES) },
-                icon = Icons.Outlined.ShowChart, isSecondary = true)
+            DesktopNavigationLink("همه نرخ‌ها", { workspace.navigate(DesktopDestination.RATES) },
+                Icons.AutoMirrored.Outlined.ArrowForward, Modifier.testTag("dashboard-all-rates"))
 
         }
 

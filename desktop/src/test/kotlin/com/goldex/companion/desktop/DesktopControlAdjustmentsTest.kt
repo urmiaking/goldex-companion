@@ -63,6 +63,8 @@ class DesktopControlAdjustmentsTest {
             assertEquals(profile.top,preferences.top)
             assertEquals(profile.bottom,preferences.bottom)
             assertEquals(profile.bottom,rates.bottom)
+            val note = onNodeWithTag("settings-rates-note").fetchSemanticsNode().boundsInRoot
+            assertEquals(16f, rates.bottom - note.bottom, .5f, "Explanation must sit at the card's bottom padding")
             val address = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("settings-address")))
             address.performTextReplacement((1..8).joinToString("\n") { "نشانی آزمایشی $it" })
             val expanded = onNodeWithTag("settings-profile").fetchSemanticsNode().boundsInRoot.height
@@ -89,6 +91,15 @@ class DesktopControlAdjustmentsTest {
         save(onNodeWithTag("workspace-root"),"inventory-location-dropdown.png")
         onNodeWithTag("nav-DASHBOARD").performClick()
         onNodeWithText("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.").assertDoesNotExist()
+        onNodeWithTag("dashboard-all-rates").performScrollTo().performClick()
+        runOnIdle { assertEquals(DesktopDestination.RATES,workspace.state.value.destination) }
+        val details = onNodeWithTag("rate-detail-GOLD18").performScrollTo().assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals(32f, details.height)
+        val label = onNode(hasTestTag("rate-details-label") and hasAnyAncestor(hasTestTag("rate-detail-GOLD18")),useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+        val arrow = onNode(hasTestTag("rate-details-arrow") and hasAnyAncestor(hasTestTag("rate-detail-GOLD18")),useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
+        assertTrue(arrow.right <= label.left, "RTL details arrow must follow the label on its visual left")
+        save(onNodeWithTag("workspace-root"),"rates-compact-details.png")
+        onNodeWithTag("nav-DASHBOARD").performClick()
         onNodeWithTag("dashboard-invoice-ledger").performScrollTo().performClick()
         runOnIdle { assertEquals(DesktopDestination.INVOICES,workspace.state.value.destination) }
     }

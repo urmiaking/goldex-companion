@@ -58,7 +58,15 @@ class DesktopCustomerLayoutTest {
                 val search = onNodeWithTag("customer-search-container").fetchSemanticsNode().boundsInRoot
                 val filters = onNodeWithTag("customer-filters").fetchSemanticsNode().boundsInRoot
                 assertEquals(search.height, filters.height)
-                if (expectedColumns == 3) assertEquals(search.top, filters.top)
+                if (expectedColumns == 3) {
+                    assertEquals(search.top, filters.top)
+                    val toolbar = onNodeWithTag("customer-toolbar").fetchSemanticsNode().boundsInRoot
+                    assertEquals(toolbar.left, filters.left)
+                    assertEquals(toolbar.right, search.right)
+                    assertEquals(12f, search.left - filters.right, .5f)
+                    val lastFilter = onNode(hasText("تسویه‌شده") and hasAnyAncestor(hasTestTag("customer-filters"))).fetchSemanticsNode().boundsInRoot
+                    assertTrue(lastFilter.left - filters.left < 15f, "Filter group must not reserve blank width away from search")
+                }
                 save("customers-layout-$width-light.png")
                 onNodeWithTag("customer-statement-layout-1").performClick()
                 onNodeWithTag("customer-payment").assertIsDisplayed()

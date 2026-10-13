@@ -100,7 +100,7 @@ internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorksp
                 Text("فاکتورهای صادرشده، تسویه‌حساب مشتریان و دفاتر معین زرگری", color = colors.textMuted, fontSize = 12.sp)
             }
             GoldButton(
-                text = "+ صدور فاکتور جدید",
+                text = "صدور فاکتور جدید",
                 onClick = { /* New invoice workflow */ },
                 icon = Icons.Outlined.Add,
                 modifier = Modifier.width(180.dp).testTag("invoices-new-btn")

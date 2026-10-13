@@ -12,6 +12,8 @@ The mandatory rule and detailed specification are `.agents/rules/windows-design-
 
 ## Consequences
 
+The user's later visual review explicitly retains compact footer preview capsules and a small rounded rate-details navigation action. Both dashboard card destinations share the transparent navigation link. Icon-only controls use circular Material state layers without a rectangular hover background. Customer filters wrap their content while search fills the remaining toolbar width. Rate statistics retain their policies and use readable table typography with a compact explanatory footer. The settings source explanation is bottom-aligned with excess space distributed among natural child measurements. Exact exceptions and dimensions are recorded in the detailed specification; none changes a save/delete action or a financial contract.
+
 - Android UI and shared tokens remain unchanged; this is a Windows-only release.
 - Feature state holders, domain policies, navigation destinations, persisted shape, calculation precision and transactional delete/write guards remain unchanged.
 - All action icons are compile-time required, including optional/empty/error/dialog actions. Disabled invoice placeholders stay disabled.
