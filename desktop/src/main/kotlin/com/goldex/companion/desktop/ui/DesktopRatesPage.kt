@@ -425,7 +425,7 @@ internal fun basis(row: BoardRow) = when (row.instrument) {
 
 @Composable private fun QuoteAction(row: BoardRow, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    GoldButton("جزئیات", { onDetail(row.instrument) }, modifier = Modifier.testTag("rate-detail-${row.instrument.name}"), icon = Icons.Outlined.ArrowForward, isSecondary = true)
+    DesktopRateDetailsButton({ onDetail(row.instrument) }, Modifier.testTag("rate-detail-${row.instrument.name}"))
 }
 
 @Composable private fun RatesText(text: String, modifier: Modifier = Modifier, color: Color = LocalGoldExColors.current.textMain,

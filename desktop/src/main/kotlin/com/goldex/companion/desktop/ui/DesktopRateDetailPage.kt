@@ -247,14 +247,14 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
     fun deviation(value: Long?) = DesktopRateStatisticsPolicy.differencePercent(current, value)
 
     DetailCard(modifier.testTag("rate-statistics")) {
-        DetailText("دامنه‌های تاریخی و شاخص‌های آماری", bold = true, size = 16, modifier = Modifier.semantics { heading() })
-        DetailText("تحلیل ۳۰ روزه بازار بر مبنای آخرین نوسانات و پایگاه داده تحلیلی", muted = true, size = 11)
-        Spacer(Modifier.height(18.dp))
+        DetailText("دامنه‌های تاریخی و شاخص‌های آماری", bold = true, size = 18, modifier = Modifier.semantics { heading() })
+        DetailText("تحلیل ۳۰ روزه بازار بر مبنای آخرین نوسانات و پایگاه داده تحلیلی", muted = true, size = 12, lines = 2)
+        Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth().background(LocalGoldExColors.current.surfaceElevated).padding(10.dp)) {
-            DetailText("شاخص آماری", Modifier.weight(1.45f), muted = true, size = 11)
-            DetailText("مقدار", Modifier.weight(1.1f), muted = true, size = 11)
-            DetailText("نرخ فعلی", Modifier.weight(.9f), muted = true, size = 11)
-            DetailText("ارزیابی", Modifier.weight(.8f), muted = true, size = 11)
+            DetailText("شاخص آماری", Modifier.weight(1.45f), muted = true, size = 13)
+            DetailText("مقدار", Modifier.weight(1.1f), muted = true, size = 13)
+            DetailText("نرخ فعلی", Modifier.weight(.9f), muted = true, size = 13)
+            DetailText("ارزیابی", Modifier.weight(.8f), muted = true, size = 13)
         }
         StatisticsRow("دامنه نوسان روزانه", monthlyStats.dailyRangeText, null, "دامنه معاملات امروز", state.reduceMotion)
         StatisticsRow("تغییر هفتگی", monthlyStats.weeklyChangeText, null, "روند ۷ روزه", state.reduceMotion)
@@ -267,29 +267,40 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
         if (detail.instrument in listOf(BoardInstrument.GOLD18, BoardInstrument.GOLD24, BoardInstrument.MELT)) {
             val premium = DesktopRateStatisticsPolicy.goldPremium(state.snapshot, detail.instrument)
             StatisticsRow("حباب اسمی طلا (معادل ۱۸ عیار)", premium?.let { "${PersianNumberFormatter.formatPrice(it.first)} تومان / گرم" }, premium?.second, "انس و دلار", state.reduceMotion)
-            DetailText("اختلاف نرخ داخلی با ارزش جهانی طلای ۱۸ عیار؛ بر مبنای انس و دلار همین نرخ", muted = true, size = 10, lines = 2)
         }
         if (detail.instrument.coin != null) {
             val bubble = row.bubble
             StatisticsRow("حباب محاسبه‌شده سکه", bubble?.let { "${PersianNumberFormatter.formatPrice(bubble.bubbleAmount.toLong())} تومان" }, bubble?.bubblePercent, "ارزش ذاتی", state.reduceMotion)
-            DetailText("بر اساس انس، دلار، وزن خالص و حق ضرب؛ نرخ خرید یا توصیه معامله نیست.", muted = true, size = 11)
         }
-        Spacer(Modifier.height(12.dp))
-        DetailText(if (detail.statsLoading) "در حال دریافت آمار این نماد…" else "${PersianNumberFormatter.toPersianDigits((if (stats.samples30 > 0) stats.samples30 else 30).toString())} روز در بازه آماری؛ تحلیل دامنه‌های نوسان", muted = true, size = 11)
-        detail.annual?.let { DetailText("TGJU • ${DesktopPortfolioPolicy.observedTime(it.receivedAt)}${if (RateHistoryKey(detail.instrument, TimeHorizon.ONE_YEAR) in detail.cachedKeys || detail.statsError != null) " • ذخیره‌شده" else ""}", muted = true, size = 10) }
-        detail.statsError?.let { DetailText(it, muted = true, size = 11) }
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp).testTag("rate-statistics-footer"),
+            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            val note = when {
+                detail.instrument in listOf(BoardInstrument.GOLD18, BoardInstrument.GOLD24, BoardInstrument.MELT) ->
+                    "اختلاف نرخ داخلی با ارزش جهانی طلای ۱۸ عیار؛ بر مبنای انس و دلار همین نرخ"
+                detail.instrument.coin != null -> "بر اساس انس، دلار، وزن خالص و حق ضرب؛ نرخ خرید یا توصیه معامله نیست."
+                else -> null
+            }
+            note?.let { DetailText(it, muted = true, size = 12, lines = 2) }
+            val sampleText = if (detail.statsLoading) "در حال دریافت آمار این نماد…" else
+                "${PersianNumberFormatter.toPersianDigits((if (stats.samples30 > 0) stats.samples30 else 30).toString())} روز در بازه آماری؛ تحلیل دامنه‌های نوسان"
+            val sourceText = detail.annual?.let {
+                " • TGJU • ${DesktopPortfolioPolicy.observedTime(it.receivedAt)}${if (RateHistoryKey(detail.instrument, TimeHorizon.ONE_YEAR) in detail.cachedKeys || detail.statsError != null) " • ذخیره‌شده" else ""}"
+            }.orEmpty()
+            DetailText(sampleText + sourceText, muted = true, size = 11, lines = 2)
+            detail.statsError?.let { DetailText(it, muted = true, size = 12, lines = 2) }
+        }
     }
 }
 
 @Composable private fun StatisticsRow(label: String, value: String?, percent: Double?, evaluation: String, reduceMotion: Boolean) {
     val c = LocalGoldExColors.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        DetailText(label, Modifier.weight(1.45f), size = 11, bold = true, lines = 2)
-        if (reduceMotion) DetailText(value ?: "—", Modifier.weight(1.1f), size = 11, bold = true, lines = 2)
-        else AnimatedPriceTicker(value ?: "—", Modifier.weight(1.1f).clipToBounds(), color = c.textMain, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        DetailText(label, Modifier.weight(1.45f), size = 13, bold = true, lines = 2)
+        if (reduceMotion) DetailText(value ?: "—", Modifier.weight(1.1f), size = 13, bold = true, lines = 2)
+        else AnimatedPriceTicker(value ?: "—", Modifier.weight(1.1f).clipToBounds(), color = c.textMain, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         val color = when { percent == null || percent == 0.0 -> c.textMuted; percent > 0 -> c.marketGainText; else -> c.errorRed }
-        DetailText(percent?.let { "${if (it > 0) "+" else ""}${PersianNumberFormatter.formatDouble(it, 2)}٪" } ?: "—", Modifier.weight(.9f), size = 11, color = color, lines = 2)
-        DetailText(if (value == null) "بدون داده" else evaluation, Modifier.weight(.8f), size = 10, muted = true, lines = 2)
+        DetailText(percent?.let { "${if (it > 0) "+" else ""}${PersianNumberFormatter.formatDouble(it, 2)}٪" } ?: "—", Modifier.weight(.9f), size = 13, color = color, lines = 2)
+        DetailText(if (value == null) "بدون داده" else evaluation, Modifier.weight(.8f), size = 12, muted = true, lines = 2)
     }
     HorizontalDivider(color = c.border.copy(alpha = .3f), thickness = .6.dp)
 }

@@ -1,10 +1,14 @@
 package com.goldex.companion.desktop
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -21,6 +25,43 @@ import kotlin.test.*
 
 @OptIn(ExperimentalTestApi::class)
 class WindowsControlContractTest {
+    @Test fun iconHoverChangesOnlyCircularStateLayerInBothThemes() = runDesktopComposeUiTest(width = 160, height = 120) {
+        var dark by mutableStateOf(false)
+        setContent {
+            GoldExCompanionTheme(isDarkTheme = dark) {
+                Box(Modifier.fillMaxSize().background(com.goldex.companion.ui.theme.LocalGoldExColors.current.surface)) {
+                    DesktopIconButton({}, Modifier.padding(24.dp).size(44.dp).testTag("hover-icon")) {
+                        Icon(Icons.Outlined.Edit, "ویرایش")
+                    }
+                }
+            }
+        }
+        for (theme in listOf(false, true)) {
+            runOnIdle { dark = theme }
+            onNodeWithTag("hover-icon").performMouseInput { moveTo(androidx.compose.ui.geometry.Offset(-10f,-10f)) }
+            val before = onNodeWithTag("hover-icon").captureToImage().toPixelMap()
+            onNodeWithTag("hover-icon").performMouseInput { moveTo(center) }
+            val afterImage = onNodeWithTag("hover-icon").captureToImage()
+            val after = afterImage.toPixelMap()
+            var changed = 0
+            for (y in 0 until after.height) for (x in 0 until after.width) {
+                if (before[x,y] != after[x,y]) {
+                    changed++
+                    val dx = x + .5f - after.width / 2f
+                    val dy = y + .5f - after.height / 2f
+                    assertTrue(dx*dx + dy*dy <= (after.width/2f + 1f)*(after.width/2f + 1f),
+                        "Hover must not paint rectangular corners: ($x,$y)")
+                }
+            }
+            assertTrue(changed > 0, "Material circular hover feedback must remain visible")
+            val bitmap = afterImage.asSkiaBitmap()
+            val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
+            val encoded = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
+            java.io.File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }
+                .resolve("icon-hover-${if(theme) "dark" else "light"}.png").writeBytes(encoded.bytes)
+            encoded.close(); image.close(); bitmap.close()
+        }
+    }
     @Test fun selectedOverflowingOptionIsVisibleWithoutShrinkingLabels() = runDesktopComposeUiTest(width = 420, height = 240) {
         val choices = (1..12).map { "موقعیت شماره $it" }
         setContent {
@@ -95,7 +136,7 @@ class WindowsControlContractTest {
                 violations += "$name uses GoldButton without the required-icon desktop adapter"
             if (Regex("\\bIconButton\\s*\\(").containsMatchIn(source) && name != "DesktopWorkspaceHeader.kt" &&
                 !source.contains("import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton"))
-                violations += "$name uses an icon action outside the desktop body-shape adapter"
+                violations += "$name uses an icon action outside the desktop circular-state adapter"
             val segmentedOwners = mapOf(
                 "DesktopDashboardTrend.kt" to setOf("DashboardTrend"),
                 "DesktopRateDetailPage.kt" to setOf("RateChartCard"),

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.foundation.text.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -89,7 +91,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     }
 }
 
-/** Compact text navigation, retained for the dashboard's invoice ledger shortcut. */
+/** Compact text navigation shared by both dashboard card links. */
 @Composable internal fun DesktopNavigationLink(text: String, onClick: () -> Unit, icon: ImageVector, modifier: Modifier = Modifier) {
     val c = LocalGoldExColors.current
     TextButton(onClick, modifier, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
@@ -121,11 +123,25 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 ) {
     val c = LocalGoldExColors.current
     val focused by interactionSource.collectIsFocusedAsState()
-    val hovered by interactionSource.collectIsHoveredAsState()
-    IconButton(onClick, modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp).clip(DesktopControls.BodyShape)
-        .background(if (hovered) c.surfaceElevated else Color.Transparent)
-        .border(if (focused) 1.dp else 0.dp, if (focused) c.goldPrimary else Color.Transparent, DesktopControls.BodyShape),
+    // Material owns the circular state layer. A second background would draw a square hover behind it.
+    IconButton(onClick, modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp).clip(CircleShape)
+        .border(if (focused) 1.dp else 0.dp, if (focused) c.goldPrimary else Color.Transparent, CircleShape),
         enabled, colors, interactionSource, content)
+}
+
+/** Approved compact capsule for opening a quote's detail; not a save/delete action variant. */
+@Composable internal fun DesktopRateDetailsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = LocalGoldExColors.current
+    Surface(onClick, modifier.height(32.dp), shape = DesktopControls.CapsuleShape,
+        color = c.surfaceElevated, border = c.hairlineBorder) {
+        Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("جزئیات", Modifier.testTag("rate-details-label"), fontFamily = VazirmatnFamily,
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = c.textMain, maxLines = 1)
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp).testTag("rate-details-arrow"),
+                tint = c.goldPrimary)
+        }
+    }
 }
 
 /** Independent choices derived from Android's customer LedgerFilterCapsuleItem; no sliding track. */
@@ -167,8 +183,8 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 @Composable internal fun <T> DesktopFilterRow(
     items: List<T>, selectedItem: T, onItemSelected: (T) -> Unit, label: (T) -> String,
     modifier: Modifier = Modifier, count: ((T) -> Int)? = null, countColor: ((T) -> Color)? = null,
-    isItemEnabled: (T) -> Boolean = { true }
-) = ChoiceRow(items, selectedItem, onItemSelected, label, modifier, count, countColor, isItemEnabled, true)
+    isItemEnabled: (T) -> Boolean = { true }, fillWidth: Boolean = true
+) = ChoiceRow(items, selectedItem, onItemSelected, label, modifier, count, countColor, isItemEnabled, true, fillWidth)
 
 /** Form choices share typography/states with filters but retain the normal 12dp body curvature. */
 @Composable internal fun <T> DesktopChoiceRow(
@@ -192,7 +208,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 @Composable private fun <T> ChoiceRow(
     items: List<T>, selectedItem: T, onItemSelected: (T) -> Unit, label: (T) -> String,
     modifier: Modifier, count: ((T) -> Int)?, countColor: ((T) -> Color)?, isItemEnabled: (T) -> Boolean,
-    capsule: Boolean
+    capsule: Boolean, fillWidth: Boolean = true
 ) {
     val scroll = rememberScrollState()
     val widths = remember(items) { mutableStateMapOf<T, Int>() }
@@ -213,7 +229,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
         }
     }
     Box(modifier.height(DesktopControls.Height).onSizeChanged { viewport = it.width }) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(scroll).selectableGroup(),
+        Row(Modifier.then(if (fillWidth) Modifier.fillMaxWidth() else Modifier).horizontalScroll(scroll).selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             items.forEach { item -> DesktopFilterChip(label(item), item == selectedItem, { onItemSelected(item) },
                 modifier = Modifier.onSizeChanged { widths[item] = it.width },

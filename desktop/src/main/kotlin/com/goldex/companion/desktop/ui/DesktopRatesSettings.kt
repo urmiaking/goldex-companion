@@ -91,7 +91,12 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             val density = LocalDensity.current
             // LuxuryCard adds 16dp top/bottom padding and a 2dp hairline around natural content.
             var profileHeight by remember { mutableStateOf(0.dp) }
-            var rateContentHeight by remember { mutableStateOf(0.dp) }
+            var rateHeadingHeight by remember { mutableStateOf(0.dp) }
+            var rateNoteHeight by remember { mutableStateOf(0.dp) }
+            val rateOptionHeights = remember { mutableStateMapOf<PriceSource, androidx.compose.ui.unit.Dp>() }
+            val rateContentHeight = rateHeadingHeight + rateNoteHeight +
+                PriceSource.values().fold(0.dp) { total, source -> total + (rateOptionHeights[source] ?: 0.dp) } +
+                48.dp + 34.dp
             var defaultsHeight by remember { mutableStateOf(0.dp) }
             val preferencesHeight = defaultsHeight + 20.dp + rateContentHeight
             val profile: @Composable (Modifier) -> Unit = { modifier ->
@@ -174,20 +179,27 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                     LuxuryCard(Modifier.fillMaxWidth().then(if (stretch)
                         Modifier.heightIn(min = (profileHeight - defaultsHeight - 20.dp).coerceAtLeast(0.dp)) else Modifier)
                         .testTag("settings-rate-sources")) {
-                        Column(Modifier.fillMaxWidth().onSizeChanged { rateContentHeight = with(density) { it.height.toDp() } + 34.dp },
-                        verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            PageTitle("دریافت نرخ‌ها")
-                            Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                PriceSource.values().forEach { src ->
+                        // Measure natural children, not this stretched column, so clearing an address releases height.
+                        Column(Modifier.fillMaxWidth().heightIn(min = maxOf(
+                            rateContentHeight - 34.dp,
+                            if (stretch) profileHeight - defaultsHeight - 20.dp - 34.dp else 0.dp
+                        ).coerceAtLeast(0.dp)),
+                            verticalArrangement = if (stretch) Arrangement.SpaceBetween else Arrangement.spacedBy(12.dp)) {
+                            Column(Modifier.onSizeChanged { rateHeadingHeight = with(density) { it.height.toDp() } },
+                                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                PageTitle("دریافت نرخ‌ها")
+                                Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
+                            }
+                            PriceSource.values().forEach { src ->
                                     DesktopPriceSourceOption(
                                         source = src,
                                         isSelected = draft.priceSource == src,
+                                        modifier = Modifier.onSizeChanged { rateOptionHeights[src] = with(density) { it.height.toDp() } },
                                         onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
                                     )
-                                }
                             }
-                            Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
+                            Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp,
+                                modifier = Modifier.testTag("settings-rates-note").onSizeChanged { rateNoteHeight = with(density) { it.height.toDp() } })
 
                         }
                     }
