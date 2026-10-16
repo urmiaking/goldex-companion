@@ -1,5 +1,10 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -57,27 +62,11 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(
-                    onClick = { workspace.navigate(DesktopDestination.RATES) },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .background(LocalGoldExColors.current.surfaceElevated, RoundedCornerShape(10.dp))
-                        .border(0.6.dp, LocalGoldExColors.current.goldBorder.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .testTag("rate-details-close")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "بازگشت به تابلوی نرخ‌ها",
-                        tint = LocalGoldExColors.current.goldPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
                 Column(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    PageTitle(row.instrument.title)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         BoardAmount(row.value, row.instrument.dollar, workspaceState.reduceMotion, size = 23)
                         DetailText(if (row.instrument.dollar) "دلار آمریکا" else "تومان", muted = true)
@@ -113,67 +102,8 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
         BoardInstrument.BAHAR, BoardInstrument.QUARTER, BoardInstrument.GERAMI,
         BoardInstrument.USD, BoardInstrument.AED
     )
-    val scroll = rememberScrollState()
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    LaunchedEffect(detail.instrument) {
-        val index = items.indexOf(detail.instrument).coerceAtLeast(0)
-        scroll.animateScrollTo(with(density) { (index * 135.dp).roundToPx() })
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scroll)
-                .padding(vertical = 4.dp)
-                .testTag("rate-instrument-selector"),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { inst ->
-                val isSelected = inst == detail.instrument
-                val bgColor = if (isSelected) {
-                    if (colors.isDark) colors.goldPrimary.copy(alpha = 0.22f) else colors.goldPrimary.copy(alpha = 0.12f)
-                } else {
-                    colors.surface
-                }
-                val borderColor = if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.4f)
-                val borderWidth = if (isSelected) 1.dp else 0.6.dp
-                val textColor = if (isSelected) (if (colors.isDark) colors.goldSecondary else colors.goldPrimary) else colors.textMuted
-                val fontWt = if (isSelected) FontWeight.Bold else FontWeight.Medium
-
-                Surface(
-                    onClick = { workspace.rateDetail.select(inst) },
-                    shape = RoundedCornerShape(20.dp),
-                    color = bgColor,
-                    border = BorderStroke(borderWidth, borderColor),
-                    shadowElevation = if (isSelected && !colors.isDark) 2.dp else 0.dp,
-                    modifier = Modifier.height(38.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(colors.goldPrimary, CircleShape)
-                            )
-                        }
-                        Text(
-                            text = instrumentLabel(inst),
-                            color = textColor,
-                            fontSize = 12.sp,
-                            fontWeight = fontWt,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-        HorizontalScrollbar(rememberScrollbarAdapter(scroll), Modifier.fillMaxWidth().height(4.dp))
-    }
+    DesktopFilterRow(items, detail.instrument, { workspace.rateDetail.select(it) }, ::instrumentLabel,
+        Modifier.fillMaxWidth().testTag("rate-instrument-selector"))
 }
 
 @Composable private fun RateChartCard(detail: DesktopRateDetailState, reduceMotion: Boolean, onHorizon: (TimeHorizon) -> Unit, onRetry: () -> Unit) {
@@ -248,8 +178,7 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
             val selector: @Composable () -> Unit = {
                 LuxurySegmentedControl(
                     RateDetailHorizons, detail.horizon, onHorizon, ::horizonLabel,
-                    Modifier.width(240.dp).testTag("rate-detail-horizon"), height = 38.dp, fontSize = 11.sp
-                )
+                    Modifier.width(240.dp).testTag("rate-detail-horizon"), height = 38.dp, fontSize = 11.sp)
             }
             if (maxWidth >= 600.dp) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { title(); selector() }
             else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) { title(); selector() }
@@ -260,7 +189,7 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
                 if (detail.loading) CircularProgressIndicator(Modifier.size(28.dp), color = c.goldPrimary, strokeWidth = 2.dp)
                 else Icon(Icons.Outlined.ShowChart, null, Modifier.size(40.dp), tint = c.textMuted)
                 DetailText(if (detail.loading) "در حال دریافت تاریخچه این نماد…" else "تاریخچه معتبر برای این نماد و بازه در دسترس نیست.", muted = true)
-                if (!detail.loading) GoldButton("تلاش دوباره", onRetry, isSecondary = true, modifier = Modifier.width(140.dp).testTag("rate-history-retry"))
+                if (!detail.loading) GoldButton("تلاش دوباره", onRetry, isSecondary = true, modifier = Modifier.width(140.dp).testTag("rate-history-retry"), icon = Icons.Outlined.Refresh)
             }
         } else {
             Surface(shape = RoundedCornerShape(14.dp), color = c.surfaceElevated, border = BorderStroke(.6.dp, c.goldBorder.copy(alpha = .5f))) {
@@ -318,14 +247,14 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
     fun deviation(value: Long?) = DesktopRateStatisticsPolicy.differencePercent(current, value)
 
     DetailCard(modifier.testTag("rate-statistics")) {
-        DetailText("دامنه‌های تاریخی و شاخص‌های آماری", bold = true, size = 16, modifier = Modifier.semantics { heading() })
-        DetailText("تحلیل ۳۰ روزه بازار بر مبنای آخرین نوسانات و پایگاه داده تحلیلی", muted = true, size = 11)
-        Spacer(Modifier.height(18.dp))
+        DetailText("دامنه‌های تاریخی و شاخص‌های آماری", bold = true, size = 18, modifier = Modifier.semantics { heading() })
+        DetailText("تحلیل ۳۰ روزه بازار بر مبنای آخرین نوسانات و پایگاه داده تحلیلی", muted = true, size = 12, lines = 2)
+        Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth().background(LocalGoldExColors.current.surfaceElevated).padding(10.dp)) {
-            DetailText("شاخص آماری", Modifier.weight(1.45f), muted = true, size = 11)
-            DetailText("مقدار", Modifier.weight(1.1f), muted = true, size = 11)
-            DetailText("نرخ فعلی", Modifier.weight(.9f), muted = true, size = 11)
-            DetailText("ارزیابی", Modifier.weight(.8f), muted = true, size = 11)
+            DetailText("شاخص آماری", Modifier.weight(1.45f), muted = true, size = 13)
+            DetailText("مقدار", Modifier.weight(1.1f), muted = true, size = 13)
+            DetailText("نرخ فعلی", Modifier.weight(.9f), muted = true, size = 13)
+            DetailText("ارزیابی", Modifier.weight(.8f), muted = true, size = 13)
         }
         StatisticsRow("دامنه نوسان روزانه", monthlyStats.dailyRangeText, null, "دامنه معاملات امروز", state.reduceMotion)
         StatisticsRow("تغییر هفتگی", monthlyStats.weeklyChangeText, null, "روند ۷ روزه", state.reduceMotion)
@@ -338,29 +267,40 @@ internal fun horizonLabel(horizon: TimeHorizon) = when (horizon) {
         if (detail.instrument in listOf(BoardInstrument.GOLD18, BoardInstrument.GOLD24, BoardInstrument.MELT)) {
             val premium = DesktopRateStatisticsPolicy.goldPremium(state.snapshot, detail.instrument)
             StatisticsRow("حباب اسمی طلا (معادل ۱۸ عیار)", premium?.let { "${PersianNumberFormatter.formatPrice(it.first)} تومان / گرم" }, premium?.second, "انس و دلار", state.reduceMotion)
-            DetailText("اختلاف نرخ داخلی با ارزش جهانی طلای ۱۸ عیار؛ بر مبنای انس و دلار همین نرخ", muted = true, size = 10, lines = 2)
         }
         if (detail.instrument.coin != null) {
             val bubble = row.bubble
             StatisticsRow("حباب محاسبه‌شده سکه", bubble?.let { "${PersianNumberFormatter.formatPrice(bubble.bubbleAmount.toLong())} تومان" }, bubble?.bubblePercent, "ارزش ذاتی", state.reduceMotion)
-            DetailText("بر اساس انس، دلار، وزن خالص و حق ضرب؛ نرخ خرید یا توصیه معامله نیست.", muted = true, size = 11)
         }
-        Spacer(Modifier.height(12.dp))
-        DetailText(if (detail.statsLoading) "در حال دریافت آمار این نماد…" else "${PersianNumberFormatter.toPersianDigits((if (stats.samples30 > 0) stats.samples30 else 30).toString())} روز در بازه آماری؛ تحلیل دامنه‌های نوسان", muted = true, size = 11)
-        detail.annual?.let { DetailText("TGJU • ${DesktopPortfolioPolicy.observedTime(it.receivedAt)}${if (RateHistoryKey(detail.instrument, TimeHorizon.ONE_YEAR) in detail.cachedKeys || detail.statsError != null) " • ذخیره‌شده" else ""}", muted = true, size = 10) }
-        detail.statsError?.let { DetailText(it, muted = true, size = 11) }
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp).testTag("rate-statistics-footer"),
+            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            val note = when {
+                detail.instrument in listOf(BoardInstrument.GOLD18, BoardInstrument.GOLD24, BoardInstrument.MELT) ->
+                    "اختلاف نرخ داخلی با ارزش جهانی طلای ۱۸ عیار؛ بر مبنای انس و دلار همین نرخ"
+                detail.instrument.coin != null -> "بر اساس انس، دلار، وزن خالص و حق ضرب؛ نرخ خرید یا توصیه معامله نیست."
+                else -> null
+            }
+            note?.let { DetailText(it, muted = true, size = 12, lines = 2) }
+            val sampleText = if (detail.statsLoading) "در حال دریافت آمار این نماد…" else
+                "${PersianNumberFormatter.toPersianDigits((if (stats.samples30 > 0) stats.samples30 else 30).toString())} روز در بازه آماری؛ تحلیل دامنه‌های نوسان"
+            val sourceText = detail.annual?.let {
+                " • TGJU • ${DesktopPortfolioPolicy.observedTime(it.receivedAt)}${if (RateHistoryKey(detail.instrument, TimeHorizon.ONE_YEAR) in detail.cachedKeys || detail.statsError != null) " • ذخیره‌شده" else ""}"
+            }.orEmpty()
+            DetailText(sampleText + sourceText, muted = true, size = 11, lines = 2)
+            detail.statsError?.let { DetailText(it, muted = true, size = 12, lines = 2) }
+        }
     }
 }
 
 @Composable private fun StatisticsRow(label: String, value: String?, percent: Double?, evaluation: String, reduceMotion: Boolean) {
     val c = LocalGoldExColors.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-        DetailText(label, Modifier.weight(1.45f), size = 11, bold = true, lines = 2)
-        if (reduceMotion) DetailText(value ?: "—", Modifier.weight(1.1f), size = 11, bold = true, lines = 2)
-        else AnimatedPriceTicker(value ?: "—", Modifier.weight(1.1f).clipToBounds(), color = c.textMain, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        DetailText(label, Modifier.weight(1.45f), size = 13, bold = true, lines = 2)
+        if (reduceMotion) DetailText(value ?: "—", Modifier.weight(1.1f), size = 13, bold = true, lines = 2)
+        else AnimatedPriceTicker(value ?: "—", Modifier.weight(1.1f).clipToBounds(), color = c.textMain, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         val color = when { percent == null || percent == 0.0 -> c.textMuted; percent > 0 -> c.marketGainText; else -> c.errorRed }
-        DetailText(percent?.let { "${if (it > 0) "+" else ""}${PersianNumberFormatter.formatDouble(it, 2)}٪" } ?: "—", Modifier.weight(.9f), size = 11, color = color, lines = 2)
-        DetailText(if (value == null) "بدون داده" else evaluation, Modifier.weight(.8f), size = 10, muted = true, lines = 2)
+        DetailText(percent?.let { "${if (it > 0) "+" else ""}${PersianNumberFormatter.formatDouble(it, 2)}٪" } ?: "—", Modifier.weight(.9f), size = 13, color = color, lines = 2)
+        DetailText(if (value == null) "بدون داده" else evaluation, Modifier.weight(.8f), size = 12, muted = true, lines = 2)
     }
     HorizontalDivider(color = c.border.copy(alpha = .3f), thickness = .6.dp)
 }

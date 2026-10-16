@@ -1,5 +1,9 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+
+import com.goldex.companion.desktop.ui.controls.*
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -421,12 +425,7 @@ internal fun basis(row: BoardRow) = when (row.instrument) {
 
 @Composable private fun QuoteAction(row: BoardRow, onDetail: (BoardInstrument) -> Unit) {
     val c = LocalGoldExColors.current
-    Button(onClick = { onDetail(row.instrument) }, modifier = Modifier.height(32.dp).testTag("rate-detail-${row.instrument.name}"),
-        shape = ButtonShape, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = c.surfaceElevated.copy(alpha = .7f), contentColor = c.textMain),
-        elevation = ButtonDefaults.buttonElevation(0.dp), border = null) {
-        RatesText("جزئیات", fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-    }
+    DesktopRateDetailsButton({ onDetail(row.instrument) }, Modifier.testTag("rate-detail-${row.instrument.name}"))
 }
 
 @Composable private fun RatesText(text: String, modifier: Modifier = Modifier, color: Color = LocalGoldExColors.current.textMain,

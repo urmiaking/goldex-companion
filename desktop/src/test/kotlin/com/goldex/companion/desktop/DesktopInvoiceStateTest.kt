@@ -132,6 +132,13 @@ class DesktopInvoiceStateTest {
                 feature.save()
                 assertTrue(feature.customers.invoices.getBarterInvoices().isEmpty())
                 assertTrue(feature.manager.uiState.value.statusMessage.contains("قلم"))
+                feature.manager.setDebtBasis(InvoiceDebtBasis.CASH)
+                feature.manager.addSalesItem(BankCoinItem(unitPrice = 75_000_000,
+                    totalPayable = 75_000_000.0, equivalent18kWeight = 9.759))
+                feature.save()
+                assertNull(feature.manager.uiState.value.error)
+                assertEquals(1, feature.customers.invoices.getBarterInvoices().size)
+                assertEquals(0L, feature.customers.invoices.getBarterInvoices().single().spotPrice18k)
             } finally { scope.cancel() }
         }
     }

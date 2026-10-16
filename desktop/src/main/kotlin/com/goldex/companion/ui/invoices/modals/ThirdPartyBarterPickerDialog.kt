@@ -1,6 +1,11 @@
 package com.goldex.companion.ui.invoices.modals
 
-// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0025.
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,13 +40,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.CustomerIconVector
-import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -350,8 +354,8 @@ internal fun ThirdPartyBarterPickerDialog(
                         text = "انصراف",
                         onClick = onDismiss,
                         isSecondary = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        modifier = Modifier.fillMaxWidth(), icon = Icons.Outlined.Close
+)
                 }
             }
         }

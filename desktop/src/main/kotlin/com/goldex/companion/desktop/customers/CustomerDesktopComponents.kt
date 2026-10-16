@@ -18,10 +18,15 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.Customer
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.theme.*
 
 internal data class AccountSummaryMetric(val label: String, val cash: Long? = null, val gold: Double? = null, val caption: String = "")
+
+internal fun customerContactLabel(customer: Customer): String = PersianNumberFormatter.toPersianDigits(
+    listOfNotNull(customer.phone.takeIf { it.isNotBlank() },
+        customer.accountCode.takeIf { it.isNotBlank() }?.let { "($it)" }).joinToString(" "))
 
 /** Existing hero shape, hairline and desktop 24sp metric hierarchy, in both account views. */
 @Composable internal fun CustomerAccountSummary(
@@ -79,13 +84,13 @@ internal data class AccountSummaryMetric(val label: String, val cash: Long? = nu
     }
 }
 
-@Composable internal fun CustomerAccountStatus(gold: Double, cash: Long) {
+@Composable internal fun CustomerAccountStatus(gold: Double, cash: Long, modifier: Modifier = Modifier) {
     val colors = LocalGoldExColors.current
     val debtor = gold > 1e-10 || cash > 0
     val creditor = gold < -1e-10 || cash < 0
     val label = when { debtor && creditor -> "مانده دوطرفه"; debtor -> "بدهکار"; creditor -> "بستانکار"; else -> "تسویه‌شده" }
     val tint = when { debtor -> colors.errorRed; creditor -> colors.marketGainText; else -> colors.textMuted }
-    Surface(shape = RoundedCornerShape(24.dp), color = tint.copy(alpha = .10f), border = BorderStroke(.5.dp, tint.copy(alpha = .3f))) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(24.dp), color = tint.copy(alpha = .10f), border = BorderStroke(.5.dp, tint.copy(alpha = .3f))) {
         Text(label, Modifier.padding(horizontal = 9.dp, vertical = 4.dp), fontSize = 11.sp, color = tint,
             fontWeight = FontWeight.SemiBold, maxLines = 1)
     }

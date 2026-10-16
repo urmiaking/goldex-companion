@@ -33,7 +33,8 @@ compose.desktop {
             packageVersion = desktopVersion
             description = "Qirato gold calculator"
             vendor = "Qirato"
-            modules("java.desktop")
+            // PDFBox uses the JDK's buffer cleaner when closing mapped document files.
+            modules("java.desktop", "jdk.unsupported")
             windows {
                 iconFile.set(project.file("icons/qirato.ico"))
                 menuGroup = "Qirato"

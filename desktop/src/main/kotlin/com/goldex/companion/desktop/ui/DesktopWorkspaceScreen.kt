@@ -1,5 +1,15 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.*
+import com.goldex.companion.desktop.customers.customerContactLabel
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
+
 import androidx.compose.foundation.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -57,13 +67,14 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val invoiceHost by workspace.invoices.host.collectAsState()
     val invoiceDialog = remember(invoiceState, invoiceHost) { workspace.invoices.hasDialog }
     val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
+    val rateDetail by workspace.rateDetail.state.collectAsState()
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
     val focus = LocalFocusManager.current
     LaunchedEffect(state.destination) { focus.clearFocus() }
     LaunchedEffect(updater) { updater?.start() }
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl, LocalDesktopReduceMotion provides state.reduceMotion) {
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
@@ -85,21 +96,21 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                 modifier = Modifier.testTag("inventory-add"),
                                 icon = Icons.Outlined.Add,
                                 secondary = false,
-                                enabled = !inventoryState.saving,
-                                compact = compact
-                            )
+                                enabled = !inventoryState.saving)
                         }
-                        if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers, compact)
-                        if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices, compact)
-                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR)
-                        (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else null,
+                        if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
+                        if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices)
+                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else null,
                         subtitleOverride = statementCustomer?.let { customer ->
-                            listOf("گردش حساب", customer.role,
-                                customer.accountCode.takeIf { it.isNotBlank() }?.let { "حساب ${PersianNumberFormatter.toPersianDigits(it)}" },
-                                customer.phone.takeIf { it.isNotBlank() }?.let(PersianNumberFormatter::toPersianDigits)).filterNotNull().joinToString(" • ")
-                        }, onBack = if (statementCustomer != null) workspace.customers.manager::closeCustomerStatement
-                            else if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) workspace.invoices::back else null,
-                        inlineActions = state.destination == DesktopDestination.CUSTOMERS || state.destination == DesktopDestination.INVOICES)
+                            listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
+                        } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else null,
+                        onBack = when {
+                            statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
+                            state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR -> workspace.invoices::back
+                            state.destination == DesktopDestination.RATE_DETAIL -> ({ workspace.navigate(DesktopDestination.RATES) })
+                            else -> null
+                        }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else "customer-back",
+                        backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else "بازگشت به مشتریان")
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -144,24 +155,25 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                         rates = state.snapshot?.rates,
                         boardState = workspace.ratesBoard.state.collectAsState().value,
                         reduceMotion = state.reduceMotion,
-                        onNavigateRates = { workspace.navigate(DesktopDestination.RATES) }
+                        onNavigateRate = workspace::openRateDetail
                     )
                 }
             }
         }
-        state.draft?.let { AssetDialog(it, state.saving, workspace) }
+        DesktopDialogHost(state.draft) { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)
         DesktopInvoiceDialogs(workspace)
         DesktopCustomerDialogs(workspace.customers, workspace.invoices::refreshed)
-        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
-            WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
-        state.pendingDelete?.let { item ->
+        if (updater != null)
+            WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart,
+                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
+        DesktopDialogHost(state.pendingDelete) { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخه قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
                 confirmButton = {
                     Row(Modifier.width(330.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        GoldButton("انصراف", { workspace.requestDelete(null) }, Modifier.weight(1f), isSecondary = true, enabled = !state.saving)
-                        GoldButton("حذف دارایی", { workspace.confirmDelete() }, enabled = !state.saving, modifier = Modifier.weight(1.2f).testTag("confirm-delete"))
+                        GoldButton("انصراف", { workspace.requestDelete(null) }, Modifier.weight(1f), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Close)
+                        GoldButton("حذف دارایی", { workspace.confirmDelete() }, enabled = !state.saving, modifier = Modifier.weight(1.2f).testTag("confirm-delete"), icon = Icons.Outlined.DeleteOutline)
                     }
                 })
         }
@@ -209,9 +221,9 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
             Spacer(Modifier.weight(1f))
             HorizontalDivider(color = colors.border)
             if (updater != null) WindowsUpdateControl(updater, canOpenPrompt, Modifier.fillMaxWidth(), compact)
-            WorkspaceControl(if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() },
+            WorkspaceControl(if (compact) { if (state.dark) "روز" else "شب" } else if (state.dark) "حالت روز" else "حالت شب", { workspace.toggleTheme() },
                 Modifier.fillMaxWidth().testTag("workspace-theme"), icon = if (state.dark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                secondary = true, enabled = !state.saving, compact = compact)
+                secondary = true, enabled = !state.saving)
             Text(if (compact) "این رایانه" else "اطلاعات روی این رایانه ذخیره می‌شود", color = colors.textMuted, fontSize = 10.sp, maxLines = 2)
             Text("نسخه ${PersianNumberFormatter.toPersianDigits(version)}", color = colors.textMuted, fontSize = 11.sp)
         }
@@ -259,14 +271,14 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
 @Composable private fun PortfolioPage(state: WorkspaceState, workspace: DesktopWorkspace) {
     val colors = LocalGoldExColors.current
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        TextButton({ workspace.navigate(DesktopDestination.SETTINGS) }, Modifier.testTag("previous-portfolio-back")) { Text("بازگشت به تنظیمات") }
+        GoldButton("بازگشت به تنظیمات", { workspace.navigate(DesktopDestination.SETTINGS) }, modifier = Modifier.testTag("previous-portfolio-back"), icon = Icons.Outlined.ArrowForward, isSecondary = true)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            DesktopField(state.query, workspace::search, "جست‌وجوی دارایی", Modifier.weight(1f).testTag("asset-search"))
+            DesktopSearchField(state.query, workspace::search, "جست‌وجوی دارایی", Modifier.weight(1f).testTag("asset-search"))
             GoldButton("ثبت محصول در انبار", workspace::openInventoryItem, icon = Icons.Outlined.Add, modifier = Modifier.width(172.dp).testTag("previous-portfolio-to-inventory"))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(null to "همه", PortfolioCategory.GOLD to "طلا", PortfolioCategory.COIN to "سکه").forEach { (category, label) ->
-                FilterChip(state.categoryFilter == category, { workspace.filter(category) }, label = { Text(label, maxLines = 1) })
+                DesktopFilterChip(label, state.categoryFilter == category, { workspace.filter(category) })
             }
             Spacer(Modifier.weight(1f))
             Text("${PersianNumberFormatter.toPersianDigits(state.assets.rows.size.toString())} دارایی", color = colors.textMuted, fontSize = 12.sp)
@@ -318,7 +330,7 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
 @Composable internal fun DesktopField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, numeric: Boolean = false, error: String? = null, enabled: Boolean = true, singleLine: Boolean = true, monetary: Boolean = false, keyboardType: KeyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text, unit: String? = null, adornment: ImageVector? = null) {
     val colors = LocalGoldExColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        GoldOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
+        DesktopOutlinedTextField(value, onChange, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) }, enabled = enabled, singleLine = singleLine, maxLines = if (singleLine) 1 else 3, isError = error != null,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp, color = colors.textMain, textDirection = if (numeric) TextDirection.Ltr else TextDirection.ContentOrRtl),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             trailingIcon = when {
@@ -341,11 +353,11 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
             Column(Modifier.heightIn(max = 510.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 DesktopField(draft.title, { value -> workspace.editDraft { it.copy(title = value) } }, "نام دارایی", Modifier.focusRequester(focus).testTag("asset-title"), error = draft.errors["title"])
                 LaunchedEffect(draft.id) { focus.requestFocus() }
-                LuxurySegmentedControl(PortfolioCategory.values().toList(), draft.category, { category -> workspace.editDraft { it.copy(category = category) } },
-                    label = { if (it == PortfolioCategory.GOLD) "طلا / شمش" else "سکه" }, modifier = Modifier.fillMaxWidth(), height = 42.dp, fontSize = 13.sp)
+                DesktopChoiceRow(PortfolioCategory.values().toList(), draft.category, { category -> workspace.editDraft { it.copy(category = category) } },
+                    label = { if (it == PortfolioCategory.GOLD) "طلا / شمش" else "سکه" }, modifier = Modifier.fillMaxWidth())
                 if (draft.category == PortfolioCategory.GOLD) {
                     DesktopField(draft.weight, { value -> workspace.editDraft { it.copy(weight = value) } }, "وزن (گرم)", Modifier.testTag("asset-weight"), numeric = true, error = draft.errors["weight"])
-                    LuxurySegmentedControl(Karat.values().toList(), draft.karat, { karat -> workspace.editDraft { it.copy(karat = karat) } }, label = { "${PersianNumberFormatter.toPersianDigits(it.karatNumber.toString())} عیار" }, modifier = Modifier.fillMaxWidth(), height = 42.dp, fontSize = 13.sp)
+                    DesktopChoiceRow(Karat.values().toList(), draft.karat, { karat -> workspace.editDraft { it.copy(karat = karat) } }, label = { "${PersianNumberFormatter.toPersianDigits(it.karatNumber.toString())} عیار" }, modifier = Modifier.fillMaxWidth())
                 } else {
                     ChoiceField("نوع سکه", draft.coin, CoinType.values().toList(), ::coinLabel) { coin -> workspace.editDraft { it.copy(coin = coin) } }
                     DesktopField(draft.quantity, { value -> workspace.editDraft { it.copy(quantity = value) } }, "تعداد", Modifier.testTag("asset-quantity"), numeric = true, error = draft.errors["quantity"])
@@ -356,8 +368,8 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
             }
         }, confirmButton = {
             Row(Modifier.width(350.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("انصراف", workspace::dismissAsset, Modifier.weight(1f), isSecondary = true, enabled = !saving)
-                GoldButton(if (saving) "در حال ذخیره" else "ذخیره دارایی", { workspace.saveAsset() }, enabled = !saving, modifier = Modifier.weight(1.3f).testTag("save-asset"))
+                GoldButton("انصراف", workspace::dismissAsset, Modifier.weight(1f), isSecondary = true, enabled = !saving, icon = Icons.Outlined.Close)
+                GoldButton(if (saving) "در حال ذخیره" else "ذخیره دارایی", { workspace.saveAsset() }, enabled = !saving, modifier = Modifier.weight(1.3f).testTag("save-asset"), icon = Icons.Outlined.Save)
             }
         })
 }
@@ -368,10 +380,8 @@ internal fun coinLabel(coin: CoinType) = when (coin) { CoinType.EMAMI -> "اما
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = colors.textMuted, fontSize = 12.sp)
         Box {
-            OutlinedButton({ expanded = true }, Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), border = BorderStroke(0.6.dp, colors.border)) {
-                Text(text(selected), Modifier.weight(1f), color = colors.textMain, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Icon(Icons.Outlined.ExpandMore, null, tint = colors.goldPrimary)
-            }
+            DesktopDropdownControl(text(selected), { expanded = true }, Modifier.fillMaxWidth())
+
             DropdownMenu(expanded, { expanded = false }) { choices.forEach { choice -> DropdownMenuItem(text = { Text(text(choice)) }, onClick = { expanded = false; onSelect(choice) }) } }
         }
     }

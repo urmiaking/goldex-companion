@@ -36,6 +36,8 @@ class DesktopCustomersScreenTest {
         render()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.onNodeWithText("مشتری جدید").performClick()
+        compose.onNodeWithText("همکار و بنکدار").assertDoesNotExist()
+        compose.onNodeWithTag("customer-role-selector").assertDoesNotExist()
         field("customer-name").performTextReplacement("مشتری آزمون")
         field("customer-phone").performTextReplacement("۰۹۱۲۳۴۵۶۷۸۹")
         screenshot("customers-add-light.png", "customer-form")
@@ -45,7 +47,10 @@ class DesktopCustomersScreenTest {
         field("customer-search").performTextReplacement("نام ناموجود")
         compose.onNodeWithText("طرف‌حسابی با این مشخصات یافت نشد").assertExists()
         field("customer-search").performTextReplacement("")
-        compose.runOnIdle { assertEquals("09123456789", workspace.customers.repository.getCustomers().single().phone) }
+        compose.runOnIdle {
+            assertEquals("09123456789", workspace.customers.repository.getCustomers().single().phone)
+            assertEquals(Customer(name = "expected").role, workspace.customers.repository.getCustomers().single().role)
+        }
     }
 
     @Test fun ledgerAndStatementUseWorkspaceHeaderInBothThemesAndNavigation() {
@@ -116,16 +121,18 @@ class DesktopCustomersScreenTest {
     }
 
     @Test fun customerMetadataCanBeEditedAndUnsettledDeletionShowsErrorInConfirmation() {
-        val contact = Customer(id = "edit", name = "مشتری اولیه", goldDebtGrams = 1.0)
+        val contact = Customer(id = "edit", name = "مشتری اولیه", goldDebtGrams = 1.0, role = "همکار و بنکدار")
         workspace.customers.repository.addCustomer(contact)
         workspace.customers.manager.loadCustomers()
         render()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.size == 1 }
         compose.onNodeWithTag("customer-edit-edit").performClick()
+        compose.onNodeWithTag("customer-role-selector").assertDoesNotExist()
         field("customer-name").performTextReplacement("مشتری ویرایش‌شده")
         compose.onNodeWithText("ذخیره تغییرات").performScrollTo().performClick()
         compose.waitUntil(10_000) { workspace.customers.repository.getCustomers().single().name == "مشتری ویرایش‌شده" && !workspace.customers.hasDialog }
+        compose.runOnIdle { assertEquals(contact.role, workspace.customers.repository.getCustomers().single().role) }
         compose.onNodeWithTag("customer-delete-edit").performClick()
         compose.onNodeWithTag("customer-delete-final").assertIsNotEnabled()
         compose.onNode(hasText("پیش از حذف طرف‌حساب، مانده حساب را تسویه کنید") and hasAnyAncestor(hasTestTag("customer-delete-confirmation"))).assertExists()

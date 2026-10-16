@@ -1,7 +1,9 @@
 # Segmented Switch & Selector Invariant (`segmented-switch-design-system.md`)
 
 ## 1. Core Principle
-Whenever the user can select between two, three, or more mutually exclusive modes, timeframes, or categories (e.g., Benchmark Rate in Calculator, Wage Mode, Trend Chart Timeframe, Karat Convert Mode), a dedicated animated segmented control (`LuxurySegmentedControl`) MUST be used.
+Distinguish calculation modes and chart time ranges from record/category filters. Android's existing calculation mode selectors and the user-approved Windows calculator mode controls may retain `LuxurySegmentedControl`. Retained Windows chart horizons also use this shared sliding selector; record/category/instrument filters remain independent. Customer account type is not displayed or selected in Windows; persisted legacy roles remain compatible.
+
+Windows MUST use independent `DesktopFilterRow`/`DesktopFilterChip` for customer/invoice/stock categories and rate instruments, matching Android customer-ledger reference options. Chart horizons retain `LuxurySegmentedControl`; stock location is a dropdown. Other form choices use `DesktopChoiceRow`. Follow [windows-design-system.md](windows-design-system.md) and [the detailed contract](../../docs/design/windows-controls.md), including count badges, 14sp labels, keyboard selection, overflow and reduced motion. The following motion specifications apply only to retained segmented controls.
 
 ## 2. Inviolable Design & Motion Rules
 - **Sliding Indicator Transition**: The active selection indicator must glide smoothly between options using a physical spring transition (`spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)`). Instant snapping without motion is prohibited.
@@ -13,3 +15,7 @@ Whenever the user can select between two, three, or more mutually exclusive mode
   - Active Pill: `colors.surface` with `BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.5f))` and soft elevation (`1.dp` to `1.5.dp`)
   - Active Text Color: `colors.goldPrimary` (Bold)
   - Inactive Text Color: `colors.textMuted` (Medium)
+
+## Windows scope
+
+Windows follows [its context-specific contract](windows-design-system.md). Retain `LuxurySegmentedControl` for dashboard/analysis chart horizons and calculator modes. Customer account type has no Windows selector. Inventory location is a dropdown; record/category/instrument filters remain independent options. Do not apply the opening blanket rule to every Windows choice.

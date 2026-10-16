@@ -1,5 +1,9 @@
 package com.goldex.companion.ui.components
 
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+
 // Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
 
 import androidx.compose.foundation.layout.*
@@ -24,7 +28,7 @@ fun RecordListStatus(isLoading: Boolean, error: String?, onRetry: () -> Unit = {
         }
         if (error != null) {
             Text(error, color = colors.errorRed, fontFamily = VazirmatnFamily)
-            GoldButton(text = "تلاش دوباره", onClick = onRetry, isSecondary = true, enabled = !isLoading)
+            GoldButton(text = "تلاش دوباره", onClick = onRetry, isSecondary = true, enabled = !isLoading, icon = Icons.Outlined.Refresh)
         }
     }
 }

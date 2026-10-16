@@ -1,5 +1,12 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.desktop.data.InventoryPhoto
 import com.goldex.companion.desktop.state.*
@@ -107,7 +115,7 @@ private val GreenGainColor = Color(0xFF4ADE80)
                             color = if (state.error != null) colors.errorRed else colors.textMain,
                             fontSize = 12.5.sp
                         )
-                        IconButton(feature::clearMessage, modifier = Modifier.size(24.dp)) {
+                        IconButton(feature::clearMessage, modifier = Modifier.size(44.dp)) {
                             Icon(Icons.Outlined.Close, "بستن پیام", tint = colors.textMuted, modifier = Modifier.size(16.dp))
                         }
                     }
@@ -126,8 +134,8 @@ private val GreenGainColor = Color(0xFF4ADE80)
         }
 
         // 5. Item Details Dialog (when an item is selected from table)
-        if (state.selected != null && !state.hasDialog) {
-            ItemDetailsDialog(state, feature, onDismiss = { feature.select(null) })
+        DesktopDialogHost(state.takeIf { it.selected != null && !it.hasDialog }, contentKey = { it.selected?.id }) { displayed ->
+            ItemDetailsDialog(displayed, feature, onDismiss = { feature.select(null) })
         }
     }
 }
@@ -533,61 +541,23 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
         )
     }
 
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("inventory-categories"),
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("inventory-categories"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tabs.forEach { tab ->
-            val selected = state.filterCategoryId == null && state.category == tab.category
-            val count = remember(state.items, state.options.categoryIds, tab.category) {
-                if (tab.category == InventoryCategory.ALL) state.items.sumOf { it.quantity }
+            val count = if (tab.category == InventoryCategory.ALL) state.items.sumOf { it.quantity }
                 else state.items.filter { it.category == tab.category && it.id !in state.options.categoryIds }.sumOf { it.quantity }
-            }
-
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = if (selected) GoldPillBg else colors.surfaceElevated,
-                border = BorderStroke(1.dp, if (selected) Color(0xFFD4AF37) else colors.border),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { feature.filter(tab.category) }
-            ) {
-                Row(
-                    Modifier.padding(horizontal = if (compact) 10.dp else 14.dp, vertical = if (compact) 5.dp else 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        tab.label,
-                        color = if (selected) Color.White else colors.textMain,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = if (compact) 11.sp else 12.sp
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "(${digits(count.toLong())})",
-                        color = if (selected) Color.White.copy(alpha = 0.9f) else colors.textMuted,
-                        fontSize = if (compact) 10.sp else 11.sp
-                    )
-                }
-            }
+            DesktopFilterChip(tab.label, state.filterCategoryId == null && state.category == tab.category,
+                { feature.filter(tab.category) }, count = count)
         }
     }
 }
 
 @Composable private fun CustomCategoryFilters(state: DesktopInventoryState, feature: DesktopInventory) {
-    val colors = LocalGoldExColors.current
     if (state.options.categories.isEmpty()) return
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         state.options.categories.forEach { option ->
-            val selected = state.filterCategoryId == option.id
-            Surface(shape = RoundedCornerShape(16.dp), color = if (selected) colors.goldContainer else colors.surfaceElevated,
-                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                modifier = Modifier.clickable { feature.filterCustomCategory(option.id) }.testTag("inventory-filter-${option.id}")) {
-                Text(option.name, Modifier.padding(horizontal = 14.dp, vertical = 8.dp).widthIn(max = 160.dp),
-                    color = if (selected) colors.goldPrimary else colors.textMain, fontSize = 12.sp,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+            DesktopFilterChip(option.name, state.filterCategoryId == option.id, { feature.filterCustomCategory(option.id) },
+                Modifier.testTag("inventory-filter-${option.id}"))
         }
     }
 }
@@ -600,157 +570,44 @@ private data class CategoryTab(val category: InventoryCategory, val label: Strin
     onShowHistory: () -> Unit,
     compact: Boolean = false
 ) {
-    val colors = LocalGoldExColors.current
     var locationMenuExpanded by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Search Input Field Box (matching app's clean field design, height 44.dp)
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(44.dp)
-                .testTag("inventory-search"),
-            shape = RoundedCornerShape(10.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = null,
-                    tint = colors.textMuted,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) {
-                        Text(
-                            text = "جستجوی سریع: نام قطعه، بارکد، کد اتیکت، نام سازنده یا عیار...",
-                            color = colors.textMuted,
-                            fontSize = 12.sp,
-                            fontFamily = VazirmatnFamily,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = onSearch,
-                        singleLine = true,
-                        textStyle = TextStyle(
-                            fontFamily = VazirmatnFamily,
-                            fontSize = 13.sp,
-                            color = colors.textMain
-                        ),
-                        cursorBrush = SolidColor(colors.goldPrimary),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                if (query.isNotEmpty()) {
-                    IconButton(
-                        onClick = { onSearch("") },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "پاک کردن جستجو",
-                            tint = colors.textMuted,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
+    fun locationLabel(location: String?) = when (location) {
+        "ویترین" -> "ویترین‌ها"
+        "گاوصندوق" -> "گاوصندوق‌ها"
+        "خزانه" -> "خزانه مرکزی"
+        else -> "همه موقعیت‌ها (کل گالری)"
+    }
+    val filters: @Composable (Modifier) -> Unit = { modifier ->
+        Box(modifier) {
+            DesktopDropdownControl(locationLabel(locationFilter), { locationMenuExpanded = true },
+                Modifier.fillMaxWidth().testTag("inventory-location-selector"), icon = Icons.Outlined.Store)
+            DropdownMenu(locationMenuExpanded, { locationMenuExpanded = false }) {
+                listOf(null, "ویترین", "گاوصندوق", "خزانه").forEach { location ->
+                    DropdownMenuItem(text = { Text(locationLabel(location), fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
+                        onClick = { onLocationFilterChange(location); locationMenuExpanded = false },
+                        modifier = Modifier.testTag("inventory-location-${location ?: "all"}"))
                 }
             }
         }
-
-        // Location Dropdown Filter (height 44.dp, perfectly aligned)
-        Box {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = colors.surface,
-                border = BorderStroke(1.dp, if (locationFilter != null) colors.goldPrimary else colors.border),
-                modifier = Modifier
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { locationMenuExpanded = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Store,
-                        contentDescription = null,
-                        modifier = Modifier.size(17.dp),
-                        tint = if (locationFilter != null) colors.goldPrimary else colors.textMuted
-                    )
-                    Text(
-                        text = when (locationFilter) {
-                            "ویترین" -> "ویترین‌ها"
-                            "گاوصندوق" -> "گاوصندوق‌ها"
-                            "خزانه" -> "خزانه مرکزی"
-                            else -> "همه موقعیت‌ها (کل گالری)"
-                        },
-                        fontSize = 12.sp,
-                        color = if (locationFilter != null) colors.goldPrimary else colors.textMain,
-                        fontWeight = if (locationFilter != null) FontWeight.Bold else FontWeight.Medium,
-                        fontFamily = VazirmatnFamily
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.ExpandMore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = colors.textMuted
-                    )
-                }
-            }
-            DropdownMenu(expanded = locationMenuExpanded, onDismissRequest = { locationMenuExpanded = false }) {
-                DropdownMenuItem(
-                    text = { Text("همه موقعیت‌ها (کل گالری)", fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
-                    onClick = { onLocationFilterChange(null); locationMenuExpanded = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("ویترین‌ها", fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
-                    onClick = { onLocationFilterChange("ویترین"); locationMenuExpanded = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("گاوصندوق‌ها", fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
-                    onClick = { onLocationFilterChange("گاوصندوق"); locationMenuExpanded = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("خزانه مرکزی", fontFamily = VazirmatnFamily, fontSize = 12.5.sp) },
-                    onClick = { onLocationFilterChange("خزانه"); locationMenuExpanded = false }
-                )
+    }
+    val history: @Composable () -> Unit = {
+        val c = LocalGoldExColors.current
+        Surface(shape = DesktopControls.BodyShape, color = c.surfaceElevated, border = c.hairlineBorder) {
+            IconButton(onShowHistory, Modifier.size(48.dp).testTag("inventory-history")) {
+                Icon(Icons.Outlined.History, "تاریخچه ورود و خروج", Modifier.size(20.dp), tint = c.goldPrimary)
             }
         }
-
-        // History Button (size 44.dp, perfectly aligned)
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.border),
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .clickable(onClick = onShowHistory)
-                .testTag("inventory-history")
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Outlined.History,
-                    contentDescription = "تاریخچه ورود و خروج",
-                    tint = colors.goldPrimary,
-                    modifier = Modifier.size(19.dp)
-                )
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= 550.dp) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            DesktopSearchField(query, onSearch, "جستجوی نام، بارکد، کد اتیکت یا سازنده",
+                Modifier.weight(1f).testTag("inventory-search"))
+            filters(Modifier.width(240.dp)); history()
+        } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            DesktopSearchField(query, onSearch, "جستجوی نام، بارکد، کد اتیکت یا سازنده",
+                Modifier.fillMaxWidth().testTag("inventory-search"))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                filters(Modifier.weight(1f)); history()
             }
         }
     }
@@ -874,9 +731,7 @@ private fun TableActionTooltip(
                             fontSize = 12.5.sp
                         )
                         if (state.items.isNotEmpty()) {
-                            TextButton({ feature.search(""); feature.filter(InventoryCategory.ALL) }) {
-                                Text("پاک‌کردن فیلترها")
-                            }
+                            GoldButton("پاک‌کردن فیلترها", { feature.search(""); feature.filter(InventoryCategory.ALL) }, icon = Icons.Outlined.FilterAltOff, isSecondary = true)
                         }
                     }
                 }
@@ -1040,7 +895,7 @@ private fun TableActionTooltip(
                         IconButton(
                             onClick = { if (currentPage > 1) currentPage-- },
                             enabled = currentPage > 1,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(Icons.Outlined.ChevronRight, "صفحه قبل", tint = if (currentPage > 1) colors.textMain else colors.textMuted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
                         }
@@ -1071,7 +926,7 @@ private fun TableActionTooltip(
                         IconButton(
                             onClick = { if (currentPage < totalPages) currentPage++ },
                             enabled = currentPage < totalPages,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(44.dp)
                         ) {
                             Icon(Icons.Outlined.ChevronLeft, "صفحه بعد", tint = if (currentPage < totalPages) colors.textMain else colors.textMuted.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
                         }
@@ -1229,13 +1084,13 @@ private fun TableActionTooltip(
 
                         // Action Buttons: ورود و خروج
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            GoldButton("ورود موجودی", { feature.openMovement(item, StockAdjustmentType.CHARGE) }, Modifier.weight(1f).testTag("inventory-charge"), enabled = !state.saving)
-                            GoldButton("خروج موجودی", { feature.openMovement(item, StockAdjustmentType.DEDUCT) }, Modifier.weight(1f).testTag("inventory-deduct"), isSecondary = true, enabled = !state.saving && item.quantity > 0)
+                            GoldButton("ورود موجودی", { feature.openMovement(item, StockAdjustmentType.CHARGE) }, Modifier.weight(1f).testTag("inventory-charge"), enabled = !state.saving, icon = Icons.Outlined.Add)
+                            GoldButton("خروج موجودی", { feature.openMovement(item, StockAdjustmentType.DEDUCT) }, Modifier.weight(1f).testTag("inventory-deduct"), isSecondary = true, enabled = !state.saving && item.quantity > 0, icon = Icons.Outlined.ExitToApp)
                         }
 
                         // Action Buttons: ویرایش، چاپ، حذف
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            GoldButton("ویرایش مشخصات", { feature.open(item) }, Modifier.weight(1f).testTag("inventory-edit"), isSecondary = true, enabled = !state.saving)
+                            GoldButton("ویرایش مشخصات", { feature.open(item) }, Modifier.weight(1f).testTag("inventory-edit"), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Edit)
                             GoldButton("چاپ اتیکت", { feature.printLabel(item) }, Modifier.weight(1f).testTag("inventory-print"), isSecondary = true, icon = Icons.Outlined.Print, enabled = !state.saving)
                             IconButton(onClick = { feature.requestDelete(item) }, modifier = Modifier.testTag("inventory-delete"), enabled = !state.saving) {
                                 Icon(Icons.Outlined.DeleteOutline, "حذف کالا", tint = colors.errorRed)
@@ -1280,7 +1135,7 @@ private fun TableActionTooltip(
                 HorizontalDivider(color = colors.border)
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    GoldButton("بستن پنجره", onDismiss, modifier = Modifier.width(130.dp), isSecondary = true)
+                    GoldButton("بستن پنجره", onDismiss, modifier = Modifier.width(130.dp), isSecondary = true, icon = Icons.Outlined.Close)
                 }
             }
         }
@@ -1350,14 +1205,14 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 /** Root overlays survive page navigation and prevent an updater restart while a form is open. */
 @Composable internal fun InventoryDialogs(feature: DesktopInventory) {
     val state by feature.state.collectAsState()
-    state.draft?.let { draft ->
+    DesktopDialogHost(state.draft) { draft ->
         DesktopInventoryProductDialog(draft, state, feature)
     }
-    state.movement?.let { draft ->
-        val item = state.items.firstOrNull { it.id == draft.itemId } ?: return@let
+    DesktopDialogHost(state.movement) { draft ->
+        val item = state.items.firstOrNull { it.id == draft.itemId } ?: return@DesktopDialogHost
         InventoryDialog("ورود و خروج • ${item.title}", "inventory-movement-dialog", state.saving, feature::dismiss, { feature.saveMovement() }, "ثبت گردش") {
             if (state.error != null) Text(state.error.orEmpty(), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp)
-            LuxurySegmentedControl(StockAdjustmentType.values().toList(), draft.type, { type -> feature.editMovement { it.copy(type = type) } }, label = { if (it == StockAdjustmentType.CHARGE) "ورود موجودی" else "خروج موجودی" }, modifier = Modifier.fillMaxWidth(), height = 42.dp)
+            DesktopChoiceRow(StockAdjustmentType.values().toList(), draft.type, { type -> feature.editMovement { it.copy(type = type) } }, label = { if (it == StockAdjustmentType.CHARGE) "ورود موجودی" else "خروج موجودی" }, modifier = Modifier.fillMaxWidth())
             Text("موجودی فعلی: ${digits(item.quantity.toLong())} قطعه • ${PersianNumberFormatter.formatWeight(item.netGoldWeightGrams * item.quantity)} گرم خالص", color = LocalGoldExColors.current.textSecondary, fontSize = 13.sp)
             DesktopField(draft.count, { value -> feature.editMovement { it.copy(count = value) } }, "تعداد ورود / خروج", Modifier.testTag("movement-count"), numeric = true, error = draft.errors["count"], unit = "قطعه")
             DesktopField(draft.weight, { value -> feature.editMovement { it.copy(weight = value) } }, "وزن سند (اختیاری)", Modifier.testTag("movement-weight"), numeric = true, error = draft.errors["weight"], unit = "گرم")
@@ -1370,19 +1225,19 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
             } }
         }
     }
-    state.pendingDelete?.let { item ->
+    DesktopDialogHost(state.pendingDelete) { item ->
         AlertDialog(onDismissRequest = { feature.requestDelete(null) }, title = { Text("حذف کالا") }, text = { Text("«${item.title}» با ${digits(item.quantity.toLong())} قطعه از انبار حذف شود؟ سوابق ورود و خروج حفظ می‌شوند و فایل قبلی در پشتیبان محلی می‌ماند.") },
             confirmButton = { DialogActions(state.saving, { feature.requestDelete(null) }, { feature.delete() }, "حذف کالا", "inventory-confirm-delete") })
     }
-    if (state.showHistory) AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچه ورود و خروج انبار") },
+    DesktopDialogHost(state.takeIf { it.showHistory }) { displayed -> AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچه ورود و خروج انبار") },
         text = {
-            if (state.history.isEmpty()) Text("هنوز گردش موجودی ثبت نشده است؛ از جزئیات کالا ورود یا خروج را انتخاب کنید.")
+            if (displayed.history.isEmpty()) Text("هنوز گردش موجودی ثبت نشده است؛ از جزئیات کالا ورود یا خروج را انتخاب کنید.")
             else LazyColumn(Modifier.heightIn(max = 500.dp).testTag("inventory-history-list"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(state.history.sortedByDescending { it.timestamp }, key = { it.id }) { MovementRow(it, full = true) }
+                items(displayed.history.sortedByDescending { it.timestamp }, key = { it.id }) { MovementRow(it, full = true) }
             }
-        }, confirmButton = { GoldButton("بستن", { feature.showHistory(false) }, isSecondary = true) })
-    if (state.discard) AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامه ویرایش، به فرم برگردید.") },
-        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامه ویرایش") })
+        }, confirmButton = { GoldButton("بستن", { feature.showHistory(false) }, isSecondary = true, icon = Icons.Outlined.Close) }) }
+    DesktopDialogHost(state.discard) { AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامه ویرایش، به فرم برگردید.") },
+        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامه ویرایش") }) }
 }
 
 @Composable private fun MovementRow(movement: StockAdjustment, full: Boolean = false) {
@@ -1421,7 +1276,7 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 @Composable private fun DialogActions(busy: Boolean, cancel: () -> Unit, save: () -> Unit, label: String, tag: String, cancelLabel: String = "انصراف") {
     Row(Modifier.width(380.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         GoldButton(cancelLabel, cancel, Modifier.weight(1f), isSecondary = true, enabled = !busy)
-        GoldButton(if (busy) "در حال ذخیره" else label, save, Modifier.weight(1.4f).testTag(tag), enabled = !busy)
+        GoldButton(if (busy) "در حال ذخیره" else label, save, Modifier.weight(1.4f).testTag(tag), enabled = !busy, icon = Icons.Outlined.Save)
     }
 }
 

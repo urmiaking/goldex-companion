@@ -1,5 +1,13 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -39,9 +47,6 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.WageType
 import com.goldex.companion.presentation.inventory.InventoryDraft
 import com.goldex.companion.presentation.inventory.InventoryForm
-import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.components.GoldOutlinedTextField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
@@ -129,13 +134,13 @@ internal fun DesktopInventoryProductDialog(draft: InventoryDraft, state: Desktop
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 ProductSectionTitle("اجرت و موجودی")
                                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    LuxurySegmentedControl(
+                                    DesktopChoiceRow(
                                         listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM), draft.wageType,
                                         { type -> if (type != draft.wageType) feature.edit {
                                             it.copy(wageType = type, wage = if (type == WageType.PERCENTAGE) "10" else "0")
                                         } },
                                         label = { if (it == WageType.PERCENTAGE) "درصدی" else "هر گرم" },
-                                        modifier = Modifier.weight(1f), height = 44.dp, fontSize = 12.sp,
+                                        modifier = Modifier.weight(1f),
                                         isItemEnabled = { !state.saving }
                                     )
                                     ProductField(draft, "wage", "اجرت", draft.wage, feature, Modifier.weight(1f), numeric = true,
@@ -162,7 +167,7 @@ internal fun DesktopInventoryProductDialog(draft: InventoryDraft, state: Desktop
                                     }
                                     GoldButton(if (draft.image.isBlank()) "انتخاب تصویر" else "تغییر تصویر",
                                         { selectInventoryPhoto(feature) }, Modifier.width(140.dp).testTag("inventory-photo"),
-                                        isSecondary = true, enabled = !state.saving)
+                                        isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Image)
                                 }
                                 }
                                 }
@@ -174,9 +179,9 @@ internal fun DesktopInventoryProductDialog(draft: InventoryDraft, state: Desktop
                             Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
                         ) {
-                            GoldButton("انصراف", feature::dismiss, Modifier.width(120.dp), isSecondary = true, enabled = !state.saving)
+                            GoldButton("انصراف", feature::dismiss, Modifier.width(120.dp), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Close)
                             GoldButton(if (state.saving) "در حال ذخیره" else if (draft.id == null) "ثبت در انبار" else "ذخیره تغییرات",
-                                { feature.save() }, Modifier.width(180.dp).testTag("inventory-save"), enabled = !state.saving)
+                                { feature.save() }, Modifier.width(180.dp).testTag("inventory-save"), enabled = !state.saving, icon = Icons.Outlined.Save)
                         }
                     }
                 }
@@ -211,39 +216,25 @@ private fun ProductPurity(draft: InventoryDraft, saving: Boolean, feature: Deskt
     var custom by remember(draft.id) { mutableStateOf(draft.purity !in presets) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("عیار طلا", color = colors.textSecondary, fontSize = 12.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            presets.forEach { purity ->
-                val selected = !custom && draft.purity == purity
-                Surface(Modifier.weight(1f).height(40.dp).selectable(selected, enabled = !saving, role = Role.RadioButton) {
-                    custom = false
-                    feature.edit { it.copy(purity = purity,
-                        karat = when (purity) { "875" -> Karat.K21; "999" -> Karat.K24; else -> Karat.K18 }) }
-                }, shape = RoundedCornerShape(10.dp),
-                    color = if (selected) colors.goldContainer else colors.surfaceElevated,
-                    border = BorderStroke(if (selected) 1.2.dp else 0.6.dp,
-                        if (selected) colors.goldPrimary else colors.goldBorder.copy(alpha = 0.35f))) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(when (purity) { "750" -> "۱۸ (۷۵۰)"; "705" -> "۱۷ (۷۰۵)"; "875" -> "۲۱ (۸۷۵)"; else -> "۲۴ (۹۹۹)" },
-                            fontSize = 11.sp, maxLines = 1, color = if (selected) colors.goldPrimary else colors.textSecondary)
-                    }
-                }
-            }
-            Box(Modifier.weight(1.1f).testTag("inventory-purity")) {
-                DesktopInlineCustomKaratChip(
-                    value = if (custom) draft.purity else "",
-                    onValueChange = { value ->
-                        custom = true
-                        feature.edit { it.copy(purity = value, karat = when (value) {
-                            "875" -> Karat.K21; "999", "1000" -> Karat.K24; else -> Karat.K18
-                        }) }
-                    },
-                    isSelected = custom,
-                    onSelect = {
-                        if (!custom) { custom = true; feature.edit { it.copy(purity = "") } }
-                    },
-                    modifier = Modifier.fillMaxWidth(), enabled = !saving, inputTag = "inventory-custom-purity"
-                )
-            }
+        DesktopChoiceFlow(presets + "custom", if (custom) "custom" else draft.purity,
+            onItemSelected = { purity ->
+                custom = purity == "custom"
+                feature.edit { if (custom) it.copy(purity = "") else it.copy(purity = purity,
+                    karat = when (purity) { "875" -> Karat.K21; "999" -> Karat.K24; else -> Karat.K18 }) }
+            }, label = { purity -> when (purity) {
+                "750" -> "۱۸ (۷۵۰)"; "705" -> "۱۷ (۷۰۵)"; "875" -> "۲۱ (۸۷۵)"; "999" -> "۲۴ (۹۹۹)"; else -> "سفارشی"
+            } }, enabled = !saving)
+        if (custom) Box(Modifier.fillMaxWidth().testTag("inventory-purity")) {
+            DesktopOutlinedTextField(draft.purity, { typed ->
+                val value = com.goldex.companion.model.PersianNumberFormatter.toEnglishDigits(typed.filter { it.isDigit() })
+                feature.edit { it.copy(purity = value, karat = when (value) {
+                    "875" -> Karat.K21; "999", "1000" -> Karat.K24; else -> Karat.K18
+                }) }
+            }, Modifier.fillMaxWidth().testTag("inventory-custom-purity"), enabled = !saving,
+                label = { Text("عیار سفارشی", fontSize = 13.sp) }, singleLine = true,
+                textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings,
+                    fontSize = 15.sp, color = colors.textMain, textDirection = TextDirection.Ltr),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
         }
         draft.errors["purity"]?.let { Text(it, color = colors.errorRed, fontSize = 12.sp) }
     }
@@ -275,7 +266,7 @@ private fun ProductDropdown(
         }
     }
     Box(modifier.testTag(tag)) {
-        GoldOutlinedTextField(
+        DesktopOutlinedTextField(
             value, {}, Modifier.fillMaxWidth(), label = { Text(label, fontSize = 13.sp) },
             readOnly = true, enabled = !saving, singleLine = true,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings,
@@ -313,7 +304,7 @@ private fun ProductDropdown(
             } else {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(addLabel, color = colors.textMain, fontWeight = FontWeight.Bold)
-                    GoldOutlinedTextField(name, { name = it; error = null },
+                    DesktopOutlinedTextField(name, { name = it; error = null },
                         Modifier.fillMaxWidth().focusRequester(inputFocus).testTag("$tag-new"),
                         label = { Text("نام جدید") }, singleLine = true, enabled = !saving, isError = error != null,
                         textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings),
@@ -321,9 +312,9 @@ private fun ProductDropdown(
                     LaunchedEffect(Unit) { inputFocus.requestFocus() }
                     error?.let { Text(it, color = colors.errorRed, fontSize = 12.sp) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        GoldButton("بازگشت", { adding = false }, Modifier.weight(1f), isSecondary = true, enabled = !saving)
+                        GoldButton("بازگشت", { adding = false }, Modifier.weight(1f), isSecondary = true, enabled = !saving, icon = Icons.Outlined.ArrowForward)
                         GoldButton(if (saving) "در حال ثبت" else "افزودن", { submit() },
-                            Modifier.weight(1f).testTag("$tag-create"), enabled = !saving)
+                            Modifier.weight(1f).testTag("$tag-create"), enabled = !saving, icon = Icons.Outlined.Save)
                     }
                 }
             }

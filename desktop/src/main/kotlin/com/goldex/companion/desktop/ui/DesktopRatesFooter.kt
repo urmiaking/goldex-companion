@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,6 +27,7 @@ import com.goldex.companion.ui.theme.VazirmatnFamily
 import java.util.Locale
 
 internal data class FooterRatePillItem(
+    val instrument: BoardInstrument,
     val title: String,
     val value: String,
     val delta: String,
@@ -43,7 +45,7 @@ fun DesktopRatesFooter(
     modifier: Modifier = Modifier,
     boardState: DesktopRatesBoardState? = null,
     reduceMotion: Boolean = false,
-    onNavigateRates: (() -> Unit)? = null
+    onNavigateRate: ((BoardInstrument) -> Unit)? = null
 ) {
     if (rates == null) return
 
@@ -72,36 +74,42 @@ fun DesktopRatesFooter(
 
     val allItems = listOf(
         FooterRatePillItem(
+            instrument = BoardInstrument.GOLD18,
             title = "طلا ۱۸:",
             value = "${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} ت",
             delta = g18Delta,
             isPositive = g18Pos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.MELT,
             title = "مظنه مثقال:",
             value = "${PersianNumberFormatter.formatPrice(rates.goldMelt.toDouble())} ت",
             delta = meltDelta,
             isPositive = meltPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.GOLD24,
             title = "طلا ۲۴:",
             value = "${PersianNumberFormatter.formatPrice(rates.gold24.toDouble())} ت",
             delta = g24Delta,
             isPositive = g24Pos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.EMAMI,
             title = "سکه امامی:",
             value = "${PersianNumberFormatter.formatPrice(rates.coinEmami.toDouble())} ت",
             delta = emamiDelta,
             isPositive = emamiPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.USD,
             title = "دلار آزاد:",
             value = "${PersianNumberFormatter.formatPrice(rates.usd.toDouble())} ت",
             delta = usdDelta,
             isPositive = usdPos
         ),
         FooterRatePillItem(
+            instrument = BoardInstrument.OUNCE,
             title = "انس جهانی:",
             value = "${PersianNumberFormatter.toPersianDigits(String.format(Locale.US, "%.1f", rates.ons))} $",
             delta = onsDelta,
@@ -118,7 +126,7 @@ fun DesktopRatesFooter(
         verticalAlignment = Alignment.CenterVertically
     ) {
         allItems.forEach { item ->
-            FooterTickerPill(item = item, onClick = onNavigateRates)
+            FooterTickerPill(item = item, onClick = onNavigateRate?.let { navigate -> { navigate(item.instrument) } })
         }
     }
 }
@@ -137,7 +145,8 @@ private fun FooterTickerPill(
         border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.4f)),
         shadowElevation = if (colors.isDark) 0.dp else 1.dp,
         modifier = if (onClick != null) {
-            Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick)
+            Modifier.testTag("footer-rate-${item.instrument.name}").clip(RoundedCornerShape(20.dp))
+                .clickable(role = Role.Button, onClickLabel = "مشاهده جزئیات ${item.title.removeSuffix(":")}", onClick = onClick)
         } else Modifier
     ) {
         Row(
@@ -148,6 +157,7 @@ private fun FooterTickerPill(
             Text(
                 text = item.title,
                 fontSize = 11.sp,
+                maxLines = 1,
                 color = colors.textSecondary,
                 fontFamily = VazirmatnFamily
             )

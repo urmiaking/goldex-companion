@@ -1,6 +1,13 @@
 package com.goldex.companion.ui.invoices.modals
 
-// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0025.
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -34,7 +41,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +63,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.border
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.BarterBalance
@@ -67,9 +73,8 @@ import com.goldex.companion.model.CustomerRole
 import com.goldex.companion.model.InvoiceListItem
 import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.model.SettlementPaymentItem
-import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.ButtonShape
@@ -95,15 +100,7 @@ fun AddInvoicePaymentModal(
     val coroutineScope = rememberCoroutineScope()
     var isVisible by remember { mutableStateOf(false) }
 
-    val handleDismiss: () -> Unit = {
-        if (isVisible) {
-            coroutineScope.launch {
-                isVisible = false
-                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
-                onDismiss()
-            }
-        }
-    }
+    val handleDismiss: () -> Unit = onDismiss
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -205,7 +202,7 @@ fun AddInvoicePaymentModal(
     }
     var isThirdPartyPickerVisible by remember { mutableStateOf(false) }
 
-    if (isThirdPartyPickerVisible) {
+    DesktopDialogHost(isThirdPartyPickerVisible) {
         ThirdPartyBarterPickerDialog(
             customers = customerList,
             invoices = invoicesList,
@@ -806,17 +803,15 @@ fun AddInvoicePaymentModal(
                                                     }
                                                 }
 
-                                                LuxurySegmentedControl(
+                                                DesktopChoiceRow(
                                                     items = listOf(false, true),
                                                     selectedItem = transferIsGoldMode,
                                                     onItemSelected = { isGold ->
                                                         transferIsGoldMode = isGold
                                                         if (isGold) transferAmountStr = "" else transferWeightStr = ""
                                                     },
-                                                    label = { if (!it) "حواله نقدی (بانکی / پایا)" else "حواله وزنی طلا (گرم)" },
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    height = 32.dp,
-                                                    fontSize = 10.5.sp
+                                                    label = { if (!it) "حواله نقدی" else "حواله وزنی" },
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
 
                                                 Row(
@@ -954,8 +949,8 @@ fun AddInvoicePaymentModal(
                                         text = "انصراف",
                                         onClick = handleDismiss,
                                         isSecondary = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
+                                        modifier = Modifier.weight(1f), icon = Icons.Outlined.Close
+)
 
                                     GoldButton(
                                         text = if (existingPayment != null) "ذخیره تغییرات" else "ثبت پرداخت",

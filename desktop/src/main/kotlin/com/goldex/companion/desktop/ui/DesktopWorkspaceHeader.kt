@@ -1,5 +1,7 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -28,8 +30,8 @@ import java.time.Instant
 import java.time.ZoneId
 
 // Global desktop controls use the requested capsule treatment, without changing mobile tokens.
-internal val WorkspaceControlShape = RoundedCornerShape(24.dp)
-internal val WorkspaceControlHeight = 48.dp
+internal val WorkspaceControlShape = DesktopControls.CapsuleShape
+internal val WorkspaceControlHeight = DesktopControls.Height
 
 internal fun workspaceDate(now: Long): String {
     val today = Instant.ofEpochMilli(now).atZone(ZoneId.of("Asia/Tehran"))
@@ -41,14 +43,14 @@ internal fun workspaceDate(now: Long): String {
 
 @Composable internal fun WorkspaceHeader(state: WorkspaceState, actions: (@Composable () -> Unit)? = null,
     titleOverride: String? = null, subtitleOverride: String? = null, onBack: (() -> Unit)? = null,
-    inlineActions: Boolean = false) {
+    backTag: String = "customer-back", backDescription: String = "بازگشت به مشتریان") {
     val colors = LocalGoldExColors.current
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("workspace-header")) {
         val heading: @Composable () -> Unit = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (onBack != null) Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder) {
-                    IconButton(onBack, Modifier.size(WorkspaceControlHeight).testTag(if (state.destination == DesktopDestination.INVOICES) "invoice-back" else "customer-back")) {
-                        Icon(Icons.Outlined.ArrowForward, if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else "بازگشت به مشتریان", Modifier.size(20.dp), tint = colors.goldPrimary)
+                    IconButton(onBack, Modifier.size(WorkspaceControlHeight).testTag(backTag)) {
+                        Icon(Icons.Outlined.ArrowForward, backDescription, Modifier.size(20.dp), tint = colors.goldPrimary)
                     }
                 }
                 Column(Modifier.weight(1f)) {
@@ -89,16 +91,14 @@ internal fun workspaceDate(now: Long): String {
                 }
             }
         }
-        if (maxWidth < 950.dp && !inlineActions) {
+        if (maxWidth < 950.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { heading() }
-                    status()
+                    if (actions != null) actions()
                 }
-                if (actions != null) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        actions()
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    status()
                 }
             }
         } else {
@@ -112,78 +112,6 @@ internal fun workspaceDate(now: Long): String {
 }
 
 @Composable internal fun WorkspaceControl(text: String, onClick: () -> Unit, modifier: Modifier,
-    icon: ImageVector? = null, secondary: Boolean = false, enabled: Boolean = true, compact: Boolean = false) {
-    val colors = LocalGoldExColors.current
-    if (secondary) {
-        Button(
-            onClick = onClick,
-            modifier = modifier.height(WorkspaceControlHeight),
-            enabled = enabled,
-            shape = WorkspaceControlShape,
-            border = colors.hairlineBorder,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.surfaceElevated,
-                contentColor = colors.textMain,
-                disabledContainerColor = colors.surfaceElevated,
-                disabledContentColor = colors.textMuted
-            ),
-            contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (icon != null && !compact) {
-                    Icon(icon, null, Modifier.size(18.dp), tint = if (enabled) colors.goldPrimary else colors.textMuted)
-                    Spacer(Modifier.width(6.dp))
-                }
-                Text(
-                    text = text,
-                    fontSize = if (compact) 11.sp else 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) colors.textMain else colors.textMuted,
-                    maxLines = 1
-                )
-            }
-        }
-    } else {
-        val backgroundModifier = if (!enabled) {
-            Modifier.background(colors.surfaceElevated, WorkspaceControlShape)
-        } else {
-            Modifier.background(colors.goldButtonGradient, WorkspaceControlShape)
-        }
-        Button(
-            onClick = onClick,
-            modifier = modifier
-                .height(WorkspaceControlHeight)
-                .then(backgroundModifier),
-            enabled = enabled,
-            shape = WorkspaceControlShape,
-            border = if (enabled) null else colors.hairlineBorder,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = colors.goldButtonText,
-                disabledContainerColor = Color.Transparent,
-                disabledContentColor = colors.textMuted
-            ),
-            contentPadding = PaddingValues(horizontal = if (compact) 10.dp else 18.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (icon != null && !compact) {
-                    Icon(icon, null, Modifier.size(18.dp), tint = colors.goldButtonText)
-                    Spacer(Modifier.width(6.dp))
-                }
-                Text(
-                    text = text,
-                    fontSize = if (compact) 11.sp else 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.goldButtonText,
-                    maxLines = 1
-                )
-            }
-        }
-    }
+    icon: ImageVector, secondary: Boolean = false, enabled: Boolean = true) {
+    DesktopHeaderButton(text, onClick, modifier, icon, isSecondary = secondary, enabled = enabled)
 }

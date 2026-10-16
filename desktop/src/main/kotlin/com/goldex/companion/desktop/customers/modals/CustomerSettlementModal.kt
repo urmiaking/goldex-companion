@@ -1,4 +1,13 @@
 package com.goldex.companion.desktop.customers.modals
+import com.goldex.companion.desktop.ui.controls.DesktopModalBottomSheet as ModalBottomSheet
+
+import com.goldex.companion.desktop.ui.controls.DesktopControls
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.outlined.*
+import com.goldex.companion.desktop.ui.controls.DesktopChoiceRow
 
 // Android customer UI/state parity snapshot at 7d94001; host adaptations are documented in ADR 0022.
 
@@ -36,7 +45,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -68,9 +76,7 @@ import com.goldex.companion.model.LedgerEntryType
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
-import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.desktop.customers.CustomerSettlementUiState
 import com.goldex.companion.desktop.customers.CustomerSettlementViewModel
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
@@ -156,7 +162,7 @@ fun CustomerSettlementModal(
                     IconButton(
                         onClick = actions::close,
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(44.dp)
                             .clip(ButtonShape)
                             .background(colors.surfaceElevated)
                             .border(0.8.dp, colors.border, ButtonShape)
@@ -249,12 +255,12 @@ fun CustomerSettlementModal(
                                     // Option 1: General Account
                                     val isGeneralSelected = state.invoiceId == null
                                     Surface(
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = DesktopControls.BodyShape,
                                         color = if (isGeneralSelected) colors.goldContainer.copy(alpha = 0.45f) else colors.surface,
                                         border = BorderStroke(0.6.dp, if (isGeneralSelected) colors.goldPrimary else colors.border),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .clip(DesktopControls.BodyShape)
                                             .clickable {
                                                 actions.selectInvoice(null)
                                                 isScopeExpanded = false
@@ -289,12 +295,12 @@ fun CustomerSettlementModal(
                                     state.invoices.forEach { invoice ->
                                         val isInvSelected = state.invoiceId == invoice.id
                                         Surface(
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = DesktopControls.BodyShape,
                                             color = if (isInvSelected) colors.goldContainer.copy(alpha = 0.45f) else colors.surface,
                                             border = BorderStroke(0.6.dp, if (isInvSelected) colors.goldPrimary else colors.border),
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(DesktopControls.BodyShape)
                                                 .clickable {
                                                     actions.selectInvoice(invoice.id)
                                                     isScopeExpanded = false
@@ -449,7 +455,7 @@ fun CustomerSettlementModal(
                             color = colors.textMain,
                             fontFamily = VazirmatnFamily
                         )
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf(LedgerEntryType.GOLD_WEIGHT, LedgerEntryType.CASH_RIAL),
                             selectedItem = state.targetType,
                             onItemSelected = actions::selectTarget,
@@ -457,7 +463,6 @@ fun CustomerSettlementModal(
                             isItemEnabled = {
                                 if (it == LedgerEntryType.GOLD_WEIGHT) abs(state.scope.goldGrams) > 1e-10 else state.scope.cashTomans != 0L
                             },
-                            height = 38.dp,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -521,13 +526,12 @@ fun CustomerSettlementModal(
                             color = colors.textMain,
                             fontFamily = VazirmatnFamily
                         )
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = listOf(LedgerEntryType.GOLD_WEIGHT, LedgerEntryType.CASH_RIAL),
                             selectedItem = state.paymentType,
                             onItemSelected = actions::selectPayment,
                             label = { if (it == LedgerEntryType.GOLD_WEIGHT) "طلا / شمش" else "پول / سکه" },
                             isItemEnabled = { !state.offsetExistingCredit },
-                            height = 38.dp,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -558,15 +562,13 @@ fun CustomerSettlementModal(
                                     )
 
                                     // Compact Luxury Animated Rate Selector
-                                    LuxurySegmentedControl(
+                                    DesktopChoiceRow(
                                         items = listOf(true, false),
                                         selectedItem = state.isMarketRate,
                                         onItemSelected = { isMarket ->
                                             if (isMarket) actions.useMarketRate() else actions.useCustomRate()
                                         },
                                         label = { if (it) "نرخ بازار" else "نرخ دلخواه" },
-                                        height = 32.dp,
-                                        fontSize = 11.sp,
                                         modifier = Modifier.width(170.dp)
                                     )
                                 }
@@ -615,12 +617,12 @@ fun CustomerSettlementModal(
                                 if (!state.offsetExistingCredit) {
                                     Box {
                                         Surface(
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = DesktopControls.BodyShape,
                                             color = colors.surface,
                                             border = BorderStroke(0.7.dp, colors.border),
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(10.dp))
+                                                .clip(DesktopControls.BodyShape)
                                                 .clickable { methodMenu = true }
                                         ) {
                                             Row(
@@ -632,7 +634,7 @@ fun CustomerSettlementModal(
                                             ) {
                                                 Text(
                                                     text = state.paymentMethod,
-                                                    fontSize = 11.5.sp,
+                                                    fontSize = 14.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = colors.textMain,
                                                     fontFamily = VazirmatnFamily
@@ -660,7 +662,7 @@ fun CustomerSettlementModal(
                                     }
                                 }
                             } else {
-                                if (!state.offsetExistingCredit) LuxurySegmentedControl(
+                                if (!state.offsetExistingCredit) DesktopChoiceRow(
                                     items = listOf("طلای مستعمل", "شمش / آبشده"),
                                     selectedItem = state.paymentMethod,
                                     onItemSelected = actions::setMethod, label = { it },
@@ -688,28 +690,9 @@ fun CustomerSettlementModal(
                                 "ارزش مجموع سکه‌ها با توافق طرفین؛ نوع و تعداد را در توضیحات بنویسید. معادل گرمی با نرخ همین تسویه محاسبه می‌شود.",
                                 fontFamily = VazirmatnFamily, fontSize = 11.sp, color = colors.textSecondary)
                             // Quick Fill Auto Calculate Shortcut
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = colors.goldContainer.copy(alpha = 0.4f),
-                                border = BorderStroke(0.8.dp, colors.goldBorder),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .clickable(onClick = actions::fillRemaining)
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(vertical = 9.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = if (state.offsetExistingCredit) "⚡ محاسبهٔ تهاتر قابل انجام" else "⚡ محاسبهٔ پرداخت برای تسویهٔ کامل",
-                                        color = colors.goldPrimary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.5.sp,
-                                        fontFamily = VazirmatnFamily
-                                    )
-                                }
-                            }
+                            GoldButton(if (state.offsetExistingCredit) "محاسبه تهاتر" else "محاسبه تسویه کامل",
+                                actions::fillRemaining, Modifier.fillMaxWidth(), icon = Icons.Outlined.Calculate, isSecondary = true)
+
                         }
                     }
 
@@ -796,7 +779,7 @@ fun CustomerSettlementModal(
                                 ) {
                                     // Gold after
                                     Surface(
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = DesktopControls.BodyShape,
                                         color = colors.surfaceVariant,
                                         border = BorderStroke(0.5.dp, colors.border),
                                         modifier = Modifier.weight(1f)
@@ -827,7 +810,7 @@ fun CustomerSettlementModal(
 
                                     // Cash after
                                     Surface(
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = DesktopControls.BodyShape,
                                         color = colors.surfaceVariant,
                                         border = BorderStroke(0.5.dp, colors.border),
                                         modifier = Modifier.weight(1f)
@@ -903,7 +886,7 @@ fun CustomerSettlementModal(
                     val error = state.error ?: state.validationError?.takeIf { hasPaymentInput }
                     if (error != null) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = DesktopControls.BodyShape,
                             color = colors.errorRed.copy(alpha = 0.15f),
                             border = BorderStroke(0.6.dp, colors.errorRed),
                             modifier = Modifier.fillMaxWidth()
@@ -954,7 +937,7 @@ fun CustomerSettlementModal(
                                 isSecondary = true,
                                 enabled = !state.isSaving,
                                 modifier = Modifier.weight(1f)
-                            )
+                            , icon = Icons.Outlined.Close)
 
                             // 2. Confirm / Save (Second child in Row for RTL = displayed on the LEFT)
                             GoldButton(

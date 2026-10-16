@@ -3,6 +3,8 @@ package com.goldex.companion.desktop
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.desktop.ui.DesktopWorkspaceScreen
@@ -19,6 +21,8 @@ class DesktopCustomerLayoutTest {
     @get:Rule val temporary = TemporaryFolder()
 
     @Test fun wideWorkspaceHasThreeCardsAndOneEqualHeightSearchFilterRow() = verifyLayout(1440, 3)
+    @Test fun threeColumnsAtTheirMinimumWidthKeepReadableActions() = verifyLayout(1268, 3)
+
     @Test fun mediumWorkspaceHasTwoColumnsAndAccessibleHeaderActions() = verifyLayout(1100, 2)
     @Test fun narrowWorkspaceStacksCardsAndToolsWithoutLosingActions() = verifyLayout(760, 1)
 
@@ -28,7 +32,8 @@ class DesktopCustomerLayoutTest {
         try {
             val contacts = (1..3).map { id ->
                 Customer(id = "layout-$id", name = if (id == 1) "گالری طلا و جواهر نام بسیار طولانی برای بررسی نمایش" else "مشتری شماره $id",
-                    accountCode = "104$id", phone = "09123456789", cashDebtTomans = 123_456_789_012L, goldDebtGrams = 12345.678)
+                    role = "نقش مخفی", accountCode = if(id==2) "" else "104$id", phone = "09123456789",
+                    cashDebtTomans = if(id==3) 0L else 123_456_789_012L, goldDebtGrams = if(id==3) 0.0 else 12345.678)
             }
             contacts.forEach(workspace.customers.repository::addCustomer)
             workspace.customers.manager.loadCustomers()
@@ -41,6 +46,24 @@ class DesktopCustomerLayoutTest {
                 waitUntil(10000) { workspace.customers.manager.uiState.value.customerList.size == 3 }
                 onNodeWithTag("customer-add").assertIsDisplayed()
                 onNodeWithTag("customer-invoice-layout-1").assertIsEnabled()
+                onNodeWithTag("customer-contact-layout-1").assertTextEquals("۰۹۱۲۳۴۵۶۷۸۹ (۱۰۴۱)")
+                onNodeWithTag("customer-contact-layout-2").assertTextEquals("۰۹۱۲۳۴۵۶۷۸۹")
+                onNodeWithText("نقش مخفی").assertDoesNotExist()
+                onNodeWithText("امروز").assertDoesNotExist()
+                val statusId=if(expectedColumns>=2) 3 else 1
+                val name=onNodeWithTag("customer-name-layout-$statusId").fetchSemanticsNode().boundsInRoot
+                val status=onNodeWithTag("customer-status-layout-$statusId").fetchSemanticsNode().boundsInRoot
+                assertEquals(name.center.y,status.center.y)
+                assertTrue(status.right<=name.left)
+                onNodeWithText("بدون کد حساب").assertDoesNotExist()
+                for ((tag,label) in listOf("statement" to "ریز گردش","entry" to "ثبت دریافت/پرداخت","invoice" to "ثبت فاکتور")) {
+                    val layouts=mutableListOf<TextLayoutResult>()
+                    onNode(hasText(label) and hasAnyAncestor(hasTestTag("customer-$tag-layout-1")),useUnmergedTree=true)
+                        .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                    assertTrue(layouts.isNotEmpty())
+                    assertTrue(layouts.all { it.lineCount==1 && !it.isLineEllipsized(0) &&
+                        it.getLineRight(0)-it.getLineLeft(0)<=it.size.width+1f && !it.didOverflowHeight },"$label must fit at $width")
+                }
                 val gold = onNodeWithTag("customer-gold-layout-1").fetchSemanticsNode().boundsInRoot
                 val cash = onNodeWithTag("customer-cash-layout-1").fetchSemanticsNode().boundsInRoot
                 assertEquals(gold.center.y, cash.center.y)
@@ -56,7 +79,15 @@ class DesktopCustomerLayoutTest {
                 val search = onNodeWithTag("customer-search-container").fetchSemanticsNode().boundsInRoot
                 val filters = onNodeWithTag("customer-filters").fetchSemanticsNode().boundsInRoot
                 assertEquals(search.height, filters.height)
-                if (expectedColumns == 3) assertEquals(search.top, filters.top)
+                if (expectedColumns == 3) {
+                    assertEquals(search.top, filters.top)
+                    val toolbar = onNodeWithTag("customer-toolbar").fetchSemanticsNode().boundsInRoot
+                    assertEquals(toolbar.left, filters.left)
+                    assertEquals(toolbar.right, search.right)
+                    assertEquals(12f, search.left - filters.right, .5f)
+                    val lastFilter = onNode(hasText("تسویه‌شده") and hasAnyAncestor(hasTestTag("customer-filters"))).fetchSemanticsNode().boundsInRoot
+                    assertTrue(lastFilter.left - filters.left < 15f, "Filter group must not reserve blank width away from search")
+                }
                 save("customers-layout-$width-light.png")
                 onNodeWithTag("customer-statement-layout-1").performClick()
                 onNodeWithTag("customer-payment").assertIsDisplayed()

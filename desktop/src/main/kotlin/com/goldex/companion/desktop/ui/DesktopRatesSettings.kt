@@ -1,4 +1,10 @@
 package com.goldex.companion.desktop.ui
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -27,6 +33,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,7 +68,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             }
         }, confirmButton = {
             Row(Modifier.width(350.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !state.saving)
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Close)
                 GoldButton("ثبت نرخ‌ها", {
                     val parsed = inputs.map { input -> DesktopPortfolioPolicy.normalized(input).let { text -> if (text.isBlank()) 0L else text.takeIf { it.matches(Regex("[0-9]+")) }?.toLongOrNull() } }
                     errors = parsed.mapIndexedNotNull { i, number -> if (number == null || number !in 0..9_000_000_000_000L || (i == 0 && number == 0L)) i to "نرخ معتبر به تومان وارد کنید" else null }.toMap()
@@ -70,7 +77,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         val rates = DesktopMarketRepository.emptyRates(state.settings.priceSource).copy(gold18 = p[0], gold24 = p[1], goldMelt = p[2], coinEmami = p[3], coinBahar = p[4], coinHalf = p[5], coinQuarter = p[6], coinGerami = p[7], usd = p[8])
                         workspace.saveManualRates(rates)?.let { job -> scope.launch { job.join(); if (workspace.state.value.error == null) onDismiss() } }
                     }
-                }, enabled = !state.saving, modifier = Modifier.weight(1.3f).testTag("save-manual-rates"))
+                }, enabled = !state.saving, modifier = Modifier.weight(1.3f).testTag("save-manual-rates"), icon = Icons.Outlined.Save)
             }
         })
 }
@@ -82,71 +89,87 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     var showSignaturePad by remember { mutableStateOf(false) }
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val profile: @Composable () -> Unit = {
-                LuxuryCard {
-                    PageTitle("مشخصات گالری")
-                    DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
-                    DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
-                    DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone, adornment = Icons.Outlined.Phone)
-                    DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Badge)
-                    DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Verified)
-                    DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false, adornment = Icons.Outlined.LocationOn)
+            val wide = maxWidth >= 850.dp
+            val density = LocalDensity.current
+            // LuxuryCard adds 16dp top/bottom padding and a 2dp hairline around natural content.
+            var profileHeight by remember { mutableStateOf(0.dp) }
+            var rateHeadingHeight by remember { mutableStateOf(0.dp) }
+            var rateNoteHeight by remember { mutableStateOf(0.dp) }
+            val rateOptionHeights = remember { mutableStateMapOf<PriceSource, androidx.compose.ui.unit.Dp>() }
+            val rateContentHeight = rateHeadingHeight + rateNoteHeight +
+                PriceSource.values().fold(0.dp) { total, source -> total + (rateOptionHeights[source] ?: 0.dp) } +
+                48.dp + 34.dp
+            var defaultsHeight by remember { mutableStateOf(0.dp) }
+            val preferencesHeight = defaultsHeight + 20.dp + rateContentHeight
+            val profile: @Composable (Modifier) -> Unit = { modifier ->
+                LuxuryCard(modifier.testTag("settings-profile")) {
+                    Column(Modifier.fillMaxWidth().onSizeChanged { profileHeight = with(density) { it.height.toDp() } + 34.dp },
+                        verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        PageTitle("مشخصات گالری")
+                        DesktopField(draft.galleryName, { value -> workspace.editSettings { it.copy(galleryName = value.take(120)) } }, "نام گالری", Modifier.testTag("settings-gallery"), adornment = Icons.Outlined.Storefront)
+                        DesktopField(draft.managerName, { value -> workspace.editSettings { it.copy(managerName = value.take(80)) } }, "نام زرگر", adornment = Icons.Outlined.Person)
+                        DesktopField(draft.galleryPhone, { value -> workspace.editSettings { it.copy(galleryPhone = value.take(24)) } }, "شماره تماس", Modifier.testTag("settings-phone"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone, adornment = Icons.Outlined.Phone)
+                        DesktopField(draft.unionCode, { value -> workspace.editSettings { it.copy(unionCode = value.take(40)) } }, "کد اتحادیه", Modifier.testTag("settings-union"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Badge)
+                        DesktopField(draft.galleryLicense, { value -> workspace.editSettings { it.copy(galleryLicense = value.take(40)) } }, "پروانه کسب", Modifier.testTag("settings-license"), numeric = true, keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii, adornment = Icons.Outlined.Verified)
+                        DesktopField(draft.galleryAddress, { value -> workspace.editSettings { it.copy(galleryAddress = value.take(300)) } }, "نشانی گالری", Modifier.testTag("settings-address"), singleLine = false, adornment = Icons.Outlined.LocationOn)
 
-                    // Logo & Signature section (matching Android functionality for invoices)
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (colors.isDark) colors.surfaceElevated else androidx.compose.ui.graphics.Color(0xFFFCFAF5),
-                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth().testTag("settings-brand-assets")
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        // Logo & Signature section (matching Android functionality for invoices)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (colors.isDark) colors.surfaceElevated else androidx.compose.ui.graphics.Color(0xFFFCFAF5),
+                            border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth().testTag("settings-brand-assets")
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
-                                Text("لوگو و امضای دیجیتال (برای فاکتورها)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                DesktopBrandAssetTile(
-                                    title = "لوگوی واحد صنفی",
-                                    actionLabel = if (draft.invoiceLogoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
-                                    bitmap = rememberBrandAssetBitmap(draft.invoiceLogoUri),
-                                    fallback = draft.galleryName.trim().take(2).ifBlank { "لوگو" },
-                                    onPick = {
-                                        val picked = selectBrandLogoFile()
-                                        if (picked != null) {
-                                            val brandDir = workspace.dataDirectory.resolve("brand_assets")
-                                            Files.createDirectories(brandDir)
-                                            val dest = brandDir.resolve("hub_logo.png")
-                                            Files.copy(picked.toPath(), dest, StandardCopyOption.REPLACE_EXISTING)
-                                            workspace.editSettings { it.copy(invoiceLogoUri = dest.toFile().absolutePath) }
-                                        }
-                                    },
-                                    onClear = if (draft.invoiceLogoUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceLogoUri = "") } }) else null,
-                                    modifier = Modifier.weight(1f).testTag("settings-logo-tile")
-                                )
-                                DesktopBrandAssetTile(
-                                    title = "امضای دیجیتال زرگر",
-                                    actionLabel = if (draft.invoiceSignatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
-                                    bitmap = rememberBrandAssetBitmap(draft.invoiceSignatureUri),
-                                    fallback = "امضا",
-                                    onPick = { showSignaturePad = true },
-                                    onClear = if (draft.invoiceSignatureUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceSignatureUri = "") } }) else null,
-                                    modifier = Modifier.weight(1f).testTag("settings-signature-tile")
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(Icons.Outlined.CameraAlt, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
+                                    Text("لوگو و امضای دیجیتال (برای فاکتورها)", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = colors.textMain)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    DesktopBrandAssetTile(
+                                        title = "لوگوی واحد صنفی",
+                                        actionLabel = if (draft.invoiceLogoUri.isNotBlank()) "تغییر لوگو" else "انتخاب لوگو",
+                                        bitmap = rememberBrandAssetBitmap(draft.invoiceLogoUri),
+                                        fallback = draft.galleryName.trim().take(2).ifBlank { "لوگو" },
+                                        onPick = {
+                                            val picked = selectBrandLogoFile()
+                                            if (picked != null) {
+                                                val brandDir = workspace.dataDirectory.resolve("brand_assets")
+                                                Files.createDirectories(brandDir)
+                                                val dest = brandDir.resolve("hub_logo.png")
+                                                Files.copy(picked.toPath(), dest, StandardCopyOption.REPLACE_EXISTING)
+                                                workspace.editSettings { it.copy(invoiceLogoUri = dest.toFile().absolutePath) }
+                                            }
+                                        },
+                                        onClear = if (draft.invoiceLogoUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceLogoUri = "") } }) else null,
+                                        modifier = Modifier.weight(1f).testTag("settings-logo-tile")
+                                    )
+                                    DesktopBrandAssetTile(
+                                        title = "امضای دیجیتال زرگر",
+                                        actionLabel = if (draft.invoiceSignatureUri.isNotBlank()) "تغییر امضا" else "ثبت امضا",
+                                        bitmap = rememberBrandAssetBitmap(draft.invoiceSignatureUri),
+                                        fallback = "امضا",
+                                        onPick = { showSignaturePad = true },
+                                        onClear = if (draft.invoiceSignatureUri.isNotBlank()) ({ workspace.editSettings { it.copy(invoiceSignatureUri = "") } }) else null,
+                                        modifier = Modifier.weight(1f).testTag("settings-signature-tile")
+                                    )
+                                }
                             }
                         }
+
                     }
                 }
             }
-            val preferences: @Composable () -> Unit = {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    LuxuryCard {
+            val preferences: @Composable (Modifier, Boolean) -> Unit = { modifier, stretch ->
+                Column(modifier.testTag("settings-preferences"), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    LuxuryCard(Modifier.onSizeChanged { defaultsHeight = with(density) { it.height.toDp() } }) {
                         PageTitle("پیش‌فرض‌های محاسبه")
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DesktopField(draft.defaultProfitPercent, { value -> workspace.editSettings { it.copy(defaultProfitPercent = value) } }, "سود", Modifier.weight(1f).testTag("settings-profit"), numeric = true, unit = "٪")
@@ -155,35 +178,49 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                         ChoiceField("نوع اجرت", draft.defaultWageType, WageType.values().toList(), { if (it == WageType.PERCENTAGE) "درصدی" else "تومان در هر گرم" }) { value -> workspace.editSettings { it.copy(defaultWageType = value) } }
                         Text("محاسبه در حال انجام تغییر نمی‌کند. با پاک‌کردن فرم، پیش‌فرض‌های ذخیره‌شده اعمال می‌شوند.", color = colors.textMuted, fontSize = 11.sp)
                     }
-                    LuxuryCard(Modifier.fillMaxWidth()) {
-                        PageTitle("دریافت نرخ‌ها")
-                        Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PriceSource.values().forEach { src ->
-                                DesktopPriceSourceOption(
-                                    source = src,
-                                    isSelected = draft.priceSource == src,
-                                    onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
-                                )
+                    LuxuryCard(Modifier.fillMaxWidth().then(if (stretch)
+                        Modifier.heightIn(min = (profileHeight - defaultsHeight - 20.dp).coerceAtLeast(0.dp)) else Modifier)
+                        .testTag("settings-rate-sources")) {
+                        // Measure natural children, not this stretched column, so clearing an address releases height.
+                        Column(Modifier.fillMaxWidth().heightIn(min = maxOf(
+                            rateContentHeight - 34.dp,
+                            if (stretch) profileHeight - defaultsHeight - 20.dp - 34.dp else 0.dp
+                        ).coerceAtLeast(0.dp)),
+                            verticalArrangement = if (stretch) Arrangement.SpaceBetween else Arrangement.spacedBy(12.dp)) {
+                            Column(Modifier.onSizeChanged { rateHeadingHeight = with(density) { it.height.toDp() } },
+                                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                PageTitle("دریافت نرخ‌ها")
+                                Text("پایگاه قیمت‌گذاری فعال بازار را انتخاب کنید:", fontSize = 12.sp, color = colors.textSecondary)
                             }
+                            PriceSource.values().forEach { src ->
+                                    DesktopPriceSourceOption(
+                                        source = src,
+                                        isSelected = draft.priceSource == src,
+                                        modifier = Modifier.onSizeChanged { rateOptionHeights[src] = with(density) { it.height.toDp() } },
+                                        onSelect = { workspace.editSettings { it.copy(priceSource = src) } }
+                                    )
+                            }
+                            Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp,
+                                modifier = Modifier.testTag("settings-rates-note").onSizeChanged { rateNoteHeight = with(density) { it.height.toDp() } })
+
                         }
-                        Text("نرخ‌ها هنگام شروع برنامه و به‌صورت خودکار در پس‌زمینه دریافت می‌شوند. در حالت آفلاین، آخرین نرخ ذخیره‌شده با زمان اصلی آن در دسترس است.", color = colors.textMuted, fontSize = 11.5.sp)
                     }
                 }
             }
-            if (maxWidth >= 850.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Box(Modifier.weight(1f)) { profile() }
-                Box(Modifier.weight(1f)) { preferences() }
-            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(); preferences() }
+            // Use measured natural content heights: intrinsic queries through six outlined fields are expensive.
+            if (wide) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                profile(Modifier.weight(1f).heightIn(min = preferencesHeight))
+                preferences(Modifier.weight(1f), true)
+            } else Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { profile(Modifier); preferences(Modifier, false) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, enabled = dirty && !state.saving)
+            GoldButton("برگرداندن تغییرات", workspace::revertSettings, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Undo, enabled = dirty && !state.saving)
             GoldButton(if (state.saving) "در حال ذخیره" else "ذخیره تنظیمات", { workspace.saveSettings(draft) }, Modifier.weight(1f).testTag("save-settings"), enabled = dirty && !state.saving, icon = Icons.Outlined.Save)
         }
         if (state.assets.rows.isNotEmpty()) LuxuryCard {
             PageTitle("سبد قبلی")
             Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
-            GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true)
+            GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true, icon = Icons.Outlined.AccountBalanceWallet)
         }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-tools"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-backup")) {
@@ -206,7 +243,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         }
     }
 
-    if (showSignaturePad) {
+    DesktopDialogHost(showSignaturePad) {
         DesktopSignaturePadDialog(
             onDismiss = { showSignaturePad = false },
             onSaveSignature = { strokes, w, h ->
@@ -372,16 +409,9 @@ internal fun DesktopBrandAssetTile(
             }
             Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = onPick,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text(actionLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
-                }
+                GoldButton(actionLabel, onPick, modifier = Modifier, icon = Icons.Outlined.Image, isSecondary = true)
                 if (onClear != null) {
-                    IconButton(onClick = onClear, modifier = Modifier.size(30.dp)) {
+                    IconButton(onClick = onClear, modifier = Modifier.size(44.dp)) {
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = "حذف $title",
@@ -504,25 +534,16 @@ internal fun DesktopSignaturePadDialog(
                         fontSize = 11.sp,
                         color = colors.textMuted
                     )
-                    OutlinedButton(
-                        onClick = {
+                    GoldButton("پاک‌کردن", {
                             strokes.clear()
                             currentStroke = emptyList()
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.height(30.dp).testTag("clear-signature-pad"),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                    ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.errorRed)
-                        Spacer(Modifier.width(4.dp))
-                        Text("پاک‌کردن", fontSize = 10.5.sp, color = colors.errorRed)
-                    }
+                        }, modifier = Modifier.testTag("clear-signature-pad"), icon = Icons.Outlined.DeleteOutline, isSecondary = true)
                 }
             }
         },
         confirmButton = {
             Row(Modifier.width(360.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true)
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Close)
                 GoldButton(
                     "تأیید و ذخیره امضا",
                     onClick = {
@@ -533,7 +554,7 @@ internal fun DesktopSignaturePadDialog(
                     },
                     modifier = Modifier.weight(1.3f).testTag("save-signature-btn"),
                     enabled = strokes.isNotEmpty() || currentStroke.isNotEmpty()
-                )
+                , icon = Icons.Outlined.Save)
             }
         }
     )

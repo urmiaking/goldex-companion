@@ -1,6 +1,13 @@
 package com.goldex.companion.ui.invoices
 
-// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0025.
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -41,11 +48,10 @@ import com.goldex.companion.ui.theme.ButtonShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -72,7 +78,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import com.goldex.companion.data.MarketRates
 import com.goldex.companion.model.BankCoinItem
 import com.goldex.companion.model.BarterBalance
@@ -91,9 +97,8 @@ import com.goldex.companion.model.SettlementMethod
 import com.goldex.companion.model.SettlementPaymentItem
 import com.goldex.companion.ui.components.CustomerIconVector
 import com.goldex.companion.desktop.customers.HubArrowRight
-import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.invoices.components.InvoiceEditVector
@@ -282,7 +287,7 @@ fun BarterInvoiceScreen(
                     border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f))) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("مبنای مانده فاکتور", fontFamily = VazirmatnFamily, color = colors.textMain, fontWeight = FontWeight.Bold)
-                        LuxurySegmentedControl(
+                        DesktopChoiceRow(
                             items = com.goldex.companion.model.InvoiceDebtBasis.entries.toList(),
                             selectedItem = invoice.debtBasis ?: if (invoice.isGoldDebt) com.goldex.companion.model.InvoiceDebtBasis.GOLD else com.goldex.companion.model.InvoiceDebtBasis.CASH,
                             onItemSelected = onSetDebtBasis, label = { it.titleFa },
@@ -376,15 +381,15 @@ fun BarterInvoiceScreen(
                         text = "مشاهده بایگانی فاکتورها",
                         onClick = onOpenInvoiceManager,
                         isSecondary = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        modifier = Modifier.fillMaxWidth(), icon = Icons.Outlined.Check
+)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Add / Edit Payment Modal
-            if (isPaymentModalVisible) {
+            DesktopDialogHost(isPaymentModalVisible, modal = true) {
                 AddInvoicePaymentModal(
                     invoice = invoice,
                     balance = balance,
@@ -393,7 +398,6 @@ fun BarterInvoiceScreen(
                     existingPayment = editingPaymentItem,
                     onDismiss = {
                         isPaymentModalVisible = false
-                        editingPaymentItem = null
                     },
                     onConfirm = { payment ->
                         if (editingPaymentItem != null) {
@@ -402,18 +406,18 @@ fun BarterInvoiceScreen(
                             onSetSettlementPayments(invoice.payments + payment)
                         }
                         isPaymentModalVisible = false
-                        editingPaymentItem = null
                     }
                 )
             }
 
             // Add / Edit Item Modal
-            if (uiState.isItemModalVisible) {
+            DesktopDialogHost(uiState.takeIf { it.isItemModalVisible }, modal = true,
+                contentKey = { it.editingItem?.id ?: "new" }) { displayed ->
                 AddInvoiceItemModal(
                     spotPrice18k = invoice.spotPrice18k,
                     marketRates = marketRates,
-                    defaultCategory = uiState.targetCategory,
-                    existingItem = uiState.editingItem,
+                    defaultCategory = displayed.targetCategory,
+                    existingItem = displayed.editingItem,
                     defaultProfitPercent = defaultProfitPercent,
                     defaultTaxPercent = defaultTaxPercent,
                     onDismiss = onCloseItemModal,
@@ -422,7 +426,7 @@ fun BarterInvoiceScreen(
             }
 
             // Manual Rate Edit Dialog
-            if (uiState.isRateEditDialogVisible) {
+            DesktopDialogHost(uiState.takeIf { it.isRateEditDialogVisible }) {
                 EditRateDialog(
                     currentRate = invoice.spotPrice18k,
                     liveRate = marketRates.gold18,
@@ -1782,7 +1786,7 @@ private fun SettlementSection(
         }
     }
 
-    pendingDeletePayment?.let { itemToDelete ->
+    DesktopDialogHost(pendingDeletePayment, contentKey = { it.id }) { itemToDelete ->
         DeleteSettlementConfirmDialog(
             paymentItem = itemToDelete,
             onDismiss = { pendingDeletePayment = null },
@@ -1893,8 +1897,8 @@ private fun EditRateDialog(
                         text = "انصراف",
                         onClick = onDismiss,
                         isSecondary = true,
-                        modifier = Modifier.weight(0.38f)
-                    )
+                        modifier = Modifier.weight(0.38f), icon = Icons.Outlined.Close
+)
                     GoldButton(
                         text = "اعمال نرخ",
                         onClick = {
@@ -1903,8 +1907,8 @@ private fun EditRateDialog(
                                 onConfirm(newRate)
                             }
                         },
-                        modifier = Modifier.weight(0.62f)
-                    )
+                        modifier = Modifier.weight(0.62f), icon = Icons.Outlined.Check
+)
                 }
             }
         }
@@ -2018,13 +2022,13 @@ private fun DeleteSettlementConfirmDialog(
                         text = "انصراف",
                         onClick = onDismiss,
                         isSecondary = true,
-                        modifier = Modifier.weight(0.38f)
-                    )
+                        modifier = Modifier.weight(0.38f), icon = Icons.Outlined.Close
+)
                     GoldButton(
                         text = "حذف از فاکتور",
                         onClick = onConfirm,
-                        modifier = Modifier.weight(0.62f)
-                    )
+                        modifier = Modifier.weight(0.62f), icon = Icons.Outlined.DeleteOutline
+)
                 }
             }
         }

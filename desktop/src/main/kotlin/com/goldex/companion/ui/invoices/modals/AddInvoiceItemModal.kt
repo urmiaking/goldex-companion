@@ -1,6 +1,13 @@
 package com.goldex.companion.ui.invoices.modals
 
-// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0025.
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -34,13 +41,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.goldex.companion.ui.theme.ButtonShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -72,7 +77,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.domain.invoice.BarterCalculationUseCases
 import com.goldex.companion.model.BankCoinItem
@@ -88,9 +93,8 @@ import com.goldex.companion.model.ScrapGoldItem
 import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.components.AnimatedNumberText
 import com.goldex.companion.ui.components.AnimatedPriceText
-import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import com.goldex.companion.ui.components.GoldInputField
-import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
 import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -115,15 +119,7 @@ fun AddInvoiceItemModal(
     val coroutineScope = rememberCoroutineScope()
     var isVisible by remember { mutableStateOf(false) }
 
-    val handleDismiss: () -> Unit = {
-        if (isVisible) {
-            coroutineScope.launch {
-                isVisible = false
-                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
-                onDismiss()
-            }
-        }
-    }
+    val handleDismiss: () -> Unit = onDismiss
 
     LaunchedEffect(Unit) {
         isVisible = true
@@ -375,59 +371,9 @@ private fun InlineCustomKaratChip(
     modifier: Modifier = Modifier,
     placeholder: String = "عیار دلخواه"
 ) {
-    val colors = LocalGoldExColors.current
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
-        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
-        modifier = modifier
-            .height(36.dp)
-            .clickable { onSelect() }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() }
-                    onValueChange(filtered)
-                    onSelect()
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(
-                    fontFamily = VazirmatnFamily,
-                    fontSize = 11.5.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    color = if (isSelected) colors.goldPrimary else colors.textMain,
-                    textDirection = TextDirection.Ltr
-                ),
-                cursorBrush = SolidColor(colors.goldPrimary),
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (value.isEmpty()) {
-                            Text(
-                                text = placeholder,
-                                fontSize = 10.5.sp,
-                                color = colors.textMuted,
-                                fontFamily = VazirmatnFamily,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
-        }
-    }
+    GoldInputField(value, { input -> onValueChange(input.filter { it.isDigit() }); onSelect() },
+        label = placeholder, keyboardType = KeyboardType.Number, useThousandsSeparator = false,
+        modifier = modifier.heightIn(min = 56.dp))
 }
 
 // ---------------------------------------------------------------------------
@@ -644,7 +590,7 @@ private fun CraftedGoldForm(
                         color = colors.textSecondary,
                         fontFamily = VazirmatnFamily
                     )
-                    LuxurySegmentedControl(
+                    DesktopChoiceRow(
                         items = listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM),
                         selectedItem = wageType,
                         onItemSelected = { wageType = it },
@@ -654,9 +600,7 @@ private fun CraftedGoldForm(
                                 WageType.TOMAN_PER_GRAM -> "تومان/گرم"
                             }
                         },
-                        modifier = Modifier.width(160.dp),
-                        height = 28.dp,
-                        fontSize = 9.5.sp
+                        modifier = Modifier.widthIn(min = 280.dp)
                     )
                 }
 
@@ -788,8 +732,8 @@ private fun CraftedGoldForm(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(1f)
-                )
+                    modifier = Modifier.weight(1f), icon = Icons.Outlined.Close
+)
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم به فاکتور",
                     onClick = { onConfirm(item) },
@@ -1143,8 +1087,8 @@ private fun ScrapGoldForm(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(1f)
-                )
+                    modifier = Modifier.weight(1f), icon = Icons.Outlined.Close
+)
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم تهاتر",
                     onClick = { onConfirm(item) },
@@ -1367,8 +1311,8 @@ private fun MeltGoldForm(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(1f)
-                )
+                    modifier = Modifier.weight(1f), icon = Icons.Outlined.Close
+)
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن آبشده به فاکتور",
                     onClick = { onConfirm(item) },
@@ -1654,8 +1598,8 @@ private fun BankCoinForm(
                     text = "انصراف",
                     onClick = onDismiss,
                     isSecondary = true,
-                    modifier = Modifier.weight(1f)
-                )
+                    modifier = Modifier.weight(1f), icon = Icons.Outlined.Close
+)
                 GoldButton(
                     text = if (existingItem != null) "ذخیره تغییرات" else "افزودن سکه به فاکتور",
                     onClick = { onConfirm(item) },

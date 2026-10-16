@@ -1,6 +1,6 @@
 package com.goldex.companion.ui.invoices
 
-// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0025.
 
 import com.goldex.companion.ui.util.FeatureWorkQueue
 import kotlinx.coroutines.CoroutineDispatcher
@@ -287,7 +287,7 @@ class BarterInvoiceViewModel(
         val snapshot = _uiState.value
         val currentInv = snapshot.invoice
         if (currentInv.salesItems.isEmpty()) { reportMessage("حداقل یک قلم فروش به فاکتور اضافه کنید"); return }
-        if (currentInv.spotPrice18k <= 0L) { reportMessage("نرخ صدور معتبر را وارد کنید"); return }
+        if (currentInv.isGoldDebt && currentInv.spotPrice18k <= 0L) { reportMessage("نرخ صدور معتبر را وارد کنید"); return }
         (currentInv.salesItems + currentInv.receivedItems).firstNotNullOfOrNull(::invoiceItemError)?.let { reportMessage(it); return }
         _uiState.update { it.copy(isSaving = true, error = null) }
         work.submit(onSuccess = { _uiState.update { it.copy(isSaving = false) }; onComplete() }) {

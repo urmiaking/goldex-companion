@@ -33,3 +33,10 @@ In Persian financial and gold market interfaces, typing numbers with decimal poi
 - Use `GoldInputField` or `GoldOutlinedTextField` for outlined inputs with floating labels.
 - Floating labels must remain transparent in every state; pass the label directly without a background modifier, Surface, or painted wrapper.
 - Do not add white, gray, or field-colored backgrounds to labels. Preserve the field container colors and the native outline cutout.
+
+### Rule 5: Windows geometry and search
+
+- Follow [windows-design-system.md](windows-design-system.md) and [the detailed contract](../../docs/design/windows-controls.md).
+- Windows outlined inputs delegate to `DesktopOutlinedTextField` (12dp `ButtonShape`); do not override radius in a feature. `DesktopField` and desktop `GoldInputField` retain numeric normalization and error/keyboard behavior while using this seam.
+- All Windows search fields use `DesktopSearchField`: 12dp, 48dp height, 14sp, Search icon, clear action, visible focus. Do not use the capsule header shape or a default square Material search field.
+- Dropdown fields use the same 12dp body shape and an expand icon. Search/filter controls share height and reflow at narrow widths; floating-label form fields retain their natural 56dp minimum height.

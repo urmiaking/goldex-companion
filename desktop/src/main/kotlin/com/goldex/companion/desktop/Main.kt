@@ -1,4 +1,11 @@
 package com.goldex.companion.desktop
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
+import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -16,7 +23,6 @@ import com.goldex.companion.desktop.state.*
 import com.goldex.companion.desktop.update.*
 import com.goldex.companion.desktop.ui.DesktopWorkspaceScreen
 import com.goldex.companion.presentation.calculator.*
-import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.theme.*
 import org.jetbrains.skia.Data
 import org.jetbrains.skia.Typeface
@@ -143,14 +149,16 @@ private fun launchWorkspace() {
         ) {
             window.minimumSize = Dimension(940, 700)
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
-                if (confirmClose) CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CompositionLocalProvider(LocalDesktopReduceMotion provides (state?.reduceMotion ?: false)) {
+                DesktopDialogHost(confirmClose) { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val busy = state?.saving == true || inventoryState?.saving == true || customerState?.isSaving == true || settlementState?.isSaving == true || invoiceState?.isSaving == true || invoiceHost?.documentBusy == true
                     AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیره اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
                         text = { Text(if (busy) "پس از پایان عملیات می‌توانید برنامه را ببندید." else "فرم باز یا تنظیمات ویرایش‌شده ذخیره نشده‌اند. پیش از خروج، آن‌ها را ذخیره کنید.") },
                         confirmButton = { Row(Modifier.width(380.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            GoldButton("بازگشت به برنامه", { confirmClose = false }, Modifier.weight(1f), isSecondary = true)
-                            GoldButton("خروج", { closeData(); exitApplication() }, Modifier.weight(1f), enabled = !busy)
+                            GoldButton("بازگشت به برنامه", { confirmClose = false }, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.ArrowForward)
+                            GoldButton("خروج", { closeData(); exitApplication() }, Modifier.weight(1f), enabled = !busy, icon = Icons.Outlined.ExitToApp)
                         } })
+                } }
                 }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
                     onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog && !workspace.customers.saving && !workspace.customers.hasDialog && !workspace.invoices.saving && !workspace.invoices.hasDialog && !workspace.invoices.hasDraft) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
@@ -165,8 +173,8 @@ private fun launchWorkspace() {
                         Column(Modifier.fillMaxSize().padding(48.dp), verticalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("اطلاعات قابل بازکردن نیست", style = MaterialTheme.typography.headlineMedium)
                             Text("اگر برنامه در پنجره دیگری باز است، آن را ببندید. فایل اصلی و پشتیبان شما حفظ شده‌اند؛ برای بررسی یا بازیابی، پوشه اطلاعات را باز کنید.")
-                            GoldButton("بازکردن پوشه اطلاعات", { Desktop.getDesktop().open(directory.toFile()) }, isSecondary = true)
-                            GoldButton("بستن", { exitApplication() })
+                            GoldButton("بازکردن پوشه اطلاعات", { Desktop.getDesktop().open(directory.toFile()) }, isSecondary = true, icon = Icons.Outlined.FolderOpen)
+                            GoldButton("بستن", { exitApplication() }, icon = Icons.Outlined.Close)
                         }
                     }
                 }

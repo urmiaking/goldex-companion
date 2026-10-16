@@ -1,4 +1,9 @@
 package com.goldex.companion.desktop.ui
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
+
+import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
+import androidx.compose.material.icons.outlined.*
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
@@ -50,14 +55,14 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
         }
     } else if (state.release != null && state.phase in setOf(WindowsUpdatePhase.AVAILABLE, WindowsUpdatePhase.READY, WindowsUpdatePhase.FAILED)) {
         WorkspaceControl(when (state.phase) {
-            WindowsUpdatePhase.READY -> if (compact) "نصب نسخه" else "نصب نسخه جدید"
-            WindowsUpdatePhase.FAILED -> "تلاش دوباره"
-            else -> "به‌روزرسانی"
-        }, updater::activate, modifier.fillMaxWidth().testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt, compact = compact,
+            WindowsUpdatePhase.READY -> if (compact) "نصب" else "نصب نسخه جدید"
+            WindowsUpdatePhase.FAILED -> if (compact) "تلاش" else "تلاش دوباره"
+            else -> if (compact) "نسخه" else "به‌روزرسانی"
+        }, updater::activate, modifier.fillMaxWidth().testTag("open-updater"), icon = Icons.Outlined.SystemUpdateAlt,
             enabled = state.phase != WindowsUpdatePhase.READY || canOpenPrompt)
     } else if (state.phase == WindowsUpdatePhase.FAILED) {
-        WorkspaceControl("بررسی دوباره", { updater.check() }, modifier.fillMaxWidth().testTag("retry-update-check"),
-            secondary = true, compact = compact)
+        WorkspaceControl(if (compact) "تلاش" else "بررسی دوباره", { updater.check() }, modifier.fillMaxWidth().testTag("retry-update-check"),
+            icon = Icons.Outlined.Refresh, secondary = true)
 
     }
 }
@@ -74,13 +79,14 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
             enabled = !state.busy, isSecondary = state.phase != WindowsUpdatePhase.READY,
             icon = Icons.Outlined.SystemUpdateAlt, modifier = Modifier.testTag("check-update"))
         if (state.phase in setOf(WindowsUpdatePhase.DOWNLOADING, WindowsUpdatePhase.CHECKING, WindowsUpdatePhase.VERIFYING))
-            TextButton(onClick = updater::cancelDownload) { Text("توقف دریافت") }
+            GoldButton("توقف دریافت", updater::cancelDownload, modifier = Modifier, icon = Icons.Outlined.Stop, isSecondary = true)
     }
 }
 
-@Composable internal fun WindowsUpdatePrompt(updater: WindowsUpdater, canRestart: Boolean, onRestart: () -> Unit) {
+@Composable internal fun WindowsUpdatePrompt(updater: WindowsUpdater, canRestart: Boolean, visible: Boolean = true, onRestart: () -> Unit) {
     val state by updater.state.collectAsState()
-    if (!state.dialog) return
+    DesktopDialogHost(state.takeIf { it.dialog && visible }) { displayed ->
+    val state = displayed
     AlertDialog(onDismissRequest = updater::postpone, modifier = Modifier.width(590.dp).testTag("update-dialog"),
         title = { Text(if (state.phase == WindowsUpdatePhase.READY) "نسخه جدید آماده است" else "به‌روزرسانی قیراط") },
         text = {
@@ -98,12 +104,13 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
             }
         }, confirmButton = {
             Row(Modifier.width(440.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                GoldButton("بعداً", updater::postpone, Modifier.weight(1f).testTag("postpone-update"), isSecondary = true, enabled = state.phase != WindowsUpdatePhase.RESTARTING)
+                GoldButton("بعداً", updater::postpone, Modifier.weight(1f).testTag("postpone-update"), isSecondary = true, enabled = state.phase != WindowsUpdatePhase.RESTARTING, icon = Icons.Outlined.Close)
                 GoldButton(when (state.phase) { WindowsUpdatePhase.RESTARTING -> "در حال بستن"; WindowsUpdatePhase.READY -> "نصب و راه‌اندازی مجدد"; else -> "بررسی دوباره" },
                     { if (state.phase == WindowsUpdatePhase.READY) onRestart() else updater.check() }, Modifier.weight(1.6f).testTag("restart-update"),
-                    enabled = !state.busy && (state.phase != WindowsUpdatePhase.READY || canRestart))
+                    enabled = !state.busy && (state.phase != WindowsUpdatePhase.READY || canRestart), icon = Icons.Outlined.SystemUpdateAlt)
             }
         })
+    }
 }
 
 @Composable private fun UpdateProgress(state: WindowsUpdateState) {

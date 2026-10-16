@@ -1,11 +1,14 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -21,7 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.model.*
@@ -30,13 +33,13 @@ import com.goldex.companion.ui.invoices.*
 import com.goldex.companion.ui.invoices.modals.AddInvoicePaymentModal
 import com.goldex.companion.ui.theme.*
 
-@Composable internal fun InvoiceHeaderActions(feature: DesktopInvoices, compact: Boolean) {
+@Composable internal fun InvoiceHeaderActions(feature: DesktopInvoices) {
     val state by feature.manager.uiState.collectAsState()
     val host by feature.host.collectAsState()
     WorkspaceControl(if (state.subScreen == InvoicesSubScreen.EDITOR) "بایگانی فاکتورها" else "صدور فاکتور جدید",
         { if (state.subScreen == InvoicesSubScreen.EDITOR) feature.manager.navigateBackToList() else feature.newInvoice() },
         Modifier.testTag("invoices-new-btn"), icon = if (state.subScreen == InvoicesSubScreen.EDITOR) Icons.Outlined.ReceiptLong else Icons.Outlined.Add,
-        secondary = state.subScreen == InvoicesSubScreen.EDITOR, enabled = !state.isSaving && !host.documentBusy && !feature.hasDialog, compact = compact)
+        secondary = state.subScreen == InvoicesSubScreen.EDITOR, enabled = !state.isSaving && !host.documentBusy && !feature.hasDialog)
 }
 
 @Composable internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
@@ -102,7 +105,7 @@ import com.goldex.companion.ui.theme.*
             if (state.filteredInvoices.isEmpty() && !state.isLoading && state.error == null) item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
                 LuxuryCard(Modifier.fillMaxWidth().testTag("invoice-empty")) {
                     Text(if (state.invoicesList.isEmpty()) "هنوز فاکتوری ثبت نشده است" else "فاکتوری مطابق جستجو یا فیلتر یافت نشد", color = colors.textMuted)
-                    if (state.invoicesList.isNotEmpty()) TextButton({ feature.manager.setSearchQuery(""); feature.manager.setSelectedFilter(InvoiceFilterTab.ALL) }) { Text("نمایش همه") }
+                    if (state.invoicesList.isNotEmpty()) DesktopActionButton("نمایش همه", { feature.manager.setSearchQuery(""); feature.manager.setSelectedFilter(InvoiceFilterTab.ALL) }, icon = Icons.Outlined.FilterAltOff, isSecondary = true)
                 }
             }
             items(state.filteredInvoices, key = { it.id }, contentType = { "invoice" }) { item -> InvoiceCard(item, feature) }
@@ -125,31 +128,19 @@ import com.goldex.companion.ui.theme.*
 @Composable private fun InvoiceTools(state: BarterInvoiceUiState, feature: DesktopInvoices) {
     val colors = LocalGoldExColors.current
     val search: @Composable (Modifier) -> Unit = { modifier ->
-        Surface(modifier.height(WorkspaceControlHeight), shape = WorkspaceControlShape, color = colors.surface, border = colors.hairlineBorder) {
-            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = colors.goldPrimary)
-                BasicTextField(state.searchQuery, feature.manager::setSearchQuery, singleLine = true,
-                    textStyle = TextStyle(fontFamily = VazirmatnFamily, fontSize = 14.sp, color = colors.textMain),
-                    modifier = Modifier.weight(1f).testTag("invoices-search").semantics { contentDescription = "جستجوی فاکتورها" }, decorationBox = { field ->
-                        Box { if (state.searchQuery.isBlank()) Text("جستجوی مشتری، شماره یا کالا", color = colors.textMuted, fontSize = 13.sp, maxLines = 1); field() }
-                    })
-                if (state.searchQuery.isNotEmpty()) IconButton({ feature.manager.setSearchQuery("") }, Modifier.size(36.dp)) { Icon(Icons.Outlined.Close, "پاک کردن جستجو") }
-            }
-        }
+        DesktopSearchField(state.searchQuery, feature.manager::setSearchQuery, "جستجوی مشتری، شماره یا کالا", modifier, inputTag = "invoices-search")
     }
     val filters: @Composable (Modifier) -> Unit = { modifier ->
-        LuxurySegmentedControl(InvoiceFilterTab.values().toList(), state.selectedFilter, feature.manager::setSelectedFilter,
-            modifier = modifier.testTag("invoice-filters"), height = WorkspaceControlHeight, label = { tab ->
-                val count = when (tab) { InvoiceFilterTab.ALL -> state.invoicesList.size; InvoiceFilterTab.SETTLED -> state.summary.settled;
-                    InvoiceFilterTab.PENDING -> state.summary.pending; InvoiceFilterTab.WORKSHOP -> state.summary.workshop }
-                val label = when (tab) { InvoiceFilterTab.ALL -> "همه"; InvoiceFilterTab.SETTLED -> "تسویه"; InvoiceFilterTab.PENDING -> "مانده‌دار"; InvoiceFilterTab.WORKSHOP -> "کارگاه" }
-                "$label (${PersianNumberFormatter.toPersianDigits(count.toString())})"
-            })
+        DesktopFilterRow(InvoiceFilterTab.values().toList(), state.selectedFilter, feature.manager::setSelectedFilter,
+            label = { when (it) { InvoiceFilterTab.ALL -> "همه"; InvoiceFilterTab.SETTLED -> "تسویه"; InvoiceFilterTab.PENDING -> "مانده‌دار"; InvoiceFilterTab.WORKSHOP -> "کارگاه" } },
+            count = { when (it) { InvoiceFilterTab.ALL -> state.invoicesList.size; InvoiceFilterTab.SETTLED -> state.summary.settled; InvoiceFilterTab.PENDING -> state.summary.pending; InvoiceFilterTab.WORKSHOP -> state.summary.workshop } },
+            countColor = { if (it == InvoiceFilterTab.PENDING) colors.errorRed else colors.goldPrimary },
+            modifier = modifier.testTag("invoice-filters"), fillWidth = false)
     }
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val filterWidth = minOf(540.dp, maxWidth * .55f)
-        if (maxWidth >= 780.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            search(Modifier.weight(1f)); filters(Modifier.width(filterWidth))
+        val filterWidth = minOf(540.dp, maxWidth * .6f)
+        if (maxWidth >= 780.dp) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            search(Modifier.weight(1f)); filters(Modifier.widthIn(max = filterWidth))
         } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { search(Modifier.fillMaxWidth()); filters(Modifier.fillMaxWidth()) }
     }
 }
@@ -191,10 +182,13 @@ import com.goldex.companion.ui.theme.*
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            WorkspaceControl("جزئیات", { feature.manager.openInvoiceDetails(item) }, Modifier.weight(1f).testTag("invoice-open-${item.id}"), secondary = true, compact = true, enabled = !saving)
-            WorkspaceControl("PDF / چاپ", { item.barterInvoice?.let { feature.preview(it) } }, Modifier.weight(1f).testTag("invoice-preview-${item.id}"), secondary = true, compact = true, enabled = !saving)
-            if (item.status != InvoiceStatus.SETTLED) WorkspaceControl("تسویه", { feature.settle(item) }, Modifier.weight(1f).testTag("invoice-settle-${item.id}"), compact = true, enabled = !saving)
+            DesktopActionButton("جزئیات", { feature.manager.openInvoiceDetails(item) }, Modifier.weight(1f).testTag("invoice-open-${item.id}"), isSecondary = true, enabled = !saving, icon = Icons.Outlined.Visibility
+)
+            DesktopActionButton("PDF / چاپ", { item.barterInvoice?.let { feature.preview(it) } }, Modifier.weight(1f).testTag("invoice-preview-${item.id}"), isSecondary = true, enabled = !saving, icon = Icons.Outlined.Print
+)
         }
+        if (item.status != InvoiceStatus.SETTLED) DesktopActionButton("تسویه فاکتور", { feature.settle(item) },
+            Modifier.fillMaxWidth().testTag("invoice-settle-${item.id}"), enabled = !saving, icon = Icons.Outlined.Payments)
     }
 }
 
@@ -205,29 +199,31 @@ import com.goldex.companion.ui.theme.*
     val ui by feature.manager.uiState.collectAsState()
     val customers by workspace.customers.manager.uiState.collectAsState()
     val state by workspace.state.collectAsState()
-    if (host.customerPicker) CustomerPickerDialog(customers = customers.customerList, selectedCustomer = ui.invoice.customer,
+    DesktopDialogHost(host.takeIf { it.customerPicker }) { CustomerPickerDialog(customers = customers.customerList, selectedCustomer = ui.invoice.customer,
         onSelectCustomer = feature::selectCustomer, onAddNewCustomerClick = { workspace.customers.manager.setAddCustomerDialogVisible(true) },
         onDeleteCustomer = { id, done -> workspace.customers.manager.deleteCustomer(id, done) },
         onUpdateCustomer = { customer, done -> workspace.customers.manager.updateCustomer(customer, done) },
-        isSaving = customers.isSaving, error = customers.error, onDismiss = feature::closePicker)
-    host.pendingDeletion?.let { item ->
+        isSaving = customers.isSaving, error = customers.error, onDismiss = feature::closePicker) }
+    DesktopDialogHost(host.pendingDeletion, contentKey = { it.id }) { item ->
         Dialog({ feature.requestDelete(null) }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth().testTag("invoice-delete-confirmation")) {
                 Text("حذف فاکتور ${PersianNumberFormatter.toPersianDigits(item.cleanInvoiceNumber)}", color = LocalGoldExColors.current.textMain, fontWeight = FontWeight.Bold)
                 Text("فاکتور و اسناد مرتبط حذف و مانده طرف‌حساب اصلاح می‌شود. پرداخت بانکی واقعی برگشت داده نمی‌شود.", color = LocalGoldExColors.current.textSecondary)
                 ui.statusMessage.takeIf { it.isNotBlank() }?.let { Text(it, color = LocalGoldExColors.current.errorRed) }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WorkspaceControl("انصراف", { feature.requestDelete(null) }, Modifier.weight(1f), secondary = true, enabled = !ui.isLoading)
-                    WorkspaceControl("حذف فاکتور", feature::delete, Modifier.weight(1f).testTag("invoice-delete-final"), enabled = !ui.isLoading)
+                    DesktopActionButton("انصراف", { feature.requestDelete(null) }, Modifier.weight(1f), isSecondary = true, enabled = !ui.isLoading, icon = Icons.Outlined.Close
+)
+                    DesktopActionButton("حذف فاکتور", feature::delete, Modifier.weight(1f).testTag("invoice-delete-final"), enabled = !ui.isLoading, icon = Icons.Outlined.DeleteOutline
+)
                 }
             }
         }
     }
-    ui.settlementShortcutInvoice?.let { invoice ->
+    DesktopDialogHost(ui.settlementShortcutInvoice, modal = true, contentKey = { it.id }) { invoice ->
         AddInvoicePaymentModal(invoice, invoice.balance, customers.customerList, ui.invoicesList,
             onDismiss = feature.manager::closeSettlementShortcut,
             onConfirm = { feature.manager.recordPaymentForInvoice(invoice.id, it, feature::refreshed) })
     }
-    host.preview?.let { invoice -> InvoiceDocumentPreview(invoice, state.settings, host.documentBusy,
+    DesktopDialogHost(host.preview, contentKey = { it.id }) { invoice -> InvoiceDocumentPreview(invoice, state.settings, host.documentBusy,
         onDismiss = { feature.preview(null) }, onSave = { feature.export(invoice) }, onPrint = { feature.export(invoice, true) }) }
 }

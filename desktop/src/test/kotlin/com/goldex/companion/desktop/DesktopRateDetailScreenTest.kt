@@ -77,7 +77,7 @@ class DesktopRateDetailScreenTest {
         }
         onNodeWithTag("workspace-theme").performClick();waitUntil(5000) { workspace.state.value.dark }
         save(onNodeWithTag("workspace-root"),"rate-detail-dark.png")
-        onNodeWithTag("rate-details-close").performScrollTo().performClick()
+        onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("rates-summary-GOLD18").assertExists()
     }
     @Test fun tableItemNavigationRetainsScrollAndAllInstrumentsHaveOwnData()=runDesktopComposeUiTest(width=1280,height=900) {
@@ -85,14 +85,14 @@ class DesktopRateDetailScreenTest {
         onNodeWithTag("rate-row-GERAMI").performScrollTo().performClick()
         waitUntil(5000) { !workspace.rateDetail.state.value.loading }
         assertEquals(BoardInstrument.GERAMI,workspace.rateDetail.state.value.active!!.instrument)
-        onNodeWithTag("rate-details-close").performScrollTo().performClick()
+        onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("rate-row-GERAMI").assertIsDisplayed()
         for(instrument in BoardInstrument.values().filter { it != BoardInstrument.TETHER }) {
             onNodeWithTag("rate-detail-${instrument.name}").performScrollTo().performClick()
             waitUntil(5000) { !workspace.rateDetail.state.value.loading }
             assertEquals(instrument,workspace.rateDetail.state.value.active!!.instrument)
             assertEquals(DesktopDestination.RATE_DETAIL,workspace.state.value.destination)
-            onNodeWithTag("rate-details-close").performScrollTo().performClick()
+            onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         }
     }
     @Test fun chartKeyboardAndPointerShowSameActualPriceWithoutChangingCalculatorDraft()=runDesktopComposeUiTest(width=1280,height=1000) {
@@ -121,7 +121,7 @@ class DesktopRateDetailScreenTest {
         save(onNodeWithTag("workspace-root"),"rate-detail-compact.png")
         onNodeWithTag("rate-statistics").performScrollTo().assertIsDisplayed()
         onNodeWithTag("rate-documents").performScrollTo().assertIsDisplayed()
-        onNodeWithTag("rate-details-close").performScrollTo().performClick()
+        onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         assertEquals(DesktopDestination.RATES,workspace.state.value.destination)
     }
     private fun save(node: SemanticsNodeInteraction,name: String) {

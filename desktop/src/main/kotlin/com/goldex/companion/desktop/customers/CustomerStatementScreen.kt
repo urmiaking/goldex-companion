@@ -1,5 +1,10 @@
 package com.goldex.companion.desktop.customers
 
+import com.goldex.companion.desktop.ui.controls.*
+import androidx.compose.material.icons.outlined.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+
 import kotlin.math.abs
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,7 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.domain.customers.balanceEffect
 import com.goldex.companion.model.*
@@ -61,17 +67,16 @@ import com.goldex.companion.desktop.ui.WorkspaceControlHeight
         }
         if (isLoading || error != null) item(key = "status") { RecordListStatus(isLoading, error, onRetry) }
         item(key = "filters") {
-            LuxurySegmentedControl(StatementFilterTab.values().toList(), selectedFilter, onFilterSelect,
-                label = { tab ->
-                    val count = when (tab) {
+            DesktopFilterRow(StatementFilterTab.values().toList(), selectedFilter, onFilterSelect,
+                label = { it.titleFa }, count = { tab ->
+                    when (tab) {
                         StatementFilterTab.ALL -> allTransactions.size
                         StatementFilterTab.GOLD_SALE -> allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.PAY }
                         StatementFilterTab.GOLD_RECEIPT -> allTransactions.count { it.type == LedgerEntryType.GOLD_WEIGHT && it.direction == LedgerDirection.RECEIVE }
                         StatementFilterTab.CASH_DEPOSIT -> allTransactions.count { it.type == LedgerEntryType.CASH_RIAL }
                         StatementFilterTab.SETTLEMENT -> allTransactions.count { it.title.contains("تسویه") || it.note.contains("تسویه") || it.tagBadge.contains("تهاتر") }
                     }
-                    "${tab.titleFa} (${PersianNumberFormatter.toPersianDigits(count.toString())})"
-                }, height = WorkspaceControlHeight, modifier = Modifier.fillMaxWidth().testTag("customer-statement-filters"), fontSize = 12.sp)
+                }, modifier = Modifier.fillMaxWidth().testTag("customer-statement-filters"))
         }
         item(key = "heading") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -88,7 +93,7 @@ import com.goldex.companion.desktop.ui.WorkspaceControlHeight
                 onEditClick = { if (!isSaving) onEditTransaction(tx) }, onDeleteClick = { if (!isSaving) transactionToDelete = tx })
         }
     }
-    transactionToDelete?.let { tx ->
+    DesktopDialogHost(transactionToDelete, contentKey = { it.id }) { tx ->
         Dialog(onDismissRequest = { if (!isSaving) transactionToDelete = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
@@ -97,8 +102,8 @@ import com.goldex.companion.desktop.ui.WorkspaceControlHeight
                     fontSize = 13.sp, color = colors.textSecondary, lineHeight = 22.sp)
                 RecordListStatus(isSaving, error, onRetry)
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WorkspaceControl("انصراف", { transactionToDelete = null }, Modifier.weight(1f), secondary = true, enabled = !isSaving)
-                    WorkspaceControl("حذف قطعی", { onDeleteTransaction(tx) { transactionToDelete = null } }, Modifier.weight(1f), enabled = !isSaving)
+                    DesktopActionButton("انصراف", { transactionToDelete = null }, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Close, enabled = !isSaving)
+                    DesktopActionButton("حذف قطعی", { onDeleteTransaction(tx) { transactionToDelete = null } }, Modifier.weight(1f), icon = Icons.Outlined.DeleteOutline, enabled = !isSaving)
                 }
             }
         }

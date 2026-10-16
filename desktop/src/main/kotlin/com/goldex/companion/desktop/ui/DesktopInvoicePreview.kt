@@ -1,5 +1,9 @@
 package com.goldex.companion.desktop.ui
 
+import com.goldex.companion.desktop.ui.controls.*
+
+import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -15,7 +19,7 @@ import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.data.AppSettings
 import com.goldex.companion.desktop.data.DesktopInvoiceDocuments
@@ -71,9 +75,12 @@ import javax.imageio.ImageIO
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    WorkspaceControl("بستن", onDismiss, Modifier.weight(1f), secondary = true, enabled = !busy)
-                    WorkspaceControl("چاپ", onPrint, Modifier.weight(1f).testTag("invoice-print"), secondary = true, enabled = !busy && pages?.isSuccess == true)
-                    WorkspaceControl(if (busy) "در حال آماده‌سازی" else "ذخیره PDF", onSave, Modifier.weight(1f).testTag("invoice-export"), enabled = !busy && pages?.isSuccess == true)
+                    DesktopActionButton("بستن", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !busy, icon = Icons.Outlined.Close
+)
+                    DesktopActionButton("چاپ", onPrint, Modifier.weight(1f).testTag("invoice-print"), isSecondary = true, enabled = !busy && pages?.isSuccess == true, icon = Icons.Outlined.Print
+)
+                    DesktopActionButton(if (busy) "در حال آماده‌سازی" else "ذخیره PDF", onSave, Modifier.weight(1f).testTag("invoice-export"), enabled = !busy && pages?.isSuccess == true, icon = Icons.Outlined.PictureAsPdf
+)
                 }
             }
         }
