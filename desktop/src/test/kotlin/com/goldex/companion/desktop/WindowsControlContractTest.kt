@@ -157,6 +157,7 @@ class WindowsControlContractTest {
                 "DesktopWorkspaceHeader.kt" to setOf("WorkspaceHeader"),
                 "DesktopWorkspaceScreen.kt" to setOf("DesktopWorkspaceScreen", "Sidebar"),
                 "DesktopCustomersPage.kt" to setOf("CustomerHeaderActions"),
+                "DesktopInvoicesPage.kt" to setOf("InvoiceHeaderActions"),
                 "DesktopUpdateUi.kt" to setOf("WindowsUpdateControl")
             )
             Regex("\\bWorkspaceControl\\s*\\(").findAll(source).forEach { call ->

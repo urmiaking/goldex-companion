@@ -63,6 +63,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val inventoryState by workspace.inventory.state.collectAsState()
     val customerState by workspace.customers.manager.uiState.collectAsState()
     val settlementState by workspace.customers.settlement.state.collectAsState()
+    val invoiceState by workspace.invoices.manager.uiState.collectAsState()
+    val invoiceHost by workspace.invoices.host.collectAsState()
+    val invoiceDialog = remember(invoiceState, invoiceHost) { workspace.invoices.hasDialog }
     val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
     val rateDetail by workspace.rateDetail.state.collectAsState()
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
@@ -75,7 +78,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
-                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
+                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
                 Column(
                     Modifier.weight(1f).fillMaxHeight().padding(
                         start = if (compact) 16.dp else 24.dp,
@@ -96,16 +99,18 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                 enabled = !inventoryState.saving)
                         }
                         if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
-                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else null,
+                        if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices)
+                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else null,
                         subtitleOverride = statementCustomer?.let { customer ->
                             listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
                         } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else null,
                         onBack = when {
                             statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
+                            state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR -> workspace.invoices::back
                             state.destination == DesktopDestination.RATE_DETAIL -> ({ workspace.navigate(DesktopDestination.RATES) })
                             else -> null
-                        }, backTag = if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else "customer-back",
-                        backDescription = if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else "بازگشت به مشتریان")
+                        }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else "customer-back",
+                        backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else "بازگشت به مشتریان")
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -132,7 +137,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                         dark = state.dark,
                                         showHeader = false,
                                         marketRates = workspace.calculatorRates,
-                                        onNavigateToInvoice = { workspace.navigate(DesktopDestination.INVOICES) },
+                                        onNavigateToInvoice = workspace::openCalculatorInvoice,
                                         onThemeChange = { workspace.toggleTheme() }
                                     )
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
@@ -157,10 +162,11 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         }
         DesktopDialogHost(state.draft) { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)
-        DesktopCustomerDialogs(workspace.customers)
+        DesktopInvoiceDialogs(workspace)
+        DesktopCustomerDialogs(workspace.customers, workspace.invoices::refreshed)
         if (updater != null)
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart,
-                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
+                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
         DesktopDialogHost(state.pendingDelete) { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخه قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },

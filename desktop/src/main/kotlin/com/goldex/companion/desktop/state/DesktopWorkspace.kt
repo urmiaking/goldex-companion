@@ -3,6 +3,7 @@ package com.goldex.companion.desktop.state
 import com.goldex.companion.data.*
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.model.PriceBasisTab
+import com.goldex.companion.model.Customer
 import com.goldex.companion.presentation.calculator.CalculatorField
 import com.goldex.companion.presentation.calculator.ManualGoldCalculator
 import kotlinx.coroutines.*
@@ -79,6 +80,7 @@ class DesktopWorkspace(
     val customers = com.goldex.companion.desktop.customers.DesktopCustomers(storage, scope) {
         market.snapshot.value?.rates ?: DesktopMarketRepository.emptyRates()
     }
+    val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()
@@ -109,8 +111,28 @@ class DesktopWorkspace(
     }
 
     fun navigate(destination: DesktopDestination) {
+        if (invoices.saving || invoices.hasDialog) return
         mutable.update { it.copy(destination = destination, notice = null) }
+        if (destination == DesktopDestination.INVOICES) invoices.manager.reloadInvoices()
+        if (destination == DesktopDestination.CUSTOMERS) customers.manager.loadCustomers()
         if (destination == DesktopDestination.DASHBOARD) dashboard.select(dashboard.state.value.horizon)
+    }
+    fun openCustomerInvoice(customer: Customer) {
+        navigate(DesktopDestination.INVOICES)
+        if (invoices.hasDraft) invoices.manager.reportMessage("پیش‌نویس فاکتور باز است؛ ابتدا آن را ذخیره کنید")
+        else invoices.newInvoice(customer)
+    }
+    fun openCalculatorInvoice() {
+        if (invoices.hasDraft || invoices.hasDialog || invoices.saving) {
+            navigate(DesktopDestination.INVOICES)
+            invoices.manager.reportMessage("پیش‌نویس فاکتور باز است؛ ابتدا آن را ذخیره کنید")
+            return
+        }
+        val item = calculatorInvoiceItem(calculator.state.value) ?: return
+        invoices.newInvoice()
+        invoices.manager.updateSpotPrice(item.spotPrice)
+        invoices.manager.addSalesItem(item)
+        navigate(DesktopDestination.INVOICES)
     }
     fun openRateDetail(instrument: BoardInstrument) {
         rateDetail.select(instrument)

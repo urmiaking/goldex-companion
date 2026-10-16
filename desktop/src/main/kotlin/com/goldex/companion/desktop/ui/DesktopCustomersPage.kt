@@ -67,7 +67,7 @@ import kotlin.math.abs
                 uiState = pageState, onSearchQueryChange = manager::setSearchQuery, onFilterSelect = manager::setLedgerFilter,
                 onOpenStatement = manager::openCustomerStatement, onOpenAddEntry = feature::openPayment,
                 onEditCustomer = manager::editCustomer, onDeleteCustomer = manager::requestCustomerDeletion,
-                onRetry = manager::loadCustomers)
+                onRetry = manager::loadCustomers, onNewInvoice = workspace::openCustomerInvoice)
             else CustomerStatementScreen(customer = displayed, transactions = pageState.filteredStatementTransactions,
                 allTransactions = pageState.activeCustomerTransactions, selectedFilter = pageState.selectedStatementFilter,
                 onFilterSelect = manager::setStatementFilter,
@@ -80,7 +80,7 @@ import kotlin.math.abs
 }
 
 /** Mounted outside transitions; navigation cannot abandon an unsaved form. */
-@Composable internal fun DesktopCustomerDialogs(feature: DesktopCustomers) {
+@Composable internal fun DesktopCustomerDialogs(feature: DesktopCustomers, onSettlementComplete: () -> Unit = {}) {
     val manager = feature.manager
     val state by manager.uiState.collectAsState()
     val settlement by feature.settlement.state.collectAsState()
@@ -127,6 +127,6 @@ import kotlin.math.abs
             isSaving = displayed.isSaving, error = displayed.error)
     }
     DesktopDialogHost(settlement.takeIf { it.customer != null }, modal = true) { displayed -> CustomerSettlementModal(displayed, feature.settlement,
-        onConfirm = { feature.settlement.confirm { manager.refreshAfterSettlement() } },
+        onConfirm = { feature.settlement.confirm { manager.refreshAfterSettlement(); onSettlementComplete() } },
         onIndependentEntry = { val customer = displayed.customer; feature.settlement.close(); customer?.let(manager::openAddLedgerEntry) }) }
 }

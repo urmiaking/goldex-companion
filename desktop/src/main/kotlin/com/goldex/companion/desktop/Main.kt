@@ -74,14 +74,26 @@ private fun verifyRuntime() {
                 contact, com.goldex.companion.domain.customers.OutstandingBalance(2.0, 0))
             check(customers.getCustomers().single().goldDebtGrams == 0.0)
             check(customers.getTransactions(contact.id).single().settlement == tx.settlement)
+            val sale = com.goldex.companion.model.BarterInvoice(id = "runtime-invoice", customer = customers.getCustomers().single(),
+                debtBasis = com.goldex.companion.model.InvoiceDebtBasis.CASH, spotPrice18k = 6_000_000,
+                salesItems = listOf(com.goldex.companion.model.BankCoinItem(unitPrice = 75_000_000,
+                    totalPayable = 75_000_000.0, equivalent18kWeight = 9.759)))
+            com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(invoices, customers, customers).save(sale)
+            check(customers.getCustomers().single().cashDebtTomans == 75_000_000L)
+            val pdfPath = customerDirectory.resolve("invoice-runtime.pdf")
+            DesktopInvoiceDocuments.save(sale, store.loadSettings(), pdfPath)
+            org.apache.pdfbox.Loader.loadPDF(pdfPath.toFile()).use { check(it.numberOfPages == 1) }
+            check(com.goldex.companion.domain.invoice.InvoiceDeletionUseCase(invoices, customers, customers).delete(sale.id)
+                is com.goldex.companion.domain.invoice.InvoiceDeletionResult.Deleted)
+            check(customers.getCustomers().single().cashDebtTomans == 0L)
         }
         DesktopDataStore(customerDirectory).use { check(DesktopCustomerStore(it).getTransactions("runtime-customer").size == 1) }
     } finally {
-        listOf("workspace.json", "workspace.previous.json", "workspace.lock").forEach { java.nio.file.Files.deleteIfExists(customerDirectory.resolve(it)) }
+        listOf("workspace.json", "workspace.previous.json", "workspace.lock", "invoice-runtime.pdf").forEach { java.nio.file.Files.deleteIfExists(customerDirectory.resolve(it)) }
         java.nio.file.Files.deleteIfExists(customerDirectory)
     }
     println("Qirato runtime version=${desktopVersion()}")
-    println("Qirato font, icon, shared codecs, customer storage and financial runtime verification passed")
+    println("Qirato font, icon, shared codecs, customer/invoice storage, financial and official PDF runtime verification passed")
 }
 
 private fun launchWorkspace() {
@@ -101,11 +113,13 @@ private fun launchWorkspace() {
         val inventoryState = workspace?.inventory?.state?.collectAsState()?.value
         val customerState = workspace?.customers?.manager?.uiState?.collectAsState()?.value
         val settlementState = workspace?.customers?.settlement?.state?.collectAsState()?.value
+        val invoiceState = workspace?.invoices?.manager?.uiState?.collectAsState()?.value
+        val invoiceHost = workspace?.invoices?.host?.collectAsState()?.value
         var confirmClose by remember { mutableStateOf(false) }
         LaunchedEffect(workspace) { workspace?.start() }
         Window(
             onCloseRequest = {
-                if (state?.saving == true || inventoryState?.saving == true || state?.draft != null || state?.settingsDraft != null || inventoryState?.draft != null || inventoryState?.movement != null || workspace?.customers?.saving == true || workspace?.customers?.hasDialog == true) confirmClose = true
+                if (state?.saving == true || inventoryState?.saving == true || state?.draft != null || state?.settingsDraft != null || inventoryState?.draft != null || inventoryState?.movement != null || workspace?.customers?.saving == true || workspace?.customers?.hasDialog == true || workspace?.invoices?.saving == true || workspace?.invoices?.hasDraft == true || workspace?.invoices?.hasDialog == true) confirmClose = true
                 else { closeData(); exitApplication() }
             }, title = "قیراط | ${state?.destination?.title ?: "اطلاعات"}",
             icon = painterResource("mipmap-xxxhdpi/ic_launcher.png"), state = rememberWindowState(width = 1400.dp, height = 900.dp),
@@ -119,6 +133,7 @@ private fun launchWorkspace() {
                         Key.Five -> workspace.navigate(DesktopDestination.SETTINGS)
                         Key.Six -> workspace.navigate(DesktopDestination.INVENTORY)
                         Key.Seven -> workspace.navigate(DesktopDestination.CUSTOMERS)
+                        Key.Eight -> workspace.navigate(DesktopDestination.INVOICES)
                         Key.R -> { workspace.refreshRates() }
                         Key.N -> if (workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && !workspace.inventory.state.value.hasDialog && !workspace.customers.hasDialog && !workspace.customers.saving) {
                             workspace.openInventoryItem()
@@ -136,7 +151,7 @@ private fun launchWorkspace() {
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
                 CompositionLocalProvider(LocalDesktopReduceMotion provides (state?.reduceMotion ?: false)) {
                 DesktopDialogHost(confirmClose) { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    val busy = state?.saving == true || inventoryState?.saving == true || customerState?.isSaving == true || settlementState?.isSaving == true
+                    val busy = state?.saving == true || inventoryState?.saving == true || customerState?.isSaving == true || settlementState?.isSaving == true || invoiceState?.isSaving == true || invoiceHost?.documentBusy == true
                     AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیره اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
                         text = { Text(if (busy) "پس از پایان عملیات می‌توانید برنامه را ببندید." else "فرم باز یا تنظیمات ویرایش‌شده ذخیره نشده‌اند. پیش از خروج، آن‌ها را ذخیره کنید.") },
                         confirmButton = { Row(Modifier.width(380.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -146,7 +161,7 @@ private fun launchWorkspace() {
                 } }
                 }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
-                    onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog && !workspace.customers.saving && !workspace.customers.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
+                    onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog && !workspace.customers.saving && !workspace.customers.hasDialog && !workspace.invoices.saving && !workspace.invoices.hasDialog && !workspace.invoices.hasDraft) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {
                     FileDialog(window, "ذخیره فایل پشتیبان", FileDialog.SAVE).apply {
                         file = "Qirato-backup-${java.time.LocalDate.now()}.json"
                         isVisible = true

@@ -44,7 +44,8 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
     onEditCustomer: (Customer) -> Unit,
     onDeleteCustomer: (Customer) -> Unit,
     onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNewInvoice: (Customer) -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
     BoxWithConstraints(modifier.fillMaxSize().testTag("customer-ledger-page")) {
@@ -82,7 +83,7 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
             items(uiState.filteredCustomers, key = { it.id }, contentType = { "customer" }) { customer ->
                 CustomerDesktopCard(customer, uiState.isSaving,
                     { onOpenStatement(customer) }, { onOpenAddEntry(customer) },
-                    { onEditCustomer(customer) }, { onDeleteCustomer(customer) })
+                    { onEditCustomer(customer) }, { onDeleteCustomer(customer) }, { onNewInvoice(customer) })
             }
         }
     }
@@ -123,7 +124,7 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
 
 @Composable private fun CustomerDesktopCard(
     customer: Customer, saving: Boolean, onOpenStatement: () -> Unit, onOpenAddEntry: () -> Unit,
-    onEdit: () -> Unit, onDelete: () -> Unit
+    onEdit: () -> Unit, onDelete: () -> Unit, onNewInvoice: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
     LuxuryCard(Modifier.testTag("customer-card-${customer.id}"), hasTopHairline = true,
@@ -172,9 +173,7 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
             enabled = !saving, icon = Icons.Outlined.NoteAdd)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DesktopActionButton("ریز گردش", onOpenStatement, Modifier.weight(1f).testTag("customer-statement-${customer.id}").semantics { contentDescription = "ریز گردش حساب" }, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
-            DesktopActionButton("ثبت فاکتور", {}, Modifier.weight(1f).testTag("customer-invoice-${customer.id}").semantics {
-                contentDescription = "ثبت فاکتور؛ به‌زودی"
-            }, enabled = false, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
+            DesktopActionButton("ثبت فاکتور", onNewInvoice, Modifier.weight(1f).testTag("customer-invoice-${customer.id}"), enabled = !saving, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
         }
     }
 }

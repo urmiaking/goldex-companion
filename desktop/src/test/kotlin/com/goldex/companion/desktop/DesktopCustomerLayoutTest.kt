@@ -45,7 +45,7 @@ class DesktopCustomerLayoutTest {
                 }
                 waitUntil(10000) { workspace.customers.manager.uiState.value.customerList.size == 3 }
                 onNodeWithTag("customer-add").assertIsDisplayed()
-                onNodeWithTag("customer-invoice-layout-1").assertIsNotEnabled()
+                onNodeWithTag("customer-invoice-layout-1").assertIsEnabled()
                 onNodeWithTag("customer-contact-layout-1").assertTextEquals("۰۹۱۲۳۴۵۶۷۸۹ (۱۰۴۱)")
                 onNodeWithTag("customer-contact-layout-2").assertTextEquals("۰۹۱۲۳۴۵۶۷۸۹")
                 onNodeWithText("نقش مخفی").assertDoesNotExist()
