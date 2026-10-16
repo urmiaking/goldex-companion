@@ -1,4 +1,6 @@
 package com.goldex.companion.desktop.ui
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
 
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import androidx.compose.material.icons.outlined.*
@@ -81,9 +83,10 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
     }
 }
 
-@Composable internal fun WindowsUpdatePrompt(updater: WindowsUpdater, canRestart: Boolean, onRestart: () -> Unit) {
+@Composable internal fun WindowsUpdatePrompt(updater: WindowsUpdater, canRestart: Boolean, visible: Boolean = true, onRestart: () -> Unit) {
     val state by updater.state.collectAsState()
-    if (!state.dialog) return
+    DesktopDialogHost(state.takeIf { it.dialog && visible }) { displayed ->
+    val state = displayed
     AlertDialog(onDismissRequest = updater::postpone, modifier = Modifier.width(590.dp).testTag("update-dialog"),
         title = { Text(if (state.phase == WindowsUpdatePhase.READY) "نسخه جدید آماده است" else "به‌روزرسانی قیراط") },
         text = {
@@ -107,6 +110,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
                     enabled = !state.busy && (state.phase != WindowsUpdatePhase.READY || canRestart), icon = Icons.Outlined.SystemUpdateAlt)
             }
         })
+    }
 }
 
 @Composable private fun UpdateProgress(state: WindowsUpdateState) {

@@ -67,7 +67,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     secondary: Boolean, enabled: Boolean, loading: Boolean, height: Dp, shape: Shape
 ) {
     val c = LocalGoldExColors.current
-    val active = enabled && !loading
+    val active = enabled && !loading && LocalDesktopDialogInputEnabled.current
     val foreground = if (!enabled) c.textMuted else if (secondary) c.textMain else c.goldButtonText
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
@@ -126,7 +126,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     // Material owns the circular state layer. A second background would draw a square hover behind it.
     IconButton(onClick, modifier.sizeIn(minWidth = 44.dp, minHeight = 44.dp).clip(CircleShape)
         .border(if (focused) 1.dp else 0.dp, if (focused) c.goldPrimary else Color.Transparent, CircleShape),
-        enabled, colors, interactionSource, content)
+        enabled && LocalDesktopDialogInputEnabled.current, colors, interactionSource, content)
 }
 
 /** Approved compact capsule for opening a quote's detail; not a save/delete action variant. */

@@ -36,7 +36,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.desktop.data.InventoryPhoto
 import com.goldex.companion.desktop.state.*
@@ -133,8 +134,8 @@ private val GreenGainColor = Color(0xFF4ADE80)
         }
 
         // 5. Item Details Dialog (when an item is selected from table)
-        if (state.selected != null && !state.hasDialog) {
-            ItemDetailsDialog(state, feature, onDismiss = { feature.select(null) })
+        DesktopDialogHost(state.takeIf { it.selected != null && !it.hasDialog }, contentKey = { it.selected?.id }) { displayed ->
+            ItemDetailsDialog(displayed, feature, onDismiss = { feature.select(null) })
         }
     }
 }
@@ -1204,11 +1205,11 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
 /** Root overlays survive page navigation and prevent an updater restart while a form is open. */
 @Composable internal fun InventoryDialogs(feature: DesktopInventory) {
     val state by feature.state.collectAsState()
-    state.draft?.let { draft ->
+    DesktopDialogHost(state.draft) { draft ->
         DesktopInventoryProductDialog(draft, state, feature)
     }
-    state.movement?.let { draft ->
-        val item = state.items.firstOrNull { it.id == draft.itemId } ?: return@let
+    DesktopDialogHost(state.movement) { draft ->
+        val item = state.items.firstOrNull { it.id == draft.itemId } ?: return@DesktopDialogHost
         InventoryDialog("ورود و خروج • ${item.title}", "inventory-movement-dialog", state.saving, feature::dismiss, { feature.saveMovement() }, "ثبت گردش") {
             if (state.error != null) Text(state.error.orEmpty(), color = LocalGoldExColors.current.errorRed, fontSize = 12.sp)
             DesktopChoiceRow(StockAdjustmentType.values().toList(), draft.type, { type -> feature.editMovement { it.copy(type = type) } }, label = { if (it == StockAdjustmentType.CHARGE) "ورود موجودی" else "خروج موجودی" }, modifier = Modifier.fillMaxWidth())
@@ -1224,19 +1225,19 @@ private fun categoryShort(value: InventoryCategory) = when(value) {
             } }
         }
     }
-    state.pendingDelete?.let { item ->
+    DesktopDialogHost(state.pendingDelete) { item ->
         AlertDialog(onDismissRequest = { feature.requestDelete(null) }, title = { Text("حذف کالا") }, text = { Text("«${item.title}» با ${digits(item.quantity.toLong())} قطعه از انبار حذف شود؟ سوابق ورود و خروج حفظ می‌شوند و فایل قبلی در پشتیبان محلی می‌ماند.") },
             confirmButton = { DialogActions(state.saving, { feature.requestDelete(null) }, { feature.delete() }, "حذف کالا", "inventory-confirm-delete") })
     }
-    if (state.showHistory) AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچه ورود و خروج انبار") },
+    DesktopDialogHost(state.takeIf { it.showHistory }) { displayed -> AlertDialog(onDismissRequest = { feature.showHistory(false) }, modifier = Modifier.width(780.dp), title = { Text("تاریخچه ورود و خروج انبار") },
         text = {
-            if (state.history.isEmpty()) Text("هنوز گردش موجودی ثبت نشده است؛ از جزئیات کالا ورود یا خروج را انتخاب کنید.")
+            if (displayed.history.isEmpty()) Text("هنوز گردش موجودی ثبت نشده است؛ از جزئیات کالا ورود یا خروج را انتخاب کنید.")
             else LazyColumn(Modifier.heightIn(max = 500.dp).testTag("inventory-history-list"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(state.history.sortedByDescending { it.timestamp }, key = { it.id }) { MovementRow(it, full = true) }
+                items(displayed.history.sortedByDescending { it.timestamp }, key = { it.id }) { MovementRow(it, full = true) }
             }
-        }, confirmButton = { GoldButton("بستن", { feature.showHistory(false) }, isSecondary = true, icon = Icons.Outlined.Close) })
-    if (state.discard) AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامه ویرایش، به فرم برگردید.") },
-        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامه ویرایش") })
+        }, confirmButton = { GoldButton("بستن", { feature.showHistory(false) }, isSecondary = true, icon = Icons.Outlined.Close) }) }
+    DesktopDialogHost(state.discard) { AlertDialog(onDismissRequest = feature::cancelDiscard, title = { Text("بستن بدون ذخیره؟") }, text = { Text("تغییرات این فرم ذخیره نشده‌اند. برای ادامه ویرایش، به فرم برگردید.") },
+        confirmButton = { DialogActions(false, feature::cancelDiscard, feature::discard, "بستن بدون ذخیره", "inventory-discard", "ادامه ویرایش") }) }
 }
 
 @Composable private fun MovementRow(movement: StockAdjustment, full: Boolean = false) {

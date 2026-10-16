@@ -21,7 +21,8 @@ import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.desktop.customers.*
 import com.goldex.companion.desktop.customers.modals.*
@@ -83,23 +84,23 @@ import kotlin.math.abs
     val manager = feature.manager
     val state by manager.uiState.collectAsState()
     val settlement by feature.settlement.state.collectAsState()
-    if (state.isCustomerManagerVisible && !state.isAddCustomerDialogVisible) CustomerPickerDialog(
-        customers = state.customerList, selectedCustomer = state.selectedCustomer,
+    DesktopDialogHost(state.takeIf { it.isCustomerManagerVisible && !it.isAddCustomerDialogVisible }) { displayed -> CustomerPickerDialog(
+        customers = displayed.customerList, selectedCustomer = displayed.selectedCustomer,
         onSelectCustomer = { customer -> manager.selectCustomer(customer); manager.setCustomerManagerVisible(false); customer?.let(manager::openCustomerStatement) },
         onAddNewCustomerClick = { manager.setAddCustomerDialogVisible(true) },
         onDeleteCustomer = { id, done -> manager.deleteCustomer(id, done) }, onUpdateCustomer = { customer, done -> manager.updateCustomer(customer, done) },
         isSaving = state.isSaving, error = state.error,
-        onDismiss = { if (!feature.saving) manager.setCustomerManagerVisible(false) })
-    if (state.isAddCustomerDialogVisible) AddCustomerDialog(
+        onDismiss = { if (!feature.saving) manager.setCustomerManagerVisible(false) }) }
+    DesktopDialogHost(state.takeIf { it.isAddCustomerDialogVisible }) { displayed -> AddCustomerDialog(
         onDismiss = { if (!feature.saving) manager.setAddCustomerDialogVisible(false) },
-        onSaveCustomer = { manager.addCustomer(it, autoSelect = false) }, isSaving = state.isSaving, error = state.error)
-    state.editingCustomer?.let { customer ->
+        onSaveCustomer = { manager.addCustomer(it, autoSelect = false) }, isSaving = displayed.isSaving, error = displayed.error) }
+    DesktopDialogHost(state.editingCustomer, contentKey = { it.id }) { customer ->
         key(customer.id) { EditCustomerDialog(customer,
             onDismiss = { if (!feature.saving) manager.closeCustomerEdit() },
             onSaveCustomer = { manager.updateCustomer(it) { manager.closeCustomerEdit() } },
             isSaving = state.isSaving, error = state.error) }
     }
-    state.pendingDeleteCustomer?.let { pending ->
+    DesktopDialogHost(state.pendingDeleteCustomer, contentKey = { it.id }) { pending ->
         val customer = state.customerList.firstOrNull { it.id == pending.id } ?: pending
         val settled = abs(customer.goldDebtGrams) <= 1e-10 && customer.cashDebtTomans == 0L
         Dialog(onDismissRequest = { if (!feature.saving) manager.cancelCustomerDeletion() },
@@ -120,12 +121,12 @@ import kotlin.math.abs
             }
         }
     }
-    if (state.isAddLedgerEntryModalVisible) state.ledgerEntryTargetCustomer?.let { customer ->
-        AddLedgerEntryModal(customer = customer, editingTransaction = state.editingLedgerTransaction,
+    DesktopDialogHost(state.takeIf { it.isAddLedgerEntryModalVisible && it.ledgerEntryTargetCustomer != null }, modal = true) { displayed ->
+        AddLedgerEntryModal(customer = displayed.ledgerEntryTargetCustomer!!, editingTransaction = displayed.editingLedgerTransaction,
             onDismiss = { if (!feature.saving) manager.closeAddLedgerEntry() }, onSaveEntry = { manager.saveLedgerEntry(it) },
-            isSaving = state.isSaving, error = state.error)
+            isSaving = displayed.isSaving, error = displayed.error)
     }
-    if (settlement.customer != null) CustomerSettlementModal(settlement, feature.settlement,
+    DesktopDialogHost(settlement.takeIf { it.customer != null }, modal = true) { displayed -> CustomerSettlementModal(displayed, feature.settlement,
         onConfirm = { feature.settlement.confirm { manager.refreshAfterSettlement() } },
-        onIndependentEntry = { val customer = settlement.customer; feature.settlement.close(); customer?.let(manager::openAddLedgerEntry) })
+        onIndependentEntry = { val customer = displayed.customer; feature.settlement.close(); customer?.let(manager::openAddLedgerEntry) }) }
 }

@@ -27,7 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialog as Dialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
 import androidx.compose.ui.window.DialogProperties
 import com.goldex.companion.domain.customers.balanceEffect
 import com.goldex.companion.model.*
@@ -92,7 +93,7 @@ import com.goldex.companion.desktop.ui.WorkspaceControlHeight
                 onEditClick = { if (!isSaving) onEditTransaction(tx) }, onDeleteClick = { if (!isSaving) transactionToDelete = tx })
         }
     }
-    transactionToDelete?.let { tx ->
+    DesktopDialogHost(transactionToDelete, contentKey = { it.id }) { tx ->
         Dialog(onDismissRequest = { if (!isSaving) transactionToDelete = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {

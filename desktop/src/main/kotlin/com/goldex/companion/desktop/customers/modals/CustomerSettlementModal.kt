@@ -1,4 +1,5 @@
 package com.goldex.companion.desktop.customers.modals
+import com.goldex.companion.desktop.ui.controls.DesktopModalBottomSheet as ModalBottomSheet
 
 import com.goldex.companion.desktop.ui.controls.DesktopControls
 

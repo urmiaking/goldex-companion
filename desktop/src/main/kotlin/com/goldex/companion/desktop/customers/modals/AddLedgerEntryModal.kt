@@ -1,4 +1,5 @@
 package com.goldex.companion.desktop.customers.modals
+import com.goldex.companion.desktop.ui.controls.DesktopModalBottomSheet as ModalBottomSheet
 
 import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
 
@@ -599,7 +600,7 @@ fun AddLedgerEntryModal(
                                     }
                                 }
                                 Text(
-                                    text = customer.role,
+                                    text = PersianNumberFormatter.toPersianDigits(customer.phone),
                                     fontSize = 11.sp,
                                     color = colors.textMuted,
                                     fontFamily = VazirmatnFamily

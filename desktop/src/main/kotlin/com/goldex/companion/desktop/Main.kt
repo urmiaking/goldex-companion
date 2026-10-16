@@ -1,4 +1,7 @@
 package com.goldex.companion.desktop
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
+import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
 
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import androidx.compose.material.icons.Icons
@@ -131,7 +134,8 @@ private fun launchWorkspace() {
         ) {
             window.minimumSize = Dimension(940, 700)
             GoldExCompanionTheme(isDarkTheme = state?.dark ?: false) {
-                if (confirmClose) CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CompositionLocalProvider(LocalDesktopReduceMotion provides (state?.reduceMotion ?: false)) {
+                DesktopDialogHost(confirmClose) { CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     val busy = state?.saving == true || inventoryState?.saving == true || customerState?.isSaving == true || settlementState?.isSaving == true
                     AlertDialog(onDismissRequest = { confirmClose = false }, title = { Text(if (busy) "ذخیره اطلاعات در حال انجام است" else "بستن برنامه بدون ذخیره؟") },
                         text = { Text(if (busy) "پس از پایان عملیات می‌توانید برنامه را ببندید." else "فرم باز یا تنظیمات ویرایش‌شده ذخیره نشده‌اند. پیش از خروج، آن‌ها را ذخیره کنید.") },
@@ -139,6 +143,7 @@ private fun launchWorkspace() {
                             GoldButton("بازگشت به برنامه", { confirmClose = false }, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.ArrowForward)
                             GoldButton("خروج", { closeData(); exitApplication() }, Modifier.weight(1f), enabled = !busy, icon = Icons.Outlined.ExitToApp)
                         } })
+                } }
                 }
                 if (workspace != null) DesktopWorkspaceScreen(workspace, version = desktopVersion(), updater = updater,
                     onRestart = { if (!workspace.state.value.saving && workspace.state.value.draft == null && workspace.state.value.pendingDelete == null && workspace.state.value.settingsDraft == null && !workspace.inventory.state.value.saving && !workspace.inventory.state.value.hasDialog && !workspace.customers.saving && !workspace.customers.hasDialog) updater.restart { javax.swing.SwingUtilities.invokeLater { closeData(); exitApplication() } } }, onBackup = {

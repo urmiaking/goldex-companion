@@ -21,6 +21,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -126,28 +128,33 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
     val colors = LocalGoldExColors.current
     LuxuryCard(Modifier.testTag("customer-card-${customer.id}"), hasTopHairline = true,
         contentPadding = PaddingValues(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Surface(shape = CircleShape, color = colors.goldContainer, modifier = Modifier.size(38.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(customer.name.firstOrNull()?.toString() ?: "م", color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colors.textMain,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("customer-name-${customer.id}"))
-                Text(customer.role, fontSize = 12.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = colors.textMain,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).testTag("customer-name-${customer.id}"))
+                    CustomerAccountStatus(customer.goldDebtGrams, customer.cashDebtTomans, Modifier.testTag("customer-status-${customer.id}"))
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(customerContactLabel(customer), fontSize = 12.sp, color = colors.textMuted,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Right,
+                        style = TextStyle(textDirection = TextDirection.Ltr),
+                        modifier = Modifier.weight(1f).testTag("customer-contact-${customer.id}"))
+                    IconButton(onEdit, Modifier.size(44.dp).testTag("customer-edit-${customer.id}"), enabled = !saving) {
+                        Icon(Icons.Outlined.Edit, "ویرایش مشتری", Modifier.size(18.dp), tint = colors.goldPrimary)
+                    }
+                    IconButton(onDelete, Modifier.size(44.dp).testTag("customer-delete-${customer.id}"), enabled = !saving) {
+                        Icon(Icons.Outlined.DeleteOutline, "حذف مشتری", Modifier.size(18.dp), tint = colors.errorRed)
+                    }
+                }
             }
-            IconButton(onEdit, Modifier.size(44.dp).testTag("customer-edit-${customer.id}"), enabled = !saving) {
-                Icon(Icons.Outlined.Edit, "ویرایش مشتری", Modifier.size(18.dp), tint = colors.goldPrimary)
-            }
-            IconButton(onDelete, Modifier.size(44.dp).testTag("customer-delete-${customer.id}"), enabled = !saving) {
-                Icon(Icons.Outlined.DeleteOutline, "حذف مشتری", Modifier.size(18.dp), tint = colors.errorRed)
-            }
-        }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(if (customer.accountCode.isBlank()) "بدون کد حساب" else "حساب ${PersianNumberFormatter.toPersianDigits(customer.accountCode)}",
-                Modifier.weight(1f), color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            CustomerAccountStatus(customer.goldDebtGrams, customer.cashDebtTomans)
         }
         Surface(shape = MaterialTheme.shapes.medium, color = colors.surfaceElevated, border = colors.hairlineBorder) {
             Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -161,15 +168,11 @@ import com.goldex.companion.desktop.ui.WorkspaceControlShape
                     Modifier.weight(1f).testTag("customer-cash-${customer.id}"))
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(PersianNumberFormatter.toPersianDigits(customer.phone.ifBlank { customer.cityOrMarket }), Modifier.weight(1f),
-                color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(customer.lastActivityTime, color = colors.textMuted, fontSize = 11.sp, maxLines = 1)
-        }
+        DesktopActionButton("ثبت دریافت/پرداخت", onOpenAddEntry, Modifier.fillMaxWidth().testTag("customer-entry-${customer.id}"),
+            enabled = !saving, icon = Icons.Outlined.NoteAdd)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DesktopActionButton("گردش", onOpenStatement, Modifier.weight(1f).testTag("customer-statement-${customer.id}").semantics { contentDescription = "گردش حساب" }, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
-            DesktopActionButton("ثبت سند", onOpenAddEntry, Modifier.weight(1f).testTag("customer-entry-${customer.id}"), enabled = !saving, icon = Icons.Outlined.NoteAdd)
-            DesktopActionButton("فاکتور", {}, Modifier.weight(1f).testTag("customer-invoice-${customer.id}").semantics {
+            DesktopActionButton("ریز گردش", onOpenStatement, Modifier.weight(1f).testTag("customer-statement-${customer.id}").semantics { contentDescription = "ریز گردش حساب" }, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
+            DesktopActionButton("ثبت فاکتور", {}, Modifier.weight(1f).testTag("customer-invoice-${customer.id}").semantics {
                 contentDescription = "ثبت فاکتور؛ به‌زودی"
             }, enabled = false, isSecondary = true, icon = Icons.Outlined.ReceiptLong)
         }

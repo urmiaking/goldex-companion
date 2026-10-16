@@ -1,4 +1,6 @@
 package com.goldex.companion.desktop.ui
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
 
 import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
 
@@ -241,7 +243,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         }
     }
 
-    if (showSignaturePad) {
+    DesktopDialogHost(showSignaturePad) {
         DesktopSignaturePadDialog(
             onDismiss = { showSignaturePad = false },
             onSaveSignature = { strokes, w, h ->

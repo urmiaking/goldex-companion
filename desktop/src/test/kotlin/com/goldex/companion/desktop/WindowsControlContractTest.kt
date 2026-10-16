@@ -128,7 +128,13 @@ class WindowsControlContractTest {
         Files.walk(sources).use { paths -> paths.filter { it.toString().endsWith(".kt") }.forEach { path ->
             val source = Files.readString(path)
             val name = path.fileName.toString()
-            if (name == "DesktopCalculatorScreen.kt" || path.toString().contains("controls")) return@forEach
+            if (path.toString().contains("controls")) return@forEach
+            for ((native,adapter) in listOf("Dialog" to "DesktopDialog","AlertDialog" to "DesktopAlertDialog","ModalBottomSheet" to "DesktopModalBottomSheet")) {
+                if (Regex("\\b$native\\s*\\(").containsMatchIn(source) &&
+                    !source.contains("import com.goldex.companion.desktop.ui.controls.$adapter as $native"))
+                    violations += "$name bypasses the central animated $native adapter"
+            }
+            if (name == "DesktopCalculatorScreen.kt") return@forEach
             if (Regex("\\b(?:Button|OutlinedButton|TextButton|FilterChip|OutlinedTextField|GoldOutlinedTextField|BasicTextField)\\s*\\(").containsMatchIn(source))
                 violations += "$name contains a raw action, filter or input control"
             if (Regex("\\bGoldButton\\s*\\(").containsMatchIn(source) &&
@@ -139,8 +145,7 @@ class WindowsControlContractTest {
                 violations += "$name uses an icon action outside the desktop circular-state adapter"
             val segmentedOwners = mapOf(
                 "DesktopDashboardTrend.kt" to setOf("DashboardTrend"),
-                "DesktopRateDetailPage.kt" to setOf("RateChartCard"),
-                "CustomerDialogs.kt" to setOf("CustomerRoleSelector")
+                "DesktopRateDetailPage.kt" to setOf("RateChartCard")
             )
             Regex("\\bLuxurySegmentedControl\\s*\\(").findAll(source).forEach { call ->
                 val owner = Regex("\\bfun\\s+([A-Za-z0-9_]+)\\s*\\(")

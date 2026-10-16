@@ -3,6 +3,8 @@ package com.goldex.companion.desktop.ui
 import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
 
 import com.goldex.companion.desktop.ui.controls.*
+import com.goldex.companion.desktop.customers.customerContactLabel
+import com.goldex.companion.desktop.ui.controls.DesktopAlertDialog as AlertDialog
 
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton as GoldButton
 import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
@@ -96,9 +98,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                         if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
                     }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else null,
                         subtitleOverride = statementCustomer?.let { customer ->
-                            listOf("گردش حساب", customer.role,
-                                customer.accountCode.takeIf { it.isNotBlank() }?.let { "حساب ${PersianNumberFormatter.toPersianDigits(it)}" },
-                                customer.phone.takeIf { it.isNotBlank() }?.let(PersianNumberFormatter::toPersianDigits)).filterNotNull().joinToString(" • ")
+                            listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
                         } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else null,
                         onBack = when {
                             statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
@@ -155,12 +155,13 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                 }
             }
         }
-        state.draft?.let { AssetDialog(it, state.saving, workspace) }
+        DesktopDialogHost(state.draft) { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)
         DesktopCustomerDialogs(workspace.customers)
-        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
-            WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
-        state.pendingDelete?.let { item ->
+        if (updater != null)
+            WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart,
+                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
+        DesktopDialogHost(state.pendingDelete) { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخه قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },
                 confirmButton = {
