@@ -40,7 +40,7 @@ class DesktopCustomerLayoutTest {
                 }
                 waitUntil(10000) { workspace.customers.manager.uiState.value.customerList.size == 3 }
                 onNodeWithTag("customer-add").assertIsDisplayed()
-                onNodeWithTag("customer-invoice-layout-1").assertIsNotEnabled()
+                onNodeWithTag("customer-invoice-layout-1").assertIsEnabled()
                 val gold = onNodeWithTag("customer-gold-layout-1").fetchSemanticsNode().boundsInRoot
                 val cash = onNodeWithTag("customer-cash-layout-1").fetchSemanticsNode().boundsInRoot
                 assertEquals(gold.center.y, cash.center.y)

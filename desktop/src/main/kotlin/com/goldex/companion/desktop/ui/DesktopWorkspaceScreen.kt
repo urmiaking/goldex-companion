@@ -53,6 +53,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val inventoryState by workspace.inventory.state.collectAsState()
     val customerState by workspace.customers.manager.uiState.collectAsState()
     val settlementState by workspace.customers.settlement.state.collectAsState()
+    val invoiceState by workspace.invoices.manager.uiState.collectAsState()
+    val invoiceHost by workspace.invoices.host.collectAsState()
+    val invoiceDialog = remember(invoiceState, invoiceHost) { workspace.invoices.hasDialog }
     val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
     val colors = LocalGoldExColors.current
@@ -64,7 +67,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
             val compact = maxWidth < 1080.dp
             Row(Modifier.fillMaxSize()) {
-                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
+                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
                 Column(
                     Modifier.weight(1f).fillMaxHeight().padding(
                         start = if (compact) 16.dp else 24.dp,
@@ -87,13 +90,16 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             )
                         }
                         if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers, compact)
-                    }, titleOverride = statementCustomer?.name,
+                        if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices, compact)
+                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR)
+                        (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else null,
                         subtitleOverride = statementCustomer?.let { customer ->
                             listOf("گردش حساب", customer.role,
                                 customer.accountCode.takeIf { it.isNotBlank() }?.let { "حساب ${PersianNumberFormatter.toPersianDigits(it)}" },
                                 customer.phone.takeIf { it.isNotBlank() }?.let(PersianNumberFormatter::toPersianDigits)).filterNotNull().joinToString(" • ")
-                        }, onBack = if (statementCustomer != null) workspace.customers.manager::closeCustomerStatement else null,
-                        inlineActions = state.destination == DesktopDestination.CUSTOMERS)
+                        }, onBack = if (statementCustomer != null) workspace.customers.manager::closeCustomerStatement
+                            else if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) workspace.invoices::back else null,
+                        inlineActions = state.destination == DesktopDestination.CUSTOMERS || state.destination == DesktopDestination.INVOICES)
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -120,7 +126,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                         dark = state.dark,
                                         showHeader = false,
                                         marketRates = workspace.calculatorRates,
-                                        onNavigateToInvoice = { workspace.navigate(DesktopDestination.INVOICES) },
+                                        onNavigateToInvoice = workspace::openCalculatorInvoice,
                                         onThemeChange = { workspace.toggleTheme() }
                                     )
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
@@ -145,8 +151,9 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         }
         state.draft?.let { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)
-        DesktopCustomerDialogs(workspace.customers)
-        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog)
+        DesktopInvoiceDialogs(workspace)
+        DesktopCustomerDialogs(workspace.customers, workspace.invoices::refreshed)
+        if (updater != null && state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart)
         state.pendingDelete?.let { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },

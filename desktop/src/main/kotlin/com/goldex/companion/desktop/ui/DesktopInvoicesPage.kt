@@ -2,243 +2,232 @@ package com.goldex.companion.desktop.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.goldex.companion.desktop.state.DesktopWorkspace
-import com.goldex.companion.desktop.state.WorkspaceState
-import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.components.LuxuryCard
-import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.marketGainText
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.goldex.companion.desktop.state.*
+import com.goldex.companion.model.*
+import com.goldex.companion.ui.components.*
+import com.goldex.companion.ui.invoices.*
+import com.goldex.companion.ui.invoices.modals.AddInvoicePaymentModal
+import com.goldex.companion.ui.theme.*
 
-data class DesktopInvoiceRow(
-    val id: String,
-    val invoiceNumber: String,
-    val customerName: String,
-    val description: String,
-    val weightGrams: Double,
-    val totalAmount: Long,
-    val settlementStatus: SettlementStatus,
-    val dateShamsi: String
-)
-
-enum class SettlementStatus(val label: String) {
-    CASH("تسویه نقدی"),
-    CREDIT("مانده‌دار"),
-    MELT_ACCOUNT("آبشده معین")
+@Composable internal fun InvoiceHeaderActions(feature: DesktopInvoices, compact: Boolean) {
+    val state by feature.manager.uiState.collectAsState()
+    val host by feature.host.collectAsState()
+    WorkspaceControl(if (state.subScreen == InvoicesSubScreen.EDITOR) "بایگانی فاکتورها" else "صدور فاکتور جدید",
+        { if (state.subScreen == InvoicesSubScreen.EDITOR) feature.manager.navigateBackToList() else feature.newInvoice() },
+        Modifier.testTag("invoices-new-btn"), icon = if (state.subScreen == InvoicesSubScreen.EDITOR) Icons.Outlined.ReceiptLong else Icons.Outlined.Add,
+        secondary = state.subScreen == InvoicesSubScreen.EDITOR, enabled = !state.isSaving && !host.documentBusy && !feature.hasDialog, compact = compact)
 }
 
-@Composable
-internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
+@Composable internal fun DesktopInvoicesPage(state: WorkspaceState, workspace: DesktopWorkspace) {
+    val feature = workspace.invoices
+    val manager = feature.manager
+    val invoiceState by manager.uiState.collectAsState()
+    val customers by workspace.customers.manager.uiState.collectAsState()
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (invoiceState.statusMessage.isNotBlank()) Surface(color = LocalGoldExColors.current.goldContainer, shape = MaterialTheme.shapes.medium) {
+            Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(invoiceState.statusMessage, Modifier.weight(1f).testTag("invoice-message"), color = LocalGoldExColors.current.textMain, fontSize = 13.sp)
+                IconButton(manager::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام فاکتور") }
+            }
+        }
+        if (invoiceState.subScreen == InvoicesSubScreen.LIST) InvoiceDirectory(invoiceState, feature, Modifier.weight(1f))
+        else key(invoiceState.invoice.id) {
+            Box(Modifier.weight(1f).fillMaxWidth().testTag("invoice-editor"), contentAlignment = Alignment.TopCenter) {
+                BarterInvoiceScreen(
+                    uiState = invoiceState, marketRates = state.snapshot?.rates ?: com.goldex.companion.desktop.data.DesktopMarketRepository.emptyRates(),
+                    customerList = customers.customerList,
+                    onSetCustomerRole = manager::setCustomerRole, onSetDebtBasis = manager::setDebtBasis,
+                    onOpenDatedSettlement = feature::settleEditor, onSetSettlementMethod = manager::setSettlementMethod,
+                    onSetCashPosAmount = manager::setCashPosAmount, onSetLedgerAmount = manager::setLedgerAmount,
+                    onSetPosTrackingCode = manager::setPosTrackingCode, onSetLedgerDueDate = manager::setLedgerDueDate,
+                    onSetBullionSettlement = manager::setBullionSettlement, onSetThirdPartyTransfer = manager::setThirdPartyTransfer,
+                    onSetSettlementPayments = manager::setSettlementPayments, onSetSyncWithLedger = manager::setSyncWithLedger,
+                    onSetNote = manager::setNote, onOpenAddItemModal = manager::openAddItemModal,
+                    onOpenEditItemModal = manager::openEditItemModal, onCloseItemModal = manager::closeItemModal,
+                    onSaveItem = manager::saveItem, onDeleteSalesItem = manager::deleteSalesItem,
+                    onDeleteReceivedItem = manager::deleteReceivedItem, onSetRateEditDialogVisible = manager::setRateEditDialogVisible,
+                    onUpdateSpotPrice = manager::updateSpotPrice, onOpenCustomerPicker = feature::openPicker,
+                    onOpenInvoiceManager = manager::navigateBackToList, onPreviewPdf = { feature.preview(invoiceState.invoice) },
+                    onSendSms = { feature.copyMessage(invoiceState.invoice) }, onFinalSubmit = feature::save,
+                    defaultProfitPercent = state.settings.defaultProfitPercent, defaultTaxPercent = state.settings.defaultTaxPercent,
+                    modifier = Modifier.widthIn(max = 1040.dp).fillMaxSize(), onPaymentDialogChanged = feature::paymentDialog)
+            }
+        }
+    }
+}
+
+@Composable private fun InvoiceDirectory(state: BarterInvoiceUiState, feature: DesktopInvoices, modifier: Modifier) {
     val colors = LocalGoldExColors.current
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf<SettlementStatus?>(null) }
-
-    val sampleInvoices = remember {
-        listOf(
-            DesktopInvoiceRow(
-                id = "INV-10492",
-                invoiceNumber = "۱۰۴۹۲",
-                customerName = "حاج محمد کاظمی",
-                description = "۳٫۲۵۰ گرم النگو طلا",
-                weightGrams = 3.250,
-                totalAmount = 85_340_000L,
-                settlementStatus = SettlementStatus.CASH,
-                dateShamsi = "۱۴۰۵/۰۷/۱۵"
-            ),
-            DesktopInvoiceRow(
-                id = "INV-10491",
-                invoiceNumber = "۱۰۴۹۱",
-                customerName = "خانم سارا رادمنش",
-                description = "سرویس تراش کارتیه",
-                weightGrams = 6.680,
-                totalAmount = 175_400_000L,
-                settlementStatus = SettlementStatus.CREDIT,
-                dateShamsi = "۱۴۰۵/۰۷/۱۵"
-            ),
-            DesktopInvoiceRow(
-                id = "INV-10490",
-                invoiceNumber = "۱۰۴۹۰",
-                customerName = "کارگاه طلاسازی زرنگار",
-                description = "تعویض ۲ قطعه شمش",
-                weightGrams = 8.685,
-                totalAmount = 228_100_000L,
-                settlementStatus = SettlementStatus.MELT_ACCOUNT,
-                dateShamsi = "۱۴۰۵/۰۷/۱۴"
-            )
-        )
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val columns = when { maxWidth >= 1000.dp -> 3; maxWidth >= 660.dp -> 2; else -> 1 }
+        LazyVerticalGrid(GridCells.Fixed(columns), modifier = Modifier.fillMaxSize().testTag("invoices-table"),
+            contentPadding = PaddingValues(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            item(key = "overview", span = { GridItemSpan(maxLineSpan) }) {
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val cards: @Composable (Modifier) -> Unit = { cardModifier ->
+                        InvoiceMetric("فاکتورهای ثبت‌شده", PersianNumberFormatter.toPersianDigits(state.invoicesList.size.toString()),
+                            "${PersianNumberFormatter.toPersianDigits(state.summary.pending.toString())} فاکتور مانده‌دار", Icons.Outlined.ReceiptLong, cardModifier, "invoice-count")
+                        InvoiceMetric("طلای فروخته‌شده", PersianNumberFormatter.formatWeight(state.summary.goldWeight), "گرم • معادل ۱۸ عیار", Icons.Outlined.Scale, cardModifier, "invoice-weight")
+                        InvoiceMetric("مجموع فروش", PersianNumberFormatter.formatPrice(state.summary.turnoverTomans), "تومان • کل بایگانی", Icons.Outlined.Payments, cardModifier, "invoice-sales")
+                    }
+                    if (maxWidth >= 620.dp) Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) { cards(Modifier.weight(1f)) }
+                    else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { cards(Modifier.fillMaxWidth()) }
+                }
+            }
+            item(key = "tools", span = { GridItemSpan(maxLineSpan) }) { InvoiceTools(state, feature) }
+            if (state.isLoading || state.error != null) item(key = "load", span = { GridItemSpan(maxLineSpan) }) {
+                RecordListStatus(state.isLoading, state.error, feature.manager::reloadInvoices)
+            }
+            if (state.filteredInvoices.isEmpty() && !state.isLoading && state.error == null) item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+                LuxuryCard(Modifier.fillMaxWidth().testTag("invoice-empty")) {
+                    Text(if (state.invoicesList.isEmpty()) "هنوز فاکتوری ثبت نشده است" else "فاکتوری مطابق جستجو یا فیلتر یافت نشد", color = colors.textMuted)
+                    if (state.invoicesList.isNotEmpty()) TextButton({ feature.manager.setSearchQuery(""); feature.manager.setSelectedFilter(InvoiceFilterTab.ALL) }) { Text("نمایش همه") }
+                }
+            }
+            items(state.filteredInvoices, key = { it.id }, contentType = { "invoice" }) { item -> InvoiceCard(item, feature) }
+        }
     }
+}
 
-    val filteredInvoices = sampleInvoices.filter {
-        (selectedFilter == null || it.settlementStatus == selectedFilter) &&
-        (searchQuery.isBlank() || it.customerName.contains(searchQuery) || it.invoiceNumber.contains(searchQuery))
+@Composable private fun InvoiceMetric(title: String, value: String, subtitle: String, icon: ImageVector, modifier: Modifier, tag: String) {
+    val colors = LocalGoldExColors.current
+    LuxuryCard(modifier.testTag(tag), hasTopHairline = true, contentPadding = PaddingValues(14.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(icon, null, Modifier.size(20.dp), tint = colors.goldPrimary)
+            Text(title, color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        AnimatedPriceTicker(value, Modifier.fillMaxWidth().height(36.dp), color = colors.textMain, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(subtitle, color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
 
-    PageScroll {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+@Composable private fun InvoiceTools(state: BarterInvoiceUiState, feature: DesktopInvoices) {
+    val colors = LocalGoldExColors.current
+    val search: @Composable (Modifier) -> Unit = { modifier ->
+        Surface(modifier.height(WorkspaceControlHeight), shape = WorkspaceControlShape, color = colors.surface, border = colors.hairlineBorder) {
+            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = colors.goldPrimary)
+                BasicTextField(state.searchQuery, feature.manager::setSearchQuery, singleLine = true,
+                    textStyle = TextStyle(fontFamily = VazirmatnFamily, fontSize = 14.sp, color = colors.textMain),
+                    modifier = Modifier.weight(1f).testTag("invoices-search").semantics { contentDescription = "جستجوی فاکتورها" }, decorationBox = { field ->
+                        Box { if (state.searchQuery.isBlank()) Text("جستجوی مشتری، شماره یا کالا", color = colors.textMuted, fontSize = 13.sp, maxLines = 1); field() }
+                    })
+                if (state.searchQuery.isNotEmpty()) IconButton({ feature.manager.setSearchQuery("") }, Modifier.size(36.dp)) { Icon(Icons.Outlined.Close, "پاک کردن جستجو") }
+            }
+        }
+    }
+    val filters: @Composable (Modifier) -> Unit = { modifier ->
+        LuxurySegmentedControl(InvoiceFilterTab.values().toList(), state.selectedFilter, feature.manager::setSelectedFilter,
+            modifier = modifier.testTag("invoice-filters"), height = WorkspaceControlHeight, label = { tab ->
+                val count = when (tab) { InvoiceFilterTab.ALL -> state.invoicesList.size; InvoiceFilterTab.SETTLED -> state.summary.settled;
+                    InvoiceFilterTab.PENDING -> state.summary.pending; InvoiceFilterTab.WORKSHOP -> state.summary.workshop }
+                val label = when (tab) { InvoiceFilterTab.ALL -> "همه"; InvoiceFilterTab.SETTLED -> "تسویه"; InvoiceFilterTab.PENDING -> "مانده‌دار"; InvoiceFilterTab.WORKSHOP -> "کارگاه" }
+                "$label (${PersianNumberFormatter.toPersianDigits(count.toString())})"
+            })
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val filterWidth = minOf(540.dp, maxWidth * .55f)
+        if (maxWidth >= 780.dp) Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            search(Modifier.weight(1f)); filters(Modifier.width(filterWidth))
+        } else Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { search(Modifier.fillMaxWidth()); filters(Modifier.fillMaxWidth()) }
+    }
+}
+
+@Composable private fun InvoiceCard(item: InvoiceListItem, feature: DesktopInvoices) {
+    val colors = LocalGoldExColors.current
+    val ui by feature.manager.uiState.collectAsState()
+    val saving = ui.isSaving
+    LuxuryCard(Modifier.testTag("invoice-card-${item.id}"), hasTopHairline = true, contentPadding = PaddingValues(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(shape = CircleShape, color = colors.goldContainer, modifier = Modifier.size(38.dp)) {
+                Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ReceiptLong, null, tint = colors.goldPrimary) }
+            }
             Column(Modifier.weight(1f)) {
-                PageTitle("مدیریت و بایگانی فاکتورها")
-                Text("فاکتورهای صادرشده، تسویه‌حساب مشتریان و دفاتر معین زرگری", color = colors.textMuted, fontSize = 12.sp)
+                Text(item.customerName, color = colors.textMain, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("شماره ${PersianNumberFormatter.toPersianDigits(item.cleanInvoiceNumber)} • ${item.createdAtText}", color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            GoldButton(
-                text = "+ صدور فاکتور جدید",
-                onClick = { /* New invoice workflow */ },
-                icon = Icons.Outlined.Add,
-                modifier = Modifier.width(180.dp).testTag("invoices-new-btn")
-            )
+            IconButton({ feature.requestDelete(item) }, Modifier.size(36.dp).testTag("invoice-delete-${item.id}"), enabled = !saving) {
+                Icon(Icons.Outlined.DeleteOutline, "حذف فاکتور", tint = colors.errorRed, modifier = Modifier.size(18.dp))
+            }
         }
-
-        // Summary Cards
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InvoiceSummaryCard(
-                title = "مجموع فروش امروز",
-                value = PersianNumberFormatter.formatPrice(488_840_000L) + " تومان",
-                subtitle = "۳ فقره فاکتور ثبت‌شده",
-                icon = Icons.Outlined.ReceiptLong,
-                modifier = Modifier.weight(1f)
-            )
-            InvoiceSummaryCard(
-                title = "طلای خارج‌شده از ویترین",
-                value = PersianNumberFormatter.formatWeight(18.615) + " گرم",
-                subtitle = "وزن طلای اقلام فاکتور",
-                icon = Icons.Outlined.Scale,
-                modifier = Modifier.weight(1f)
-            )
-            InvoiceSummaryCard(
-                title = "مانده مطالبات دفتری",
-                value = PersianNumberFormatter.formatPrice(175_400_000L) + " تومان",
-                subtitle = "۱ فقره مانده‌دار",
-                icon = Icons.Outlined.PendingActions,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // Filters and Search
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            DesktopField(
-                value = searchQuery,
-                onChange = { searchQuery = it },
-                label = "جست‌وجوی مشتری یا شماره فاکتور",
-                modifier = Modifier.weight(1f).testTag("invoices-search")
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilterChip(
-                    selected = selectedFilter == null,
-                    onClick = { selectedFilter = null },
-                    label = { Text("همه (${PersianNumberFormatter.toPersianDigits(sampleInvoices.size.toString())})") }
-                )
-                SettlementStatus.values().forEach { status ->
-                    FilterChip(
-                        selected = selectedFilter == status,
-                        onClick = { selectedFilter = status },
-                        label = { Text(status.label) }
-                    )
+        val items = item.barterInvoice?.let { it.salesItems + it.receivedItems }.orEmpty()
+        val summary = items.firstOrNull()?.title.orEmpty() + if (items.size > 1) " (+${PersianNumberFormatter.toPersianDigits((items.size - 1).toString())} قلم دیگر)" else ""
+        Text(summary.ifBlank { item.itemsSummary }, color = colors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Surface(shape = MaterialTheme.shapes.medium, color = colors.surfaceElevated, border = colors.hairlineBorder) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("مبلغ فاکتور", color = colors.textMuted, fontSize = 12.sp)
+                    Text("${PersianNumberFormatter.formatPrice(item.finalAmount)} تومان", color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
-            }
-        }
-
-        // Invoice List Table
-        LuxuryCard(Modifier.fillMaxWidth().testTag("invoices-table")) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("شماره / تاریخ", Modifier.weight(1f), color = colors.textMuted, fontSize = 12.sp)
-                Text("نام خریدار / شرح کالا", Modifier.weight(1.8f), color = colors.textMuted, fontSize = 12.sp)
-                Text("مبلغ کل", Modifier.weight(1.2f), color = colors.textMuted, fontSize = 12.sp)
-                Text("وضعیت تسویه", Modifier.weight(1f), color = colors.textMuted, fontSize = 12.sp)
-                Spacer(Modifier.width(88.dp))
-            }
-            HorizontalDivider(color = colors.border)
-
-            if (filteredInvoices.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("فاکتوری مطابق با جست‌وجو یا فیلتر یافت نشد", color = colors.textMuted, fontSize = 13.sp)
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filteredInvoices.forEach { invoice ->
-                        Row(
-                            Modifier.fillMaxWidth().background(colors.surface, RoundedCornerShape(10.dp)).padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text("شماره ${invoice.invoiceNumber}", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text(invoice.dateShamsi, color = colors.textMuted, fontSize = 11.sp)
-                            }
-                            Column(Modifier.weight(1.8f)) {
-                                Text(invoice.customerName, color = colors.textMain, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                Text(invoice.description, color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            Column(Modifier.weight(1.2f)) {
-                                Text(PersianNumberFormatter.formatPrice(invoice.totalAmount) + " تومان", color = colors.goldPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("${PersianNumberFormatter.formatWeight(invoice.weightGrams)} گرم", color = colors.textMuted, fontSize = 11.sp)
-                            }
-                            Box(Modifier.weight(1f)) {
-                                StatusBadge(invoice.settlementStatus)
-                            }
-                            Row(Modifier.width(88.dp), horizontalArrangement = Arrangement.End) {
-                                IconButton(onClick = { /* Print/PDF */ }, Modifier.size(32.dp)) {
-                                    Icon(Icons.Outlined.Print, "چاپ فاکتور", tint = colors.textMuted, modifier = Modifier.size(18.dp))
-                                }
-                                IconButton(onClick = { /* View details */ }, Modifier.size(32.dp)) {
-                                    Icon(Icons.Outlined.Visibility, "مشاهده جزئیات", tint = colors.goldPrimary, modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
+                Text(item.line1Detail, color = colors.textMuted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(item.remainingDetail?.let { "مانده: $it" } ?: "تسویه کامل", Modifier.weight(1f), color = colors.textMain, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    val settled = item.status == InvoiceStatus.SETTLED
+                    Surface(shape = WorkspaceControlShape, color = (if (settled) colors.marketGainText else colors.errorRed).copy(alpha = .08f)) {
+                        Text(if (settled) "تسویه" else "مانده‌دار", Modifier.padding(horizontal = 10.dp, vertical = 4.dp), color = if (settled) colors.marketGainText else colors.errorRed, fontSize = 11.sp, maxLines = 1)
                     }
                 }
             }
         }
-
-        Text("اطلاعات فاکتورها روی همین رایانه ثبت و نگهداری می‌شود.", color = colors.textMuted, fontSize = 11.sp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            WorkspaceControl("جزئیات", { feature.manager.openInvoiceDetails(item) }, Modifier.weight(1f).testTag("invoice-open-${item.id}"), secondary = true, compact = true, enabled = !saving)
+            WorkspaceControl("PDF / چاپ", { item.barterInvoice?.let { feature.preview(it) } }, Modifier.weight(1f).testTag("invoice-preview-${item.id}"), secondary = true, compact = true, enabled = !saving)
+            if (item.status != InvoiceStatus.SETTLED) WorkspaceControl("تسویه", { feature.settle(item) }, Modifier.weight(1f).testTag("invoice-settle-${item.id}"), compact = true, enabled = !saving)
+        }
     }
 }
 
-@Composable
-private fun StatusBadge(status: SettlementStatus) {
-    val colors = LocalGoldExColors.current
-    val (badgeBg, badgeText) = when (status) {
-        SettlementStatus.CASH -> colors.marketGainText.copy(alpha = 0.12f) to colors.marketGainText
-        SettlementStatus.CREDIT -> colors.goldPrimary.copy(alpha = 0.15f) to colors.goldPrimary
-        SettlementStatus.MELT_ACCOUNT -> Color(0xFF2196F3).copy(alpha = 0.15f) to Color(0xFF2196F3)
-    }
-    Surface(color = badgeBg, shape = RoundedCornerShape(12.dp)) {
-        Text(
-            text = status.label,
-            color = badgeText,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun InvoiceSummaryCard(title: String, value: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
-    val colors = LocalGoldExColors.current
-    LuxuryCard(modifier) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Box(Modifier.size(40.dp).background(colors.goldContainer, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = colors.goldPrimary, modifier = Modifier.size(22.dp))
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(title, color = colors.textMuted, fontSize = 11.sp)
-                Text(value, color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text(subtitle, color = colors.textMuted, fontSize = 10.sp)
+/** Mounted outside page transitions so financial confirmations retain their state. */
+@Composable internal fun DesktopInvoiceDialogs(workspace: DesktopWorkspace) {
+    val feature = workspace.invoices
+    val host by feature.host.collectAsState()
+    val ui by feature.manager.uiState.collectAsState()
+    val customers by workspace.customers.manager.uiState.collectAsState()
+    val state by workspace.state.collectAsState()
+    if (host.customerPicker) CustomerPickerDialog(customers = customers.customerList, selectedCustomer = ui.invoice.customer,
+        onSelectCustomer = feature::selectCustomer, onAddNewCustomerClick = { workspace.customers.manager.setAddCustomerDialogVisible(true) },
+        onDeleteCustomer = { id, done -> workspace.customers.manager.deleteCustomer(id, done) },
+        onUpdateCustomer = { customer, done -> workspace.customers.manager.updateCustomer(customer, done) },
+        isSaving = customers.isSaving, error = customers.error, onDismiss = feature::closePicker)
+    host.pendingDeletion?.let { item ->
+        Dialog({ feature.requestDelete(null) }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            LuxuryCard(Modifier.widthIn(max = 560.dp).fillMaxWidth().testTag("invoice-delete-confirmation")) {
+                Text("حذف فاکتور ${PersianNumberFormatter.toPersianDigits(item.cleanInvoiceNumber)}", color = LocalGoldExColors.current.textMain, fontWeight = FontWeight.Bold)
+                Text("فاکتور و اسناد مرتبط حذف و مانده طرف‌حساب اصلاح می‌شود. پرداخت بانکی واقعی برگشت داده نمی‌شود.", color = LocalGoldExColors.current.textSecondary)
+                ui.statusMessage.takeIf { it.isNotBlank() }?.let { Text(it, color = LocalGoldExColors.current.errorRed) }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WorkspaceControl("انصراف", { feature.requestDelete(null) }, Modifier.weight(1f), secondary = true, enabled = !ui.isLoading)
+                    WorkspaceControl("حذف فاکتور", feature::delete, Modifier.weight(1f).testTag("invoice-delete-final"), enabled = !ui.isLoading)
+                }
             }
         }
     }
+    ui.settlementShortcutInvoice?.let { invoice ->
+        AddInvoicePaymentModal(invoice, invoice.balance, customers.customerList, ui.invoicesList,
+            onDismiss = feature.manager::closeSettlementShortcut,
+            onConfirm = { feature.manager.recordPaymentForInvoice(invoice.id, it, feature::refreshed) })
+    }
+    host.preview?.let { invoice -> InvoiceDocumentPreview(invoice, state.settings, host.documentBusy,
+        onDismiss = { feature.preview(null) }, onSave = { feature.export(invoice) }, onPrint = { feature.export(invoice, true) }) }
 }

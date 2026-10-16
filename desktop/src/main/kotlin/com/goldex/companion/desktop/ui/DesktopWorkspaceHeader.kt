@@ -47,8 +47,8 @@ internal fun workspaceDate(now: Long): String {
         val heading: @Composable () -> Unit = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (onBack != null) Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder) {
-                    IconButton(onBack, Modifier.size(WorkspaceControlHeight).testTag("customer-back")) {
-                        Icon(Icons.Outlined.ArrowForward, "بازگشت به مشتریان", Modifier.size(20.dp), tint = colors.goldPrimary)
+                    IconButton(onBack, Modifier.size(WorkspaceControlHeight).testTag(if (state.destination == DesktopDestination.INVOICES) "invoice-back" else "customer-back")) {
+                        Icon(Icons.Outlined.ArrowForward, if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else "بازگشت به مشتریان", Modifier.size(20.dp), tint = colors.goldPrimary)
                     }
                 }
                 Column(Modifier.weight(1f)) {

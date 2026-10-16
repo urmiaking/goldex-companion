@@ -1,0 +1,1669 @@
+package com.goldex.companion.ui.invoices.modals
+
+// Android invoice parity snapshot at 94bc39f; desktop adaptations are documented in ADR 0024.
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.goldex.companion.ui.theme.ButtonShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.goldex.companion.data.MarketRates
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.goldex.companion.domain.invoice.BarterCalculationUseCases
+import com.goldex.companion.model.BankCoinItem
+import com.goldex.companion.ui.invoices.invoiceItemError
+import com.goldex.companion.model.BarterItem
+import com.goldex.companion.model.CoinType
+import com.goldex.companion.model.CraftedGoldItem
+import com.goldex.companion.model.InvoiceItemCategory
+import com.goldex.companion.model.Karat
+import com.goldex.companion.model.MeltGoldItem
+import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.model.ScrapGoldItem
+import com.goldex.companion.model.WageType
+import com.goldex.companion.ui.components.AnimatedNumberText
+import com.goldex.companion.ui.components.AnimatedPriceText
+import com.goldex.companion.ui.components.GoldButton
+import com.goldex.companion.ui.components.GoldInputField
+import com.goldex.companion.ui.components.LuxurySegmentedControl
+import com.goldex.companion.ui.invoices.components.InvoiceCheckVector
+import com.goldex.companion.ui.invoices.components.InvoiceCloseVector
+import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.LuxuryMotion
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.heroCardGradient
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+@Composable
+fun AddInvoiceItemModal(
+    spotPrice18k: Long,
+    marketRates: MarketRates,
+    defaultCategory: InvoiceItemCategory = InvoiceItemCategory.CRAFTED,
+    existingItem: BarterItem? = null,
+    defaultProfitPercent: String = "7",
+    defaultTaxPercent: String = "9",
+    onDismiss: () -> Unit,
+    onSaveItem: (BarterItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    val coroutineScope = rememberCoroutineScope()
+    var isVisible by remember { mutableStateOf(false) }
+
+    val handleDismiss: () -> Unit = {
+        if (isVisible) {
+            coroutineScope.launch {
+                isVisible = false
+                delay(LuxuryMotion.DURATION_MODAL_EXIT.toLong())
+                onDismiss()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.65f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isVisible) LuxuryMotion.DURATION_MODAL_ENTER else LuxuryMotion.DURATION_MODAL_EXIT,
+            easing = FastOutSlowInEasing
+        ),
+        label = "scrimAlpha"
+    )
+
+    var selectedCategory by remember {
+        mutableStateOf(existingItem?.category ?: defaultCategory)
+    }
+
+    Dialog(
+        onDismissRequest = handleDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            
+        )
+    ) {
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = scrimAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = handleDismiss
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter = LuxuryMotion.ModalEnter,
+                    exit = LuxuryMotion.ModalExit,
+                    modifier = Modifier
+                        .widthIn(max = 860.dp).fillMaxWidth()
+                        .fillMaxHeight(0.92f)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            ),
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.surface,
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    colors.goldPrimary.copy(alpha = 0.6f),
+                                    colors.border.copy(alpha = 0.3f)
+                                )
+                            )
+                        ),
+                        shadowElevation = 24.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .navigationBarsPadding()
+                        ) {
+                            // Top Drag Handle
+                            Box(
+                                modifier = Modifier
+                                    .padding(top = 10.dp, bottom = 4.dp)
+                                    .size(width = 44.dp, height = 4.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.border)
+                                    .align(Alignment.CenterHorizontally)
+                            )
+
+                            // Fixed Header Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = if (existingItem != null) "ویرایش قلم فاکتور" else "افزودن قلم به فاکتور",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "مظنه ۱۸ عیار مبنا: ${PersianNumberFormatter.formatPrice(spotPrice18k)} تومان",
+                                        fontSize = 11.sp,
+                                        color = colors.goldPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = handleDismiss,
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(ButtonShape)
+                                        .background(colors.surfaceVariant)
+                                        .border(0.6.dp, colors.goldBorder, ButtonShape)
+                                ) {
+                                    Icon(
+                                        imageVector = InvoiceCloseVector,
+                                        contentDescription = "بستن",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            // Top Category Navigation Tabs (only selectable if adding new item)
+                            if (existingItem == null) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = colors.surfaceVariant,
+                                    border = BorderStroke(0.6.dp, colors.border),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(3.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        InvoiceItemCategory.entries.forEach { category ->
+                                            val isSelected = selectedCategory == category
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(36.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
+                                                    .background(
+                                                        if (isSelected) colors.goldPrimary else Color.Transparent
+                                                    )
+                                                    .clickable { selectedCategory = category },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = category.titleFa,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) Color.White else colors.textSecondary,
+                                                    fontFamily = VazirmatnFamily,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
+
+                            // Header bottom divider separating Header/Tabs from Body
+                            HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+                            // Body based on category
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                AnimatedContent(
+                                    targetState = selectedCategory,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "categoryFormAnim"
+                                ) { category ->
+                                    when (category) {
+                                        InvoiceItemCategory.CRAFTED -> {
+                                            CraftedGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? CraftedGoldItem,
+                                                defaultProfitPercent = defaultProfitPercent,
+                                                defaultTaxPercent = defaultTaxPercent,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.SCRAP -> {
+                                            ScrapGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? ScrapGoldItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.MELT -> {
+                                            MeltGoldForm(
+                                                spotPrice18k = spotPrice18k,
+                                                existingItem = existingItem as? MeltGoldItem,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                        InvoiceItemCategory.COIN -> {
+                                            BankCoinForm(
+                                                existingItem = existingItem as? BankCoinItem,
+                                                rates = marketRates,
+                                                onDismiss = handleDismiss,
+                                                onConfirm = { item ->
+                                                    onSaveItem(item)
+                                                    handleDismiss()
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Reusable Inline Custom Karat Chip (styled exactly like preset chips)
+// ---------------------------------------------------------------------------
+@Composable
+private fun InlineCustomKaratChip(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "عیار دلخواه"
+) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+        modifier = modifier
+            .height(36.dp)
+            .clickable { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = {
+                    val filtered = it.filter { ch -> ch.isDigit() }
+                    onValueChange(filtered)
+                    onSelect()
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = TextStyle(
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 11.5.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = TextAlign.Center,
+                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                    textDirection = TextDirection.Ltr
+                ),
+                cursorBrush = SolidColor(colors.goldPrimary),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                fontSize = 10.5.sp,
+                                color = colors.textMuted,
+                                fontFamily = VazirmatnFamily,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1. Crafted Gold Form (طلای ساخته)
+// ---------------------------------------------------------------------------
+@Composable
+private fun CraftedGoldForm(
+    spotPrice18k: Long,
+    existingItem: CraftedGoldItem?,
+    defaultProfitPercent: String = "7",
+    defaultTaxPercent: String = "9",
+    onDismiss: () -> Unit,
+    onConfirm: (CraftedGoldItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+
+    val initialIsCustom = existingItem?.let {
+        it.customKaratValue !in listOf(750, 705, 999) && it.customKaratValue > 0
+    } ?: false
+    var isCustomKarat by remember { mutableStateOf(initialIsCustom) }
+    var selectedKaratPreset by remember {
+        mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.customKaratValue ?: 750))
+    }
+    var customKaratStr by remember {
+        mutableStateOf(if (initialIsCustom) (existingItem?.customKaratValue?.toString() ?: "") else "")
+    }
+
+    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "") }
+    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
+    var wageType by remember { mutableStateOf(existingItem?.wageType ?: WageType.PERCENTAGE) }
+    var wageInputStr by remember { mutableStateOf(existingItem?.wageInput?.toString() ?: "") }
+    var profitStr by remember {
+        mutableStateOf(
+            existingItem?.let { if (it.profitPercent > 0.0) it.profitPercent.toString() else defaultProfitPercent } ?: defaultProfitPercent
+        )
+    }
+    var taxStr by remember {
+        mutableStateOf(
+            existingItem?.let { if (it.taxPercent > 0.0) it.taxPercent.toString() else defaultTaxPercent } ?: defaultTaxPercent
+        )
+    }
+
+    val grossWeight = PersianNumberFormatter.parseToCleanDouble(grossWeightStr) ?: 0.0
+    val stoneWeight = PersianNumberFormatter.parseToCleanDouble(stoneWeightStr) ?: 0.0
+    val wageInput = PersianNumberFormatter.parseToCleanDouble(wageInputStr) ?: 0.0
+    val profit = PersianNumberFormatter.parseToCleanDouble(profitStr) ?: 0.0
+    val tax = PersianNumberFormatter.parseToCleanDouble(taxStr) ?: 0.0
+
+    val effectiveKaratValue = if (isCustomKarat) {
+        PersianNumberFormatter.parseToCleanLong(customKaratStr)?.toInt() ?: 750
+    } else {
+        selectedKaratPreset
+    }
+
+    val karatEnum = when (effectiveKaratValue) {
+        750 -> Karat.K18
+        999 -> Karat.K24
+        else -> Karat.K18
+    }
+
+    val item = remember(title, karatEnum, effectiveKaratValue, grossWeight, stoneWeight, wageType, wageInput, profit, tax, spotPrice18k) {
+        BarterCalculationUseCases.calculateCraftedItem(
+            title = title,
+            karat = karatEnum,
+            customKaratValue = effectiveKaratValue,
+            grossWeight = grossWeight,
+            stoneWeight = stoneWeight,
+            spotPrice18k = spotPrice18k,
+            wageType = wageType,
+            wageInput = wageInput,
+            profitPercent = profit,
+            taxPercent = tax
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            GoldInputField(
+                value = title,
+                onValueChange = { title = it },
+                label = "شرح کالا یا زیورآلات",
+                keyboardType = KeyboardType.Text,
+                useThousandsSeparator = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Karat Chips & Custom Karat
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "عیار استاندارد یا دلخواه",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        Pair(750, "۷۵۰ (۱۸)"),
+                        Pair(705, "۷۰۵ (سنتی)"),
+                        Pair(999, "۹۹۹ (۲۴)")
+                    ).forEach { (karatVal, label) ->
+                        val isSelected = !isCustomKarat && selectedKaratPreset == karatVal
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                            border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clickable {
+                                    isCustomKarat = false
+                                    selectedKaratPreset = karatVal
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+                    }
+
+                    InlineCustomKaratChip(
+                        value = if (isCustomKarat) customKaratStr else "",
+                        onValueChange = { customKaratStr = it },
+                        isSelected = isCustomKarat,
+                        onSelect = { isCustomKarat = true },
+                        modifier = Modifier.weight(1.1f),
+                        placeholder = "عیار دلخواه"
+                    )
+                }
+            }
+
+            // Weights: Gross & Stone
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldInputField(
+                    value = grossWeightStr,
+                    onValueChange = { grossWeightStr = it },
+                    label = "وزن ناخالص",
+                    trailingText = "گرم",
+                    isDecimal = true,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldInputField(
+                    value = stoneWeightStr,
+                    onValueChange = { stoneWeightStr = it },
+                    label = "کسر نگین",
+                    trailingText = "گرم",
+                    isDecimal = true,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Net Weight Badge
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(0.6.dp, colors.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "وزن خالص محاسبه‌شده:",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    AnimatedNumberText(
+                        text = PersianNumberFormatter.formatWeight(item.netWeight),
+                        unit = "گرم",
+                        color = colors.goldPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Wage, Profit, Tax
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "نرخ‌ها، اجرت و مالیات",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    LuxurySegmentedControl(
+                        items = listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM),
+                        selectedItem = wageType,
+                        onItemSelected = { wageType = it },
+                        label = { type ->
+                            when (type) {
+                                WageType.PERCENTAGE -> "درصدی (٪)"
+                                WageType.TOMAN_PER_GRAM -> "تومان/گرم"
+                            }
+                        },
+                        modifier = Modifier.width(160.dp),
+                        height = 28.dp,
+                        fontSize = 9.5.sp
+                    )
+                }
+
+                // Dedicated full-width row for wage (handles large numbers like 350,000,000 without clipping)
+                GoldInputField(
+                    value = wageInputStr,
+                    onValueChange = { wageInputStr = it },
+                    label = if (wageType == WageType.PERCENTAGE) "اجرت ساخت" else "اجرت هر گرم (تومان بر گرم)",
+                    trailingText = if (wageType == WageType.PERCENTAGE) "٪" else "تومان",
+                    isDecimal = wageType == WageType.PERCENTAGE,
+                    useThousandsSeparator = wageType == WageType.TOMAN_PER_GRAM,
+                    keyboardType = if (wageType == WageType.PERCENTAGE) KeyboardType.Decimal else KeyboardType.Number,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Profit & Tax in a 2-column row
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GoldInputField(
+                        value = profitStr,
+                        onValueChange = { profitStr = it },
+                        label = "سود فروشنده",
+                        trailingText = "٪",
+                        isDecimal = true,
+                        useThousandsSeparator = false,
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f)
+                    )
+                    GoldInputField(
+                        value = taxStr,
+                        onValueChange = { taxStr = it },
+                        label = "مالیات قانونی",
+                        trailingText = "٪",
+                        isDecimal = true,
+                        useThousandsSeparator = false,
+                        keyboardType = KeyboardType.Decimal,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Live Breakdown Card with AnimatedPriceText & AnimatedNumberText
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مبلغ کل ردیف فروش:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.totalPayable.toLong(),
+                            unit = "تومان",
+                            color = colors.goldPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "معادل وزنی ۱۸ عیار:",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
+                            unit = "گرم",
+                            color = colors.textMain,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ارزش طلای خام:",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.rawGoldValue.toLong(),
+                            unit = "تومان",
+                            color = colors.textSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+        // Sticky Bottom Footer
+        Surface(
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldButton(
+                    text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم به فاکتور",
+                    onClick = { onConfirm(item) },
+                    enabled = invoiceItemError(item) == null,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.weight(1.8f).testTag("invoice-item-save")
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 2. Scrap Gold Form (طلای متفرقه و کهنه)
+// ---------------------------------------------------------------------------
+@Composable
+private fun ScrapGoldForm(
+    spotPrice18k: Long,
+    existingItem: ScrapGoldItem?,
+    onDismiss: () -> Unit,
+    onConfirm: (ScrapGoldItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+    val initialIsCustom = existingItem?.let {
+        it.baseKarat !in listOf(750, 740, 705) && it.baseKarat > 0
+    } ?: false
+    var isCustomKarat by remember { mutableStateOf(initialIsCustom) }
+    var selectedBaseKaratPreset by remember {
+        mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.baseKarat ?: 750))
+    }
+    var customBaseKaratStr by remember {
+        mutableStateOf(if (initialIsCustom) (existingItem?.baseKarat?.toString() ?: "") else "")
+    }
+
+    var deficitStr by remember { mutableStateOf(existingItem?.karatDeficit?.toString() ?: "15") }
+    var grossWeightStr by remember { mutableStateOf(existingItem?.grossWeight?.toString() ?: "") }
+    var stoneWeightStr by remember { mutableStateOf(existingItem?.stoneWeight?.toString() ?: "") }
+    var deductionPerGramStr by remember { mutableStateOf(existingItem?.deductionPerGram?.toString() ?: "150000") }
+    var commissionStr by remember { mutableStateOf(existingItem?.exchangeCommissionPercent?.toString() ?: "") }
+
+    val grossWeight = PersianNumberFormatter.parseToCleanDouble(grossWeightStr) ?: 0.0
+    val stoneWeight = PersianNumberFormatter.parseToCleanDouble(stoneWeightStr) ?: 0.0
+    val deficit = PersianNumberFormatter.parseToCleanLong(deficitStr)?.toInt() ?: 0
+    val deductionPerGram = PersianNumberFormatter.parseToCleanLong(deductionPerGramStr) ?: 0L
+    val commission = PersianNumberFormatter.parseToCleanDouble(commissionStr) ?: 0.0
+
+    val effectiveBaseKarat = if (isCustomKarat) {
+        PersianNumberFormatter.parseToCleanLong(customBaseKaratStr)?.toInt() ?: 750
+    } else {
+        selectedBaseKaratPreset
+    }
+
+    val item = remember(title, effectiveBaseKarat, deficit, grossWeight, stoneWeight, spotPrice18k, deductionPerGram, commission) {
+        BarterCalculationUseCases.calculateScrapItem(
+            title = title,
+            baseKarat = effectiveBaseKarat,
+            karatDeficit = deficit,
+            grossWeight = grossWeight,
+            stoneWeight = stoneWeight,
+            spotPrice18k = spotPrice18k,
+            deductionPerGram = deductionPerGram,
+            exchangeCommissionPercent = commission
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            GoldInputField(
+                value = title,
+                onValueChange = { title = it },
+                label = "شرح کالا (دست‌دوم / شکسته)",
+                keyboardType = KeyboardType.Text,
+                useThousandsSeparator = false,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Base Karat Row & Custom
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "عیار مبدا و کسری",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary,
+                        fontFamily = VazirmatnFamily
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "عیار پرداختی: ",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.toPersianDigits(item.payableKarat.toString()),
+                            unit = "خط",
+                            color = colors.goldPrimary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        Pair(750, "۷۵۰ (۱۸)"),
+                        Pair(740, "۷۴۰ (رایج)"),
+                        Pair(705, "۷۰۵ (سنتی)")
+                    ).forEach { (k, label) ->
+                        val isSelected = !isCustomKarat && selectedBaseKaratPreset == k
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                            border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clickable {
+                                    isCustomKarat = false
+                                    selectedBaseKaratPreset = k
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+                    }
+
+                    InlineCustomKaratChip(
+                        value = if (isCustomKarat) customBaseKaratStr else "",
+                        onValueChange = { customBaseKaratStr = it },
+                        isSelected = isCustomKarat,
+                        onSelect = { isCustomKarat = true },
+                        modifier = Modifier.weight(1.1f),
+                        placeholder = "عیار دلخواه"
+                    )
+                }
+            }
+
+            // Deficit & Deduction & Commission
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldInputField(
+                    value = deficitStr,
+                    onValueChange = { deficitStr = it },
+                    label = "کسری عیار",
+                    trailingText = "خط",
+                    isDecimal = false,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldInputField(
+                    value = deductionPerGramStr,
+                    onValueChange = { deductionPerGramStr = it },
+                    label = "کسری مظنه",
+                    trailingText = "تومان",
+                    isDecimal = false,
+                    useThousandsSeparator = true,
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1.3f)
+                )
+                GoldInputField(
+                    value = commissionStr,
+                    onValueChange = { commissionStr = it },
+                    label = "کارمزد",
+                    trailingText = "٪",
+                    isDecimal = true,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Weights
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldInputField(
+                    value = grossWeightStr,
+                    onValueChange = { grossWeightStr = it },
+                    label = "وزن ناخالص",
+                    trailingText = "گرم",
+                    isDecimal = true,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldInputField(
+                    value = stoneWeightStr,
+                    onValueChange = { stoneWeightStr = it },
+                    label = "کسر نگین",
+                    trailingText = "گرم",
+                    isDecimal = true,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Decimal,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Net Weight Highlight Card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.goldContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, colors.goldPrimary.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(colors.goldPrimary)
+                        )
+                        Text(
+                            text = "وزن خالص طلا:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                    AnimatedNumberText(
+                        text = PersianNumberFormatter.formatWeight(item.netWeight),
+                        unit = "گرم",
+                        color = colors.goldPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            // Live Summary Card with Obsidian Luxury Dark gradient
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color.Transparent,
+                border = BorderStroke(0.8.dp, colors.goldBorder.copy(alpha = 0.6f)),
+                shadowElevation = if (colors.isDark) 0.dp else 4.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.heroCardGradient)
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مبلغ خرید متفرقه:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF1F5F9),
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.totalPayable.toLong(),
+                            unit = "تومان",
+                            color = colors.goldPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "معادل وزنی ۱۸ عیار:",
+                            fontSize = 11.sp,
+                            color = Color(0xFF94A3B8),
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
+                            unit = "گرم",
+                            color = Color(0xFFF1F5F9),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "قیمت موثر هر گرم:",
+                            fontSize = 11.sp,
+                            color = Color(0xFF94A3B8),
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.effectiveGramPrice,
+                            unit = "تومان",
+                            color = colors.goldSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+        // Sticky Bottom Footer
+        Surface(
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldButton(
+                    text = if (existingItem != null) "ذخیره تغییرات" else "افزودن قلم تهاتر",
+                    onClick = { onConfirm(item) },
+                    enabled = invoiceItemError(item) == null,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.weight(1.8f).testTag("invoice-item-save")
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Melted Gold Form (طلای آبشده سنتی)
+// ---------------------------------------------------------------------------
+@Composable
+private fun MeltGoldForm(
+    spotPrice18k: Long,
+    existingItem: MeltGoldItem?,
+    onDismiss: () -> Unit,
+    onConfirm: (MeltGoldItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    var title by remember { mutableStateOf(existingItem?.title ?: "") }
+    var weightStr by remember { mutableStateOf(existingItem?.weight?.toString() ?: "") }
+
+    val initialIsCustom = existingItem?.let {
+        it.labKarat !in listOf(750, 735, 705) && it.labKarat > 0
+    } ?: false
+    var isCustomKarat by remember { mutableStateOf(initialIsCustom) }
+    var selectedKaratPreset by remember {
+        mutableIntStateOf(if (initialIsCustom) -1 else (existingItem?.labKarat ?: 735))
+    }
+    var customKaratStr by remember {
+        mutableStateOf(if (initialIsCustom) (existingItem?.labKarat?.toString() ?: "") else "")
+    }
+
+    var angNumber by remember { mutableStateOf(existingItem?.angNumber ?: "") }
+    var labName by remember { mutableStateOf(existingItem?.labName ?: "") }
+
+    val weight = PersianNumberFormatter.parseToCleanDouble(weightStr) ?: 0.0
+    val labKarat = if (isCustomKarat) {
+        PersianNumberFormatter.parseToCleanLong(customKaratStr)?.toInt() ?: 750
+    } else {
+        selectedKaratPreset
+    }
+
+    val item = remember(title, weight, labKarat, angNumber, labName, spotPrice18k) {
+        BarterCalculationUseCases.calculateMeltItem(
+            title = title,
+            weight = weight,
+            labKarat = labKarat,
+            angNumber = angNumber,
+            labName = labName,
+            spotPrice18k = spotPrice18k
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldInputField(
+                    value = angNumber,
+                    onValueChange = { angNumber = it },
+                    label = "شماره انگ خطی",
+                    keyboardType = KeyboardType.Text,
+                    useThousandsSeparator = false,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldInputField(
+                    value = labName,
+                    onValueChange = { labName = it },
+                    label = "آزمایشگاه ری‌گیری",
+                    keyboardType = KeyboardType.Text,
+                    useThousandsSeparator = false,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            GoldInputField(
+                value = weightStr,
+                onValueChange = { weightStr = it },
+                label = "وزن ترازویی آبشده",
+                trailingText = "گرم",
+                isDecimal = true,
+                useThousandsSeparator = false,
+                keyboardType = KeyboardType.Decimal,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Karat Selector & Custom
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "عیار آزمایشگاه ری‌گیری",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        Pair(750, "۷۵۰ (۱۸)"),
+                        Pair(735, "۷۳۵ (رایج)"),
+                        Pair(705, "۷۰۵ (سنتی)")
+                    ).forEach { (k, label) ->
+                        val isSelected = !isCustomKarat && selectedKaratPreset == k
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                            border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clickable {
+                                    isCustomKarat = false
+                                    selectedKaratPreset = k
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                        }
+                    }
+
+                    InlineCustomKaratChip(
+                        value = if (isCustomKarat) customKaratStr else "",
+                        onValueChange = { customKaratStr = it },
+                        isSelected = isCustomKarat,
+                        onSelect = { isCustomKarat = true },
+                        modifier = Modifier.weight(1.1f),
+                        placeholder = "عیار دلخواه"
+                    )
+                }
+            }
+
+            // Summary Card with AnimatedPriceText & AnimatedNumberText
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ارزش کل آبشده:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.totalPayable.toLong(),
+                            unit = "تومان",
+                            color = colors.goldPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "وزن معادل ۱۸ عیار:",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
+                            unit = "گرم",
+                            color = colors.textMain,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+        // Sticky Bottom Footer
+        Surface(
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldButton(
+                    text = if (existingItem != null) "ذخیره تغییرات" else "افزودن آبشده به فاکتور",
+                    onClick = { onConfirm(item) },
+                    enabled = invoiceItemError(item) == null,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.weight(1.8f).testTag("invoice-item-save")
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 4. Bank Coin Form (سکه بانکی)
+// ---------------------------------------------------------------------------
+private fun getCoinMarketPrice(rates: MarketRates, coinType: CoinType): Long {
+    return when (coinType) {
+        CoinType.EMAMI -> rates.coinEmami
+        CoinType.BAHAR -> rates.coinBahar
+        CoinType.HALF -> rates.coinHalf
+        CoinType.QUARTER -> rates.coinQuarter
+        CoinType.GERAMI -> rates.coinGerami
+    }
+}
+
+@Composable
+private fun BankCoinForm(
+    existingItem: BankCoinItem?,
+    rates: MarketRates,
+    onDismiss: () -> Unit,
+    onConfirm: (BankCoinItem) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+
+    var selectedCoin by remember { mutableStateOf(existingItem?.coinType ?: CoinType.EMAMI) }
+    var countStr by remember { mutableStateOf(existingItem?.count?.toString() ?: "") }
+    var hasHologram by remember { mutableStateOf(existingItem?.hasHologram ?: true) }
+
+    val initialCoinPrice = if (existingItem != null) {
+        existingItem.unitPrice.toString()
+    } else {
+        val p = getCoinMarketPrice(rates, selectedCoin)
+        if (p > 0L) p.toString() else ""
+    }
+    var unitPriceStr by remember { mutableStateOf(initialCoinPrice) }
+
+    LaunchedEffect(rates) {
+        if (existingItem == null && unitPriceStr.isEmpty()) {
+            val liveRate = getCoinMarketPrice(rates, selectedCoin)
+            if (liveRate > 0L) {
+                unitPriceStr = liveRate.toString()
+            }
+        }
+    }
+
+    val count = PersianNumberFormatter.parseToCleanLong(countStr)?.takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt() ?: 1
+    val unitPrice = PersianNumberFormatter.parseToCleanLong(unitPriceStr) ?: 0L
+
+    val item = remember(selectedCoin, count, hasHologram, unitPrice) {
+        BarterCalculationUseCases.calculateCoinItem(
+            coinType = selectedCoin,
+            count = count,
+            hasHologram = hasHologram,
+            unitPrice = unitPrice
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(colors.background.copy(alpha = 0.45f))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Coin Type Chips
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "نوع سکه بانکی",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textSecondary,
+                    fontFamily = VazirmatnFamily
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    CoinType.entries.forEach { c ->
+                        val isSelected = selectedCoin == c
+                        val liveCoinPrice = getCoinMarketPrice(rates, c)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceVariant,
+                            border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .clickable {
+                                    selectedCoin = c
+                                    val livePrice = getCoinMarketPrice(rates, c)
+                                    if (livePrice > 0L) {
+                                        unitPriceStr = livePrice.toString()
+                                    }
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = c.titleFa,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (liveCoinPrice > 0L) {
+                                        Text(
+                                            text = "${PersianNumberFormatter.formatPrice(liveCoinPrice.toDouble())} ت",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                        Text(
+                                            text = "•",
+                                            fontSize = 10.sp,
+                                            color = colors.textMuted
+                                        )
+                                    }
+                                    Text(
+                                        text = "${PersianNumberFormatter.formatWeight(c.totalWeightGrams)} گرم",
+                                        fontSize = 10.sp,
+                                        color = colors.textMuted,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GoldInputField(
+                    value = countStr,
+                    onValueChange = { countStr = it },
+                    label = "تعداد سکه",
+                    trailingText = "عدد",
+                    isDecimal = false,
+                    useThousandsSeparator = false,
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldInputField(
+                    value = unitPriceStr,
+                    onValueChange = { unitPriceStr = it },
+                    label = "قیمت واحد",
+                    trailingText = "تومان",
+                    isDecimal = false,
+                    useThousandsSeparator = true,
+                    keyboardType = KeyboardType.Number,
+                    modifier = Modifier.weight(1.8f).testTag("invoice-item-save")
+                )
+            }
+
+            // Hologram Toggle
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(0.6.dp, colors.border),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "بسته‌بندی و هولوگرام معتبر",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        Text(
+                            text = "دارای تاییدیه رسمی اتحادیه طلا و جواهر",
+                            fontSize = 10.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                    }
+                    Switch(
+                        checked = hasHologram,
+                        onCheckedChange = { hasHologram = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colors.goldPrimary,
+                            checkedTrackColor = colors.goldContainer
+                        )
+                    )
+                }
+            }
+
+            // Summary Card with AnimatedPriceText & AnimatedNumberText
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = colors.surfaceVariant,
+                border = BorderStroke(0.8.dp, colors.goldBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مبلغ کل سکه‌ها:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedPriceText(
+                            amount = item.totalPayable,
+                            unit = "تومان",
+                            color = colors.goldPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "معادل وزنی ۱۸ عیار:",
+                            fontSize = 11.sp,
+                            color = colors.textSecondary,
+                            fontFamily = VazirmatnFamily
+                        )
+                        AnimatedNumberText(
+                            text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
+                            unit = "گرم",
+                            color = colors.textMain,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
+
+        // Sticky Bottom Footer
+        Surface(
+            color = colors.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                GoldButton(
+                    text = "انصراف",
+                    onClick = onDismiss,
+                    isSecondary = true,
+                    modifier = Modifier.weight(1f)
+                )
+                GoldButton(
+                    text = if (existingItem != null) "ذخیره تغییرات" else "افزودن سکه به فاکتور",
+                    onClick = { onConfirm(item) },
+                    enabled = invoiceItemError(item) == null,
+                    icon = InvoiceCheckVector,
+                    modifier = Modifier.weight(1.8f).testTag("invoice-item-save")
+                )
+            }
+        }
+    }
+}

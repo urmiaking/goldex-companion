@@ -19,6 +19,7 @@ dependencies {
     implementation(compose.materialIconsExtended)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("com.google.zxing:core:3.5.3")
+    implementation("org.apache.pdfbox:pdfbox:3.0.7")
     testImplementation(kotlin("test-junit"))
     testImplementation(compose.desktop.uiTestJUnit4)
 }
