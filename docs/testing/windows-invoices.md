@@ -25,7 +25,7 @@ The final Graphify code refresh succeeded (5,403 nodes, 17,447 edges); seven exi
 
 ## Release handoff
 
-This change is desktop-only; Android/shared code and versions remain unchanged. Choose the Windows version against the current published artifact when push/release is authorized, accounting for other agents' local merges. Keep #297 open until the Windows CI job and asset publication succeed. Verify publication metadata without downloading a published installer again.
+This change is desktop-only; Android/shared code and versions remain unchanged. Push was authorized after the local merge; `windows-v0.56.67` follows the published Windows `0.56.66` artifact. Keep #297 open until the Windows CI job and asset publication succeed. Verify publication metadata without downloading a published installer again.
 
 ## Recorded local results
 
@@ -33,5 +33,6 @@ This change is desktop-only; Android/shared code and versions remain unchanged. 
 - After integrating local `main` at `3ac5de9`, the combined compile/unit-test/application-image invocation passed on 2026-10-16 in 11m 4s: 177 Windows tests and 237 Android tests, zero failures/errors/skips. The earlier baseline passed 165 Windows tests. The first baseline run exceeded the repository's eight-minute test timeout; a temporary local init script increased only this execution's timeout to sixteen minutes. No tests were excluded and the committed Gradle timeout is unchanged.
 - The final focused run passed all 12 invoice state/document/UI and Windows control-contract tests, including cash coin issuance without an invented live gold quote. The application image was rebuilt from those sources. Synthetic archive and form screenshots were reviewed for RTL and desktop control consistency.
 - The final packaged `Qirato.exe --verify-runtime` passed with exit code 0 and empty stderr. It exercised bundled fonts/icons/codecs, a real invoice save and customer balance, PDF write/read, and invoice deletion with exact ledger reversal. The application image includes `jdk.unsupported` for PDFBox's Java 17 buffer cleaner; no JVM access-opening flags are needed. Physical printing remains a manual check.
+- After the release-only version bump, compile/Android unit-test gates and the desktop image build passed again. The packaged runtime reported `0.56.67` and exited 0. All 14 release-planning unit tests passed; feature behavior is unchanged from the 177-test Windows run above.
 
 Changed ownership and adapters are documented in ADR 0025. Main implementation files are `desktop/state/DesktopInvoices.kt`, `desktop/ui/DesktopInvoicesPage.kt`, `desktop/ui/DesktopInvoicePreview.kt`, `desktop/data/DesktopInvoiceDocuments.kt`, `desktop/state/DesktopInvoiceCalculator.kt` and the Android-derived `desktop/.../ui/invoices/` editor/state/forms. Shell, customer shortcuts, runtime smoke checks, README and architecture documentation are updated with them. Signing identity, customer persistence shape and shared money policies are unchanged.
