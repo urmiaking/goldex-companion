@@ -212,9 +212,9 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
 @Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String, updater: WindowsUpdater?, canOpenPrompt: Boolean) {
     val colors = LocalGoldExColors.current
     Surface(color = colors.surface, modifier = Modifier.width(if (compact) 108.dp else 218.dp).fillMaxHeight()) {
-        Column(Modifier.padding(horizontal = if (compact) 10.dp else 18.dp, vertical = if (compact) 18.dp else 26.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp)) {
-            Row(Modifier.fillMaxWidth().padding(bottom = if (compact) 18.dp else 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Image(painterResource("mipmap-xxxhdpi/ic_launcher.png"), "نشان قیراط", Modifier.size(44.dp))
+        Column(Modifier.padding(horizontal = if (compact) 10.dp else 18.dp, vertical = if (compact) 10.dp else 26.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 10.dp)) {
+            Row(Modifier.fillMaxWidth().padding(bottom = if (compact) 8.dp else 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Image(painterResource("mipmap-xxxhdpi/ic_launcher.png"), "نشان قیراط", Modifier.size(if (compact) 38.dp else 44.dp))
                 if (!compact) Column {
                     Text("قیراط", color = colors.goldPrimary, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                     Text("همراه زرگر", color = colors.textMuted, fontSize = 11.sp)
@@ -227,8 +227,8 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                 var focused by remember(destination) { mutableStateOf(false) }
                 Surface(color = selectionColor, shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
-                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Icon(icon(destination), null, Modifier.size(23.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
+                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else if (destination == DesktopDestination.INVOICES) "فاکتورها" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
                     } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
