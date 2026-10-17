@@ -57,6 +57,8 @@ import com.goldex.companion.desktop.data.QuoteKind
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldOutlinedTextField
+import com.goldex.companion.desktop.calculator.*
+import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
@@ -75,12 +77,15 @@ fun DesktopCalculatorScreen(
     val colors = LocalGoldExColors.current
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(DesktopCalculatorTab.JEWELRY) }
+    val currentRates = rateState?.quote?.rates ?: com.goldex.companion.data.MarketRates()
+
     LaunchedEffect(state) { copied = false }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(
             Modifier.fillMaxSize().background(colors.background).padding(if (showHeader) 28.dp else 4.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (showHeader) {
                 Row(
@@ -110,48 +115,90 @@ fun DesktopCalculatorScreen(
                 }
             }
 
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                if (maxWidth >= 940.dp) {
-                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                        ScrollPane(Modifier.weight(1.3f)) {
-                            InputPanel(state, calculator, marketRates, rateState)
-                        }
-                        ScrollPane(Modifier.weight(1f)) {
-                            ResultPanel(
-                                state = state,
-                                copied = copied,
-                                onCopy = {
-                                    calculator.summary()?.let {
-                                        clipboard.setText(AnnotatedString(rateSummary(it, rateState)))
-                                        copied = true
+            // Multi-Mode Tabs Bar
+            DesktopFilterRow(
+                items = DesktopCalculatorTab.values().toList(),
+                selectedItem = selectedTab,
+                onItemSelected = { selectedTab = it },
+                label = { it.title },
+                modifier = Modifier.fillMaxWidth().testTag("calculator-tab-bar"),
+                fillWidth = false
+            )
+
+            AnimatedContent(
+                targetState = selectedTab,
+                label = "calculator-mode-transition",
+                modifier = Modifier.weight(1f).fillMaxWidth()
+            ) { tab ->
+                when (tab) {
+                    DesktopCalculatorTab.JEWELRY -> {
+                        BoxWithConstraints(Modifier.fillMaxSize()) {
+                            if (maxWidth >= 940.dp) {
+                                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
+                                    ScrollPane(Modifier.weight(1.3f)) {
+                                        InputPanel(state, calculator, marketRates, rateState)
                                     }
-                                },
-                                onReset = {
-                                    if (marketRates != null) marketRates.reset() else calculator.reset()
-                                },
-                                onNavigateToInvoice = onNavigateToInvoice
-                            )
-                            FormulaCard()
+                                    ScrollPane(Modifier.weight(1f)) {
+                                        ResultPanel(
+                                            state = state,
+                                            copied = copied,
+                                            onCopy = {
+                                                calculator.summary()?.let {
+                                                    clipboard.setText(AnnotatedString(rateSummary(it, rateState)))
+                                                    copied = true
+                                                }
+                                            },
+                                            onReset = {
+                                                if (marketRates != null) marketRates.reset() else calculator.reset()
+                                            },
+                                            onNavigateToInvoice = onNavigateToInvoice
+                                        )
+                                        FormulaCard()
+                                    }
+                                }
+                            } else {
+                                ScrollPane(Modifier.fillMaxSize()) {
+                                    InputPanel(state, calculator, marketRates, rateState)
+                                    ResultPanel(
+                                        state = state,
+                                        copied = copied,
+                                        onCopy = {
+                                            calculator.summary()?.let {
+                                                clipboard.setText(AnnotatedString(rateSummary(it, rateState)))
+                                                copied = true
+                                            }
+                                        },
+                                        onReset = {
+                                            if (marketRates != null) marketRates.reset() else calculator.reset()
+                                        },
+                                        onNavigateToInvoice = onNavigateToInvoice
+                                    )
+                                    FormulaCard()
+                                }
+                            }
                         }
                     }
-                } else {
-                    ScrollPane(Modifier.fillMaxSize()) {
-                        InputPanel(state, calculator, marketRates, rateState)
-                        ResultPanel(
-                            state = state,
-                            copied = copied,
-                            onCopy = {
-                                calculator.summary()?.let {
-                                    clipboard.setText(AnnotatedString(rateSummary(it, rateState)))
-                                    copied = true
-                                }
-                            },
-                            onReset = {
-                                if (marketRates != null) marketRates.reset() else calculator.reset()
-                            },
+                    DesktopCalculatorTab.MELT -> {
+                        DesktopMeltCalculatorPane(
+                            rates = currentRates,
                             onNavigateToInvoice = onNavigateToInvoice
                         )
-                        FormulaCard()
+                    }
+                    DesktopCalculatorTab.COIN_BUBBLE -> {
+                        DesktopCoinBubbleCalculatorPane(
+                            rates = currentRates
+                        )
+                    }
+                    DesktopCalculatorTab.KARAT_CONVERT -> {
+                        DesktopKaratConvertCalculatorPane(
+                            rates = currentRates
+                        )
+                    }
+                    DesktopCalculatorTab.STANDARD_FORMULAS -> {
+                        DesktopStandardFormulasPane(
+                            defaultProfitPercent = state.input(CalculatorField.PROFIT),
+                            defaultTaxPercent = state.input(CalculatorField.TAX)
+                        )
                     }
                 }
             }
