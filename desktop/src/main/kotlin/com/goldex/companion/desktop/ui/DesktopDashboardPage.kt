@@ -108,9 +108,10 @@ import com.goldex.companion.ui.theme.*
                     QuickAction("محاسبه طلا", Icons.Outlined.Calculate, "quick-محاسبه طلا", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.CALCULATOR) }),
                     QuickAction("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, "quick-تابلوی نرخ‌ها", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.RATES) }),
                     QuickAction("انبار و ویترین", Icons.Outlined.Inventory2, "quick-انبار و ویترین", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVENTORY) }),
-                    QuickAction("صدور فاکتور", Icons.Outlined.ReceiptLong, "quick-صدور فاکتور", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVOICES) })
+                    QuickAction("صدور فاکتور", Icons.Outlined.ReceiptLong, "quick-صدور فاکتور", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVOICES) }),
+                    QuickAction("مرکز گزارشات", Icons.Outlined.Analytics, "quick-گزارشات", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.REPORTING) })
                 )
-                if (maxWidth >= 780.dp) {
+                if (maxWidth >= 900.dp) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         actions.forEach { action ->
                             DesktopQuickAccessTile(
@@ -124,7 +125,7 @@ import com.goldex.companion.ui.theme.*
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            actions.take(2).forEach { action ->
+                            actions.take(3).forEach { action ->
                                 DesktopQuickAccessTile(
                                     text = action.title,
                                     onClick = action.onClick,
@@ -134,7 +135,7 @@ import com.goldex.companion.ui.theme.*
                             }
                         }
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            actions.drop(2).forEach { action ->
+                            actions.drop(3).forEach { action ->
                                 DesktopQuickAccessTile(
                                     text = action.title,
                                     onClick = action.onClick,

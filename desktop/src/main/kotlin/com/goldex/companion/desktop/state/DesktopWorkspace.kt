@@ -18,6 +18,7 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
     INVENTORY("انبار و ویترین طلا", "مدیریت موجودی، ارزش لحظه‌ای و اتیکت"),
     INVOICES("مدیریت فاکتورها", "فاکتورهای ثبت‌شده و تسویه زرگری"),
     CUSTOMERS("مدیریت مشتریان", "دفتر حساب، گردش طلا و تومان و تسویه طرف‌حساب‌ها"),
+    REPORTING("مرکز گزارشات", "تحلیل عملکرد مالی و ترازنامه‌های زرگری"),
     PORTFOLIO("سبد قبلی", "دارایی‌های ثبت‌شده در سبد قبلی"),
     SETTINGS("تنظیمات", "مشخصات گالری، ترجیحات و پشتیبان اطلاعات");
 
@@ -29,11 +30,12 @@ enum class DesktopDestination(val title: String, val subtitle: String) {
         INVENTORY -> 4
         INVOICES -> 5
         CUSTOMERS -> 6
-        PORTFOLIO, SETTINGS -> 6
+        REPORTING -> 7
+        PORTFOLIO, SETTINGS -> 8
     }
 
     companion object {
-        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, INVOICES, CUSTOMERS, SETTINGS)
+        val mainDestinations = listOf(DASHBOARD, CALCULATOR, RATES, INVENTORY, INVOICES, CUSTOMERS, REPORTING, SETTINGS)
     }
 }
 
@@ -81,6 +83,7 @@ class DesktopWorkspace(
         market.snapshot.value?.rates ?: DesktopMarketRepository.emptyRates()
     }
     val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
+    val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()
@@ -116,6 +119,7 @@ class DesktopWorkspace(
         if (destination == DesktopDestination.INVOICES) invoices.manager.reloadInvoices()
         if (destination == DesktopDestination.CUSTOMERS) customers.manager.loadCustomers()
         if (destination == DesktopDestination.DASHBOARD) dashboard.select(dashboard.state.value.horizon)
+        if (destination == DesktopDestination.REPORTING) reporting.loadData()
     }
     fun openCustomerInvoice(customer: Customer) {
         navigate(DesktopDestination.INVOICES)

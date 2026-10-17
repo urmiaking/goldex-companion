@@ -68,6 +68,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val invoiceDialog = remember(invoiceState, invoiceHost) { workspace.invoices.hasDialog }
     val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
     val rateDetail by workspace.rateDetail.state.collectAsState()
+    val reportingState by workspace.reporting.uiState.collectAsState()
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
@@ -100,17 +101,18 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                         }
                         if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
                         if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices)
-                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else null,
+                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownTitle(reportingState.activeBreakdown!!) else null,
                         subtitleOverride = statementCustomer?.let { customer ->
                             listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
-                        } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else null,
+                        } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownSubtitle(reportingState.activeBreakdown!!) else null,
                         onBack = when {
                             statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
                             state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR -> workspace.invoices::back
                             state.destination == DesktopDestination.RATE_DETAIL -> ({ workspace.navigate(DesktopDestination.RATES) })
+                            state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null -> workspace.reporting::closeBreakdown
                             else -> null
-                        }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else "customer-back",
-                        backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else "بازگشت به مشتریان")
+                        }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else if (state.destination == DesktopDestination.REPORTING) "reporting-back" else "customer-back",
+                        backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان")
                     if (state.error != null || state.notice != null) {
                         Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
                             Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -147,6 +149,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                     DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
                                     DesktopDestination.INVOICES -> DesktopInvoicesPage(state, workspace)
                                     DesktopDestination.CUSTOMERS -> DesktopCustomersPage(workspace)
+                                    DesktopDestination.REPORTING -> DesktopReportingPage(workspace.reporting, workspace)
                                 }
                             }
                         }
@@ -180,6 +183,20 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     }
 }
 
+private fun reportingBreakdownTitle(type: com.goldex.companion.domain.reporting.ReportingBreakdownType): String = when (type) {
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.SALES_PERFORMANCE -> "سود و زیان و عملکرد فروش"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.GOLD_INVENTORY -> "تراز وزنی و انبار طلا"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.DEBTORS_CREDITORS -> "بدهکاران و مانده معین"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.VAT_REPORT -> "ارزش‌افزوده و مالیات فصلی"
+}
+
+private fun reportingBreakdownSubtitle(type: com.goldex.companion.domain.reporting.ReportingBreakdownType): String = when (type) {
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.SALES_PERFORMANCE -> "تحلیل معاملات، سود محقق‌شده و اجرت ساخت"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.GOLD_INVENTORY -> "موجودی عیار ۷۵۰، ویترین، گاوصندوق و کاردکس"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.DEBTORS_CREDITORS -> "تراز اشخاص، مطالبات ریالی و مانده طلایی طرف‌حساب‌ها"
+    com.goldex.companion.domain.reporting.ReportingBreakdownType.VAT_REPORT -> "مالیات ثبت‌شده بر اجرت و سود منطبق بر سامانه مودیان"
+}
+
 private fun icon(destination: DesktopDestination): ImageVector = when (destination) {
     DesktopDestination.DASHBOARD -> Icons.Outlined.Dashboard
     DesktopDestination.CALCULATOR -> Icons.Outlined.Calculate
@@ -189,6 +206,7 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
     DesktopDestination.INVENTORY -> Icons.Outlined.Inventory2
     DesktopDestination.INVOICES -> Icons.Outlined.ReceiptLong
     DesktopDestination.CUSTOMERS -> Icons.Outlined.PeopleAlt
+    DesktopDestination.REPORTING -> Icons.Outlined.Analytics
 }
 
 @Composable private fun Sidebar(state: WorkspaceState, workspace: DesktopWorkspace, compact: Boolean, version: String, updater: WindowsUpdater?, canOpenPrompt: Boolean) {
