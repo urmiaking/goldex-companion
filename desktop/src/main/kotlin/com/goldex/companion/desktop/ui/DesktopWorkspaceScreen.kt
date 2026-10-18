@@ -51,6 +51,7 @@ import com.goldex.companion.desktop.DesktopCalculatorScreen
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.desktop.update.WindowsUpdater
+import com.goldex.companion.desktop.wizard.DesktopOnboardingWizardScreen
 import com.goldex.companion.model.*
 import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.*
@@ -77,56 +78,74 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     LaunchedEffect(updater) { updater?.start() }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl, LocalDesktopReduceMotion provides state.reduceMotion) {
         BoxWithConstraints(Modifier.fillMaxSize().background(colors.background).testTag("workspace-root")) {
-            val compact = maxWidth < 1080.dp
-            Row(Modifier.fillMaxSize()) {
-                Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().padding(
-                        start = if (compact) 16.dp else 24.dp,
-                        top = if (compact) 16.dp else 24.dp,
-                        end = if (compact) 16.dp else 24.dp,
-                        bottom = if (compact) 6.dp else 8.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    WorkspaceHeader(state, actions = {
-                        if (state.destination == DesktopDestination.INVENTORY) {
-                            WorkspaceControl(
-                                text = "ثبت محصول جدید",
-                                onClick = { workspace.inventory.open() },
-                                modifier = Modifier.testTag("inventory-add"),
-                                icon = Icons.Outlined.Add,
-                                secondary = false,
-                                enabled = !inventoryState.saving)
-                        }
-                        if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
-                        if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices)
-                    }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownTitle(reportingState.activeBreakdown!!) else null,
-                        subtitleOverride = statementCustomer?.let { customer ->
-                            listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
-                        } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownSubtitle(reportingState.activeBreakdown!!) else null,
-                        onBack = when {
-                            statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
-                            state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR -> workspace.invoices::back
-                            state.destination == DesktopDestination.RATE_DETAIL -> ({ workspace.navigate(DesktopDestination.RATES) })
-                            state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null -> workspace.reporting::closeBreakdown
-                            else -> null
-                        }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else if (state.destination == DesktopDestination.REPORTING) "reporting-back" else "customer-back",
-                        backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان")
-                    if (state.error != null || state.notice != null) {
-                        Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
-                            Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(state.error ?: state.notice.orEmpty(), Modifier.weight(1f).testTag("workspace-message"), color = if (state.error != null) colors.errorRed else colors.textMain, fontSize = 13.sp)
-                                IconButton(onClick = workspace::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام", Modifier.size(18.dp), tint = colors.textMuted) }
+            AnimatedContent(
+                targetState = state.isWizardOpen,
+                transitionSpec = {
+                    if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                    else (fadeIn(tween(240)) + scaleIn(initialScale = 0.98f)).togetherWith(fadeOut(tween(180)) + scaleOut(targetScale = 0.98f))
+                },
+                label = "workspace-wizard-transition"
+            ) { isWizard ->
+                if (isWizard) {
+                    DesktopOnboardingWizardScreen(
+                        workspace = workspace,
+                        onClose = workspace::closeWizard
+                    )
+                } else {
+                    val compact = maxWidth < 1080.dp
+                    Row(Modifier.fillMaxSize()) {
+                    Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight().padding(
+                            start = if (compact) 16.dp else 24.dp,
+                            top = if (compact) 16.dp else 24.dp,
+                            end = if (compact) 16.dp else 24.dp,
+                            bottom = if (compact) 6.dp else 8.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        WorkspaceHeader(state, actions = {
+                            if (state.destination == DesktopDestination.INVENTORY) {
+                                WorkspaceControl(
+                                    text = "ثبت محصول جدید",
+                                    onClick = { workspace.inventory.open() },
+                                    modifier = Modifier.testTag("inventory-add"),
+                                    icon = Icons.Outlined.Add,
+                                    secondary = false,
+                                    enabled = !inventoryState.saving)
+                            }
+                            if (state.destination == DesktopDestination.CUSTOMERS) CustomerHeaderActions(workspace.customers)
+                            if (state.destination == DesktopDestination.INVOICES) InvoiceHeaderActions(workspace.invoices)
+                        }, titleOverride = statementCustomer?.name ?: if (state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR) (if (invoiceState.isEditingExistingInvoice) "ویرایش فاکتور" else "صدور فاکتور جدید") else if (state.destination == DesktopDestination.RATE_DETAIL) instrumentLabel(rateDetail.instrument) else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownTitle(reportingState.activeBreakdown!!) else null,
+                            subtitleOverride = statementCustomer?.let { customer ->
+                                listOf("ریز گردش حساب", customerContactLabel(customer)).filter { it.isNotBlank() }.joinToString(" • ")
+                            } ?: if (state.destination == DesktopDestination.RATE_DETAIL) "تحلیل و مظنه لحظه‌ای • تاریخچه بازار" else if (state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null) reportingBreakdownSubtitle(reportingState.activeBreakdown!!) else null,
+                            onBack = when {
+                                statementCustomer != null -> workspace.customers.manager::closeCustomerStatement
+                                state.destination == DesktopDestination.INVOICES && invoiceState.subScreen == com.goldex.companion.ui.invoices.InvoicesSubScreen.EDITOR -> workspace.invoices::back
+                                state.destination == DesktopDestination.RATE_DETAIL -> ({ workspace.navigate(DesktopDestination.RATES) })
+                                state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null -> workspace.reporting::closeBreakdown
+                                else -> null
+                            }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else if (state.destination == DesktopDestination.REPORTING) "reporting-back" else "customer-back",
+                            backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان")
+                        AnimatedVisibility(
+                            visible = state.error != null || state.notice != null,
+                            enter = if (state.reduceMotion) fadeIn(tween(0)) else LuxuryMotion.ItemAddEnter,
+                            exit = if (state.reduceMotion) fadeOut(tween(0)) else LuxuryMotion.ItemRemoveExit
+                        ) {
+                            Surface(color = if (state.error != null) colors.errorRed.copy(alpha = 0.08f) else colors.goldContainer, shape = RoundedCornerShape(12.dp)) {
+                                Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(state.error ?: state.notice.orEmpty(), Modifier.weight(1f).testTag("workspace-message"), color = if (state.error != null) colors.errorRed else colors.textMain, fontSize = 13.sp)
+                                    IconButton(onClick = workspace::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام", Modifier.size(18.dp), tint = colors.textMuted) }
+                                }
                             }
                         }
-                    }
-                    AnimatedContent(targetState = state.destination, modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds(),
-                        transitionSpec = {
-                            if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
-                            else (fadeIn(tween(240, delayMillis = 40)) + slideInVertically(tween(300, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) it / 16 else -it / 16 })
-                                .togetherWith(fadeOut(tween(140)) + slideOutVertically(tween(200, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) -it / 24 else it / 24 })
-                        }, label = "desktop-page-transition") { destination ->
+                        AnimatedContent(targetState = state.destination, modifier = Modifier.weight(1f).fillMaxWidth().clipToBounds(),
+                            transitionSpec = {
+                                if (state.reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                                else (fadeIn(tween(240, delayMillis = 40)) + slideInVertically(tween(300, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) it / 16 else -it / 16 })
+                                    .togetherWith(fadeOut(tween(140)) + slideOutVertically(tween(200, easing = FastOutSlowInEasing)) { if (targetState.navigationOrder > initialState.navigationOrder) -it / 24 else it / 24 })
+                            }, label = "desktop-page-transition") { destination ->
                         val outgoing = destination != state.destination
                         Box(Modifier.fillMaxSize().testTag("page-${destination.name}").then(if (outgoing) Modifier.semantics { invisibleToUser() }.pointerInput(Unit) {
                             awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
@@ -162,6 +181,8 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                     )
                 }
             }
+        }
+    }
         }
         DesktopDialogHost(state.draft) { AssetDialog(it, state.saving, workspace) }
         InventoryDialogs(workspace.inventory)

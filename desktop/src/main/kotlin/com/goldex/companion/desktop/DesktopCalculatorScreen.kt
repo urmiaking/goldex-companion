@@ -59,6 +59,7 @@ import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldOutlinedTextField
 import com.goldex.companion.desktop.calculator.*
 import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.*
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
@@ -125,8 +126,19 @@ fun DesktopCalculatorScreen(
                 fillWidth = false
             )
 
+            val reduceMotion = LocalDesktopReduceMotion.current
             AnimatedContent(
                 targetState = selectedTab,
+                transitionSpec = {
+                    if (reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                    else if (targetState.ordinal > initialState.ordinal) {
+                        (slideInHorizontally(animationSpec = tween(280, easing = LuxuryMotion.StandardEasing)) { -it / 4 } + fadeIn(tween(240)))
+                            .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = LuxuryMotion.AccelerationEasing)) { it / 4 } + fadeOut(tween(180)))
+                    } else {
+                        (slideInHorizontally(animationSpec = tween(280, easing = LuxuryMotion.StandardEasing)) { it / 4 } + fadeIn(tween(240)))
+                            .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = LuxuryMotion.AccelerationEasing)) { -it / 4 } + fadeOut(tween(180)))
+                    }
+                },
                 label = "calculator-mode-transition",
                 modifier = Modifier.weight(1f).fillMaxWidth()
             ) { tab ->
@@ -753,10 +765,12 @@ private fun InputPanel(
                 }
 
                 // Wage field and equivalent value animated when wage type changes
+                val reduceMotion = LocalDesktopReduceMotion.current
                 AnimatedContent(
                     targetState = state.wageType,
                     transitionSpec = {
-                        (fadeIn(tween(180)) + slideInVertically(tween(220, easing = FastOutSlowInEasing)) { it / 6 })
+                        if (reduceMotion) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                        else (fadeIn(tween(180)) + slideInVertically(tween(220, easing = FastOutSlowInEasing)) { it / 6 })
                             .togetherWith(fadeOut(tween(120)) + slideOutVertically(tween(180, easing = FastOutSlowInEasing)) { -it / 6 })
                     },
                     label = "wageTypeTransition"

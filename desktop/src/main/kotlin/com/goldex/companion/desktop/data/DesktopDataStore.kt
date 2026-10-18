@@ -10,6 +10,8 @@ import com.goldex.companion.model.StockAdjustment
 import com.goldex.companion.model.StockAdjustmentType
 import com.goldex.companion.presentation.inventory.InventoryForm
 import com.goldex.companion.domain.inventory.InventoryStockPolicy
+import com.goldex.companion.domain.onboarding.OnboardingCheckpoint
+import com.goldex.companion.data.sync.SyncUnitOfWork
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
@@ -23,7 +25,7 @@ import java.nio.file.StandardCopyOption.*
 import java.nio.file.StandardOpenOption.*
 
 /** One local writer, versioned documents and atomic replacement. Never edits Android storage. */
-class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, AutoCloseable {
+class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, OnboardingCheckpoint, SyncUnitOfWork, AutoCloseable {
     val documentPath: Path = directory.resolve("workspace.json")
     val backupPath: Path = directory.resolve("workspace.previous.json")
     private val lockChannel: FileChannel
@@ -210,6 +212,16 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Aut
             financialDraft = null
         }
     }
+    @Synchronized override fun hasSeededOpeningInventory(): Boolean =
+        (financialDraft ?: document).optBoolean("openingInventorySeeded", false)
+
+    @Synchronized override fun markOpeningInventorySeeded() {
+        val next = cloneDocument().put("openingInventorySeeded", true)
+        commit(next)
+    }
+
+    override fun <T> transaction(action: () -> T): T = financialTransaction(action)
+
     private fun readSettings(value: JSONObject) = PersistenceJsonCodecs.decodeSettings(value.getJSONObject("settings").toString())
 
     private fun commit(next: JSONObject) {

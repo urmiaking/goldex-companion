@@ -222,6 +222,11 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
             Text("دارایی‌های سبد قبلی شما حفظ شده‌اند. موجودی پیشخوان از کالاهای ثبت‌شده در انبار و ویترین محاسبه می‌شود.", color = colors.textMuted, fontSize = 12.sp)
             GoldButton("مشاهده سبد قبلی", { workspace.navigate(DesktopDestination.PORTFOLIO) }, Modifier.testTag("open-previous-portfolio"), isSecondary = true, icon = Icons.Outlined.AccountBalanceWallet)
         }
+        LuxuryCard(Modifier.fillMaxWidth().testTag("settings-wizard-card")) {
+            PageTitle("راهنمای راه‌اندازی و افتتاح دوره (ویزارد)")
+            Text("چنانچه قصد بازبینی مشخصات گالری، ثبت مجدد پیش‌فرض‌های مالیاتی ماده ۲۶ ارزش افزوده یا افتتاح دوره طلافروشی را دارید، می‌توانید ویزارد را مجدداً اجرا نمایید.", color = colors.textSecondary, fontSize = 12.sp)
+            GoldButton("اجرای ویزارد راه‌اندازی اولیه", workspace::openWizard, Modifier.testTag("run-onboarding-wizard"), isSecondary = true, icon = Icons.Outlined.AutoAwesome)
+        }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-tools"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-backup")) {
                 PageTitle("پشتیبان اطلاعات")

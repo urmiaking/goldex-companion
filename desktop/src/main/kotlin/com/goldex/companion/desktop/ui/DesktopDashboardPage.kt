@@ -8,6 +8,8 @@ import com.goldex.companion.desktop.ui.controls.*
 
 import com.goldex.companion.desktop.ui.controls.*
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
@@ -18,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -78,6 +81,14 @@ import com.goldex.companion.ui.theme.*
                     )
                 }
             }
+        }
+
+        AnimatedVisibility(
+            visible = !state.settings.hasCompletedOnboarding,
+            enter = if (state.reduceMotion) fadeIn(tween(0)) else LuxuryMotion.ItemAddEnter,
+            exit = if (state.reduceMotion) fadeOut(tween(0)) else LuxuryMotion.ItemRemoveExit
+        ) {
+            OnboardingWelcomeBanner(onOpenWizard = workspace::openWizard)
         }
 
         // Hero Section: Vault Card + Market Card (Both with matching height on desktop)
@@ -503,3 +514,99 @@ private data class QuickAction(
         Text(PersianNumberFormatter.formatPrice(amount) + " تومان", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }
+
+@Composable
+private fun OnboardingWelcomeBanner(onOpenWizard: () -> Unit) {
+    val colors = LocalGoldExColors.current
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("dashboard-wizard-banner"),
+        shape = RoundedCornerShape(16.dp),
+        color = colors.surfaceElevated,
+        border = BorderStroke(1.dp, colors.goldBorder)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                colors.goldPrimary.copy(alpha = 0.10f),
+                                Color.Transparent,
+                                colors.goldSecondary.copy(alpha = 0.05f)
+                            )
+                        )
+                    )
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(colors.goldContainer)
+                            .border(1.2.dp, colors.goldPrimary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = null,
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "راه‌اندازی اولیه طلافروشی و افتتاح دوره مالی",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textMain
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = colors.goldPrimary.copy(alpha = 0.15f),
+                                border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.4f))
+                            ) {
+                                Text(
+                                    text = "پیشنهادی",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.goldPrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "جهت تنظیم مشخصات گالری در فاکتورها، موازین مالیاتی ماده ۲۶ ارزش افزوده و ثبت موجودی اولیه طلا، سکه و صندوق کلیک کنید.",
+                            fontSize = 12.5.sp,
+                            color = colors.textSecondary
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                GoldButton(
+                    text = "شروع راه‌اندازی گالری",
+                    onClick = onOpenWizard,
+                    icon = Icons.Outlined.RocketLaunch,
+                    modifier = Modifier.testTag("dashboard-open-wizard")
+                )
+            }
+        }
+    }
+}
+

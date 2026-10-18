@@ -29,7 +29,7 @@ class DesktopDashboardScreenTest {
 
     @Before fun setup() {
         store = DesktopDataStore(temporary.newFolder().toPath())
-        store.saveSettings(AppSettings(managerName = "استاد زرگر", galleryName = "گالری آزمون قیراط"))
+        store.saveSettings(AppSettings(managerName = "استاد زرگر", galleryName = "گالری آزمون قیراط", hasCompletedOnboarding = true))
         store.addItem(PortfolioItem(title = "طلای آزمون", category = PortfolioCategory.GOLD, weightGrams = 12.125, purchasePriceTotal = 65_000_000))
         store.inventory.addItem(com.goldex.companion.model.InventoryItem(code = "INV-1", title = "موجودی آزمون", grossWeightGrams = 12.125, quantity = 2))
         store.saveInventoryVisible(true)

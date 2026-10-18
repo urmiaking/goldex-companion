@@ -30,6 +30,9 @@ import com.goldex.companion.ui.theme.ButtonShape
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.VazirmatnFamily
 
+import androidx.compose.animation.core.tween
+import com.goldex.companion.ui.theme.LuxuryMotion
+
 /**
  * Main Reporting & Financial Analytics Page in the Windows workspace.
  * Conforms strictly to the Persian Sovereign Aurum design tokens and Windows control contract.
@@ -40,17 +43,43 @@ internal fun DesktopReportingPage(
     workspace: DesktopWorkspace
 ) {
     val state by reporting.uiState.collectAsState()
+    val workspaceState by workspace.state.collectAsState()
+    val reduced = workspaceState.reduceMotion
+
+    AnimatedContent(
+        targetState = state.activeBreakdown,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            if (reduced) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+            else if (targetState != null) {
+                LuxuryMotion.ScreenPushEnter.togetherWith(LuxuryMotion.ScreenPopExit)
+            } else {
+                (slideInHorizontally(animationSpec = LuxuryMotion.IntOffsetSpring) { fullWidth -> fullWidth / 3 } + fadeIn(tween(260)))
+                    .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { fullWidth -> fullWidth / 3 } + fadeOut(tween(180)))
+            }
+        },
+        label = "reporting-breakdown-navigation"
+    ) { activeBreakdown ->
+        if (activeBreakdown != null) {
+            DesktopReportingDetailPage(activeBreakdown, reporting, workspace)
+        } else {
+            ReportingOverviewContent(reporting, workspace)
+        }
+    }
+}
+
+@Composable
+private fun ReportingOverviewContent(
+    reporting: DesktopReporting,
+    workspace: DesktopWorkspace
+) {
+    val state by reporting.uiState.collectAsState()
     val colors = LocalGoldExColors.current
     val clipboard = LocalClipboardManager.current
     val scrollState = rememberScrollState()
 
     var copiedMessage by remember { mutableStateOf(false) }
     LaunchedEffect(state.selectedPeriod) { copiedMessage = false }
-
-    if (state.activeBreakdown != null) {
-        DesktopReportingDetailPage(state.activeBreakdown!!, reporting, workspace)
-        return
-    }
 
     val periodLabel = if (state.selectedPeriod == ReportingPeriod.CUSTOM && state.customStartDateShamsi.isNotBlank()) {
         "${state.selectedPeriod.labelFa} (${state.customStartDateShamsi} تا ${state.customEndDateShamsi})"

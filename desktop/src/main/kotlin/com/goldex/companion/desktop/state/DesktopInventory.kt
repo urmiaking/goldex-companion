@@ -62,6 +62,16 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
     val state = mutable.asStateFlow()
     private val writing = AtomicBoolean(false)
     private var movementBaseline: StockDraft? = null
+    fun reload() {
+        mutable.update {
+            it.copy(
+                items = store.getItems(),
+                history = store.getAdjustments(),
+                visible = storage.loadInventoryVisible(),
+                options = storage.loadInventoryOptions()
+            )
+        }
+    }
     fun quote(spot: Long) { mutable.update { it.copy(spot18 = spot) } }
     fun search(value: String) { mutable.update { it.copy(query = value) } }
     fun filter(value: InventoryCategory) { mutable.update { it.copy(category = value, filterCategoryId = null, selectedId = null) } }

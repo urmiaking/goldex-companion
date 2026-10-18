@@ -116,7 +116,12 @@ private fun launchWorkspace() {
         val invoiceState = workspace?.invoices?.manager?.uiState?.collectAsState()?.value
         val invoiceHost = workspace?.invoices?.host?.collectAsState()?.value
         var confirmClose by remember { mutableStateOf(false) }
-        LaunchedEffect(workspace) { workspace?.start() }
+        LaunchedEffect(workspace) {
+            workspace?.start()
+            if (workspace != null && !workspace.state.value.settings.hasCompletedOnboarding) {
+                workspace.openWizard()
+            }
+        }
         Window(
             onCloseRequest = {
                 if (state?.saving == true || inventoryState?.saving == true || state?.draft != null || state?.settingsDraft != null || inventoryState?.draft != null || inventoryState?.movement != null || workspace?.customers?.saving == true || workspace?.customers?.hasDialog == true || workspace?.invoices?.saving == true || workspace?.invoices?.hasDraft == true || workspace?.invoices?.hasDialog == true) confirmClose = true

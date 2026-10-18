@@ -4,6 +4,8 @@ import com.goldex.companion.desktop.ui.controls.*
 
 import com.goldex.companion.desktop.ui.controls.DesktopIconButton as IconButton
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -47,34 +49,60 @@ import com.goldex.companion.ui.theme.*
     val manager = feature.manager
     val invoiceState by manager.uiState.collectAsState()
     val customers by workspace.customers.manager.uiState.collectAsState()
+    val reduced = state.reduceMotion
+
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (invoiceState.statusMessage.isNotBlank()) Surface(color = LocalGoldExColors.current.goldContainer, shape = MaterialTheme.shapes.medium) {
-            Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(invoiceState.statusMessage, Modifier.weight(1f).testTag("invoice-message"), color = LocalGoldExColors.current.textMain, fontSize = 13.sp)
-                IconButton(manager::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام فاکتور") }
+        AnimatedVisibility(
+            visible = invoiceState.statusMessage.isNotBlank(),
+            enter = if (reduced) fadeIn(tween(0)) else LuxuryMotion.ItemAddEnter,
+            exit = if (reduced) fadeOut(tween(0)) else LuxuryMotion.ItemRemoveExit
+        ) {
+            Surface(color = LocalGoldExColors.current.goldContainer, shape = MaterialTheme.shapes.medium) {
+                Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(invoiceState.statusMessage, Modifier.weight(1f).testTag("invoice-message"), color = LocalGoldExColors.current.textMain, fontSize = 13.sp)
+                    IconButton(manager::clearMessage) { Icon(Icons.Outlined.Close, "بستن پیام فاکتور") }
+                }
             }
         }
-        if (invoiceState.subScreen == InvoicesSubScreen.LIST) InvoiceDirectory(invoiceState, feature, Modifier.weight(1f))
-        else key(invoiceState.invoice.id) {
-            Box(Modifier.weight(1f).fillMaxWidth().testTag("invoice-editor"), contentAlignment = Alignment.TopCenter) {
-                BarterInvoiceScreen(
-                    uiState = invoiceState, marketRates = state.snapshot?.rates ?: com.goldex.companion.desktop.data.DesktopMarketRepository.emptyRates(),
-                    customerList = customers.customerList,
-                    onSetCustomerRole = manager::setCustomerRole, onSetDebtBasis = manager::setDebtBasis,
-                    onOpenDatedSettlement = feature::settleEditor, onSetSettlementMethod = manager::setSettlementMethod,
-                    onSetCashPosAmount = manager::setCashPosAmount, onSetLedgerAmount = manager::setLedgerAmount,
-                    onSetPosTrackingCode = manager::setPosTrackingCode, onSetLedgerDueDate = manager::setLedgerDueDate,
-                    onSetBullionSettlement = manager::setBullionSettlement, onSetThirdPartyTransfer = manager::setThirdPartyTransfer,
-                    onSetSettlementPayments = manager::setSettlementPayments, onSetSyncWithLedger = manager::setSyncWithLedger,
-                    onSetNote = manager::setNote, onOpenAddItemModal = manager::openAddItemModal,
-                    onOpenEditItemModal = manager::openEditItemModal, onCloseItemModal = manager::closeItemModal,
-                    onSaveItem = manager::saveItem, onDeleteSalesItem = manager::deleteSalesItem,
-                    onDeleteReceivedItem = manager::deleteReceivedItem, onSetRateEditDialogVisible = manager::setRateEditDialogVisible,
-                    onUpdateSpotPrice = manager::updateSpotPrice, onOpenCustomerPicker = feature::openPicker,
-                    onOpenInvoiceManager = manager::navigateBackToList, onPreviewPdf = { feature.preview(invoiceState.invoice) },
-                    onSendSms = { feature.copyMessage(invoiceState.invoice) }, onFinalSubmit = feature::save,
-                    defaultProfitPercent = state.settings.defaultProfitPercent, defaultTaxPercent = state.settings.defaultTaxPercent,
-                    modifier = Modifier.widthIn(max = 1040.dp).fillMaxSize(), onPaymentDialogChanged = feature::paymentDialog)
+        AnimatedContent(
+            targetState = invoiceState.subScreen,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            transitionSpec = {
+                if (reduced) fadeIn(tween(0)).togetherWith(fadeOut(tween(0)))
+                else if (targetState == InvoicesSubScreen.EDITOR) {
+                    LuxuryMotion.ScreenPushEnter.togetherWith(LuxuryMotion.ScreenPopExit)
+                } else {
+                    (slideInHorizontally(animationSpec = LuxuryMotion.IntOffsetSpring) { fullWidth -> fullWidth / 3 } + fadeIn(tween(260)))
+                        .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { fullWidth -> fullWidth / 3 } + fadeOut(tween(180)))
+                }
+            },
+            label = "invoice-subscreen-transition"
+        ) { subScreen ->
+            if (subScreen == InvoicesSubScreen.LIST) {
+                InvoiceDirectory(invoiceState, feature, Modifier.fillMaxSize())
+            } else {
+                key(invoiceState.invoice.id) {
+                    Box(Modifier.fillMaxSize().testTag("invoice-editor"), contentAlignment = Alignment.TopCenter) {
+                        BarterInvoiceScreen(
+                            uiState = invoiceState, marketRates = state.snapshot?.rates ?: com.goldex.companion.desktop.data.DesktopMarketRepository.emptyRates(),
+                            customerList = customers.customerList,
+                            onSetCustomerRole = manager::setCustomerRole, onSetDebtBasis = manager::setDebtBasis,
+                            onOpenDatedSettlement = feature::settleEditor, onSetSettlementMethod = manager::setSettlementMethod,
+                            onSetCashPosAmount = manager::setCashPosAmount, onSetLedgerAmount = manager::setLedgerAmount,
+                            onSetPosTrackingCode = manager::setPosTrackingCode, onSetLedgerDueDate = manager::setLedgerDueDate,
+                            onSetBullionSettlement = manager::setBullionSettlement, onSetThirdPartyTransfer = manager::setThirdPartyTransfer,
+                            onSetSettlementPayments = manager::setSettlementPayments, onSetSyncWithLedger = manager::setSyncWithLedger,
+                            onSetNote = manager::setNote, onOpenAddItemModal = manager::openAddItemModal,
+                            onOpenEditItemModal = manager::openEditItemModal, onCloseItemModal = manager::closeItemModal,
+                            onSaveItem = manager::saveItem, onDeleteSalesItem = manager::deleteSalesItem,
+                            onDeleteReceivedItem = manager::deleteReceivedItem, onSetRateEditDialogVisible = manager::setRateEditDialogVisible,
+                            onUpdateSpotPrice = manager::updateSpotPrice, onOpenCustomerPicker = feature::openPicker,
+                            onOpenInvoiceManager = manager::navigateBackToList, onPreviewPdf = { feature.preview(invoiceState.invoice) },
+                            onSendSms = { feature.copyMessage(invoiceState.invoice) }, onFinalSubmit = feature::save,
+                            defaultProfitPercent = state.settings.defaultProfitPercent, defaultTaxPercent = state.settings.defaultTaxPercent,
+                            modifier = Modifier.widthIn(max = 1040.dp).fillMaxSize(), onPaymentDialogChanged = feature::paymentDialog)
+                    }
+                }
             }
         }
     }

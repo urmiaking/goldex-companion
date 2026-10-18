@@ -49,7 +49,8 @@ data class WorkspaceState(
     val query: String = "", val categoryFilter: PortfolioCategory? = null,
     val draft: PortfolioDraft? = null, val pendingDelete: PortfolioItem? = null,
     val refreshing: Boolean = false, val saving: Boolean = false,
-    val error: String? = null, val notice: String? = null
+    val error: String? = null, val notice: String? = null,
+    val isWizardOpen: Boolean = false
 ) {
     val visibleAssets get() = assets.rows.filter { (categoryFilter == null || it.item.category == categoryFilter) &&
         (query.isBlank() || PersianTextSearch.normalize(it.item.title).contains(PersianTextSearch.normalize(query))) }
@@ -84,6 +85,13 @@ class DesktopWorkspace(
     }
     val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
+    val completeOnboarding = com.goldex.companion.domain.onboarding.CompleteOnboardingUseCase(
+        settings = storage,
+        inventory = storage.inventory,
+        portfolio = storage,
+        checkpoint = storage,
+        unitOfWork = storage
+    )
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
         snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
     val state = mutable.asStateFlow()
@@ -148,6 +156,39 @@ class DesktopWorkspace(
     fun editSettings(change: (AppSettings) -> AppSettings) { if (!state.value.saving) mutable.update { it.copy(settingsDraft = change(it.settingsDraft ?: it.settings)) } }
     fun revertSettings() { mutable.update { it.copy(settingsDraft = null) } }
     fun openAsset(item: PortfolioItem? = null) { if (!inventory.state.value.hasDialog) mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
+    fun openWizard() { mutable.update { it.copy(isWizardOpen = true) } }
+    fun closeWizard() { mutable.update { it.copy(isWizardOpen = false) } }
+    fun completeWizard(
+        updatedSettings: AppSettings,
+        input: com.goldex.companion.domain.onboarding.OpeningInventoryInput,
+        targetDestination: DesktopDestination = DesktopDestination.DASHBOARD
+    ): Boolean {
+        return try {
+            completeOnboarding.complete(updatedSettings, input, restoredFromCloud = false)
+            val freshSettings = storage.loadSettings()
+            inventory.reload()
+            calculator.updateDefaults(freshSettings)
+            mutable.update {
+                it.copy(
+                    settings = freshSettings,
+                    settingsDraft = null,
+                    isWizardOpen = false,
+                    assets = DesktopPortfolioPolicy.project(portfolio.getItems(), it.snapshot?.rates),
+                    notice = "راه‌اندازی اولیه طلافروشی و افتتاح دوره با موفقیت انجام شد"
+                )
+            }
+            navigate(targetDestination)
+            true
+        } catch (e: Exception) {
+            mutable.update { it.copy(error = "خطا در راه‌اندازی اولیه: ${e.message ?: "داده‌های قبلی محفوظ است"}") }
+            false
+        }
+    }
+    fun skipOnboarding() {
+        storage.setHasCompletedOnboarding(true)
+        val freshSettings = storage.loadSettings()
+        mutable.update { it.copy(settings = freshSettings, isWizardOpen = false) }
+    }
     fun openInventoryItem() {
         if (state.value.saving || state.value.draft != null || state.value.pendingDelete != null || inventory.state.value.hasDialog || inventory.state.value.saving) return
         navigate(DesktopDestination.INVENTORY)
