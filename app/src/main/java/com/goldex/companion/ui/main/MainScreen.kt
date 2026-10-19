@@ -1239,7 +1239,7 @@ fun MainScreen(
                     onSkip = {
                         settingsViewModel.completeOnboarding()
                         mainViewModel.setWizardVisible(false)
-                        QiratoToast.show(context, "ورود به عنوان مهمان")
+                        QiratoToast.show(context, "ورود به عنوان مهمان (دوره آزمایشی فعال شد)")
                     }
                 )
             }

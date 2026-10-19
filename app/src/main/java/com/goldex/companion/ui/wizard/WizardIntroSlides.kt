@@ -654,6 +654,7 @@ fun WizardIntroContent(
 fun WizardIntroSlides(
     onStartWizard: () -> Unit,
     onSkipAsGuest: () -> Unit,
+    isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -685,8 +686,10 @@ fun WizardIntroSlides(
             ) {
                 // Secondary / Guest: Right side in Persian RTL (first in Row)
                 GoldButton(
-                    text = "ورود مهمان",
+                    text = if (isLoading) "در حال اتصال..." else "ورود مهمان",
                     isSecondary = true,
+                    isLoading = isLoading,
+                    enabled = !isLoading,
                     onClick = onSkipAsGuest,
                     modifier = Modifier.weight(1f)
                 )
@@ -694,7 +697,8 @@ fun WizardIntroSlides(
                 // Primary / Start: Left side in Persian RTL (second in Row)
                 GoldButton(
                     text = "شروع و ثبت مشخصات",
-                    trailingIcon = WizardArrowLeft,
+                    trailingIcon = if (isLoading) null else WizardArrowLeft,
+                    enabled = !isLoading,
                     onClick = onStartWizard,
                     modifier = Modifier.weight(1.8f)
                 )

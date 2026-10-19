@@ -1,5 +1,6 @@
 package com.goldex.companion.ui.wizard
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -36,6 +37,7 @@ fun OnboardingWizardScreen(
 ) {
     val colors = LocalGoldExColors.current
     val context = LocalContext.current
+    val activity = context as? Activity
 
     var currentStep by remember { mutableStateOf(WizardStep.INTRO) }
     var profileErrors by remember { mutableStateOf(WizardProfileErrors()) }
@@ -88,6 +90,26 @@ fun OnboardingWizardScreen(
         onFinish(targetTab, updatedSettings, inventoryState, licenseState)
     }
 
+    fun requestGuestLoginWithValidation() {
+        if (isValidating) return
+        validationError = null
+        isValidating = true
+        onValidateLicense(
+            WizardLicenseChoice.TRIAL,
+            "",
+            {
+                isValidating = false
+                onSkip()
+            },
+            { error ->
+                isValidating = false
+                validationError = error
+                val msg = if (error.isNotBlank()) error else "خطا در برقراری ارتباط با سرور و فعال‌سازی دوره آزمایشی"
+                QiratoToast.show(context, msg)
+            }
+        )
+    }
+
     fun requestFinishWithValidation(targetTab: AppTab) {
         if (isValidating) return
         validationError = null
@@ -133,8 +155,11 @@ fun OnboardingWizardScreen(
 
     // Intercept Back Button
     BackHandler(enabled = true) {
+        if (isValidating) return@BackHandler
         when (currentStep) {
-            WizardStep.INTRO -> onSkip()
+            WizardStep.INTRO -> {
+                activity?.finish()
+            }
             WizardStep.PROFILE -> currentStep = WizardStep.INTRO
             WizardStep.FINANCIAL_DEFAULTS -> currentStep = WizardStep.PROFILE
             WizardStep.INVENTORY -> currentStep = WizardStep.FINANCIAL_DEFAULTS
@@ -252,16 +277,19 @@ fun OnboardingWizardScreen(
                         WizardStep.INTRO -> {
                             // Secondary: Right side in RTL (first in Row)
                             GoldButton(
-                                text = "ورود مهمان",
+                                text = if (isValidating) "در حال اتصال..." else "ورود مهمان",
                                 isSecondary = true,
-                                onClick = onSkip,
+                                isLoading = isValidating,
+                                enabled = !isValidating,
+                                onClick = { requestGuestLoginWithValidation() },
                                 modifier = Modifier.weight(1f)
                             )
 
                             // Primary: Left side in RTL (second in Row)
                             GoldButton(
                                 text = "شروع و ثبت مشخصات",
-                                trailingIcon = WizardArrowLeft,
+                                trailingIcon = if (isValidating) null else WizardArrowLeft,
+                                enabled = !isValidating,
                                 onClick = { currentStep = WizardStep.PROFILE },
                                 modifier = Modifier.weight(1.8f)
                             )
