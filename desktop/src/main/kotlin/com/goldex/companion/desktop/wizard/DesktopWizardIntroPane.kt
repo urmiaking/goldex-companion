@@ -1,6 +1,9 @@
 package com.goldex.companion.desktop.wizard
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -21,70 +24,82 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.goldex.companion.desktop.ui.controls.DesktopActionButton
 import com.goldex.companion.desktop.ui.controls.DesktopIconButton
-import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import kotlinx.coroutines.delay
 
 private data class DesktopIntroSlide(
-    val title: String,
-    val subtitle: String,
-    val badge: String,
-    val icon: ImageVector,
-    val bulletPoints: List<String>
+    val imagePath: String,
+    val topBadgeText: String,
+    val unionBadgeTitle: String,
+    val unionBadgeSubtitle: String,
+    val pillCategory: String,
+    val headline: String,
+    val description: String
 )
 
 private val introSlides = listOf(
     DesktopIntroSlide(
-        title = "محاسبه دقیق طلا طبق قانون ماده ۲۶",
-        subtitle = "فرمول‌های استاندارد مصوب اتحادیه طلا و جواهر کشور",
-        badge = "قانون مالیات بر ارزش افزوده",
+        imagePath = "drawable/img_wizard_slide_1.jpg",
+        topBadgeText = "مظنه زنده بازار و محاسبه آنی",
+        unionBadgeTitle = "استاندارد عیار ۷۵۰ و فاکتور رسمی",
+        unionBadgeSubtitle = "مورد تأیید اتحادیه صنف طلا و جواهر",
+        pillCategory = "نسل چهارم محاسبات زرگری",
+        headline = "خوش‌آمدید به دستیار هوشمند قیـراط",
+        description = "سامانه جامع و ابری ویژه صنف طلا و جواهر، بنکداری و ویترین زرگری با استانداردهای رسمی اتحادیه و قانون پایانه‌های فروشگاهی."
+    ),
+    DesktopIntroSlide(
+        imagePath = "drawable/img_wizard_slide_2.jpg",
+        topBadgeText = "مدیریت گاوصندوق و تراز دوره",
+        unionBadgeTitle = "انبارداری دقیق ویترین و بنکداری",
+        unionBadgeSubtitle = "تفکیک مصنوعات، آبشده و مسکوکات",
+        pillCategory = "خزانه و سرمایه در گردش",
+        headline = "مدیریت یکپارچه دارایی‌ها و گاوصندوق",
+        description = "پایش برخط وزن خالص مصنوعات، طلای آبشده انگ‌دار، شمش و بسته‌های سکه بانکی به همراه تراز لحظه‌ای ارزش روز سرمایه."
+    ),
+    DesktopIntroSlide(
+        imagePath = "drawable/img_wizard_slide_3.jpg",
+        topBadgeText = "فاکتور جامع دوطرفه و تهاتر",
+        unionBadgeTitle = "معافیت قانونی اصل طلا از ارزش افزوده",
+        unionBadgeSubtitle = "محاسبه مالیات صرفاً بر اجرت ساخت و سود",
+        pillCategory = "حسابداری معین و تهاتر زرگری",
+        headline = "صدور فاکتور رسمی و تسویه هوشمند",
+        description = "محاسبه آنی تعویض طلای کهنه با نو، ثبت خودکار بدهکار و بستانکار در دفتر معین و آماده‌سازی خروجی چاپی با نشان گالری."
+    )
+)
+
+private data class FeatureHighlight(
+    val icon: ImageVector,
+    val title: String,
+    val description: String
+)
+
+private val featureHighlights = listOf(
+    FeatureHighlight(
         icon = Icons.Outlined.Calculate,
-        bulletPoints = listOf(
-            "معافیت کامل اصل طلا از پرداخت مالیات بر ارزش افزوده",
-            "محاسبه تفکیک‌شده اجرت ساخت، سود گالری و ۹٪ مالیات قانونی",
-            "صدور آنی فاکتور رسمی زرگری با فرمت چاپی معتبر و QR کد"
-        )
+        title = "ماشین‌حساب تخصصی طلا و تبدیلات عیار",
+        description = "محاسبه دقیق قیمت قطعی با سود مصوب ۷٪، اجرت درصدی یا وزنی، کسر متعلقات و تبدیل فوری عیار ۷۵۰ به ۷۰۵ و ۹۹۵."
     ),
-    DesktopIntroSlide(
-        title = "مدیریت جامع ویترین و گاوصندوق",
-        subtitle = "کنترل دقیق موجودی فیزیکی طلا، آبشده و مسکوکات",
-        badge = "انبار و اتیکت هوشمند",
-        icon = Icons.Outlined.Inventory2,
-        bulletPoints = listOf(
-            "ثبت اوزان با دقت ۳ رقم اعشار (یک میلی‌گرم)",
-            "پشتیبانی از انواع طلای ساخته، آبشده، سکه‌های بانکی و متفرقه",
-            "چاپ استاندارد اتیکت بارکددار با مشخصات کامل کارگاه و اجرت"
-        )
-    ),
-    DesktopIntroSlide(
-        title = "دفتر حساب و گردش طلایی طرف‌حساب‌ها",
-        subtitle = "حسابداری دوگانه بر پایه وزن طلای ۱۸ عیار و تومان",
-        badge = "حسابداری زرگری",
-        icon = Icons.Outlined.PeopleAlt,
-        bulletPoints = listOf(
-            "دفتر معین مشتریان و بنکداران با ثبت دریافت/پرداخت طلا و ریال",
-            "تسویه آسان مانده‌حساب‌ها با تبدیل نرخ روز و صدور رسید تسویه",
-            "ترازنامه مالی و گزارش سود و زیان دوره‌ای گالری"
-        )
-    ),
-    DesktopIntroSlide(
-        title = "تابلوی زنده مظنه‌ها و تحلیل حباب سکه",
-        subtitle = "دریافت خودکار و لحظه‌ای نرخ‌های رسمی بازار طلا و ارز",
-        badge = "نبض زنده بازار",
+    FeatureHighlight(
         icon = Icons.Outlined.ShowChart,
-        bulletPoints = listOf(
-            "نمایش لحظه‌ای مظنه آبشده، گرم ۱۸ عیار، انس جهانی و دلار",
-            "محاسبه حباب واقعی انواع مسکوکات بانکی و تعیین ارزش ذاتی",
-            "تحلیل روند نمودارهای قیمتی و تاریخچه نوسانات"
-        )
+        title = "تابلوی زنده مظنه بازار و حباب مسکوکات",
+        description = "پایش آنلاین آبشده ۱۷ عیار، طلای ۱۸ عیار، انس جهانی و حباب تحلیلی تمام بهار، نیم، ربع و سکه گرمی."
+    ),
+    FeatureHighlight(
+        icon = Icons.Outlined.ReceiptLong,
+        title = "صدور فاکتور رسمی و تهاتر طلا",
+        description = "محاسبه خودکار ارزش افزوده صرفاً روی اجرت ساخت و سود (معافیت اصل طلا) با خروجی چاپی استاندارد اتحادیه."
+    ),
+    FeatureHighlight(
+        icon = Icons.Outlined.Inventory2,
+        title = "دفترداری گاوصندوق، خزانه و تراز سرمایه",
+        description = "تفکیک موجودی ویترین، طلای آبشده عیاردار، بسته‌های سکه بانکی و تراز دقیق سرمایه در گردش ریالی و وزنی."
     )
 )
 
@@ -94,12 +109,12 @@ fun DesktopWizardIntroPane(
     modifier: Modifier = Modifier,
     autoAdvance: Boolean = false
 ) {
-    val colors = LocalGoldExColors.current
     var activeSlideIndex by remember { mutableStateOf(0) }
 
+    // Auto-advance Timer
     if (autoAdvance) {
         LaunchedEffect(activeSlideIndex) {
-            delay(6000)
+            delay(5500)
             activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
         }
     }
@@ -114,7 +129,7 @@ fun DesktopWizardIntroPane(
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Left Column: Interactive Visual Showcase Card
+                // Right Column in RTL: Interactive Hero Showcase Card with High-Res Imagery
                 IntroHeroCard(
                     slide = activeSlide,
                     slideIndex = activeSlideIndex,
@@ -126,12 +141,11 @@ fun DesktopWizardIntroPane(
                         activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
                     },
                     onSelectSlide = { activeSlideIndex = it },
-                    modifier = Modifier.weight(1.1f).fillMaxHeight()
+                    modifier = Modifier.weight(1.05f).fillMaxHeight()
                 )
 
-                // Right Column: Key Pillars & Call to Action
+                // Left Column in RTL: 4 Pillars & Core Capabilities
                 IntroFeaturesSummaryCard(
-                    onStart = onStartConfiguration,
                     modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
@@ -151,11 +165,10 @@ fun DesktopWizardIntroPane(
                         activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
                     },
                     onSelectSlide = { activeSlideIndex = it },
-                    modifier = Modifier.fillMaxWidth().height(420.dp)
+                    modifier = Modifier.fillMaxWidth().height(440.dp)
                 )
 
                 IntroFeaturesSummaryCard(
-                    onStart = onStartConfiguration,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -177,7 +190,7 @@ private fun IntroHeroCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color.Transparent,
+        color = colors.surface,
         border = BorderStroke(0.8.dp, colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 4.dp,
         modifier = modifier.testTag("intro-hero-card")
@@ -185,147 +198,151 @@ private fun IntroHeroCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            colors.surfaceElevated,
-                            colors.surface
-                        )
-                    )
-                )
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Badge and Brand
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // 1. Photo Stage with Dark Scrim & Badges
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Image(
-                        painter = painterResource("mipmap-xxxhdpi/ic_launcher.png"),
-                        contentDescription = "نشان قیراط",
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Text(
-                        text = "قیراط • نرم‌افزار تخصصی زرگری",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.goldPrimary.copy(alpha = 0.2f),
-                    border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.5f))
-                ) {
-                    Text(
-                        text = slide.badge,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.goldPrimary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            // Slide Center Content with smooth AnimatedContent
-            AnimatedContent(
-                targetState = slide,
-                transitionSpec = {
-                    (fadeIn(tween(300)) + slideInHorizontally(tween(350)) { -it / 6 })
-                        .togetherWith(fadeOut(tween(200)) + slideOutHorizontally(tween(250)) { it / 6 })
-                },
-                label = "intro-slide-animation",
-                modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 16.dp)
-            ) { currentSlide ->
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(colors.goldPrimary.copy(alpha = 0.15f))
-                            .border(1.dp, colors.goldPrimary.copy(alpha = 0.4f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = currentSlide.icon,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(34.dp)
+                AnimatedContent(
+                    targetState = slide,
+                    transitionSpec = {
+                        fadeIn(tween(350)) togetherWith fadeOut(tween(250))
+                    },
+                    label = "intro_slide_image",
+                    modifier = Modifier.fillMaxSize()
+                ) { currentSlide ->
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Image(
+                            painter = painterResource(currentSlide.imagePath),
+                            contentDescription = currentSlide.headline,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
-                    }
 
-                    Spacer(Modifier.height(18.dp))
+                        // Rich Scrim Gradient for text contrast over photos
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color(0x330A0E17),
+                                            Color(0x770A0E17),
+                                            Color(0xE00A0E17)
+                                        )
+                                    )
+                                )
+                        )
 
-                    Text(
-                        text = currentSlide.title,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
-                    )
-
-                    Spacer(Modifier.height(6.dp))
-
-                    Text(
-                        text = currentSlide.subtitle,
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.75f)
-                    )
-
-                    Spacer(Modifier.height(18.dp))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        currentSlide.bulletPoints.forEach { point ->
+                        // Top Floating Badge: Live rate indicator
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xD9101624),
+                            border = BorderStroke(0.7.dp, colors.goldBorder.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                        ) {
                             Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.profitGreen)
+                                )
+                                Text(
+                                    text = currentSlide.topBadgeText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Bottom Floating Badge: Union Standard
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xF2141C2E),
+                            border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.goldSecondary)
-                                )
-                                Text(
-                                    text = point,
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
+                                        .size(26.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(colors.goldContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = currentSlide.unionBadgeTitle,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = currentSlide.unionBadgeSubtitle,
+                                        fontSize = 9.5.sp,
+                                        color = Color.White.copy(alpha = 0.75f)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Slider Navigation Controls (Dots & Arrows)
+            Spacer(Modifier.height(14.dp))
+
+            // 2. Animated Slide Indicators & Navigation Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Indicator Dots
+                // Indicator Bars
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     repeat(totalSlides) { idx ->
                         val isSelected = idx == slideIndex
+                        val barWidth by animateDpAsState(
+                            targetValue = if (isSelected) 32.dp else 12.dp,
+                            animationSpec = tween(280),
+                            label = "intro_indicator_width"
+                        )
+
                         Box(
                             modifier = Modifier
                                 .height(6.dp)
-                                .width(if (isSelected) 24.dp else 6.dp)
+                                .width(barWidth)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(
-                                    if (isSelected) colors.goldPrimary else Color.White.copy(alpha = 0.3f)
+                                    if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.6f)
                                 )
                                 .clickable { onSelectSlide(idx) }
                         )
@@ -333,27 +350,82 @@ private fun IntroHeroCard(
                 }
 
                 // Prev/Next Navigation Buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     DesktopIconButton(
                         onClick = onPrev,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                             contentDescription = "اسلاید قبلی",
-                            tint = colors.goldPrimary
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     DesktopIconButton(
                         onClick = onNext,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "اسلاید بعدی",
-                            tint = colors.goldPrimary
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // 3. Welcoming Pitch Typography (Theme-Aware Colors!)
+            AnimatedContent(
+                targetState = slide,
+                transitionSpec = {
+                    (fadeIn(tween(280)) + slideInVertically(tween(300)) { it / 6 })
+                        .togetherWith(fadeOut(tween(180)) + slideOutVertically(tween(200)) { -it / 6 })
+                },
+                label = "intro_typography_animation"
+            ) { currentSlide ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = colors.goldContainer,
+                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesome,
+                                contentDescription = null,
+                                tint = colors.goldPrimary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = currentSlide.pillCategory,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.goldPrimary
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = currentSlide.headline,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        color = colors.textMain
+                    )
+
+                    Text(
+                        text = currentSlide.description,
+                        fontSize = 12.5.sp,
+                        color = colors.textSecondary,
+                        lineHeight = 21.sp
+                    )
                 }
             }
         }
@@ -362,7 +434,6 @@ private fun IntroHeroCard(
 
 @Composable
 private fun IntroFeaturesSummaryCard(
-    onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -377,10 +448,11 @@ private fun IntroFeaturesSummaryCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Header
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -392,101 +464,99 @@ private fun IntroFeaturesSummaryCard(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "آماده‌سازی نرم‌افزار در ۵ گام ساده",
-                        fontSize = 17.sp,
+                        text = "امکانات جامع و تخصصی قیـراط",
+                        fontSize = 16.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain
                     )
                 }
 
                 Text(
-                    text = "با تکمیل این راهنما، مشخصات گالری، تنظیمات سود و مالیات و موجودی اولیه انبار شما در سیستم ثبت شده و آماده معامله و صدور فاکتور خواهید بود.",
-                    fontSize = 13.sp,
+                    text = "آماده‌سازی نرم‌افزار در ۴ مرحله ساده برای شروع امن معاملات و صدور فاکتورهای رسمی طلا:",
+                    fontSize = 12.5.sp,
                     color = colors.textSecondary,
-                    lineHeight = 22.sp
+                    lineHeight = 20.sp
                 )
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
 
-                // Steps Preview List
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FeatureCheckRow(
-                        number = "۱",
-                        title = "مشخصات واحد صنفی و مدیریت",
-                        desc = "نام تجاری، شماره پروانه، آدرس، تلفن و نشان تجاری"
-                    )
-                    FeatureCheckRow(
-                        number = "۲",
-                        title = "تنظیمات مالی و درصد سود",
-                        desc = "درصد سود پیش‌فرض، تنظیمات ارزش افزوده و عیار مبنا"
-                    )
-                    FeatureCheckRow(
-                        number = "۳",
-                        title = "ثبت موجودی اولیه (افتتاح دوره)",
-                        desc = "موجودی ویترین، آبشده گاوصندوق، مسکوکات و نقدینگی"
-                    )
-                    FeatureCheckRow(
-                        number = "۴",
-                        title = "تأیید و صدور سند افتتاحیه",
-                        desc = "بررسی نهایی، فعال‌سازی لایسنس و آغاز به کار سیستم"
-                    )
+                // 4 Pillars
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    featureHighlights.forEach { feature ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.7f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(colors.goldContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = feature.icon,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = feature.title,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textMain
+                                    )
+                                    Text(
+                                        text = feature.description,
+                                        fontSize = 11.sp,
+                                        color = colors.textMuted,
+                                        lineHeight = 16.5.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            // Start Configuration Action
-            DesktopActionButton(
-                text = "شروع راه‌اندازی و ثبت مشخصات گالری",
-                onClick = onStart,
-                icon = Icons.AutoMirrored.Outlined.ArrowForward,
-                isSecondary = false,
-                height = 50.dp,
-                modifier = Modifier.fillMaxWidth().testTag("intro-start-config-btn")
-            )
-        }
-    }
-}
-
-@Composable
-private fun FeatureCheckRow(
-    number: String,
-    title: String,
-    desc: String
-) {
-    val colors = LocalGoldExColors.current
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(colors.goldContainer)
-                .border(0.8.dp, colors.goldBorder, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = PersianNumberFormatter.toPersianDigits(number),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.goldPrimary
-            )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = title,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.textMain
-            )
-            Text(
-                text = desc,
-                fontSize = 11.5.sp,
-                color = colors.textMuted
-            )
+            // Database and Security Info Callout
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.goldPrimary.copy(alpha = 0.08f),
+                border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Storage,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "اطلاعات مالی در پایگاه‌داده ساختاریافته SQLite سیستم شما ذخیره شده و بدون نیاز به اینترنت با حداکثر سرعت در دسترس است.",
+                        fontSize = 11.sp,
+                        color = colors.textSecondary,
+                        lineHeight = 17.sp
+                    )
+                }
+            }
         }
     }
 }

@@ -14,9 +14,11 @@ class DesktopCustomerStore(private val storage: DesktopDataStore) : CustomerStor
     override fun addCustomer(customer: Customer) = transaction {
         require(getCustomers().none { it.id == customer.id }) { "شناسه طرف‌حساب تکراری است" }
         saveRecord("customers", JSONObject(PersistenceJsonCodecs.encodeCustomerString(customer)), false)
+        storage.database.addCustomer(customer)
     }
     override fun updateCustomer(customer: Customer) = transaction {
         saveRecord("customers", JSONObject(PersistenceJsonCodecs.encodeCustomerString(customer)), true)
+        storage.database.updateCustomer(customer)
     }
     override fun deleteCustomer(id: String) = transaction {
         val customer = getCustomers().firstOrNull { it.id == id } ?: return@transaction
@@ -28,6 +30,7 @@ class DesktopCustomerStore(private val storage: DesktopDataStore) : CustomerStor
         }, false)
         // Receipts remain audit records; deleting a settled contact never deletes its history.
         removeRecord("customers", id)
+        storage.database.deleteCustomer(id)
     }
     private fun allTransactions() = PersistenceJsonCodecs.decodeLedgerTransactions(storage.records("ledgerTransactions").toString())
     override fun getTransactions(customerId: String) = allTransactions().filter { it.customerId == customerId }
@@ -36,22 +39,32 @@ class DesktopCustomerStore(private val storage: DesktopDataStore) : CustomerStor
         require(allTransactions().none { it.id == transaction.id }) { "شناسه سند تکراری است" }
         require(getCustomers().any { it.id == transaction.customerId }) { "طرف‌حساب یافت نشد" }
         saveRecord("ledgerTransactions", JSONArray(PersistenceJsonCodecs.encodeLedgerTransactions(listOf(transaction))).getJSONObject(0), false)
+        storage.database.addTransaction(transaction)
     }
     override fun updateTransaction(transaction: LedgerTransaction) = transaction {
         val old = requireNotNull(allTransactions().firstOrNull { it.id == transaction.id }) { "سند یافت نشد" }
         require(old.customerId == transaction.customerId) { "طرف‌حساب سند قابل تغییر نیست" }
         saveRecord("ledgerTransactions", JSONArray(PersistenceJsonCodecs.encodeLedgerTransactions(listOf(transaction))).getJSONObject(0), true)
+        storage.database.updateTransaction(transaction)
     }
-    override fun deleteTransaction(id: String) = transaction { removeRecord("ledgerTransactions", id) }
+    override fun deleteTransaction(id: String): Unit {
+        transaction {
+            removeRecord("ledgerTransactions", id)
+            storage.database.deleteTransaction(id)
+        }
+    }
     override fun getTransactionsByInvoiceId(invoiceId: String) = allTransactions().filter { it.invoiceId == invoiceId }
     override fun getTransactionsByInvoiceIds(invoiceIds: List<String>): List<LedgerTransaction> {
         val selected = invoiceIds.toSet()
         return allTransactions().filter { it.invoiceId in selected }
     }
-    override fun deleteTransactionsByInvoiceId(invoiceId: String) = transaction {
-        val records = storage.records("ledgerTransactions")
-        storage.replaceRecords("ledgerTransactions", JSONArray((0 until records.length())
-            .map { records.getJSONObject(it) }.filter { it.optString("invoiceId") != invoiceId }))
+    override fun deleteTransactionsByInvoiceId(invoiceId: String): Unit {
+        transaction {
+            val records = storage.records("ledgerTransactions")
+            storage.replaceRecords("ledgerTransactions", JSONArray((0 until records.length())
+                .map { records.getJSONObject(it) }.filter { it.optString("invoiceId") != invoiceId }))
+            storage.database.deleteTransactionsByInvoiceId(invoiceId)
+        }
     }
 
     internal fun saveRecord(key: String, encoded: JSONObject, mustExist: Boolean) {
@@ -71,14 +84,30 @@ class DesktopCustomerStore(private val storage: DesktopDataStore) : CustomerStor
 class DesktopCustomerInvoiceStore(private val storage: DesktopDataStore, private val customers: DesktopCustomerStore) : InvoiceStore {
     override fun getInvoices() = PersistenceJsonCodecs.decodeInvoices(storage.records("invoices").toString())
     override fun getBarterInvoices() = PersistenceJsonCodecs.decodeBarterInvoices(storage.records("barterInvoices").toString())
-    override fun saveInvoice(invoice: Invoice) = customers.transaction {
-        customers.saveRecord("invoices", JSONArray(PersistenceJsonCodecs.encodeInvoices(listOf(invoice))).getJSONObject(0), false)
+    override fun saveInvoice(invoice: Invoice): Unit {
+        customers.transaction {
+            customers.saveRecord("invoices", JSONArray(PersistenceJsonCodecs.encodeInvoices(listOf(invoice))).getJSONObject(0), false)
+            storage.database.saveInvoice(invoice)
+        }
     }
-    override fun saveBarterInvoice(invoice: BarterInvoice) = customers.transaction {
-        customers.saveRecord("barterInvoices", JSONArray(PersistenceJsonCodecs.encodeBarterInvoices(listOf(invoice))).getJSONObject(0), false)
+    override fun saveBarterInvoice(invoice: BarterInvoice): Unit {
+        customers.transaction {
+            customers.saveRecord("barterInvoices", JSONArray(PersistenceJsonCodecs.encodeBarterInvoices(listOf(invoice))).getJSONObject(0), false)
+            storage.database.saveBarterInvoice(invoice)
+        }
     }
-    override fun deleteInvoice(id: String) = customers.transaction { customers.removeRecord("invoices", id) }
-    override fun deleteBarterInvoice(id: String) = customers.transaction { customers.removeRecord("barterInvoices", id) }
+    override fun deleteInvoice(id: String): Unit {
+        customers.transaction {
+            customers.removeRecord("invoices", id)
+            storage.database.deleteInvoice(id)
+        }
+    }
+    override fun deleteBarterInvoice(id: String): Unit {
+        customers.transaction {
+            customers.removeRecord("barterInvoices", id)
+            storage.database.deleteBarterInvoice(id)
+        }
+    }
 }
 
 private fun mergeRecord(target: JSONObject, source: JSONObject) {
