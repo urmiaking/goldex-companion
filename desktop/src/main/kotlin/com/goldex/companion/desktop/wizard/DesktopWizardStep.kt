@@ -5,11 +5,14 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 
 enum class DesktopWizardStep(val stepNumber: Int, val titleFa: String, val subtitleFa: String) {
-    INTRO(1, "معرفی امکانات", "آشنایی با قابلیت‌های جامع زرگری قیراط"),
-    PROFILE(2, "مشخصات واحد صنفی", "اطلاعات گالری جهت درج در اسناد و فاکتورها"),
-    FINANCIAL(3, "تنظیمات مالی", "پیش‌فرض‌های سود، مالیات و عیار معاملات"),
-    INVENTORY(4, "موجودی اول دوره", "ثبت اولیه ویترین، آبشده، سکه‌ها و صندوق"),
-    COMPLETION(5, "تأیید و افتتاح دوره", "بررسی نهایی اسناد، فعال‌سازی و صدور سند افتتاحیه")
+    INTRO(0, "معرفی امکانات", "آشنایی با قابلیت‌های جامع زرگری قیراط"),
+    PROFILE(1, "مشخصات واحد صنفی", "اطلاعات گالری جهت درج در اسناد و فاکتورها"),
+    FINANCIAL(2, "تنظیمات مالی", "پیش‌فرض‌های سود، مالیات و عیار معاملات"),
+    INVENTORY(3, "موجودی اول دوره", "ثبت اولیه ویترین، آبشده، سکه‌ها و صندوق"),
+    COMPLETION(4, "تأیید و افتتاح دوره", "بررسی نهایی اسناد، فعال‌سازی و صدور سند افتتاحیه");
+
+    val isConfigurationStep: Boolean
+        get() = this != INTRO
 }
 
 data class DesktopWizardProfileState(
