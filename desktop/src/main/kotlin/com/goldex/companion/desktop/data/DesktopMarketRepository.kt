@@ -118,13 +118,26 @@ class DesktopMarketRepository(
                     val currency = root.optJSONObject("arz")
                     mapOf("gold18" to "gold_18k", "gold24" to "gold_24k", "goldMelt" to "gold_bazartehran").forEach { (field, key) -> prices[field] = amount(gold.optJSONObject(key)?.opt("v"), false) }
                     mapOf("coinEmami" to "sekke-jad", "coinBahar" to "sekke-gad", "coinHalf" to "sekke-nim", "coinQuarter" to "sekke-rob", "coinGerami" to "sekke-grm").forEach { (field, key) -> prices[field] = amount(coin?.optJSONObject(key)?.opt("v"), false) }
-                    prices["usd"] = amount(currency?.optJSONObject("arz_dolar")?.opt("v"), false)
+                    var usd = amount(currency?.optJSONObject("arz_dolar")?.opt("v"), false)
+                    if (usd <= 0) {
+                        val derham = amount(currency?.optJSONObject("arz_derham")?.opt("v"), false)
+                        if (derham > 0) {
+                            usd = (derham * 3.6725).toLong()
+                        }
+                    }
+                    prices["usd"] = usd
                     ons = ounce(gold.optJSONObject("gold_ounce")?.opt("v"))
                 }
                 PriceSource.ISIGNAL -> {
                     val data = root.getJSONObject("data")
-                    val names = mapOf("geram18" to "gold18", "geram24" to "gold24", "mazanne" to "goldMelt", "sekee" to "coinEmami", "sekeb" to "coinBahar", "nim" to "coinHalf", "rob" to "coinQuarter", "gerami" to "coinGerami", "USDb" to "usd")
-                    for (group in listOf("gold", "coin", "currency")) {
+                    val names = mapOf(
+                        "geram18" to "gold18", "geram24" to "gold24", "mazanne" to "goldMelt",
+                        "sekeEmam" to "coinEmami", "sekee" to "coinEmami",
+                        "sekeBaharAzadi" to "coinBahar", "sekeb" to "coinBahar",
+                        "nim" to "coinHalf", "rob" to "coinQuarter", "gerami" to "coinGerami",
+                        "usDollar" to "usd", "USDb" to "usd"
+                    )
+                    for (group in listOf("gold", "coin", "currency", "freeCurrency")) {
                         val items = data.optJSONObject(group)?.optJSONArray("data") ?: continue
                         for (i in 0 until items.length()) {
                             val item = items.getJSONObject(i)

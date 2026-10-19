@@ -338,8 +338,13 @@ object GoldMarketRepository : MarketRatesStore, MarketHistoryStore, MarketCacheR
 
                 val usd = parseItemPrice("price_dollar_rl", isRials = true)
                 val g18 = parseItemPrice("geram18", isRials = true)
+                val g24 = parseItemPrice("geram24", isRials = true)
                 val melt = parseItemPrice("mesghal", isRials = true)
                 val emami = parseItemPrice("sekee", isRials = true)
+                val bahar = parseItemPrice("sekeb", isRials = true)
+                val nim = parseItemPrice("nim", isRials = true)
+                val rob = parseItemPrice("rob", isRials = true)
+                val gerami = parseItemPrice("gerami", isRials = true)
 
                 val onsStr = current.optJSONObject("ons")?.optString("p", "4435") ?: "4435"
                 val ons = abs(onsStr.replace(",", "").toDoubleOrNull() ?: 4435.0)
@@ -348,13 +353,13 @@ object GoldMarketRepository : MarketRatesStore, MarketHistoryStore, MarketCacheR
                     val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                     MarketRates(
                         gold18 = g18,
-                        gold24 = (g18 * 24.0 / 18.0).toLong(),
+                        gold24 = if (g24 > 0L) g24 else (g18 * 24.0 / 18.0).toLong(),
                         goldMelt = if (melt > 0L) melt else (g18 * 4.33185).toLong(),
                         coinEmami = if (emami > 0L) emami else 234_000_000L,
-                        coinBahar = (emami * 0.98).toLong(),
-                        coinHalf = (emami * 0.51).toLong(),
-                        coinQuarter = (emami * 0.28).toLong(),
-                        coinGerami = (emami * 0.14).toLong(),
+                        coinBahar = if (bahar > 0L) bahar else (emami * 0.98).toLong(),
+                        coinHalf = if (nim > 0L) nim else (emami * 0.51).toLong(),
+                        coinQuarter = if (rob > 0L) rob else (emami * 0.28).toLong(),
+                        coinGerami = if (gerami > 0L) gerami else (emami * 0.14).toLong(),
                         usd = if (usd > 0L) usd else 221_500L,
                         ons = ons,
                         lastUpdated = time,
