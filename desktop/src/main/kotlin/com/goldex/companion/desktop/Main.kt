@@ -38,7 +38,15 @@ fun desktopVersion(): String = Properties().apply {
 }.getProperty("version")
 
 fun main(args: Array<String>) {
-    if ("--verify-runtime" in args) { verifyRuntime(); return }
+    if ("--verify-runtime" in args) {
+        try {
+            verifyRuntime()
+            kotlin.system.exitProcess(0)
+        } catch (t: Throwable) {
+            java.nio.file.Files.writeString(java.nio.file.Path.of("runtime-error.txt"), t.stackTraceToString())
+            kotlin.system.exitProcess(1)
+        }
+    }
     launchWorkspace()
 }
 
@@ -89,8 +97,7 @@ private fun verifyRuntime() {
         }
         DesktopDataStore(customerDirectory).use { check(DesktopCustomerStore(it).getTransactions("runtime-customer").size == 1) }
     } finally {
-        listOf("workspace.json", "workspace.previous.json", "workspace.lock", "invoice-runtime.pdf").forEach { java.nio.file.Files.deleteIfExists(customerDirectory.resolve(it)) }
-        java.nio.file.Files.deleteIfExists(customerDirectory)
+        customerDirectory.toFile().deleteRecursively()
     }
     println("Qirato runtime version=${desktopVersion()}")
     println("Qirato font, icon, shared codecs, customer/invoice storage, financial and official PDF runtime verification passed")

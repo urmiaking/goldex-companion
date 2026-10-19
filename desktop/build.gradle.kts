@@ -34,8 +34,8 @@ compose.desktop {
             packageVersion = desktopVersion
             description = "Qirato gold calculator"
             vendor = "Qirato"
-            // PDFBox uses the JDK's buffer cleaner when closing mapped document files.
-            modules("java.desktop", "jdk.unsupported")
+            // PDFBox uses the JDK's buffer cleaner when closing mapped document files. SQLite uses java.sql.
+            modules("java.desktop", "jdk.unsupported", "java.sql")
             windows {
                 iconFile.set(project.file("icons/qirato.ico"))
                 menuGroup = "Qirato"
