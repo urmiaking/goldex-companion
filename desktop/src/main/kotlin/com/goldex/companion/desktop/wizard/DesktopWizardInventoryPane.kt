@@ -426,7 +426,7 @@ private fun InventoryValuationCard(
                         text = "ارزش لحظه‌ای کل دارایی افتتاحیه",
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = colors.textMain
                     )
                 }
 
@@ -454,7 +454,7 @@ private fun InventoryValuationCard(
                     text = "${PersianNumberFormatter.formatPrice(totalGoldValue.toDouble())} تومان",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
-                    color = Color.White
+                    color = colors.goldPrimary
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -462,15 +462,15 @@ private fun InventoryValuationCard(
                 Text(
                     text = "مجموع سرمایه طلای فیزیکی بر مبنای نرخ ۱۸ عیار",
                     fontSize = 11.5.sp,
-                    color = Color.White.copy(alpha = 0.75f)
+                    color = colors.textMuted
                 )
             }
 
             // Breakdown box
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = Color.Black.copy(alpha = 0.35f),
-                border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.3f)),
+                color = colors.surfaceElevated,
+                border = BorderStroke(0.6.dp, colors.border),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -478,11 +478,11 @@ private fun InventoryValuationCard(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     ValuationRow("جمع کل وزن طلا:", "${PersianNumberFormatter.formatAccountWeight(totalGoldWeight)} گرم", colors.goldSecondary)
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-                    ValuationRow("وزن مصنوعات ویترین:", "${PersianNumberFormatter.formatAccountWeight(vitrinWeight)} گرم", Color.White.copy(alpha = 0.85f))
-                    ValuationRow("وزن طلای آبشده:", "${PersianNumberFormatter.formatAccountWeight(meltWeight)} گرم", Color.White.copy(alpha = 0.85f))
-                    ValuationRow("وزن مسکوکات بانکی:", "${PersianNumberFormatter.formatAccountWeight(coinsWeight)} گرم", Color.White.copy(alpha = 0.85f))
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                    HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
+                    ValuationRow("وزن مصنوعات ویترین:", "${PersianNumberFormatter.formatAccountWeight(vitrinWeight)} گرم", colors.textSecondary)
+                    ValuationRow("وزن طلای آبشده:", "${PersianNumberFormatter.formatAccountWeight(meltWeight)} گرم", colors.textSecondary)
+                    ValuationRow("وزن مسکوکات بانکی:", "${PersianNumberFormatter.formatAccountWeight(coinsWeight)} گرم", colors.textSecondary)
+                    HorizontalDivider(color = colors.border.copy(alpha = 0.6f))
                     ValuationRow("نقدینگی و تنخواه:", "${PersianNumberFormatter.formatPrice(totalCash.toDouble())} تومان", colors.profitGreen)
                 }
             }
@@ -490,8 +490,8 @@ private fun InventoryValuationCard(
             // Guild Safety Tip
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = colors.goldPrimary.copy(alpha = 0.12f),
-                border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.3f)),
+                color = colors.goldPrimary.copy(alpha = 0.08f),
+                border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.35f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -508,7 +508,7 @@ private fun InventoryValuationCard(
                     Text(
                         text = "اطلاعات ثبت‌شده مستقیماً در انبار امن ذخیره شده و مبنای سود و زیان دوره‌ای قرار می‌گیرند.",
                         fontSize = 11.5.sp,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = colors.textSecondary,
                         lineHeight = 18.sp
                     )
                 }
@@ -519,12 +519,13 @@ private fun InventoryValuationCard(
 
 @Composable
 private fun ValuationRow(label: String, value: String, valueColor: Color) {
+    val colors = LocalGoldExColors.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.75f))
+        Text(text = label, fontSize = 12.sp, color = colors.textSecondary)
         Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = valueColor)
     }
 }

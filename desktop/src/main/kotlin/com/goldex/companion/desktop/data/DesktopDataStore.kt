@@ -23,11 +23,14 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.*
 import java.nio.file.StandardOpenOption.*
+import com.goldex.companion.desktop.data.db.DesktopSqliteDatabase
+import com.goldex.companion.desktop.data.db.DesktopDataMigrationManager
 
 /** One local writer, versioned documents and atomic replacement. Never edits Android storage. */
 class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, OnboardingCheckpoint, SyncUnitOfWork, AutoCloseable {
     val documentPath: Path = directory.resolve("workspace.json")
     val backupPath: Path = directory.resolve("workspace.previous.json")
+    val database: DesktopSqliteDatabase
     private val lockChannel: FileChannel
     private val fileLock: FileLock
     private var document: JSONObject
@@ -55,6 +58,8 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
             } else JSONObject().put("schemaVersion", 1).put("portfolio", JSONArray()).put("settings", JSONObject())
             validate(document)
             mutableSettings = MutableStateFlow(readSettings(document))
+            database = DesktopSqliteDatabase.open(directory.resolve("qirato.db"))
+            DesktopDataMigrationManager.migrateIfNeeded(directory, database)
         } catch (failure: Exception) {
             lockChannel.close()
             throw IllegalStateException("اطلاعات قابل بازکردن نیست؛ فایل اصلی و پشتیبان حفظ شده‌اند", failure)
@@ -80,6 +85,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         }
         if (!found) replacement.put(encoded)
         next.put("portfolio", replacement)
+        database.addItem(item)
         commit(next)
     }
 
@@ -87,6 +93,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         val next = cloneDocument()
         val old = next.getJSONArray("portfolio")
         next.put("portfolio", JSONArray((0 until old.length()).map { old.getJSONObject(it) }.filter { it.getString("id") != id }))
+        database.deleteItem(id)
         commit(next)
     }
 
@@ -107,6 +114,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         val next = cloneDocument()
         val records = next.optJSONArray(key) ?: JSONArray()
         records.put(JSONObject().put("id", option.id).put("name", option.name))
+        database.addInventoryOption(key, clean)
         commit(next.put(key, records))
         return option
     }
@@ -140,6 +148,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         }
         require(!mustExist || found) { "کالا پیدا نشد" }
         if (!found) records.put(encoded)
+        database.saveInventoryItem(item, mustExist, categoryId, updateCategory, generatedCode)
         commit(next.put("inventory", records))
     }
     @Synchronized private fun removeInventory(id: String) {
@@ -147,6 +156,7 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         val old = next.optJSONArray("inventory") ?: JSONArray()
         require((0 until old.length()).any { old.getJSONObject(it).getString("id") == id })
         next.put("inventory", JSONArray((0 until old.length()).map { old.getJSONObject(it) }.filter { it.getString("id") != id }))
+        database.inventoryStore.deleteItem(id)
         // Stock history is an audit record and survives removal of the product.
         commit(next)
     }
@@ -163,25 +173,39 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         val quantity = InventoryStockPolicy.adjustedQuantity(item, adjustment.type, adjustment.quantityChange)
         old.getJSONObject(index).put("quantity", quantity)
         history.put(JSONArray(PersistenceJsonCodecs.encodeStockAdjustments(listOf(adjustment))).getJSONObject(0))
+        database.inventoryStore.adjustStock(adjustment)
         commit(next.put("inventory", old).put("stockAdjustments", history))
     }
     @Synchronized fun loadInventoryVisible(): Boolean = document.optBoolean("inventoryVisible", false)
-    @Synchronized fun saveInventoryVisible(visible: Boolean) { commit(cloneDocument().put("inventoryVisible", visible)) }
+    @Synchronized fun saveInventoryVisible(visible: Boolean) {
+        database.saveInventoryVisible(visible)
+        commit(cloneDocument().put("inventoryVisible", visible))
+    }
 
     @Synchronized override fun saveSettings(newSettings: AppSettings) {
         val next = cloneDocument()
         merge(next.getJSONObject("settings"), JSONObject(PersistenceJsonCodecs.encodeSettings(newSettings)))
+        database.saveSettings(newSettings)
         commit(next)
         mutableSettings.value = newSettings
     }
 
     @Synchronized override fun loadDarkTheme(): Boolean = document.optBoolean("darkTheme", false)
-    @Synchronized override fun saveDarkTheme(enabled: Boolean) { commit(cloneDocument().put("darkTheme", enabled)) }
+    @Synchronized override fun saveDarkTheme(enabled: Boolean) {
+        database.saveDarkTheme(enabled)
+        commit(cloneDocument().put("darkTheme", enabled))
+    }
     @Synchronized fun loadReduceMotion(): Boolean = document.optBoolean("reduceMotion", false)
-    @Synchronized fun saveReduceMotion(enabled: Boolean) { commit(cloneDocument().put("reduceMotion", enabled)) }
+    @Synchronized fun saveReduceMotion(enabled: Boolean) {
+        database.saveReduceMotion(enabled)
+        commit(cloneDocument().put("reduceMotion", enabled))
+    }
 
     @Synchronized fun cachedMarket(): MarketSnapshot? = document.optJSONObject("market")?.let(MarketJson::decode)
-    @Synchronized fun saveMarket(snapshot: MarketSnapshot) { commit(cloneDocument().put("market", MarketJson.encode(snapshot))) }
+    @Synchronized fun saveMarket(snapshot: MarketSnapshot) {
+        database.saveMarket(snapshot)
+        commit(cloneDocument().put("market", MarketJson.encode(snapshot)))
+    }
 
     /** Export is CREATE_NEW: selecting an existing name cannot overwrite a backup. */
     @Synchronized fun exportBackup(target: Path) {
@@ -201,21 +225,24 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
     /** A receipt and its customer balance become durable together, or neither does. */
     @Synchronized internal fun <T> financialTransaction(action: () -> T): T {
         if (financialDraft != null) return action()
-        financialDraft = cloneDocument()
-        try {
-            val result = action()
-            val next = requireNotNull(financialDraft)
-            financialDraft = null
-            commit(next)
-            return result
-        } finally {
-            financialDraft = null
+        return database.transaction {
+            financialDraft = cloneDocument()
+            try {
+                val result = action()
+                val next = requireNotNull(financialDraft)
+                financialDraft = null
+                commit(next)
+                return@transaction result
+            } finally {
+                financialDraft = null
+            }
         }
     }
     @Synchronized override fun hasSeededOpeningInventory(): Boolean =
         (financialDraft ?: document).optBoolean("openingInventorySeeded", false)
 
     @Synchronized override fun markOpeningInventorySeeded() {
+        database.markOpeningInventorySeeded()
         val next = cloneDocument().put("openingInventorySeeded", true)
         commit(next)
     }
@@ -244,7 +271,11 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         } finally { Files.deleteIfExists(temporary) }
     }
 
-    override fun close() { fileLock.release(); lockChannel.close() }
+    override fun close() {
+        database.close()
+        fileLock.release()
+        lockChannel.close()
+    }
 
     companion object {
         fun defaultDirectory(): Path = Path.of(System.getenv("LOCALAPPDATA") ?: System.getProperty("user.home"), "Qirato", "Desktop")

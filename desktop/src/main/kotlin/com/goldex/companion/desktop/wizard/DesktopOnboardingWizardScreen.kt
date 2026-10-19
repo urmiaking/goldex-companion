@@ -149,15 +149,19 @@ fun DesktopOnboardingWizardScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header Bar with Step Indicator & Exit
-                DesktopWizardStepHeader(
-                    currentStep = currentStep,
-                    onStepClick = { targetStep ->
-                        if (targetStep.stepNumber < currentStep.stepNumber) {
-                            currentStep = targetStep
-                        }
-                    },
-                    onClose = onClose
-                )
+                if (currentStep == DesktopWizardStep.INTRO) {
+                    DesktopWizardIntroTopBar(onClose = onClose)
+                } else {
+                    DesktopWizardStepHeader(
+                        currentStep = currentStep,
+                        onStepClick = { targetStep ->
+                            if (targetStep.stepNumber < currentStep.stepNumber) {
+                                currentStep = targetStep
+                            }
+                        },
+                        onClose = onClose
+                    )
+                }
 
                 // Main Content Pane
                 Box(
@@ -281,6 +285,14 @@ fun DesktopOnboardingWizardScreen(
                                     isSecondary = false,
                                     isLoading = isSubmitting,
                                     modifier = Modifier.testTag("wizard-finish-btn")
+                                )
+                            } else if (currentStep == DesktopWizardStep.INTRO) {
+                                DesktopActionButton(
+                                    text = "شروع راه‌اندازی و ثبت مشخصات گالری",
+                                    onClick = { handleNext() },
+                                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    isSecondary = false,
+                                    modifier = Modifier.testTag("wizard-next-btn")
                                 )
                             } else {
                                 DesktopActionButton(
