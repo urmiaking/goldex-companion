@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.goldex.companion.model.PersianNumberFormatter
@@ -302,6 +303,80 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
             }
             Text(text, fontFamily = VazirmatnFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                 color = c.textMain, maxLines = 1, softWrap = false)
+        }
+    }
+}
+
+
+/** Uniform compact chip field for custom numeric inputs (e.g. custom karat) matching chip heights. */
+@Composable internal fun DesktopInlineChipField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "عیار دلخواه",
+    height: Dp = 38.dp
+) {
+    val c = LocalGoldExColors.current
+    val active = LocalDesktopDialogInputEnabled.current
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) c.goldContainer.copy(alpha = 0.5f) else c.surfaceElevated,
+        border = BorderStroke(
+            if (focused || isSelected) 1.2.dp else 0.8.dp,
+            if (focused || isSelected) c.goldPrimary else c.border.copy(alpha = 0.6f)
+        ),
+        modifier = modifier
+            .height(height)
+            .clickable(enabled = active) { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = { input ->
+                    val filtered = input.filter { it.isDigit() }
+                    onValueChange(filtered)
+                    onSelect()
+                },
+                singleLine = true,
+                enabled = active,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = TextStyle(
+                    fontFamily = VazirmatnFamily,
+                    fontSize = 11.5.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color = if (isSelected) c.goldPrimary else c.textMain,
+                    textDirection = androidx.compose.ui.text.style.TextDirection.Ltr
+                ),
+                cursorBrush = SolidColor(c.goldPrimary),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                fontSize = 11.sp,
+                                color = c.textMuted,
+                                fontFamily = VazirmatnFamily,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
         }
     }
 }
