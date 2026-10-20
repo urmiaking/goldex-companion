@@ -7,11 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+
+
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +73,7 @@ fun DesktopOnboardingWizardScreen(
     var inventoryState by remember { mutableStateOf(OpeningInventoryInput()) }
     var licenseState by remember { mutableStateOf(DesktopWizardLicenseState()) }
     var isSubmitting by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     fun handleNext() {
         when (currentStep) {
@@ -97,7 +100,15 @@ fun DesktopOnboardingWizardScreen(
             DesktopWizardStep.COMPLETION -> {
                 // Submit final onboarding
                 isSubmitting = true
-                val cleanProfit = PersianNumberFormatter.toEnglishDigits(financialState.profitPercent).ifBlank { "7" }
+                coroutineScope.launch {
+                    try {
+                        if (licenseState.choice == DesktopWizardLicenseChoice.TRIAL) {
+                            workspace.license.activateTrial()
+                        } else if (licenseState.choice == DesktopWizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
+                            workspace.license.activateCode(licenseState.licenseCode)
+                        }
+                    } catch (_: Exception) {}
+                    val cleanProfit = PersianNumberFormatter.toEnglishDigits(financialState.profitPercent).ifBlank { "7" }
                 val cleanVat = if (financialState.isVatEnabled) {
                     PersianNumberFormatter.toEnglishDigits(financialState.vatRate).ifBlank { "9" }
                 } else "0"
@@ -115,10 +126,11 @@ fun DesktopOnboardingWizardScreen(
                     hasCompletedOnboarding = true
                 )
 
-                val success = workspace.completeWizard(updatedSettings, inventoryState)
-                isSubmitting = false
-                if (success) {
-                    onClose()
+                    val success = workspace.completeWizard(updatedSettings, inventoryState)
+                    isSubmitting = false
+                    if (success) {
+                        onClose()
+                    }
                 }
             }
         }
@@ -187,7 +199,8 @@ fun DesktopOnboardingWizardScreen(
                         when (step) {
                             DesktopWizardStep.INTRO -> {
                                 DesktopWizardIntroPane(
-                                    onStartConfiguration = { currentStep = DesktopWizardStep.PROFILE }
+                                    onStartConfiguration = { currentStep = DesktopWizardStep.PROFILE },
+                                    autoAdvance = !reduceMotion
                                 )
                             }
                             DesktopWizardStep.PROFILE -> {
@@ -249,22 +262,11 @@ fun DesktopOnboardingWizardScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (currentStep == DesktopWizardStep.INTRO) {
-                                DesktopActionButton(
-                                    text = "صرف‌نظر و ورود به برنامه",
-                                    onClick = {
-                                        workspace.skipOnboarding()
-                                        onClose()
-                                    },
-                                    icon = Icons.Outlined.SkipNext,
-                                    isSecondary = true,
-                                    modifier = Modifier.testTag("wizard-skip-btn")
-                                )
-                            } else {
+                            if (currentStep != DesktopWizardStep.INTRO) {
                                 DesktopActionButton(
                                     text = "مرحله قبل",
                                     onClick = { handlePrevious() },
-                                    icon = Icons.AutoMirrored.Outlined.ArrowForward,
+                                    icon = Icons.Outlined.ChevronRight,
                                     isSecondary = true,
                                     enabled = !isSubmitting,
                                     modifier = Modifier.testTag("wizard-prev-btn")
@@ -290,7 +292,7 @@ fun DesktopOnboardingWizardScreen(
                                 DesktopActionButton(
                                     text = "شروع راه‌اندازی و ثبت مشخصات گالری",
                                     onClick = { handleNext() },
-                                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    icon = Icons.Outlined.ChevronLeft,
                                     isSecondary = false,
                                     modifier = Modifier.testTag("wizard-next-btn")
                                 )
@@ -298,7 +300,7 @@ fun DesktopOnboardingWizardScreen(
                                 DesktopActionButton(
                                     text = "مرحله بعد",
                                     onClick = { handleNext() },
-                                    icon = Icons.AutoMirrored.Outlined.ArrowBack,
+                                    icon = Icons.Outlined.ChevronLeft,
                                     isSecondary = false,
                                     modifier = Modifier.testTag("wizard-next-btn")
                                 )

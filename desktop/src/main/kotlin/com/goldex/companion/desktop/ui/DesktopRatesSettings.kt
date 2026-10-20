@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.*
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
+import com.goldex.companion.desktop.license.*
+import com.goldex.companion.desktop.sync.*
 import com.goldex.companion.desktop.update.WindowsUpdater
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.WageType
@@ -87,6 +89,13 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     val colors = LocalGoldExColors.current
     val dirty = draft != state.settings
     var showSignaturePad by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val licenseInfo by workspace.license.licenseInfo.collectAsState()
+    val cloudState by workspace.cloud.state.collectAsState()
+    var showLicenseDialog by remember { mutableStateOf(false) }
+    var showOtpDialog by remember { mutableStateOf(false) }
+    var showClearDataConfirm by remember { mutableStateOf(false) }
+    var licenseMessage by remember { mutableStateOf<String?>(null) }
     PageScroll {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val wide = maxWidth >= 850.dp
@@ -246,6 +255,216 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                 }
             }
         }
+
+        // License & Cloud Sync Cards
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-license-cloud-row"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            // License Card
+            LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-license-card")) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.VerifiedUser, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
+                    PageTitle("وضعیت لایسنس و اشتراک")
+                }
+                val badgeColor = when (licenseInfo.status) {
+                    com.goldex.companion.data.license.LicenseStatus.LIFETIME -> colors.profitGreen
+                    com.goldex.companion.data.license.LicenseStatus.TRIAL_ACTIVE -> colors.goldPrimary
+                    else -> colors.errorRed
+                }
+                val badgeText = when (licenseInfo.status) {
+                    com.goldex.companion.data.license.LicenseStatus.LIFETIME -> "اشتراک نامحدود زرگری (مادام‌العمر)"
+                    com.goldex.companion.data.license.LicenseStatus.TRIAL_ACTIVE -> "نسخه آزمایشی (${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز باقی‌مانده)"
+                    com.goldex.companion.data.license.LicenseStatus.TRIAL_EXPIRED -> "مهلت استفاده آزمایشی به پایان رسیده"
+                    com.goldex.companion.data.license.LicenseStatus.REVOKED -> "لایسنس باطل شده"
+                    else -> "نسخه فعال‌نشده"
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = badgeColor.copy(alpha = 0.12f),
+                    border = BorderStroke(0.6.dp, badgeColor.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(badgeColor))
+                        Text(badgeText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = badgeColor)
+                    }
+                }
+                Text("شناسه رایانه: ${DesktopDeviceIdentity.get(workspace.dataDirectory).fingerprint}", fontSize = 11.sp, color = colors.textMuted)
+                if (licenseMessage != null) {
+                    Text(licenseMessage!!, fontSize = 11.sp, color = colors.goldPrimary)
+                }
+                Spacer(Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (licenseInfo.status != com.goldex.companion.data.license.LicenseStatus.LIFETIME) {
+                        GoldButton(
+                            text = "ثبت کد لایسنس",
+                            onClick = { showLicenseDialog = true },
+                            icon = Icons.Outlined.Key,
+                            isSecondary = false,
+                            modifier = Modifier.weight(1f).testTag("open-license-dialog")
+                        )
+                    }
+                    GoldButton(
+                        text = "بررسی وضعیت",
+                        onClick = {
+                            scope.launch {
+                                val res = workspace.license.syncStatus()
+                                licenseMessage = when (res) {
+                                    is com.goldex.companion.data.license.LicenseResult.Success -> res.message
+                                    is com.goldex.companion.data.license.LicenseResult.Error -> res.message
+                                }
+                            }
+                        },
+                        icon = Icons.Outlined.Refresh,
+                        isSecondary = true,
+                        modifier = Modifier.weight(1f).testTag("sync-license-btn")
+                    )
+                }
+            }
+
+            // Cloud Sync Card
+            LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-cloud-sync-card")) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
+                    PageTitle("همگام‌سازی ابری")
+                }
+                val syncBadgeColor = when (cloudState.status) {
+                    DesktopSyncStatus.SYNCED -> colors.profitGreen
+                    DesktopSyncStatus.SYNCING -> colors.goldPrimary
+                    DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.DISABLED -> colors.textMuted
+                    else -> colors.errorRed
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = syncBadgeColor.copy(alpha = 0.12f),
+                    border = BorderStroke(0.6.dp, syncBadgeColor.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(syncBadgeColor))
+                        Text(
+                            text = if (cloudState.phone.isNotBlank()) "متصل به شماره ${PersianNumberFormatter.toPersianDigits(cloudState.phone)} (${cloudState.status.titleFa})" else "حساب ابری: ${cloudState.status.titleFa}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = syncBadgeColor
+                        )
+                    }
+                }
+                Text("همگام‌سازی دوطرفه فاکتورها، مشتریان و اسناد با فضای ابری امن و نسخه اندروید.", fontSize = 11.sp, color = colors.textSecondary)
+                if (cloudState.message.isNotBlank()) {
+                    Text(cloudState.message, fontSize = 11.sp, color = colors.textMuted)
+                }
+                Spacer(Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (cloudState.phone.isBlank() || cloudState.status == DesktopSyncStatus.AUTH_REQUIRED || cloudState.status == DesktopSyncStatus.DISABLED) {
+                        GoldButton(
+                            text = "ورود با پیامک (OTP)",
+                            onClick = { showOtpDialog = true },
+                            icon = Icons.Outlined.Login,
+                            isSecondary = false,
+                            modifier = Modifier.fillMaxWidth().testTag("open-otp-dialog")
+                        )
+                    } else {
+                        GoldButton(
+                            text = "همگام‌سازی",
+                            onClick = { scope.launch { workspace.cloud.syncNow() } },
+                            icon = Icons.Outlined.Sync,
+                            isSecondary = false,
+                            isLoading = cloudState.busy,
+                            modifier = Modifier.weight(1.2f).testTag("sync-cloud-btn")
+                        )
+                        GoldButton(
+                            text = "خروج",
+                            onClick = { scope.launch { workspace.cloud.logout() } },
+                            icon = Icons.Outlined.Logout,
+                            isSecondary = true,
+                            modifier = Modifier.weight(0.8f).testTag("logout-cloud-btn")
+                        )
+                    }
+                }
+            }
+        }
+
+        // Reset / Clear Data Card
+        LuxuryCard(Modifier.fillMaxWidth().testTag("settings-danger-card")) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = colors.errorRed, modifier = Modifier.size(20.dp))
+                PageTitle("پاکسازی و بازنشانی کلیه داده‌ها")
+            }
+            Text("مسیر نگهداری اطلاعات محلی: %LOCALAPPDATA%\\Qirato\\Desktop", fontSize = 12.sp, color = colors.textSecondary, fontWeight = FontWeight.Bold)
+            Text("با پاکسازی، کلیه فاکتورها، حساب‌های مشتریان، موجودی‌های انبار و ویترین و تنظیمات پاک شده و ویزارد افتتاحیه مجدداً فراخوانی خواهد شد.", fontSize = 11.5.sp, color = colors.textMuted)
+            GoldButton(
+                text = "پاکسازی و شروع مجدد",
+                onClick = { showClearDataConfirm = true },
+                icon = Icons.Outlined.DeleteForever,
+                isSecondary = true,
+                modifier = Modifier.testTag("clear-data-btn")
+            )
+        }
+    }
+
+    DesktopDialogHost(showLicenseDialog) {
+        DesktopLicenseDialog(
+            onDismiss = { showLicenseDialog = false },
+            onActivate = { code ->
+                showLicenseDialog = false
+                scope.launch {
+                    val res = workspace.license.activateCode(code)
+                    licenseMessage = when (res) {
+                        is com.goldex.companion.data.license.LicenseResult.Success -> res.message
+                        is com.goldex.companion.data.license.LicenseResult.Error -> res.message
+                    }
+                }
+            }
+        )
+    }
+
+    DesktopDialogHost(showOtpDialog) {
+        DesktopOtpDialog(
+            workspace = workspace,
+            onDismiss = { showOtpDialog = false }
+        )
+    }
+
+    DesktopDialogHost(showClearDataConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearDataConfirm = false },
+            modifier = Modifier.width(460.dp).testTag("clear-data-confirm-dialog"),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = colors.errorRed, modifier = Modifier.size(22.dp))
+                    Text("تأیید بازنشانی کامل اطلاعات", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.errorRed)
+                }
+            },
+            text = {
+                Text(
+                    "آیا از پاکسازی تمام اطلاعات محلی، اسناد فاکتور، مشتریان و موجودی انبار اطمینان دارید؟ با تأیید، پایگاه داده محلی پاک شده و ویزارد افتتاحیه مجدداً باز خواهد شد.",
+                    fontSize = 12.5.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 22.sp
+                )
+            },
+            confirmButton = {
+                Row(Modifier.width(320.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    GoldButton("انصراف", { showClearDataConfirm = false }, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Close)
+                    GoldButton(
+                        text = "پاکسازی و شروع مجدد",
+                        onClick = {
+                            showClearDataConfirm = false
+                            workspace.clearAllLocalData()
+                        },
+                        modifier = Modifier.weight(1.4f).testTag("confirm-clear-data-btn"),
+                        icon = Icons.Outlined.DeleteForever
+                    )
+                }
+            }
+        )
     }
 
     DesktopDialogHost(showSignaturePad) {
@@ -631,4 +850,162 @@ internal fun selectBrandLogoFile(): File? {
     } else null
     dialog.dispose()
     return file
+}
+
+@Composable
+internal fun DesktopLicenseDialog(
+    onDismiss: () -> Unit,
+    onActivate: (String) -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    var code by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.width(480.dp).testTag("license-activation-dialog"),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.Key, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(22.dp))
+                Text("فعال‌سازی کد لایسنس تجاری", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("کد اشتراک خریداری‌شده را وارد نمایید:", fontSize = 12.sp, color = colors.textSecondary)
+                DesktopField(
+                    value = code,
+                    onChange = { code = it; error = null },
+                    label = "کد لایسنس (مثال: GOLD-XXXX-XXXX)",
+                    modifier = Modifier.fillMaxWidth().testTag("license-code-input"),
+                    adornment = Icons.Outlined.VerifiedUser,
+                    error = error
+                )
+            }
+        },
+        confirmButton = {
+            Row(Modifier.width(320.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, icon = Icons.Outlined.Close)
+                GoldButton(
+                    text = "فعال‌سازی",
+                    onClick = {
+                        if (code.trim().length < 5) {
+                            error = "کد لایسنس نامعتبر است"
+                        } else {
+                            onActivate(code.trim())
+                        }
+                    },
+                    modifier = Modifier.weight(1.3f).testTag("submit-license-code"),
+                    icon = Icons.Outlined.Check
+                )
+            }
+        }
+    )
+}
+
+@Composable
+internal fun DesktopOtpDialog(
+    workspace: DesktopWorkspace,
+    onDismiss: () -> Unit
+) {
+    val colors = LocalGoldExColors.current
+    val scope = rememberCoroutineScope()
+    var phone by remember { mutableStateOf("") }
+    var otpCode by remember { mutableStateOf("") }
+    var challenge by remember { mutableStateOf<org.json.JSONObject?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        modifier = Modifier.width(480.dp).testTag("cloud-otp-dialog"),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(22.dp))
+                Text("ورود به حساب ابری قیراط", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (challenge == null) {
+                    Text("شماره تلفن همراه خود را جهت دریافت پیامک احراز هویت وارد نمایید:", fontSize = 12.sp, color = colors.textSecondary)
+                    DesktopField(
+                        value = phone,
+                        onChange = { phone = it; error = null },
+                        label = "شماره همراه (مثال: ۰۹۱۲۳۴۵۶۷۸۹)",
+                        modifier = Modifier.fillMaxWidth().testTag("otp-phone-input"),
+                        numeric = true,
+                        adornment = Icons.Outlined.Phone,
+                        error = error
+                    )
+                } else {
+                    Text("کد ۶ رقمی پیامک‌شده به شماره ${phone} را وارد کنید:", fontSize = 12.sp, color = colors.textSecondary)
+                    DesktopField(
+                        value = otpCode,
+                        onChange = { otpCode = it; error = null },
+                        label = "کد تأیید",
+                        modifier = Modifier.fillMaxWidth().testTag("otp-code-input"),
+                        numeric = true,
+                        adornment = Icons.Outlined.Pin,
+                        error = error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row(Modifier.width(320.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                GoldButton("انصراف", onDismiss, Modifier.weight(1f), isSecondary = true, enabled = !busy, icon = Icons.Outlined.Close)
+                if (challenge == null) {
+                    GoldButton(
+                        text = "ارسال کد",
+                        onClick = {
+                            val cleanPhone = PersianNumberFormatter.toEnglishDigits(phone).trim()
+                            if (cleanPhone.length < 10) {
+                                error = "شماره همراه معتبر نیست"
+                                return@GoldButton
+                            }
+                            busy = true
+                            scope.launch {
+                                val res = workspace.cloud.requestOtp(cleanPhone)
+                                busy = false
+                                res.onSuccess {
+                                    challenge = it
+                                }.onFailure {
+                                    error = it.message ?: "خطا در ارسال پیامک"
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1.3f).testTag("request-otp-btn"),
+                        isLoading = busy,
+                        icon = Icons.Outlined.Send
+                    )
+                } else {
+                    GoldButton(
+                        text = "تأیید و اتصال",
+                        onClick = {
+                            val cleanOtp = PersianNumberFormatter.toEnglishDigits(otpCode).trim()
+                            if (cleanOtp.length < 4) {
+                                error = "کد تأیید نامعتبر است"
+                                return@GoldButton
+                            }
+                            busy = true
+                            val cleanPhone = PersianNumberFormatter.toEnglishDigits(phone).trim()
+                            scope.launch {
+                                val res = workspace.cloud.verifyOtp(challenge!!, cleanOtp, cleanPhone)
+                                busy = false
+                                res.onSuccess {
+                                    onDismiss()
+                                }.onFailure {
+                                    error = it.message ?: "کد نامعتبر است"
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1.3f).testTag("verify-otp-btn"),
+                        isLoading = busy,
+                        icon = Icons.Outlined.Check
+                    )
+                }
+            }
+        }
+    )
 }
