@@ -284,6 +284,12 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         } finally { Files.deleteIfExists(temporary) }
     }
 
+    @Synchronized fun refreshFromDatabase() {
+        val next = database.exportToJsonObject()
+        commit(next)
+        mutableSettings.value = readSettings(next)
+    }
+
     override fun close() {
         database.close()
         fileLock.release()

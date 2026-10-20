@@ -1,8 +1,10 @@
 package com.goldex.companion.desktop.data.db
 
 import com.goldex.companion.data.*
+import com.goldex.companion.data.sync.SyncJson
 import com.goldex.companion.data.sync.SyncUnitOfWork
 import com.goldex.companion.desktop.data.*
+import com.goldex.companion.desktop.sync.DesktopCloudException
 import com.goldex.companion.domain.inventory.InventoryStockPolicy
 import com.goldex.companion.domain.onboarding.OnboardingCheckpoint
 import com.goldex.companion.model.*
@@ -19,6 +21,50 @@ import java.sql.DriverManager
 import java.sql.ResultSet
 import java.util.UUID
 
+data class DesktopSyncCheckpoint(
+    val id: String = "main",
+    val workspaceId: String = "",
+    val cursor: Long = 0,
+    val writerEpoch: Long = 0,
+    val nextSequence: Long = 1,
+    val lastSuccessAt: Long = 0,
+    val uploadSnapshotId: String = "",
+    val initialized: Boolean = false
+)
+
+data class DesktopSyncMetadata(
+    val type: String,
+    val id: String,
+    val workspaceId: String = "",
+    val version: Long = 0,
+    val localVersion: Long = 0,
+    val payload: String? = null,
+    val deleted: Boolean = false
+)
+
+data class DesktopSyncOutbox(
+    val operationId: String,
+    val sequence: Long,
+    val workspaceId: String = "",
+    val payload: String,
+    val status: String = "PENDING",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class DesktopSyncStaging(
+    val snapshotId: String,
+    val page: Int,
+    val payload: String
+)
+
+data class DesktopSyncConflict(
+    val operationId: String,
+    val localPayload: String,
+    val remotePayload: String,
+    val code: String,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 /**
  * Robust relational SQLite database engine for Windows Desktop (Qirato).
  * Provides ACID transactional guarantees, foreign key enforcement, WAL mode,
@@ -31,6 +77,11 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
     private val inTransaction = ThreadLocal.withInitial { false }
     private val mutableSettings: MutableStateFlow<AppSettings>
     override val settings: StateFlow<AppSettings> get() = mutableSettings.asStateFlow()
+
+    private data class PendingMutation(val type: String, val id: String, val payload: JSONObject?)
+    private val pendingMutations = ThreadLocal<LinkedHashMap<String, PendingMutation>?>()
+    var isSyncApplying = false
+    var onSyncCommit: (() -> Unit)? = null
 
     init {
         Files.createDirectories(dbFile.parent)
@@ -219,6 +270,62 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
                 );
             """.trimIndent())
 
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sync_checkpoint (
+                    id TEXT PRIMARY KEY,
+                    workspace_id TEXT NOT NULL DEFAULT '',
+                    cursor INTEGER NOT NULL DEFAULT 0,
+                    writer_epoch INTEGER NOT NULL DEFAULT 0,
+                    next_sequence INTEGER NOT NULL DEFAULT 1,
+                    last_success_at INTEGER NOT NULL DEFAULT 0,
+                    upload_snapshot_id TEXT NOT NULL DEFAULT '',
+                    initialized INTEGER NOT NULL DEFAULT 0
+                );
+            """.trimIndent())
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sync_metadata (
+                    type TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    workspace_id TEXT NOT NULL DEFAULT '',
+                    version INTEGER NOT NULL DEFAULT 0,
+                    local_version INTEGER NOT NULL DEFAULT 0,
+                    payload_json TEXT,
+                    deleted INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (type, id)
+                );
+            """.trimIndent())
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sync_outbox (
+                    operation_id TEXT PRIMARY KEY,
+                    sequence INTEGER NOT NULL,
+                    workspace_id TEXT NOT NULL DEFAULT '',
+                    payload_json TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDING',
+                    created_at INTEGER NOT NULL
+                );
+            """.trimIndent())
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sync_staging (
+                    snapshot_id TEXT NOT NULL,
+                    page INTEGER NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    PRIMARY KEY (snapshot_id, page)
+                );
+            """.trimIndent())
+
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS sync_conflicts (
+                    operation_id TEXT PRIMARY KEY,
+                    local_payload_json TEXT NOT NULL,
+                    remote_payload_json TEXT NOT NULL,
+                    code TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                );
+            """.trimIndent())
+
             // Indexes
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);")
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_customers_code ON customers(account_code);")
@@ -231,6 +338,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_options_type ON inventory_options(type);")
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_barter_invoice_num ON barter_invoices(invoice_number);")
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_barter_created_at ON barter_invoices(created_at);")
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_sync_outbox_seq ON sync_outbox(sequence);")
         }
     }
 
@@ -242,17 +350,58 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
         inTransaction.set(true)
         val originalAutoCommit = connection.autoCommit
         connection.autoCommit = false
+        pendingMutations.set(linkedMapOf())
         try {
             val result = action()
+            val pending = pendingMutations.get()
+            pendingMutations.remove()
+            if (!isSyncApplying && pending != null && pending.isNotEmpty()) {
+                flushMutations(pending)
+            }
             connection.commit()
+            runCatching { onSyncCommit?.invoke() }
             return result
         } catch (t: Throwable) {
+            pendingMutations.remove()
             runCatching { connection.rollback() }
             throw t
         } finally {
             connection.autoCommit = originalAutoCommit
             inTransaction.set(false)
         }
+    }
+
+    private fun recordMutation(type: String, id: String, payload: JSONObject?) {
+        if (isSyncApplying) return
+        val map = pendingMutations.get()
+        if (map != null) {
+            map["$type:$id"] = PendingMutation(type, id, payload)
+        } else {
+            transaction {
+                recordMutation(type, id, payload)
+            }
+        }
+    }
+
+    private fun flushMutations(pending: Map<String, PendingMutation>) {
+        val cp = checkpoint()
+        val changes = JSONArray()
+        pending.values.forEach { p ->
+            val old = metadata(p.type, p.id)
+            val fresh = SyncJson.preserveUnknown(p.type, old?.payload?.let(::JSONObject), p.payload)
+            if ((old?.payload != null && fresh != null && SyncJson.canonical(JSONObject(old.payload)) == SyncJson.canonical(fresh)) ||
+                (old?.payload == null && fresh == null)) return@forEach
+            val delta = SyncJson.diff(old?.payload?.let(::JSONObject), fresh)
+            val version = (old?.localVersion ?: 0) + 1
+            delta.put("type", p.type).put("id", p.id).put("baseVersion", version - 1).put("localVersion", version).put("localPayload", fresh ?: JSONObject.NULL)
+            changes.put(delta)
+            saveMetadata(DesktopSyncMetadata(p.type, p.id, cp.workspaceId, old?.version ?: 0, version, fresh?.toString(), fresh == null))
+        }
+        if (changes.length() == 0) return
+        val operationId = UUID.randomUUID().toString()
+        val payload = JSONObject().put("changes", changes).toString()
+        enqueueOutbox(DesktopSyncOutbox(operationId, cp.nextSequence, cp.workspaceId, payload))
+        saveCheckpoint(cp.copy(nextSequence = cp.nextSequence + 1))
     }
 
     // -------------------------------------------------------------------------
@@ -303,6 +452,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
                 stmt.setString(10, encoded.toString())
                 stmt.executeUpdate()
             }
+            recordMutation("portfolio", item.id, SyncJson.record(item))
         }
     }
 
@@ -313,6 +463,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
                 stmt.setString(1, id)
                 stmt.executeUpdate()
             }
+            recordMutation("portfolio", id, null)
         }
     }
 
@@ -335,6 +486,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
         val encoded = PersistenceJsonCodecs.encodeSettings(newSettings)
         setSystemSetting("app_settings", encoded)
         mutableSettings.value = newSettings
+        recordMutation("businessSettings", "business", SyncJson.business(newSettings))
     }
 
     @Synchronized
@@ -608,6 +760,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(21, targetJson.toString())
             stmt.executeUpdate()
         }
+        recordMutation("inventory", item.id, SyncJson.record(item))
     }
 
     @Synchronized
@@ -622,6 +775,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(1, id)
             stmt.executeUpdate()
         }
+        recordMutation("inventory", id, null)
     }
 
     @Synchronized
@@ -679,6 +833,8 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(10, adjustmentEncoded.toString())
             stmt.executeUpdate()
         }
+        recordMutation("inventory", foundItem.id, SyncJson.record(foundItem.copy(quantity = newQuantity)))
+        recordMutation("stockAdjustment", adjustment.id, SyncJson.record(adjustment))
     }
 
     // -------------------------------------------------------------------------
@@ -778,6 +934,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(14, encoded.toString())
             stmt.executeUpdate()
         }
+        recordMutation("customer", customer.id, SyncJson.record(customer))
     }
 
     @Synchronized
@@ -810,6 +967,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(1, id)
             stmt.executeUpdate()
         }
+        recordMutation("customer", id, null)
     }
 
     @Synchronized
@@ -936,6 +1094,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(27, encoded.toString())
             stmt.executeUpdate()
         }
+        recordMutation("ledger", tx.id, SyncJson.record(tx))
     }
 
     @Synchronized
@@ -944,6 +1103,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(1, id)
             stmt.executeUpdate()
         }
+        recordMutation("ledger", id, null)
     }
 
     @Synchronized
@@ -981,10 +1141,12 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
 
     @Synchronized
     fun deleteTransactionsByInvoiceId(invoiceId: String) = transaction {
+        val txs = getTransactionsByInvoiceId(invoiceId)
         connection.prepareStatement("DELETE FROM ledger_transactions WHERE invoice_id = ?").use { stmt ->
             stmt.setString(1, invoiceId)
             stmt.executeUpdate()
         }
+        txs.forEach { recordMutation("ledger", it.id, null) }
     }
 
     // -------------------------------------------------------------------------
@@ -1041,6 +1203,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(4, target.toString())
             stmt.executeUpdate()
         }
+        recordMutation("invoice", invoice.id, SyncJson.record(invoice))
     }
 
     @Synchronized
@@ -1049,6 +1212,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(1, id)
             stmt.executeUpdate()
         }
+        recordMutation("invoice", id, null)
     }
 
     @Synchronized
@@ -1100,6 +1264,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(8, target.toString())
             stmt.executeUpdate()
         }
+        recordMutation("barterInvoice", invoice.id, SyncJson.record(invoice))
     }
 
     @Synchronized
@@ -1108,6 +1273,7 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             stmt.setString(1, id)
             stmt.executeUpdate()
         }
+        recordMutation("barterInvoice", id, null)
     }
 
     // -------------------------------------------------------------------------
@@ -1257,6 +1423,499 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
         return root
     }
 
+    // -------------------------------------------------------------------------
+    // Sync Storage & Multi-Device Coordination Implementation
+    // -------------------------------------------------------------------------
+
+    @Synchronized
+    fun checkpoint(): DesktopSyncCheckpoint {
+        connection.prepareStatement("SELECT id, workspace_id, cursor, writer_epoch, next_sequence, last_success_at, upload_snapshot_id, initialized FROM sync_checkpoint WHERE id = 'main'").use { stmt ->
+            stmt.executeQuery().use { rs ->
+                if (rs.next()) {
+                    return DesktopSyncCheckpoint(
+                        id = rs.getString("id"),
+                        workspaceId = rs.getString("workspace_id"),
+                        cursor = rs.getLong("cursor"),
+                        writerEpoch = rs.getLong("writer_epoch"),
+                        nextSequence = rs.getLong("next_sequence"),
+                        lastSuccessAt = rs.getLong("last_success_at"),
+                        uploadSnapshotId = rs.getString("upload_snapshot_id"),
+                        initialized = rs.getInt("initialized") == 1
+                    )
+                }
+            }
+        }
+        val defaultCp = DesktopSyncCheckpoint()
+        saveCheckpoint(defaultCp)
+        return defaultCp
+    }
+
+    @Synchronized
+    fun saveCheckpoint(cp: DesktopSyncCheckpoint) {
+        connection.prepareStatement("""
+            INSERT INTO sync_checkpoint (id, workspace_id, cursor, writer_epoch, next_sequence, last_success_at, upload_snapshot_id, initialized)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                workspace_id = excluded.workspace_id,
+                cursor = excluded.cursor,
+                writer_epoch = excluded.writer_epoch,
+                next_sequence = excluded.next_sequence,
+                last_success_at = excluded.last_success_at,
+                upload_snapshot_id = excluded.upload_snapshot_id,
+                initialized = excluded.initialized;
+        """.trimIndent()).use { stmt ->
+            stmt.setString(1, cp.id)
+            stmt.setString(2, cp.workspaceId)
+            stmt.setLong(3, cp.cursor)
+            stmt.setLong(4, cp.writerEpoch)
+            stmt.setLong(5, cp.nextSequence)
+            stmt.setLong(6, cp.lastSuccessAt)
+            stmt.setString(7, cp.uploadSnapshotId)
+            stmt.setInt(8, if (cp.initialized) 1 else 0)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun metadata(type: String, id: String): DesktopSyncMetadata? {
+        connection.prepareStatement("SELECT type, id, workspace_id, version, local_version, payload_json, deleted FROM sync_metadata WHERE type = ? AND id = ?").use { stmt ->
+            stmt.setString(1, type)
+            stmt.setString(2, id)
+            stmt.executeQuery().use { rs ->
+                if (rs.next()) {
+                    return DesktopSyncMetadata(
+                        type = rs.getString("type"),
+                        id = rs.getString("id"),
+                        workspaceId = rs.getString("workspace_id"),
+                        version = rs.getLong("version"),
+                        localVersion = rs.getLong("local_version"),
+                        payload = rs.getString("payload_json"),
+                        deleted = rs.getInt("deleted") == 1
+                    )
+                }
+            }
+        }
+        return null
+    }
+
+    @Synchronized
+    fun saveMetadata(meta: DesktopSyncMetadata) {
+        connection.prepareStatement("""
+            INSERT INTO sync_metadata (type, id, workspace_id, version, local_version, payload_json, deleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(type, id) DO UPDATE SET
+                workspace_id = excluded.workspace_id,
+                version = excluded.version,
+                local_version = excluded.local_version,
+                payload_json = excluded.payload_json,
+                deleted = excluded.deleted;
+        """.trimIndent()).use { stmt ->
+            stmt.setString(1, meta.type)
+            stmt.setString(2, meta.id)
+            stmt.setString(3, meta.workspaceId)
+            stmt.setLong(4, meta.version)
+            stmt.setLong(5, meta.localVersion)
+            stmt.setString(6, meta.payload)
+            stmt.setInt(7, if (meta.deleted) 1 else 0)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun allMetadata(): List<DesktopSyncMetadata> {
+        val list = mutableListOf<DesktopSyncMetadata>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT type, id, workspace_id, version, local_version, payload_json, deleted FROM sync_metadata").use { rs ->
+                while (rs.next()) {
+                    list.add(DesktopSyncMetadata(
+                        type = rs.getString("type"),
+                        id = rs.getString("id"),
+                        workspaceId = rs.getString("workspace_id"),
+                        version = rs.getLong("version"),
+                        localVersion = rs.getLong("local_version"),
+                        payload = rs.getString("payload_json"),
+                        deleted = rs.getInt("deleted") == 1
+                    ))
+                }
+            }
+        }
+        return list
+    }
+
+    @Synchronized
+    fun clearMetadata() {
+        connection.createStatement().use { it.execute("DELETE FROM sync_metadata;") }
+    }
+
+    @Synchronized
+    fun firstOutbox(): DesktopSyncOutbox? {
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT operation_id, sequence, workspace_id, payload_json, status, created_at FROM sync_outbox WHERE status = 'PENDING' ORDER BY sequence ASC LIMIT 1").use { rs ->
+                if (rs.next()) {
+                    return DesktopSyncOutbox(
+                        operationId = rs.getString("operation_id"),
+                        sequence = rs.getLong("sequence"),
+                        workspaceId = rs.getString("workspace_id"),
+                        payload = rs.getString("payload_json"),
+                        status = rs.getString("status"),
+                        createdAt = rs.getLong("created_at")
+                    )
+                }
+            }
+        }
+        return null
+    }
+
+    @Synchronized
+    fun allOutbox(): List<DesktopSyncOutbox> {
+        val list = mutableListOf<DesktopSyncOutbox>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT operation_id, sequence, workspace_id, payload_json, status, created_at FROM sync_outbox ORDER BY sequence ASC").use { rs ->
+                while (rs.next()) {
+                    list.add(DesktopSyncOutbox(
+                        operationId = rs.getString("operation_id"),
+                        sequence = rs.getLong("sequence"),
+                        workspaceId = rs.getString("workspace_id"),
+                        payload = rs.getString("payload_json"),
+                        status = rs.getString("status"),
+                        createdAt = rs.getLong("created_at")
+                    ))
+                }
+            }
+        }
+        return list
+    }
+
+    @Synchronized
+    fun enqueueOutbox(item: DesktopSyncOutbox) {
+        connection.prepareStatement("""
+            INSERT INTO sync_outbox (operation_id, sequence, workspace_id, payload_json, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(operation_id) DO UPDATE SET
+                sequence = excluded.sequence,
+                workspace_id = excluded.workspace_id,
+                payload_json = excluded.payload_json,
+                status = excluded.status,
+                created_at = excluded.created_at;
+        """.trimIndent()).use { stmt ->
+            stmt.setString(1, item.operationId)
+            stmt.setLong(2, item.sequence)
+            stmt.setString(3, item.workspaceId)
+            stmt.setString(4, item.payload)
+            stmt.setString(5, item.status)
+            stmt.setLong(6, item.createdAt)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun acknowledgeOutbox(operationId: String) {
+        connection.prepareStatement("DELETE FROM sync_outbox WHERE operation_id = ?").use { stmt ->
+            stmt.setString(1, operationId)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun clearOutbox() {
+        connection.createStatement().use { it.execute("DELETE FROM sync_outbox;") }
+    }
+
+    @Synchronized
+    fun outboxCount(): Int {
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT COUNT(*) FROM sync_outbox WHERE status = 'PENDING'").use { rs ->
+                return if (rs.next()) rs.getInt(1) else 0
+            }
+        }
+    }
+
+    @Synchronized
+    fun stageSnapshot(staging: DesktopSyncStaging) {
+        connection.prepareStatement("""
+            INSERT INTO sync_staging (snapshot_id, page, payload_json)
+            VALUES (?, ?, ?)
+            ON CONFLICT(snapshot_id, page) DO UPDATE SET payload_json = excluded.payload_json;
+        """.trimIndent()).use { stmt ->
+            stmt.setString(1, staging.snapshotId)
+            stmt.setInt(2, staging.page)
+            stmt.setString(3, staging.payload)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun stagedSnapshot(snapshotId: String): List<DesktopSyncStaging> {
+        val list = mutableListOf<DesktopSyncStaging>()
+        connection.prepareStatement("SELECT snapshot_id, page, payload_json FROM sync_staging WHERE snapshot_id = ? ORDER BY page ASC").use { stmt ->
+            stmt.setString(1, snapshotId)
+            stmt.executeQuery().use { rs ->
+                while (rs.next()) {
+                    list.add(DesktopSyncStaging(
+                        snapshotId = rs.getString("snapshot_id"),
+                        page = rs.getInt("page"),
+                        payload = rs.getString("payload_json")
+                    ))
+                }
+            }
+        }
+        return list
+    }
+
+    @Synchronized
+    fun clearStagedSnapshot(snapshotId: String) {
+        connection.prepareStatement("DELETE FROM sync_staging WHERE snapshot_id = ?").use { stmt ->
+            stmt.setString(1, snapshotId)
+            stmt.executeUpdate()
+        }
+    }
+
+    @Synchronized
+    fun getAllTransactions(): List<LedgerTransaction> {
+        val list = mutableListOf<LedgerTransaction>()
+        connection.createStatement().use { stmt ->
+            stmt.executeQuery("SELECT payload_json FROM ledger_transactions ORDER BY timestamp ASC, rowid ASC").use { rs ->
+                while (rs.next()) {
+                    list.addAll(PersistenceJsonCodecs.decodeLedgerTransactions("[${rs.getString("payload_json")}]"))
+                }
+            }
+        }
+        return list
+    }
+
+    @Synchronized
+    fun currentRecords(): List<JSONObject> {
+        val result = mutableListOf<JSONObject>()
+        fun add(type: String, values: List<Any>) {
+            values.forEach { value ->
+                val payload = SyncJson.record(value)
+                result.add(
+                    JSONObject()
+                        .put("type", type)
+                        .put("id", payload.getString("id"))
+                        .put("payload", payload)
+                        .put("version", 1)
+                        .put("deleted", false)
+                )
+            }
+        }
+        add("customer", getCustomers())
+        add("ledger", getAllTransactions())
+        add("invoice", getInvoices())
+        add("barterInvoice", getBarterInvoices())
+        add("inventory", getInventoryItems())
+        add("stockAdjustment", getStockAdjustments())
+        add("portfolio", getItems())
+        val settingsPayload = SyncJson.business(loadSettings())
+        result.add(
+            JSONObject()
+                .put("type", "businessSettings")
+                .put("id", "business")
+                .put("payload", settingsPayload)
+                .put("version", 1)
+                .put("deleted", false)
+        )
+        return result
+    }
+
+    @Synchronized
+    fun applyCloudRecord(type: String, id: String, payload: JSONObject?) {
+        val wasApplying = isSyncApplying
+        isSyncApplying = true
+        try {
+            if (payload == null) {
+                when (type) {
+                    "customer" -> connection.prepareStatement("DELETE FROM customers WHERE id = ?").use { it.setString(1, id); it.executeUpdate() }
+                    "ledger" -> deleteTransaction(id)
+                    "invoice" -> deleteInvoice(id)
+                    "barterInvoice" -> deleteBarterInvoice(id)
+                    "inventory" -> connection.prepareStatement("DELETE FROM inventory_items WHERE id = ?").use { it.setString(1, id); it.executeUpdate() }
+                    "stockAdjustment" -> connection.prepareStatement("DELETE FROM stock_adjustments WHERE id = ?").use { it.setString(1, id); it.executeUpdate() }
+                    "portfolio" -> deleteItem(id)
+                    else -> throw DesktopCloudException("INVALID_RECORD")
+                }
+                return
+            }
+            require(payload.getString("id") == id)
+            val encoded = JSONArray().put(payload).toString()
+            when (type) {
+                "customer" -> {
+                    val customer = PersistenceJsonCodecs.decodeCustomers(encoded).single()
+                    saveCustomerRecord(customer, payload)
+                }
+                "ledger" -> {
+                    val tx = PersistenceJsonCodecs.decodeLedgerTransactions(encoded).single()
+                    saveTransactionRecord(tx, payload)
+                }
+                "invoice" -> {
+                    val invoice = PersistenceJsonCodecs.decodeInvoices(encoded).single()
+                    saveInvoice(invoice)
+                }
+                "barterInvoice" -> {
+                    val invoice = PersistenceJsonCodecs.decodeBarterInvoices(encoded).single()
+                    saveBarterInvoice(invoice)
+                }
+                "inventory" -> {
+                    val item = PersistenceJsonCodecs.decodeInventoryItems(encoded).single()
+                    val categoryId = payload.optString("customCategoryId").ifBlank { null }
+                    saveInventoryItem(item, mustExist = false, categoryId = categoryId, updateCategory = true)
+                }
+                "stockAdjustment" -> {
+                    val adj = PersistenceJsonCodecs.decodeStockAdjustments(encoded).single()
+                    connection.prepareStatement("""
+                        INSERT INTO stock_adjustments (id, item_id, item_title, type, quantity_change, weight_grams, reason, note, timestamp, payload_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(id) DO UPDATE SET
+                            item_id = excluded.item_id,
+                            item_title = excluded.item_title,
+                            type = excluded.type,
+                            quantity_change = excluded.quantity_change,
+                            weight_grams = excluded.weight_grams,
+                            reason = excluded.reason,
+                            note = excluded.note,
+                            timestamp = excluded.timestamp,
+                            payload_json = excluded.payload_json;
+                    """.trimIndent()).use { stmt ->
+                        stmt.setString(1, adj.id)
+                        stmt.setString(2, adj.itemId)
+                        stmt.setString(3, adj.itemTitle)
+                        stmt.setString(4, adj.type.name)
+                        stmt.setInt(5, adj.quantityChange)
+                        stmt.setDouble(6, adj.weightGrams)
+                        stmt.setString(7, adj.reason)
+                        stmt.setString(8, adj.note)
+                        stmt.setLong(9, adj.timestamp)
+                        stmt.setString(10, payload.toString())
+                        stmt.executeUpdate()
+                    }
+                }
+                "portfolio" -> {
+                    val item = PersistenceJsonCodecs.decodePortfolioItems(encoded).single()
+                    addItem(item)
+                }
+                "businessSettings" -> {
+                    val currentSettings = loadSettings()
+                    val updated = SyncJson.applyBusiness(currentSettings, payload)
+                    saveSettings(updated)
+                }
+            }
+        } finally {
+            isSyncApplying = wasApplying
+        }
+    }
+
+    @Synchronized
+    fun prepareUpload(snapshotId: String, workspace: String, epoch: Long): List<DesktopSyncStaging> = transaction {
+        val cp = checkpoint()
+        require(cp.workspaceId.isBlank() || cp.workspaceId == workspace)
+        val records = currentRecords()
+        clearMetadata()
+        clearOutbox()
+        records.forEach { r ->
+            saveMetadata(DesktopSyncMetadata(
+                type = r.getString("type"),
+                id = r.getString("id"),
+                workspaceId = workspace,
+                version = 1,
+                localVersion = 1,
+                payload = r.getJSONObject("payload").toString(),
+                deleted = false
+            ))
+        }
+        records.chunked(100).forEachIndexed { page, list ->
+            stageSnapshot(DesktopSyncStaging(snapshotId, page, JSONArray(list).toString()))
+        }
+        if (records.isEmpty()) {
+            stageSnapshot(DesktopSyncStaging(snapshotId, 0, "[]"))
+        }
+        saveCheckpoint(cp.copy(
+            workspaceId = workspace,
+            writerEpoch = epoch,
+            nextSequence = 1,
+            uploadSnapshotId = snapshotId
+        ))
+        stagedSnapshot(snapshotId)
+    }
+
+    @Synchronized
+    fun activateSnapshot(snapshotId: String, workspace: String, revision: Long, epoch: Long, sequence: Long) = transaction {
+        val pages = stagedSnapshot(snapshotId)
+        val records = pages.flatMap { p ->
+            val a = JSONArray(p.payload)
+            (0 until a.length()).map { a.getJSONObject(it) }
+        }
+        require(records.map { it.getString("type") + ":" + it.getString("id") }.distinct().size == records.size)
+
+        val tables = listOf("barter_invoices", "invoices", "ledger_transactions", "customers", "inventory_items", "stock_adjustments", "portfolio_items")
+        connection.createStatement().use { stmt ->
+            for (table in tables) {
+                stmt.execute("DELETE FROM $table;")
+            }
+        }
+        clearMetadata()
+        clearOutbox()
+
+        records.forEach { r ->
+            val type = r.getString("type")
+            val id = r.getString("id")
+            val deleted = r.getBoolean("deleted")
+            val version = r.getLong("version")
+            val payload = if (deleted) null else r.getJSONObject("payload")
+            if (!deleted) {
+                applyCloudRecord(type, id, payload)
+            }
+            saveMetadata(DesktopSyncMetadata(type, id, workspace, version, version, payload?.toString(), deleted))
+        }
+
+        saveCheckpoint(DesktopSyncCheckpoint(
+            id = "main",
+            workspaceId = workspace,
+            cursor = revision,
+            writerEpoch = epoch,
+            nextSequence = sequence + 1,
+            initialized = true
+        ))
+        clearStagedSnapshot(snapshotId)
+    }
+
+    @Synchronized
+    fun applyPull(result: JSONObject) = transaction {
+        val groups = result.getJSONArray("groups")
+        for (g in 0 until groups.length()) {
+            val changes = groups.getJSONObject(g).getJSONArray("changes")
+            for (i in 0 until changes.length()) {
+                val c = changes.getJSONObject(i)
+                val type = c.getString("type")
+                val id = c.getString("id")
+                val version = c.getLong("version")
+                val old = metadata(type, id)
+                if (old != null && version <= old.version) continue
+                if (old != null && old.localVersion > old.version) throw DesktopCloudException("VERSION_CONFLICT", 409)
+                val fresh = SyncJson.apply(old?.payload?.let(::JSONObject), c)
+                applyCloudRecord(type, id, fresh)
+                saveMetadata(DesktopSyncMetadata(type, id, checkpoint().workspaceId, version, version, fresh?.toString(), fresh == null))
+            }
+        }
+        saveCheckpoint(checkpoint().copy(cursor = result.getLong("cursor")))
+    }
+
+    @Synchronized
+    fun acknowledge(item: DesktopSyncOutbox, result: JSONObject) = transaction {
+        require(result.getString("operationId") == item.operationId)
+        val sent = JSONObject(item.payload).getJSONArray("changes")
+        val ack = result.getJSONArray("changes")
+        require(ack.length() == sent.length())
+        for (i in 0 until sent.length()) {
+            val c = sent.getJSONObject(i)
+            val accepted = ack.getJSONObject(i)
+            require(c.getString("type") == accepted.getString("type") && c.getString("id") == accepted.getString("id"))
+            require(c.getLong("localVersion") == accepted.getLong("version"))
+            val old = metadata(c.getString("type"), c.getString("id")) ?: error("Missing metadata for ${c.getString("type")}:${c.getString("id")}")
+            saveMetadata(old.copy(version = accepted.getLong("version")))
+        }
+        acknowledgeOutbox(item.operationId)
+    }
+
     fun clearAllData() {
         connection.createStatement().use { stmt ->
             stmt.execute("PRAGMA foreign_keys = OFF;")
@@ -1264,7 +1923,8 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
                 "barter_invoices", "invoices", "ledger_transactions",
                 "deleted_customers", "customers", "inventory_options",
                 "stock_adjustments", "inventory_items", "portfolio_items",
-                "system_settings", "metadata", "market_cache"
+                "system_settings", "metadata", "market_cache",
+                "sync_metadata", "sync_outbox", "sync_staging", "sync_conflicts", "sync_checkpoint"
             )
             for (table in tables) {
                 stmt.execute("DELETE FROM $table;")

@@ -87,7 +87,14 @@ class DesktopWorkspace(
     val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
     val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
-    val cloud = com.goldex.companion.desktop.sync.DesktopSyncCoordinator(storage.directory, license, scope)
+    val cloud = com.goldex.companion.desktop.sync.DesktopSyncCoordinator(
+        storage = storage,
+        licenseStore = license,
+        scope = scope,
+        onDataChanged = {
+            reloadAfterSync()
+        }
+    )
     val completeOnboarding = com.goldex.companion.domain.onboarding.CompleteOnboardingUseCase(
         settings = storage,
         inventory = storage.inventory,
@@ -108,6 +115,28 @@ class DesktopWorkspace(
                 mutable.update { it.copy(snapshot = quote, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), quote?.rates), now = System.currentTimeMillis()) }
             }
         }
+        storage.database.onSyncCommit = {
+            scope.launch {
+                delay(1000)
+                if (cloud.state.value.enabled) {
+                    cloud.syncNow()
+                }
+            }
+        }
+    }
+
+    fun reloadAfterSync() {
+        storage.refreshFromDatabase()
+        val items = portfolio.getItems()
+        mutable.update {
+            it.copy(
+                settings = preferences.loadSettings(),
+                assets = DesktopPortfolioPolicy.project(items, it.snapshot?.rates)
+            )
+        }
+        customers.manager.refreshAfterSettlement()
+        invoices.refreshed()
+        inventory.reload()
     }
 
     fun start() = scope.launch {
@@ -118,6 +147,9 @@ class DesktopWorkspace(
         while (isActive) {
             waitForNextTick(30_000)
             mutable.update { it.copy(now = System.currentTimeMillis()) }
+            if (cloud.state.value.enabled && cloud.state.value.status != com.goldex.companion.desktop.sync.DesktopSyncStatus.AUTH_REQUIRED) {
+                runCatching { cloud.syncNow() }
+            }
             if (state.value.destination == DesktopDestination.DASHBOARD && !dashboard.state.value.loading)
                 dashboard.select(dashboard.state.value.horizon)
             if (state.value.snapshot?.isFresh(System.currentTimeMillis()) != true) refreshRates(background = true).join()

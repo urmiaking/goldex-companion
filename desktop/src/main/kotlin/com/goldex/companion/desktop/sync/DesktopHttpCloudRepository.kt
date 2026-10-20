@@ -18,7 +18,7 @@ class DesktopHttpCloudRepository(
     private val directory: Path,
     val keys: DesktopCloudKeys,
     private val licenseStore: LicenseStore,
-    private val appVersion: String = "0.56.73"
+    private val appVersion: String = "0.56.75"
 ) {
     private val refreshMutex = Mutex()
 

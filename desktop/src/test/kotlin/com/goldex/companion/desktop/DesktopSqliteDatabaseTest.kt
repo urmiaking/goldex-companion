@@ -290,4 +290,120 @@ class DesktopSqliteDatabaseTest {
             assertEquals(listOf(tx), it.getTransactions(customer.id))
         }
     }
+
+    @Test
+    fun syncCheckpointDefaultsAndUpdates() {
+        val file = dbFile()
+        DesktopSqliteDatabase.open(file).use { db ->
+            val cp = db.checkpoint()
+            assertEquals("main", cp.id)
+            assertEquals("", cp.workspaceId)
+            assertEquals(0L, cp.cursor)
+            assertEquals(1L, cp.nextSequence)
+            assertFalse(cp.initialized)
+
+            db.saveCheckpoint(cp.copy(workspaceId = "ws-123", cursor = 42L, initialized = true))
+            val updated = db.checkpoint()
+            assertEquals("ws-123", updated.workspaceId)
+            assertEquals(42L, updated.cursor)
+            assertTrue(updated.initialized)
+        }
+    }
+
+    @Test
+    fun outboxPopulatedOnEntityMutations() {
+        val file = dbFile()
+        DesktopSqliteDatabase.open(file).use { db ->
+            assertEquals(0, db.outboxCount())
+
+            val customer = sampleCustomer()
+            db.addCustomer(customer)
+            assertEquals(1, db.outboxCount())
+
+            val item = db.firstOutbox()
+            assertNotNull(item)
+            val body = JSONObject(item.payload)
+            val changes = body.getJSONArray("changes")
+            assertEquals(1, changes.length())
+            assertEquals("customer", changes.getJSONObject(0).getString("type"))
+            assertEquals(customer.id, changes.getJSONObject(0).getString("id"))
+
+            // Acknowledge outbox
+            val ackJson = JSONObject().put("operationId", item.operationId).put("changes", JSONArray().put(
+                JSONObject().put("type", "customer").put("id", customer.id).put("version", 1L)
+            ))
+            db.acknowledge(item, ackJson)
+            assertEquals(0, db.outboxCount())
+            assertEquals(1L, db.metadata("customer", customer.id)?.version)
+        }
+    }
+
+    @Test
+    fun activateSnapshotRestoresDataAcrossAllTables() {
+        val file = dbFile()
+        DesktopSqliteDatabase.open(file).use { db ->
+            val cust = sampleCustomer()
+            val inv = sampleInventoryItem()
+            val port = samplePortfolioItem()
+
+            val snapshotRecords = JSONArray().apply {
+                put(JSONObject().put("type", "customer").put("id", cust.id).put("version", 1L).put("deleted", false).put("payload", com.goldex.companion.data.sync.SyncJson.record(cust)))
+                put(JSONObject().put("type", "inventory").put("id", inv.id).put("version", 1L).put("deleted", false).put("payload", com.goldex.companion.data.sync.SyncJson.record(inv)))
+                put(JSONObject().put("type", "portfolio").put("id", port.id).put("version", 1L).put("deleted", false).put("payload", com.goldex.companion.data.sync.SyncJson.record(port)))
+                put(JSONObject().put("type", "businessSettings").put("id", "business").put("version", 1L).put("deleted", false).put("payload", com.goldex.companion.data.sync.SyncJson.business(AppSettings(galleryName = "زرگری ابری سینک شده"))))
+            }
+
+            db.stageSnapshot(com.goldex.companion.desktop.data.db.DesktopSyncStaging("snap-1", 0, snapshotRecords.toString()))
+            db.activateSnapshot("snap-1", "ws-remote", 15L, 2L, 100L)
+
+            val cp = db.checkpoint()
+            assertTrue(cp.initialized)
+            assertEquals("ws-remote", cp.workspaceId)
+            assertEquals(15L, cp.cursor)
+            assertEquals(101L, cp.nextSequence)
+
+            assertEquals("زرگری ابری سینک شده", db.loadSettings().galleryName)
+            assertEquals(1, db.getCustomers().size)
+            assertEquals(cust.name, db.getCustomers().first().name)
+            assertEquals(1, db.getInventoryItems().size)
+            assertEquals(inv.title, db.getInventoryItems().first().title)
+            assertEquals(1, db.getItems().size)
+            assertEquals(port.title, db.getItems().first().title)
+        }
+    }
+
+    @Test
+    fun applyPullAppliesIncrementalRemoteChanges() {
+        val file = dbFile()
+        DesktopSqliteDatabase.open(file).use { db ->
+            val cust = sampleCustomer()
+            db.addCustomer(cust)
+            val item = db.firstOutbox()!!
+            val ackJson = JSONObject().put("operationId", item.operationId).put("changes", JSONArray().put(
+                JSONObject().put("type", "customer").put("id", cust.id).put("version", 1L)
+            ))
+            db.acknowledge(item, ackJson) // properly acknowledged version 1
+
+            val pullResult = JSONObject().apply {
+                put("cursor", 5L)
+                put("groups", JSONArray().put(JSONObject().apply {
+                    put("revision", 5L)
+                    put("changes", JSONArray().put(JSONObject().apply {
+                        put("type", "customer")
+                        put("id", cust.id)
+                        put("version", 2L)
+                        put("baseVersion", 1L)
+                        put("action", "patch")
+                        put("fields", JSONObject().put("phone", "09998887766"))
+                    }))
+                }))
+            }
+
+            db.applyPull(pullResult)
+            assertEquals(5L, db.checkpoint().cursor)
+            val updated = db.getCustomers().single { it.id == cust.id }
+            assertEquals("09998887766", updated.phone)
+            assertEquals(2L, db.metadata("customer", cust.id)?.version)
+        }
+    }
 }
