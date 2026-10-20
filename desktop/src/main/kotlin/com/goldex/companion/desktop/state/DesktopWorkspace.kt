@@ -8,6 +8,7 @@ import com.goldex.companion.presentation.calculator.CalculatorField
 import com.goldex.companion.presentation.calculator.ManualGoldCalculator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import java.nio.file.Files
 import java.nio.file.Path
 
 enum class DesktopDestination(val title: String, val subtitle: String) {
@@ -85,6 +86,8 @@ class DesktopWorkspace(
     }
     val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
+    val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
+    val cloud = com.goldex.companion.desktop.sync.DesktopSyncCoordinator(storage.directory, license, scope)
     val completeOnboarding = com.goldex.companion.domain.onboarding.CompleteOnboardingUseCase(
         settings = storage,
         inventory = storage.inventory,
@@ -281,6 +284,30 @@ class DesktopWorkspace(
     fun exportBackup(path: Path): Job? = if (state.value.saving) null else operation("پشتیبان ذخیره نشد؛ نام تازه‌ای انتخاب و دسترسی پوشه را بررسی کنید") {
         storage.exportBackup(path)
         mutable.update { it.copy(notice = "فایل پشتیبان ذخیره شد") }
+    }
+
+    fun clearAllLocalData(): Job = operation("پاکسازی داده‌ها انجام نشد") {
+        storage.clearAllData()
+        try {
+            Files.deleteIfExists(dataDirectory.resolve("license.json"))
+            Files.deleteIfExists(dataDirectory.resolve("cloud_session.bin"))
+            Files.deleteIfExists(dataDirectory.resolve("cloud_config.json"))
+        } catch (_: Exception) {}
+        license.reload()
+        cloud.reload()
+        inventory.reload()
+        customers.manager.loadCustomers()
+        invoices.manager.reloadInvoices()
+        calculator.updateDefaults(AppSettings())
+        mutable.update {
+            it.copy(
+                settings = AppSettings(),
+                settingsDraft = null,
+                isWizardOpen = true,
+                assets = DesktopPortfolioPolicy.project(emptyList(), it.snapshot?.rates),
+                notice = "کلیه داده‌های محلی پاکسازی شدند و نرم‌افزار به حالت اولیه بازنشانی شد."
+            )
+        }
     }
 
     private fun operation(error: String, block: suspend () -> Unit): Job {

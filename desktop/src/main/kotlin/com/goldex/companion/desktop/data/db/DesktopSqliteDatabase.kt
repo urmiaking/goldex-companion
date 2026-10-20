@@ -1257,6 +1257,23 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
         return root
     }
 
+    fun clearAllData() {
+        connection.createStatement().use { stmt ->
+            stmt.execute("PRAGMA foreign_keys = OFF;")
+            val tables = listOf(
+                "barter_invoices", "invoices", "ledger_transactions",
+                "deleted_customers", "customers", "inventory_options",
+                "stock_adjustments", "inventory_items", "portfolio_items",
+                "system_settings", "metadata", "market_cache"
+            )
+            for (table in tables) {
+                stmt.execute("DELETE FROM $table;")
+            }
+            stmt.execute("PRAGMA foreign_keys = ON;")
+        }
+        mutableSettings.value = AppSettings()
+    }
+
     override fun close() {
         if (!connection.isClosed) {
             connection.close()

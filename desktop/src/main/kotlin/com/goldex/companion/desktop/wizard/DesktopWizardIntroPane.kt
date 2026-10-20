@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.core.Animatable
+import com.goldex.companion.ui.theme.LuxuryMotion
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -107,14 +109,17 @@ private val featureHighlights = listOf(
 fun DesktopWizardIntroPane(
     onStartConfiguration: () -> Unit,
     modifier: Modifier = Modifier,
-    autoAdvance: Boolean = false
+    autoAdvance: Boolean = true
 ) {
     var activeSlideIndex by remember { mutableStateOf(0) }
+    var slideDirection by remember { mutableStateOf(1) }
 
     // Auto-advance Timer
-    if (autoAdvance) {
-        LaunchedEffect(activeSlideIndex) {
-            delay(5500)
+    val reduceMotion = com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion.current
+    if (autoAdvance && !reduceMotion) {
+        LaunchedEffect(activeSlideIndex, autoAdvance) {
+            delay(5000)
+            slideDirection = 1
             activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
         }
     }
@@ -134,13 +139,19 @@ fun DesktopWizardIntroPane(
                     slide = activeSlide,
                     slideIndex = activeSlideIndex,
                     totalSlides = introSlides.size,
-                    onPrev = {
+                    slideDirection = slideDirection,
+                                        onPrev = {
+                        slideDirection = -1
                         activeSlideIndex = if (activeSlideIndex > 0) activeSlideIndex - 1 else introSlides.size - 1
                     },
                     onNext = {
+                        slideDirection = 1
                         activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
                     },
-                    onSelectSlide = { activeSlideIndex = it },
+                    onSelectSlide = { target ->
+                        slideDirection = if (target >= activeSlideIndex) 1 else -1
+                        activeSlideIndex = target
+                    },
                     modifier = Modifier.weight(1.05f).fillMaxHeight()
                 )
 
@@ -158,13 +169,19 @@ fun DesktopWizardIntroPane(
                     slide = activeSlide,
                     slideIndex = activeSlideIndex,
                     totalSlides = introSlides.size,
-                    onPrev = {
+                    slideDirection = slideDirection,
+                                        onPrev = {
+                        slideDirection = -1
                         activeSlideIndex = if (activeSlideIndex > 0) activeSlideIndex - 1 else introSlides.size - 1
                     },
                     onNext = {
+                        slideDirection = 1
                         activeSlideIndex = (activeSlideIndex + 1) % introSlides.size
                     },
-                    onSelectSlide = { activeSlideIndex = it },
+                    onSelectSlide = { target ->
+                        slideDirection = if (target >= activeSlideIndex) 1 else -1
+                        activeSlideIndex = target
+                    },
                     modifier = Modifier.fillMaxWidth().height(440.dp)
                 )
 
@@ -181,7 +198,8 @@ private fun IntroHeroCard(
     slide: DesktopIntroSlide,
     slideIndex: Int,
     totalSlides: Int,
-    onPrev: () -> Unit,
+    slideDirection: Int,
+        onPrev: () -> Unit,
     onNext: () -> Unit,
     onSelectSlide: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -207,11 +225,34 @@ private fun IntroHeroCard(
                     .fillMaxWidth()
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
+                    .pointerInput(Unit) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { totalDrag = 0f },
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                totalDrag += dragAmount
+                            },
+                            onDragEnd = {
+                                if (totalDrag > 35f) {
+                                    onPrev()
+                                } else if (totalDrag < -35f) {
+                                    onNext()
+                                }
+                            }
+                        )
+                    }
             ) {
                 AnimatedContent(
                     targetState = slide,
                     transitionSpec = {
-                        fadeIn(tween(350)) togetherWith fadeOut(tween(250))
+                        if (slideDirection >= 0) {
+                            (slideInHorizontally(tween(350, easing = LuxuryMotion.StandardEasing)) { -it } + fadeIn(tween(280)))
+                                .togetherWith(slideOutHorizontally(tween(300, easing = LuxuryMotion.AccelerationEasing)) { it } + fadeOut(tween(220)))
+                        } else {
+                            (slideInHorizontally(tween(350, easing = LuxuryMotion.StandardEasing)) { it } + fadeIn(tween(280)))
+                                .togetherWith(slideOutHorizontally(tween(300, easing = LuxuryMotion.AccelerationEasing)) { -it } + fadeOut(tween(220)))
+                        }
                     },
                     label = "intro_slide_image",
                     modifier = Modifier.fillMaxSize()
@@ -331,7 +372,7 @@ private fun IntroHeroCard(
                     repeat(totalSlides) { idx ->
                         val isSelected = idx == slideIndex
                         val barWidth by animateDpAsState(
-                            targetValue = if (isSelected) 32.dp else 12.dp,
+                            targetValue = if (isSelected) 36.dp else 12.dp,
                             animationSpec = tween(280),
                             label = "intro_indicator_width"
                         )
@@ -356,7 +397,7 @@ private fun IntroHeroCard(
                         modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                            imageVector = Icons.Outlined.ChevronRight,
                             contentDescription = "اسلاید قبلی",
                             tint = colors.textSecondary,
                             modifier = Modifier.size(18.dp)
@@ -367,7 +408,7 @@ private fun IntroHeroCard(
                         modifier = Modifier.size(34.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            imageVector = Icons.Outlined.ChevronLeft,
                             contentDescription = "اسلاید بعدی",
                             tint = colors.textSecondary,
                             modifier = Modifier.size(18.dp)

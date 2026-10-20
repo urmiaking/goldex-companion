@@ -99,6 +99,19 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
 
     @Synchronized override fun loadSettings(): AppSettings = mutableSettings.value
 
+    @Synchronized fun clearAllData() {
+        database.clearAllData()
+        val initial = JSONObject().put("schemaVersion", 1).put("portfolio", JSONArray()).put("settings", JSONObject())
+        commit(initial)
+        mutableSettings.value = AppSettings()
+        try {
+            val brandDir = directory.resolve("brand_assets")
+            if (Files.exists(brandDir)) {
+                Files.walk(brandDir).sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
+            }
+        } catch (_: Exception) {}
+    }
+
     @Synchronized private fun inventoryItems() = PersistenceJsonCodecs.decodeInventoryItems((document.optJSONArray("inventory") ?: JSONArray()).toString()).toList()
     @Synchronized private fun inventoryAdjustments() = PersistenceJsonCodecs.decodeStockAdjustments((document.optJSONArray("stockAdjustments") ?: JSONArray()).toString()).toList()
     @Synchronized fun loadInventoryOptions() = DesktopInventoryOptions.read(document)

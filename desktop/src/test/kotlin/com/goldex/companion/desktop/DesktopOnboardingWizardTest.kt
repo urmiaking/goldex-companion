@@ -1,6 +1,8 @@
 package com.goldex.companion.desktop
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -35,6 +37,7 @@ class DesktopOnboardingWizardTest {
     @Before
     fun setup() {
         store = DesktopDataStore(temporary.newFolder().toPath())
+        store.saveReduceMotion(true)
         val market = DesktopMarketRepository(store, fetch = { error("offline test") })
         market.useManual(
             DesktopMarketRepository.emptyRates().copy(
@@ -55,17 +58,21 @@ class DesktopOnboardingWizardTest {
     private fun renderScreen() = compose.setContent {
         val state by workspace.state.collectAsState()
         GoldExCompanionTheme(isDarkTheme = state.dark) {
-            DesktopWorkspaceScreen(workspace, {}, "0.56.70")
+            CompositionLocalProvider(LocalDesktopReduceMotion provides true) {
+                DesktopWorkspaceScreen(workspace, {}, "0.56.70")
+            }
         }
     }
 
     private fun renderStandaloneWizard() = compose.setContent {
         val state by workspace.state.collectAsState()
         GoldExCompanionTheme(isDarkTheme = state.dark) {
-            DesktopOnboardingWizardScreen(
-                workspace = workspace,
-                onClose = workspace::closeWizard
-            )
+            CompositionLocalProvider(LocalDesktopReduceMotion provides true) {
+                DesktopOnboardingWizardScreen(
+                    workspace = workspace,
+                    onClose = workspace::closeWizard
+                )
+            }
         }
     }
 
@@ -94,13 +101,9 @@ class DesktopOnboardingWizardTest {
     }
 
     @Test
-    fun skipOnboardingMarksCompletedAndCloses() {
+    fun skipOnboardingButtonDoesNotExist() {
         renderStandaloneWizard()
-        compose.onNodeWithTag("wizard-skip-btn").assertIsDisplayed().performClick()
-        compose.runOnIdle {
-            assertTrue(store.loadSettings().hasCompletedOnboarding)
-            assertFalse(workspace.state.value.isWizardOpen)
-        }
+        compose.onNodeWithTag("wizard-skip-btn").assertDoesNotExist()
     }
 
     @Test
