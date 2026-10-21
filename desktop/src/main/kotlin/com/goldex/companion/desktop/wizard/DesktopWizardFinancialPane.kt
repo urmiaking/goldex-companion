@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import com.goldex.companion.desktop.ui.DesktopField
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton
 import com.goldex.companion.desktop.ui.controls.DesktopFilterChip
+import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -145,22 +146,6 @@ private fun FinancialSettingsCard(
                     error = if (showErrors) financialErrors.profitError else null,
                     modifier = Modifier.fillMaxWidth().testTag("wizard-profit-percent")
                 )
-
-                // Quick presets
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("انتخاب سریع:", fontSize = 11.5.sp, color = colors.textMuted)
-                    listOf("5", "7", "9", "11").forEach { preset ->
-                        val isSelected = financialState.profitPercent.trim() == preset
-                        DesktopFilterChip(
-                            text = "${PersianNumberFormatter.toPersianDigits(preset)}٪",
-                            selected = isSelected,
-                            onClick = { onFinancialChange(financialState.copy(profitPercent = preset)) }
-                        )
-                    }
-                }
             }
 
             HorizontalDivider(color = colors.border.copy(alpha = 0.3f))
@@ -180,7 +165,7 @@ private fun FinancialSettingsCard(
                             color = colors.textMain
                         )
                         Text(
-                            text = "محاسبه صرفاً روی اجرت و سود (ماده ۲۶)",
+                            text = "محاسبه صرفاً روی اجرت و سود (معافیت اصل طلا)",
                             fontSize = 11.5.sp,
                             color = colors.textMuted
                         )
@@ -198,7 +183,7 @@ private fun FinancialSettingsCard(
                     DesktopField(
                         value = financialState.vatRate,
                         onChange = { onFinancialChange(financialState.copy(vatRate = it)) },
-                        label = "نرخ مالیات بر ارزش افزوده (قانونی: ۹٪ یا ۱۰٪)",
+                        label = "نرخ مالیات بر ارزش افزوده (پیش‌فرض قانونی: ۱۰٪)",
                         unit = "٪",
                         numeric = true,
                         adornment = Icons.Outlined.AccountBalance,
@@ -219,20 +204,15 @@ private fun FinancialSettingsCard(
                     color = colors.textMain
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(Karat.K18, Karat.K21, Karat.K24).forEach { karat ->
-                        val isSelected = financialState.baseKarat == karat
-                        DesktopFilterChip(
-                            text = karat.labelFa,
-                            selected = isSelected,
-                            onClick = { onFinancialChange(financialState.copy(baseKarat = karat)) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+                LuxurySegmentedControl(
+                    items = listOf(Karat.K18, Karat.K21, Karat.K24),
+                    selectedItem = financialState.baseKarat,
+                    onItemSelected = { onFinancialChange(financialState.copy(baseKarat = it)) },
+                    label = { it.labelFa },
+                    modifier = Modifier.fillMaxWidth().testTag("wizard-base-karat-segmented"),
+                    height = 40.dp,
+                    fontSize = 13.sp
+                )
             }
         }
     }
@@ -270,7 +250,7 @@ private fun Article26LawCard(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "ماده ۲۶ قانون دائمی مالیات بر ارزش افزوده",
+                    text = "قانون معافیت اصل طلا از مالیات بر ارزش افزوده",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.goldPrimary

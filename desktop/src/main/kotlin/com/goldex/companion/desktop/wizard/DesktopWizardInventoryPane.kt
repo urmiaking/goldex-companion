@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.desktop.ui.DesktopField
@@ -309,22 +310,22 @@ private fun CoinCounterRow(
 
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = colors.goldContainer.copy(alpha = 0.2f),
-        border = BorderStroke(0.5.dp, colors.border),
+        color = colors.surfaceElevated,
+        border = BorderStroke(0.6.dp, colors.border),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = name,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
                     color = colors.textMain
                 )
                 Text(
@@ -338,34 +339,50 @@ private fun CoinCounterRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                DesktopIconButton(
-                    onClick = { onCountChange(count - 1) },
-                    modifier = Modifier.size(32.dp)
+                // Minus button (in RTL: placed towards the text on the right)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.surface,
+                    border = BorderStroke(0.8.dp, colors.border),
+                    modifier = Modifier.size(30.dp),
+                    onClick = { if (count > 0) onCountChange(count - 1) },
+                    enabled = count > 0
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Remove,
-                        contentDescription = "کاهش تعداد",
-                        tint = colors.goldPrimary
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Remove,
+                            contentDescription = "کاهش تعداد",
+                            tint = if (count > 0) colors.textMain else colors.textMuted.copy(alpha = 0.4f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
 
                 Text(
                     text = PersianNumberFormatter.toPersianDigits(count),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = colors.goldPrimary,
-                    modifier = Modifier.widthIn(min = 28.dp)
+                    color = colors.textMain,
+                    modifier = Modifier.width(32.dp),
+                    textAlign = TextAlign.Center
                 )
 
-                DesktopIconButton(
-                    onClick = { onCountChange(count + 1) },
-                    modifier = Modifier.size(32.dp)
+                // Plus button (in RTL: placed towards the outer left)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.goldContainer,
+                    border = BorderStroke(0.8.dp, colors.goldBorder),
+                    modifier = Modifier.size(30.dp),
+                    onClick = { onCountChange(count + 1) }
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = "افزایش تعداد",
-                        tint = colors.goldPrimary
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Outlined.Add,
+                            contentDescription = "افزایش تعداد",
+                            tint = colors.goldPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

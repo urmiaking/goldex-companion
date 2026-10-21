@@ -70,7 +70,8 @@ class DesktopWorkspace(
     private val connectivity: ConnectivityObserver = WindowsConnectivityObserver(scope),
     ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory),
     rateHistoryGateway: DesktopRateHistoryGateway = DesktopRateHistoryRepository(storage.directory),
-    private val waitForNextTick: suspend (Long) -> Unit = { delay(it) }
+    private val waitForNextTick: suspend (Long) -> Unit = { delay(it) },
+    initialWizardOpen: Boolean? = null
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
@@ -103,7 +104,7 @@ class DesktopWorkspace(
         unitOfWork = storage
     )
     private val mutable = MutableStateFlow(WorkspaceState(settings = preferences.loadSettings(), dark = preferences.loadDarkTheme(), reduceMotion = storage.loadReduceMotion(),
-        snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates)))
+        snapshot = market.snapshot.value, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), market.snapshot.value?.rates), isWizardOpen = initialWizardOpen ?: false))
     val state = mutable.asStateFlow()
 
     init {

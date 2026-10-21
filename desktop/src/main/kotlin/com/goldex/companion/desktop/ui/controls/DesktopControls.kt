@@ -50,7 +50,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 
 /** An icon is mandatory at the call site; geometry cannot be overridden by a feature. */
 @Composable internal fun DesktopActionButton(
-    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector,
+    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null,
     trailingIcon: ImageVector? = null, isSecondary: Boolean = false, enabled: Boolean = true,
     isLoading: Boolean = false, height: Dp = DesktopControls.Height
 ) = ActionButton(text, onClick, modifier, icon, trailingIcon, isSecondary, enabled, isLoading,
@@ -58,13 +58,13 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 
 /** Only the workspace header and navigation footer may use this capsule variant. */
 @Composable internal fun DesktopHeaderButton(
-    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector,
+    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null,
     isSecondary: Boolean = false, enabled: Boolean = true
 ) = ActionButton(text, onClick, modifier, icon, null, isSecondary, enabled, false,
     DesktopControls.Height, DesktopControls.CapsuleShape)
 
 @Composable private fun ActionButton(
-    text: String, onClick: () -> Unit, modifier: Modifier, icon: ImageVector, trailingIcon: ImageVector?,
+    text: String, onClick: () -> Unit, modifier: Modifier, icon: ImageVector?, trailingIcon: ImageVector?,
     secondary: Boolean, enabled: Boolean, loading: Boolean, height: Dp, shape: Shape
 ) {
     val c = LocalGoldExColors.current
@@ -83,11 +83,11 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
             .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
             if (loading) CircularProgressIndicator(Modifier.size(DesktopControls.IconSize), color = foreground, strokeWidth = 2.dp)
-            else Icon(icon, null, Modifier.size(DesktopControls.IconSize).testTag("desktop-action-icon"), tint = if (!enabled) c.textMuted else if (secondary) c.goldPrimary else foreground)
+            else icon?.let { Icon(it, null, Modifier.size(DesktopControls.IconSize).testTag("desktop-action-icon"), tint = if (!enabled) c.textMuted else if (secondary) c.goldPrimary else foreground) }
             Text(text, fontFamily = VazirmatnFamily, fontSize = DesktopControls.LabelSize,
                 fontWeight = FontWeight.SemiBold, color = foreground, maxLines = 1, softWrap = false,
                 style = TextStyle(fontFeatureSettings = VazirmatnFeatureSettings))
-            trailingIcon?.let { Icon(it, null, Modifier.size(DesktopControls.IconSize), tint = foreground) }
+            trailingIcon?.let { Icon(it, null, Modifier.size(DesktopControls.IconSize).testTag("desktop-action-icon"), tint = if (!enabled) c.textMuted else if (secondary) c.goldPrimary else foreground) }
         }
     }
 }

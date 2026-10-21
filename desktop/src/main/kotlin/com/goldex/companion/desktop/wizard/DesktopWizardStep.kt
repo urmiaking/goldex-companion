@@ -53,7 +53,7 @@ fun validateDesktopWizardProfile(profile: DesktopWizardProfileState): DesktopWiz
 data class DesktopWizardFinancialState(
     val profitPercent: String = "7",
     val isVatEnabled: Boolean = true,
-    val vatRate: String = "9",
+    val vatRate: String = "10",
     val baseKarat: Karat = Karat.K18
 )
 

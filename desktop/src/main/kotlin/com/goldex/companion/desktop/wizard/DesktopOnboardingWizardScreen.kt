@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.goldex.companion.desktop.state.DesktopWorkspace
+import com.goldex.companion.data.license.LicenseResult
+import com.goldex.companion.data.license.LicenseStatus
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton
 import com.goldex.companion.domain.onboarding.OpeningInventoryInput
 import com.goldex.companion.model.Karat
@@ -63,7 +65,7 @@ fun DesktopOnboardingWizardScreen(
             DesktopWizardFinancialState(
                 profitPercent = currentSettings.defaultProfitPercent,
                 isVatEnabled = currentSettings.defaultTaxPercent != "0",
-                vatRate = if (currentSettings.defaultTaxPercent == "0") "9" else currentSettings.defaultTaxPercent,
+                vatRate = if (currentSettings.defaultTaxPercent == "0" || currentSettings.defaultTaxPercent == "9") "10" else currentSettings.defaultTaxPercent,
                 baseKarat = Karat.K18
             )
         )
@@ -102,15 +104,23 @@ fun DesktopOnboardingWizardScreen(
                 isSubmitting = true
                 coroutineScope.launch {
                     try {
-                        if (licenseState.choice == DesktopWizardLicenseChoice.TRIAL) {
+                        if (licenseState.choice == DesktopWizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
+                            val codeResult = workspace.license.activateCode(licenseState.licenseCode)
+                            if (codeResult !is LicenseResult.Success &&
+                                workspace.license.getCachedInfo().status == LicenseStatus.NONE) {
+                                workspace.license.activateTrial()
+                            }
+                        } else {
                             workspace.license.activateTrial()
-                        } else if (licenseState.choice == DesktopWizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
-                            workspace.license.activateCode(licenseState.licenseCode)
                         }
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                        if (workspace.license.getCachedInfo().status == LicenseStatus.NONE) {
+                            workspace.license.activateTrial()
+                        }
+                    }
                     val cleanProfit = PersianNumberFormatter.toEnglishDigits(financialState.profitPercent).ifBlank { "7" }
                 val cleanVat = if (financialState.isVatEnabled) {
-                    PersianNumberFormatter.toEnglishDigits(financialState.vatRate).ifBlank { "9" }
+                    PersianNumberFormatter.toEnglishDigits(financialState.vatRate).ifBlank { "10" }
                 } else "0"
 
                 val updatedSettings = currentSettings.copy(
@@ -283,7 +293,7 @@ fun DesktopOnboardingWizardScreen(
                                 DesktopActionButton(
                                     text = "تأیید نهایی و افتتاح دوره",
                                     onClick = { handleNext() },
-                                    icon = Icons.Outlined.CheckCircle,
+                                    trailingIcon = Icons.Outlined.CheckCircle,
                                     isSecondary = false,
                                     isLoading = isSubmitting,
                                     modifier = Modifier.testTag("wizard-finish-btn")
@@ -292,7 +302,7 @@ fun DesktopOnboardingWizardScreen(
                                 DesktopActionButton(
                                     text = "شروع راه‌اندازی و ثبت مشخصات گالری",
                                     onClick = { handleNext() },
-                                    icon = Icons.Outlined.ChevronLeft,
+                                    trailingIcon = Icons.Outlined.ChevronLeft,
                                     isSecondary = false,
                                     modifier = Modifier.testTag("wizard-next-btn")
                                 )
@@ -300,7 +310,7 @@ fun DesktopOnboardingWizardScreen(
                                 DesktopActionButton(
                                     text = "مرحله بعد",
                                     onClick = { handleNext() },
-                                    icon = Icons.Outlined.ChevronLeft,
+                                    trailingIcon = Icons.Outlined.ChevronLeft,
                                     isSecondary = false,
                                     modifier = Modifier.testTag("wizard-next-btn")
                                 )

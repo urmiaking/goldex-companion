@@ -81,6 +81,16 @@ class DesktopLicenseRepository(
                 LicenseResult.Error(message.ifBlank { "فعال‌سازی مهلت تست با خطا مواجه شد." }, response.code)
             }
         } catch (e: Exception) {
+            if (_licenseInfo.value.status == LicenseStatus.NONE) {
+                val fallbackTrial = LicenseInfo(
+                    status = LicenseStatus.TRIAL_ACTIVE,
+                    remainingDays = 14,
+                    lastVerifiedAt = System.currentTimeMillis(),
+                    lastMessage = "طرح آزمایشی ۱۴ روزه فعال شد (همگام‌سازی ابری در اولین اتصال)"
+                )
+                saveLicense(fallbackTrial)
+                return@withContext LicenseResult.Success(fallbackTrial, fallbackTrial.lastMessage ?: "")
+            }
             LicenseResult.Error("عدم برقراری ارتباط با سرور لایسنس. لطفاً اتصال اینترنت را بررسی کنید.")
         }
     }
