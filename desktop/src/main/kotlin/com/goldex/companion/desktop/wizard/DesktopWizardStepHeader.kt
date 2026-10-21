@@ -139,17 +139,6 @@ fun DesktopWizardIntroTopBar(
                         )
                     }
                 }
-
-                DesktopIconButton(
-                    onClick = onClose,
-                    modifier = Modifier.testTag("wizard-close-btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "بستن ویزارد راه‌اندازی",
-                        tint = colors.textMuted
-                    )
-                }
             }
         }
     }
@@ -243,17 +232,6 @@ fun DesktopWizardStepHeader(
                             color = colors.textMuted
                         )
                     }
-                }
-
-                DesktopIconButton(
-                    onClick = onClose,
-                    modifier = Modifier.testTag("wizard-close-btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "بستن ویزارد راه‌اندازی",
-                        tint = colors.textMuted
-                    )
                 }
             }
 

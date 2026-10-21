@@ -107,7 +107,10 @@ private fun launchWorkspace() {
     val directory = DesktopDataStore.defaultDirectory()
     val initialized = runCatching {
         val storage = DesktopDataStore(directory)
-        try { storage to DesktopWorkspace(storage, DesktopMarketRepository(storage)) }
+        try {
+            val settings = storage.loadSettings()
+            storage to DesktopWorkspace(storage, DesktopMarketRepository(storage), initialWizardOpen = !settings.hasCompletedOnboarding)
+        }
         catch (failure: Exception) { storage.close(); throw failure }
     }
     val closed = AtomicBoolean(false)
@@ -125,7 +128,7 @@ private fun launchWorkspace() {
         var confirmClose by remember { mutableStateOf(false) }
         LaunchedEffect(workspace) {
             workspace?.start()
-            if (workspace != null && !workspace.state.value.settings.hasCompletedOnboarding) {
+            if (workspace != null && !workspace.state.value.settings.hasCompletedOnboarding && !workspace.state.value.isWizardOpen) {
                 workspace.openWizard()
             }
         }

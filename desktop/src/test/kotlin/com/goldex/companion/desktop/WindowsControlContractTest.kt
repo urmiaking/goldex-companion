@@ -145,7 +145,8 @@ class WindowsControlContractTest {
                 violations += "$name uses an icon action outside the desktop circular-state adapter"
             val segmentedOwners = mapOf(
                 "DesktopDashboardTrend.kt" to setOf("DashboardTrend"),
-                "DesktopRateDetailPage.kt" to setOf("RateChartCard")
+                "DesktopRateDetailPage.kt" to setOf("RateChartCard"),
+                "DesktopWizardFinancialPane.kt" to setOf("FinancialSettingsCard")
             )
             Regex("\\bLuxurySegmentedControl\\s*\\(").findAll(source).forEach { call ->
                 val owner = Regex("\\bfun\\s+([A-Za-z0-9_]+)\\s*\\(")

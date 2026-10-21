@@ -2,6 +2,7 @@ package com.goldex.companion.desktop.wizard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -193,7 +194,7 @@ fun DesktopWizardCompletionPane(
                 SummaryRow(
                     label = "مالیات بر ارزش افزوده:",
                     value = if (financialState.isVatEnabled) {
-                        "${PersianNumberFormatter.toPersianDigits(financialState.vatRate)} درصد (ماده ۲۶)"
+                        "${PersianNumberFormatter.toPersianDigits(financialState.vatRate)} درصد (معافیت اصل طلا)"
                     } else {
                         "غیرفعال"
                     }
@@ -265,12 +266,124 @@ fun DesktopWizardCompletionPane(
                     )
                 }
 
-                DesktopChoiceRow(
-                    items = DesktopWizardLicenseChoice.values().toList(),
-                    selectedItem = licenseState.choice,
-                    onItemSelected = { onLicenseChange(licenseState.copy(choice = it)) },
-                    label = { it.titleFa }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Option 1: Trial
+                    val isTrial = licenseState.choice == DesktopWizardLicenseChoice.TRIAL
+                    Surface(
+                        modifier = Modifier.weight(1f).clickable {
+                            onLicenseChange(licenseState.copy(choice = DesktopWizardLicenseChoice.TRIAL))
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isTrial) colors.goldContainer.copy(alpha = 0.25f) else colors.surfaceElevated,
+                        border = BorderStroke(
+                            if (isTrial) 1.5.dp else 0.6.dp,
+                            if (isTrial) colors.goldPrimary else colors.border
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = if (isTrial) colors.goldPrimary else colors.textMuted,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "طرح آزمایشی رایگان (۱۴ روز)",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isTrial) colors.textMain else colors.textSecondary
+                                    )
+                                }
+                                if (isTrial) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "دسترسی کامل و نامحدود به تمامی امکانات زرگری، صدور فاکتور و کارتابل حسابداری بدون نیاز به پرداخت.",
+                                fontSize = 11.5.sp,
+                                color = colors.textMuted,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+
+                    // Option 2: Code
+                    val isCode = licenseState.choice == DesktopWizardLicenseChoice.CODE
+                    Surface(
+                        modifier = Modifier.weight(1f).clickable {
+                            onLicenseChange(licenseState.copy(choice = DesktopWizardLicenseChoice.CODE))
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isCode) colors.goldContainer.copy(alpha = 0.25f) else colors.surfaceElevated,
+                        border = BorderStroke(
+                            if (isCode) 1.5.dp else 0.6.dp,
+                            if (isCode) colors.goldPrimary else colors.border
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Key,
+                                        contentDescription = null,
+                                        tint = if (isCode) colors.goldPrimary else colors.textMuted,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "ثبت کد لایسنس دائمی",
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isCode) colors.textMain else colors.textSecondary
+                                    )
+                                }
+                                if (isCode) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckCircle,
+                                        contentDescription = null,
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "فعال‌سازی با کد خریداری‌شده از وب‌سایت قیراط و اتصال دائمی به سرور.",
+                                fontSize = 11.5.sp,
+                                color = colors.textMuted,
+                                lineHeight = 18.sp
+                            )
+                        }
+                    }
+                }
 
                 if (licenseState.choice == DesktopWizardLicenseChoice.CODE) {
                     DesktopField(
@@ -284,7 +397,8 @@ fun DesktopWizardCompletionPane(
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = colors.goldPrimary.copy(alpha = 0.08f),
-                        border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.25f))
+                        border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.25f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
@@ -294,13 +408,13 @@ fun DesktopWizardCompletionPane(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Info,
+                                imageVector = Icons.Outlined.Verified,
                                 contentDescription = null,
                                 tint = colors.goldPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "دوره آزمایشی رایگان ۳۰ روزه با دسترسی نامحدود به تمامی امکانات زرگری، صدور فاکتور و کارتابل حسابداری فعال خواهد شد.",
+                                text = "شناسه پایدار دستگاه شما به صورت امن ثبت شده و دوره آزمایشی ۱۴ روزه بلافاصله پس از تأیید فعال خواهد شد.",
                                 fontSize = 12.5.sp,
                                 color = colors.textSecondary
                             )

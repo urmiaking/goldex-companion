@@ -104,6 +104,8 @@ class DesktopOnboardingWizardTest {
     fun skipOnboardingButtonDoesNotExist() {
         renderStandaloneWizard()
         compose.onNodeWithTag("wizard-skip-btn").assertDoesNotExist()
+        compose.onNodeWithTag("wizard-close-btn").assertDoesNotExist()
+        compose.onNodeWithTag("wizard-close-btn").assertDoesNotExist()
     }
 
     @Test
@@ -132,6 +134,10 @@ class DesktopOnboardingWizardTest {
         // Move to Step 3: Financial Defaults
         compose.onNodeWithTag("wizard-next-btn").performClick()
         compose.onNodeWithTag("wizard-financial-pane").assertIsDisplayed()
+        compose.onNodeWithTag("wizard-base-karat-segmented").assertExists()
+        compose.onNodeWithText("انتخاب سریع:").assertDoesNotExist()
+        compose.onNodeWithTag("wizard-base-karat-segmented").assertExists()
+        compose.onNodeWithText("انتخاب سریع:").assertDoesNotExist()
 
         // Move to Step 4: Inventory
         compose.onNodeWithTag("wizard-next-btn").performClick()

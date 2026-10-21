@@ -233,7 +233,7 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
         }
         LuxuryCard(Modifier.fillMaxWidth().testTag("settings-wizard-card")) {
             PageTitle("راهنمای راه‌اندازی و افتتاح دوره (ویزارد)")
-            Text("چنانچه قصد بازبینی مشخصات گالری، ثبت مجدد پیش‌فرض‌های مالیاتی ماده ۲۶ ارزش افزوده یا افتتاح دوره طلافروشی را دارید، می‌توانید ویزارد را مجدداً اجرا نمایید.", color = colors.textSecondary, fontSize = 12.sp)
+            Text("چنانچه قصد بازبینی مشخصات گالری، ثبت مجدد پیش‌فرض‌های مالیاتی ارزش افزوده یا افتتاح دوره طلافروشی را دارید، می‌توانید ویزارد را مجدداً اجرا نمایید.", color = colors.textSecondary, fontSize = 12.sp)
             GoldButton("اجرای ویزارد راه‌اندازی اولیه", workspace::openWizard, Modifier.testTag("run-onboarding-wizard"), isSecondary = true, icon = Icons.Outlined.AutoAwesome)
         }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).testTag("settings-tools"), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
