@@ -154,7 +154,11 @@ class SyncCoordinator private constructor(private val context: Context) {
         val cp=local.checkpoint()
         if(cp.workspaceId.isNotBlank() && cp.workspaceId != session.getString("workspaceId")) throw CloudException("ACCOUNT_SWITCH_REQUIRES_BACKUP")
         keys.write(session)
-        _state.update { it.copy(phone=phone,status=SyncStatus.PENDING,message="ورود موفق بود") }
+        preferences.edit().putBoolean("enabled", true).apply()
+        val work = WorkManager.getInstance(context)
+        work.enqueueUniquePeriodicWork("qirato-cloud-periodic", ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<CloudSyncWorker>(15, TimeUnit.MINUTES).setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build())
+        _state.update { it.copy(enabled = true, phone=phone,status=SyncStatus.PENDING,message="ورود موفق بود") }
         val info=try { api.request("cloud/bootstrap") } catch(e: CloudException) {
             if(e.code=="LICENSE_REQUIRED") { _state.update { it.copy(status=SyncStatus.LICENSE_REQUIRED) }; return@withLock }
             throw e

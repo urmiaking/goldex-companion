@@ -114,8 +114,8 @@ object PersistenceJsonCodecs {
                 val name = obj.stringValue("name").trim()
                 if (id.isEmpty() || name.isEmpty()) continue
                 val role = obj.optString("role", "بنکدار و همکار بازار").ifBlank { "بنکدار و همکار بازار" }
-                val goldDebtGrams = obj.optDouble("goldDebtGrams", 0.0)
-                val cashDebtTomans = obj.optLong("cashDebtTomans", 0L)
+                val goldDebtGrams = obj.doubleValue("goldDebtGrams", 0.0)
+                val cashDebtTomans = obj.longValue("cashDebtTomans", 0L)
                 val accountCode = obj.optString("accountCode", "")
                 val isVerified = if (obj.has("isVerified")) obj.optBoolean("isVerified", true) else true
                 val cityOrMarket = obj.optString("cityOrMarket", "بازار بزرگ تهران").ifBlank { "بازار بزرگ تهران" }

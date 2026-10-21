@@ -159,6 +159,8 @@ class DesktopOnboardingWizardTest {
         // Complete onboarding
         compose.onNodeWithTag("wizard-finish-btn").performClick()
 
+        compose.waitUntil(20_000) { store.loadSettings().hasCompletedOnboarding }
+
         compose.runOnIdle {
             val settings = store.loadSettings()
             assertTrue(settings.hasCompletedOnboarding)
