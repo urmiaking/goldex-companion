@@ -135,6 +135,7 @@ class DesktopWorkspace(
                 assets = DesktopPortfolioPolicy.project(items, it.snapshot?.rates)
             )
         }
+        customers.manager.loadCustomers()
         customers.manager.refreshAfterSettlement()
         invoices.refreshed()
         inventory.reload()

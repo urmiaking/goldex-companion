@@ -179,7 +179,7 @@ class DesktopSyncCoordinator(
                         api.request("cloud/snapshot/page", JSONObject().put("snapshotId", snapshotId).put("page", page.page).put("records", JSONArray(page.payload)))
                     }
                     api.request("cloud/snapshot/commit", JSONObject().put("snapshotId", snapshotId).put("pages", pages.size))
-                    db.saveCheckpoint(cp.copy(initialized = true, uploadSnapshotId = ""))
+                    db.saveCheckpoint(db.checkpoint().copy(initialized = true, uploadSnapshotId = "", workspaceId = workspaceId, writerEpoch = writerEpoch))
                     db.clearStagedSnapshot(snapshotId)
                     cp = db.checkpoint()
                 }

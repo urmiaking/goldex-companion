@@ -142,13 +142,20 @@ internal object DesktopCustomerDocuments {
     }
     private fun whole(record: JSONObject, key: String, nonnegative: Boolean = false) {
         if (!record.has(key)) return
-        require(record.get(key) is Number)
-        val number = BigDecimal(record.get(key).toString()).longValueExact()
+        val raw = record.get(key)
+        require(raw is Number || (raw is String && raw.matches(Regex("^-?\\d+$")))) { "Invalid whole number for $key: $raw" }
+        val number = BigDecimal(raw.toString()).longValueExact()
         require(number != Long.MIN_VALUE && (!nonnegative || number >= 0))
     }
     private fun decimal(record: JSONObject, key: String, nonnegative: Boolean = false) {
         if (!record.has(key)) return
-        require(record.get(key) is Number && record.getDouble(key).let { it.isFinite() && (!nonnegative || it >= 0) })
+        val raw = record.get(key)
+        val d = when (raw) {
+            is Number -> raw.toDouble()
+            is String -> raw.toDoubleOrNull() ?: Double.NaN
+            else -> Double.NaN
+        }
+        require(d.isFinite() && (!nonnegative || d >= 0)) { "Invalid decimal for $key: $raw" }
     }
     fun validate(document: JSONObject) {
         for (collection in listOf("customers", "deletedCustomers")) {

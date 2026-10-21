@@ -144,4 +144,65 @@ class DesktopLicenseAndCloudTest {
         assertEquals(0, workspace.inventory.state.value.items.size)
         assertFalse(store.loadSettings().hasCompletedOnboarding)
     }
+
+    @Test
+    fun cloudPullRemoteCustomerAppearsInWorkspace() = runTest {
+        val pullResult = JSONObject().apply {
+            put("cursor", 1L)
+            put("upperRevision", 1L)
+            put("hasMore", false)
+            val groups = org.json.JSONArray().apply {
+                val group = JSONObject().apply {
+                    put("revision", 1L)
+                    val changes = org.json.JSONArray().apply {
+                        val change = JSONObject().apply {
+                            put("action", "create")
+                            put("type", "customer")
+                            put("id", "cust_remote_101")
+                            put("version", 1L)
+                            put("baseVersion", 0L)
+                            put("fields", JSONObject().apply {
+                                put("id", "cust_remote_101")
+                                put("name", "حاج رضا طلافروش")
+                                put("phone", "09123456789")
+                                put("role", "بنکدار و همکار بازار")
+                                put("goldDebtGrams", "12.345")
+                                put("cashDebtTomans", "50000000")
+                                put("createdAt", "1729000000000")
+                                put("accountCode", "C101")
+                                put("cityOrMarket", "بازار زرگرها")
+                                put("lastActivityTime", "لحظاتی پیش")
+                            })
+                        }
+                        put(change)
+                    }
+                    put("changes", changes)
+                }
+                put(group)
+            }
+            put("groups", groups)
+        }
+
+        // Apply remote pull into desktop SQLite
+        store.database.applyPull(pullResult)
+
+        // Trigger workspace sync reload
+        workspace.reloadAfterSync()
+
+        // Wait for customer list to be updated
+        var found = false
+        for (i in 0 until 50) {
+            val list = workspace.customers.manager.uiState.value.customerList
+            if (list.any { it.id == "cust_remote_101" }) {
+                found = true
+                val c = list.first { it.id == "cust_remote_101" }
+                assertEquals("حاج رضا طلافروش", c.name)
+                assertEquals(12.345, c.goldDebtGrams, 0.001)
+                assertEquals(50_000_000L, c.cashDebtTomans)
+                break
+            }
+            kotlinx.coroutines.delay(50)
+        }
+        assertTrue(found, "Remote customer should be loaded in workspace after sync")
+    }
 }
