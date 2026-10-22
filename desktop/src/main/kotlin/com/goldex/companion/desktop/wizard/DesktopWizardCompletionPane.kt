@@ -38,6 +38,8 @@ fun DesktopWizardCompletionPane(
     onLicenseChange: (DesktopWizardLicenseState) -> Unit,
     currentSpotPrice: Long,
     onNavigateToStep: (DesktopWizardStep) -> Unit,
+    isOnlineSync: Boolean = false,
+    onOnlineSyncChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalGoldExColors.current
@@ -232,6 +234,157 @@ fun DesktopWizardCompletionPane(
                     value = "${PersianNumberFormatter.formatPrice(estimatedValuation)} تومان",
                     highlight = true
                 )
+            }
+        }
+
+        // 2.5 Dual Storage & Cloud Sync Mode Selection Cards (Online vs Offline)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = colors.surface,
+            border = BorderStroke(0.8.dp, colors.goldBorder)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isOnlineSync) Icons.Outlined.CloudSync else Icons.Outlined.CloudOff,
+                        contentDescription = null,
+                        tint = colors.goldPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "نحوه ذخیره‌سازی داده‌ها و همگام‌سازی",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textMain
+                        )
+                        Text(
+                            text = "انتخاب وضعیت اتصال ابری برای ثبت اسناد، فاکتورها و دفاتر مالی",
+                            fontSize = 11.5.sp,
+                            color = colors.textSecondary
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. Offline Mode Card (Right side in RTL, first child)
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(112.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onOnlineSyncChange(false) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (!isOnlineSync) colors.goldContainer.copy(alpha = 0.35f) else colors.surfaceElevated,
+                        border = BorderStroke(
+                            if (!isOnlineSync) 1.5.dp else 0.8.dp,
+                            if (!isOnlineSync) colors.goldPrimary else colors.border
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (!isOnlineSync) colors.goldPrimary.copy(alpha = 0.15f) else colors.surface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CloudOff,
+                                    contentDescription = null,
+                                    tint = if (!isOnlineSync) colors.goldPrimary else colors.textMuted,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "ذخیره در دستگاه",
+                                fontSize = 12.sp,
+                                fontWeight = if (!isOnlineSync) FontWeight.Bold else FontWeight.Medium,
+                                color = if (!isOnlineSync) colors.textMain else colors.textSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "(آفلاین)",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = if (!isOnlineSync) colors.goldPrimary else colors.textMuted,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // 2. Online Mode Card (Left side in RTL, second child)
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(112.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onOnlineSyncChange(true) },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isOnlineSync) colors.goldContainer.copy(alpha = 0.35f) else colors.surfaceElevated,
+                        border = BorderStroke(
+                            if (isOnlineSync) 1.5.dp else 0.8.dp,
+                            if (isOnlineSync) colors.goldPrimary else colors.border
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isOnlineSync) colors.goldPrimary.copy(alpha = 0.15f) else colors.surface),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CloudSync,
+                                    contentDescription = null,
+                                    tint = if (isOnlineSync) colors.goldPrimary else colors.textMuted,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "همگام‌سازی ابری",
+                                fontSize = 12.sp,
+                                fontWeight = if (isOnlineSync) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isOnlineSync) colors.textMain else colors.textSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "(آنلاین)",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = if (isOnlineSync) colors.goldPrimary else colors.textMuted,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
             }
         }
 

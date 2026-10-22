@@ -22,8 +22,25 @@ class DesktopInvoices(
     private val scope: CoroutineScope,
     private val settings: () -> AppSettings,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val isLicensed: () -> Boolean = { true },
+    private val onLicenseRequired: (String) -> Unit = {},
     private val quote: () -> Long
 ) {
+    constructor(
+        customers: DesktopCustomers,
+        scope: CoroutineScope,
+        settings: () -> AppSettings,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        quote: () -> Long
+    ) : this(
+        customers = customers,
+        scope = scope,
+        settings = settings,
+        dispatcher = dispatcher,
+        isLicensed = { true },
+        onLicenseRequired = {},
+        quote = quote
+    )
     val manager = BarterInvoiceViewModel(customers.invoices, customers.repository, customers.repository, scope, dispatcher, currentGold18 = quote)
     private val mutable = MutableStateFlow(InvoiceHostState())
     val host = mutable.asStateFlow()
@@ -33,6 +50,10 @@ class DesktopInvoices(
         with(manager.uiState.value) { isItemModalVisible || isRateEditDialogVisible || settlementShortcutInvoice != null }
 
     fun newInvoice(customer: Customer? = null) {
+        if (!isLicensed()) {
+            onLicenseRequired("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+            return
+        }
         if (saving || hasDialog) return
         manager.openNewInvoice(quote())
         manager.setCustomer(customer)
@@ -49,10 +70,20 @@ class DesktopInvoices(
             if (deleted) { mutable.update { it.copy(pendingDeletion = null) }; customers.manager.loadCustomers() }
         }
     }
-    fun save() { manager.submitAndSaveCurrentInvoice { customers.manager.loadCustomers() } }
+    fun save() {
+        if (!isLicensed()) {
+            onLicenseRequired("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+            return
+        }
+        manager.submitAndSaveCurrentInvoice { customers.manager.loadCustomers() }
+    }
     fun settle(item: InvoiceListItem) { item.barterInvoice?.let(::settle) }
     fun settle(invoice: BarterInvoice) {
         if (saving) return
+        if (!isLicensed()) {
+            onLicenseRequired("ثبت تسویه نیازمند اشتراک معتبر است.")
+            return
+        }
         if (invoice.syncWithLedger && invoice.customer != null) customers.settlement.open(requireNotNull(invoice.customer), invoice.id)
         else manager.openSettlementShortcut(invoice)
     }
@@ -61,6 +92,10 @@ class DesktopInvoices(
     fun preview(invoice: BarterInvoice?) { if (!saving) mutable.update { it.copy(preview = invoice) } }
     fun export(invoice: BarterInvoice, print: Boolean = false) {
         if (saving) return
+        if (print && !isLicensed()) {
+            onLicenseRequired("چاپ فاکتور نیازمند اشتراک معتبر است.")
+            return
+        }
         val profile = settings()
         mutable.update { it.copy(documentBusy = true) }
         scope.launch {

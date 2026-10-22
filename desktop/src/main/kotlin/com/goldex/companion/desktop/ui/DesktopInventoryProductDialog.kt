@@ -42,9 +42,12 @@ import androidx.compose.ui.unit.IntOffset
 import com.goldex.companion.desktop.state.DesktopInventory
 import com.goldex.companion.desktop.state.DesktopInventoryState
 import com.goldex.companion.desktop.DesktopInlineCustomKaratChip
+import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.InventoryCategory
 import com.goldex.companion.model.Karat
+import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.WageType
+import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.presentation.inventory.InventoryDraft
 import com.goldex.companion.presentation.inventory.InventoryForm
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -98,78 +101,248 @@ internal fun DesktopInventoryProductDialog(draft: InventoryDraft, state: Desktop
                                 if (state.error != null || draft.errors.isNotEmpty()) {
                                     Text(state.error ?: "اطلاعات مشخص‌شده را اصلاح کنید.", color = colors.errorRed, fontSize = 12.sp)
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
-                                    ProductField(draft, "title", "نام کالا", draft.title, feature,
-                                        Modifier.weight(2f).focusRequester(titleFocus), enabled = !state.saving) { it.copy(title = this) }
-                                    ProductDropdown("دسته‌بندی", state.draftCategoryTitle,
-                                        InventoryCategory.values().filter { it != InventoryCategory.ALL }.map { it.name to it.titleFa } +
-                                            state.options.categories.map { it.id to it.name },
-                                        Modifier.weight(1f), "inventory-category", state.saving, "افزودن دسته‌بندی",
-                                        onSelect = { id -> InventoryCategory.values().firstOrNull { it.name == id }?.let(feature::category)
-                                            ?: feature.customCategory(id) },
-                                        onAdd = { name -> feature.addCategory(name)?.join(); feature.state.value.draftCategoryTitle == name.trim() })
-                                }
-                                LaunchedEffect(draft.id) { titleFocus.requestFocus() }
-                                LaunchedEffect(draft.errors) { if (draft.errors.isNotEmpty()) scroll.animateScrollTo(0) }
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
-                                    ProductDropdown("محل نگهداری", draft.location, state.locations.map { it to it },
-                                        Modifier.weight(1f), "inventory-location", state.saving, "افزودن محل",
-                                        onSelect = { value -> feature.edit { it.copy(location = value) } },
-                                        onAdd = { name -> feature.addLocation(name)?.join(); feature.state.value.draft?.location == name.trim() })
-                                    ProductField(draft, "rfid", "بارکد / RFID (اختیاری)", draft.rfid, feature, Modifier.weight(1f), enabled = !state.saving) { it.copy(rfid = this) }
-                                    ProductField(draft, "quantity", "تعداد", draft.quantity, feature, Modifier.weight(0.6f),
-                                        numeric = true, unit = "قطعه", enabled = draft.id == null && !state.saving) { it.copy(quantity = this) }
-                                }
-
-                                HorizontalDivider(color = colors.goldBorder.copy(alpha = 0.25f))
-                                Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Top) {
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                ProductSectionTitle("وزن و عیار", "وزن هر قطعه، تا سه رقم اعشار")
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    ProductField(draft, "gross", "وزن ناخالص", draft.gross, feature, Modifier.weight(1f), numeric = true, unit = "گرم", enabled = !state.saving) { it.copy(gross = this) }
-                                    ProductField(draft, "stone", "وزن نگین", draft.stone, feature, Modifier.weight(1f), numeric = true, unit = "گرم", enabled = !state.saving) { it.copy(stone = this) }
-                                }
-                                ProductPurity(draft, state.saving, feature)
-                                }
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                ProductSectionTitle("اجرت و موجودی")
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    DesktopChoiceRow(
-                                        listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM), draft.wageType,
-                                        { type -> if (type != draft.wageType) feature.edit {
-                                            it.copy(wageType = type, wage = if (type == WageType.PERCENTAGE) "10" else "0")
-                                        } },
-                                        label = { if (it == WageType.PERCENTAGE) "درصدی" else "هر گرم" },
-                                        modifier = Modifier.weight(1f),
-                                        isItemEnabled = { !state.saving }
-                                    )
-                                    ProductField(draft, "wage", "اجرت", draft.wage, feature, Modifier.weight(1f), numeric = true,
-                                        unit = if (draft.wageType == WageType.PERCENTAGE) "٪" else "تومان / گرم",
-                                        monetary = draft.wageType == WageType.TOMAN_PER_GRAM, enabled = !state.saving) { it.copy(wage = this) }
-                                }
-
-                                if (draft.id != null) {
-                                    Text("برای تغییر تعداد، از ورود و خروج موجودی استفاده کنید.", color = colors.textSecondary, fontSize = 12.sp)
-                                }
-                                Row(
-                                    Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    InventoryImage(draft.image, Modifier.size(56.dp))
-                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("تصویر کالا", color = colors.textMain, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-                                        Text("اختیاری", color = colors.textSecondary, fontSize = 12.sp, maxLines = 1)
-                                    }
-                                    if (draft.image.isNotBlank()) {
-                                        IconButton({ feature.edit { it.copy(image = "") } }, enabled = !state.saving) {
-                                            Icon(Icons.Outlined.DeleteOutline, "حذف تصویر", tint = colors.errorRed)
+                                val isCoinCategory = draft.category == InventoryCategory.COINS
+                                if (isCoinCategory) {
+                                    // Dedicated Bank Coin Registration Header & Selector
+                                    ProductSectionTitle("انتخاب مسکوک بانکی", "ضرب رسمی بانک مرکزی و صنف طلا")
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        CoinType.entries.forEach { c ->
+                                            val isSelected = (draft.coinType ?: CoinType.EMAMI) == c
+                                            val liveCoinPrice = state.rates.getCoinPrice(c)
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated,
+                                                border = BorderStroke(
+                                                    if (isSelected) 1.2.dp else 0.8.dp,
+                                                    if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.6f)
+                                                ),
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clickable(enabled = !state.saving) {
+                                                        feature.coinType(c)
+                                                    }
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = c.titleFa,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                                        fontFamily = VazirmatnFamily,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Text(
+                                                            text = "${PersianNumberFormatter.formatWeight(c.totalWeightGrams)} گرم",
+                                                            fontSize = 10.sp,
+                                                            color = colors.textMuted,
+                                                            fontFamily = VazirmatnFamily
+                                                        )
+                                                        if (liveCoinPrice > 0L) {
+                                                            Text(
+                                                                text = "${PersianNumberFormatter.formatPrice(liveCoinPrice.toDouble())} ت",
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                                fontFamily = VazirmatnFamily
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
-                                    GoldButton(if (draft.image.isBlank()) "انتخاب تصویر" else "تغییر تصویر",
-                                        { selectInventoryPhoto(feature) }, Modifier.width(140.dp).testTag("inventory-photo"),
-                                        isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Image)
-                                }
-                                }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+                                        ProductField(draft, "title", "نام کامل مسکوک بانکی", draft.title, feature,
+                                            Modifier.weight(2f).focusRequester(titleFocus), enabled = !state.saving) { it.copy(title = this) }
+                                        ProductDropdown("دسته‌بندی", state.draftCategoryTitle,
+                                            InventoryCategory.values().filter { it != InventoryCategory.ALL }.map { it.name to it.titleFa } +
+                                                state.options.categories.map { it.id to it.name },
+                                            Modifier.weight(1f), "inventory-category", state.saving, "افزودن دسته‌بندی",
+                                            onSelect = { id -> InventoryCategory.values().firstOrNull { it.name == id }?.let(feature::category)
+                                                ?: feature.customCategory(id) },
+                                            onAdd = { name -> feature.addCategory(name)?.join(); feature.state.value.draftCategoryTitle == name.trim() })
+                                    }
+                                    LaunchedEffect(draft.id) { titleFocus.requestFocus() }
+                                    LaunchedEffect(draft.errors) { if (draft.errors.isNotEmpty()) scroll.animateScrollTo(0) }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+                                        ProductDropdown("محل نگهداری", draft.location, state.locations.map { it to it },
+                                            Modifier.weight(1f), "inventory-location", state.saving, "افزودن محل",
+                                            onSelect = { value -> feature.edit { it.copy(location = value) } },
+                                            onAdd = { name -> feature.addLocation(name)?.join(); feature.state.value.draft?.location == name.trim() })
+                                        ProductField(draft, "rfid", "شناسه وکیوم / بارکد (اختیاری)", draft.rfid, feature, Modifier.weight(1f), enabled = !state.saving) { it.copy(rfid = this) }
+                                        ProductField(draft, "quantity", "تعداد سکه", draft.quantity, feature, Modifier.weight(0.6f),
+                                            numeric = true, unit = "عدد", enabled = draft.id == null && !state.saving) { it.copy(quantity = this) }
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        ProductField(draft, "unitPrice", "قیمت واحد روز (تومان)", draft.unitPrice, feature,
+                                            Modifier.weight(1f), numeric = true, monetary = true, unit = "تومان", enabled = !state.saving) { it.copy(unitPrice = this) }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = colors.surfaceElevated,
+                                            border = BorderStroke(0.8.dp, colors.border.copy(alpha = 0.6f)),
+                                            modifier = Modifier.weight(1f).height(48.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text("بسته‌بندی و هولوگرام معتبر بانکی", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = colors.textMain, fontFamily = VazirmatnFamily)
+                                                    Text("دارای تاییدیه رسمی اتحادیه طلا و جواهر", fontSize = 10.sp, color = colors.textSecondary, fontFamily = VazirmatnFamily)
+                                                }
+                                                Switch(
+                                                    checked = draft.hasHologram,
+                                                    onCheckedChange = { checked -> feature.edit { it.copy(hasHologram = checked) } },
+                                                    enabled = !state.saving,
+                                                    colors = SwitchDefaults.colors(checkedThumbColor = colors.goldPrimary, checkedTrackColor = colors.goldContainer)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Live Valuation Summary Card for Coins
+                                    val coinCount = (draft.quantity.toIntOrNull() ?: 1).coerceAtLeast(0)
+                                    val unitPriceLong = PersianNumberFormatter.parseToCleanLong(draft.unitPrice) ?: (draft.coinType?.let { state.rates.getCoinPrice(it) } ?: 0L)
+                                    val totalCoinPayable = coinCount.toLong() * unitPriceLong
+                                    val coinWeight = draft.gross.toDoubleOrNull() ?: (draft.coinType?.totalWeightGrams ?: 8.136)
+                                    val eq18kGrams = coinCount * coinWeight * (900.0 / 750.0)
+
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = colors.surfaceElevated,
+                                        border = BorderStroke(1.dp, colors.goldBorder.copy(alpha = 0.8f)),
+                                        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = colors.goldPrimary.copy(alpha = 0.15f),
+                                                    border = BorderStroke(0.6.dp, colors.goldPrimary.copy(alpha = 0.4f))
+                                                ) {
+                                                    Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        Icon(Icons.Outlined.Paid, null, tint = colors.goldPrimary, modifier = Modifier.size(15.dp))
+                                                        Text("برآورد ارزش مسکوکات بانکی", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.goldPrimary)
+                                                    }
+                                                }
+                                                Text(
+                                                    if (draft.hasHologram) "دارای وکیوم و هولوگرام بانکی" else "سکه باز (بدون وکیوم)",
+                                                    fontSize = 11.sp,
+                                                    color = if (draft.hasHologram) colors.profitGreen else colors.textMuted,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                Text("ارزش کل موجودی سکه‌ها:", fontSize = 12.sp, color = colors.textSecondary)
+                                                AnimatedPriceText(amount = totalCoinPayable, unit = "تومان", color = colors.goldPrimary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                            HorizontalDivider(color = colors.goldBorder.copy(alpha = 0.25f))
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Column {
+                                                    Text("معادل وزنی ۱۸ عیار:", fontSize = 10.5.sp, color = colors.textSecondary)
+                                                    Text("${PersianNumberFormatter.formatWeight(eq18kGrams)} گرم", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                                                }
+                                                Column {
+                                                    Text("وزن کل ناخالص (۹۰۰ عیار):", fontSize = 10.5.sp, color = colors.textSecondary)
+                                                    Text("${PersianNumberFormatter.formatWeight(coinCount * coinWeight)} گرم", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
+                                                }
+                                                Column {
+                                                    Text("سود و مالیات مصوب:", fontSize = 10.5.sp, color = colors.textSecondary)
+                                                    Text("۰٪ (معاف)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = colors.profitGreen)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    // Regular Jewelry Layout
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+                                        ProductField(draft, "title", "نام کالا", draft.title, feature,
+                                            Modifier.weight(2f).focusRequester(titleFocus), enabled = !state.saving) { it.copy(title = this) }
+                                        ProductDropdown("دسته‌بندی", state.draftCategoryTitle,
+                                            InventoryCategory.values().filter { it != InventoryCategory.ALL }.map { it.name to it.titleFa } +
+                                                state.options.categories.map { it.id to it.name },
+                                            Modifier.weight(1f), "inventory-category", state.saving, "افزودن دسته‌بندی",
+                                            onSelect = { id -> InventoryCategory.values().firstOrNull { it.name == id }?.let(feature::category)
+                                                ?: feature.customCategory(id) },
+                                            onAdd = { name -> feature.addCategory(name)?.join(); feature.state.value.draftCategoryTitle == name.trim() })
+                                    }
+                                    LaunchedEffect(draft.id) { titleFocus.requestFocus() }
+                                    LaunchedEffect(draft.errors) { if (draft.errors.isNotEmpty()) scroll.animateScrollTo(0) }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+                                        ProductDropdown("محل نگهداری", draft.location, state.locations.map { it to it },
+                                            Modifier.weight(1f), "inventory-location", state.saving, "افزودن محل",
+                                            onSelect = { value -> feature.edit { it.copy(location = value) } },
+                                            onAdd = { name -> feature.addLocation(name)?.join(); feature.state.value.draft?.location == name.trim() })
+                                        ProductField(draft, "rfid", "بارکد / RFID (اختیاری)", draft.rfid, feature, Modifier.weight(1f), enabled = !state.saving) { it.copy(rfid = this) }
+                                        ProductField(draft, "quantity", "تعداد", draft.quantity, feature, Modifier.weight(0.6f),
+                                            numeric = true, unit = "قطعه", enabled = draft.id == null && !state.saving) { it.copy(quantity = this) }
+                                    }
+
+                                    HorizontalDivider(color = colors.goldBorder.copy(alpha = 0.25f))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Top) {
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ProductSectionTitle("وزن و عیار", "وزن هر قطعه، تا سه رقم اعشار")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        ProductField(draft, "gross", "وزن ناخالص", draft.gross, feature, Modifier.weight(1f), numeric = true, unit = "گرم", enabled = !state.saving) { it.copy(gross = this) }
+                                        ProductField(draft, "stone", "وزن نگین", draft.stone, feature, Modifier.weight(1f), numeric = true, unit = "گرم", enabled = !state.saving) { it.copy(stone = this) }
+                                    }
+                                    ProductPurity(draft, state.saving, feature)
+                                    }
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ProductSectionTitle("اجرت و موجودی")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        DesktopChoiceRow(
+                                            listOf(WageType.PERCENTAGE, WageType.TOMAN_PER_GRAM), draft.wageType,
+                                            { type -> if (type != draft.wageType) feature.edit {
+                                                it.copy(wageType = type, wage = if (type == WageType.PERCENTAGE) "10" else "0")
+                                            } },
+                                            label = { if (it == WageType.PERCENTAGE) "درصدی" else "هر گرم" },
+                                            modifier = Modifier.weight(1f),
+                                            isItemEnabled = { !state.saving }
+                                        )
+                                        ProductField(draft, "wage", "اجرت", draft.wage, feature, Modifier.weight(1f), numeric = true,
+                                            unit = if (draft.wageType == WageType.PERCENTAGE) "٪" else "تومان / گرم",
+                                            monetary = draft.wageType == WageType.TOMAN_PER_GRAM, enabled = !state.saving) { it.copy(wage = this) }
+                                    }
+
+                                    if (draft.id != null) {
+                                        Text("برای تغییر تعداد، از ورود و خروج موجودی استفاده کنید.", color = colors.textSecondary, fontSize = 12.sp)
+                                    }
+                                    Row(
+                                        Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        InventoryImage(draft.image, Modifier.size(56.dp))
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text("تصویر کالا", color = colors.textMain, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                                            Text("اختیاری", color = colors.textSecondary, fontSize = 12.sp, maxLines = 1)
+                                        }
+                                        if (draft.image.isNotBlank()) {
+                                            IconButton({ feature.edit { it.copy(image = "") } }, enabled = !state.saving) {
+                                                Icon(Icons.Outlined.DeleteOutline, "حذف تصویر", tint = colors.errorRed)
+                                            }
+                                        }
+                                        GoldButton(if (draft.image.isBlank()) "انتخاب تصویر" else "تغییر تصویر",
+                                            { selectInventoryPhoto(feature) }, Modifier.width(140.dp).testTag("inventory-photo"),
+                                            isSecondary = true, enabled = !state.saving, icon = Icons.Outlined.Image)
+                                    }
+                                    }
+                                    }
                                 }
                             }
                             VerticalScrollbar(rememberScrollbarAdapter(scroll), Modifier.align(Alignment.CenterEnd).fillMaxHeight())

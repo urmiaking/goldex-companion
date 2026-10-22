@@ -50,6 +50,7 @@ import com.goldex.companion.data.*
 import com.goldex.companion.desktop.DesktopCalculatorScreen
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
+import kotlinx.coroutines.launch
 import com.goldex.companion.desktop.update.WindowsUpdater
 import com.goldex.companion.desktop.wizard.DesktopOnboardingWizardScreen
 import com.goldex.companion.model.*
@@ -70,6 +71,10 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val customerDialog = customerState.isAddCustomerDialogVisible || customerState.isAddLedgerEntryModalVisible || customerState.isCustomerManagerVisible || customerState.editingCustomer != null || customerState.pendingDeleteCustomer != null || settlementState.customer != null
     val rateDetail by workspace.rateDetail.state.collectAsState()
     val reportingState by workspace.reporting.uiState.collectAsState()
+    val cloudState by workspace.cloud.state.collectAsState()
+    val showCloudOtp by workspace.showCloudOtpDialog.collectAsState()
+    val showLicense by workspace.showLicenseDialog.collectAsState()
+    val screenScope = rememberCoroutineScope()
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
     val colors = LocalGoldExColors.current
     val pages = rememberSaveableStateHolder()
@@ -127,7 +132,15 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                                 state.destination == DesktopDestination.REPORTING && reportingState.activeBreakdown != null -> workspace.reporting::closeBreakdown
                                 else -> null
                             }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else if (state.destination == DesktopDestination.REPORTING) "reporting-back" else "customer-back",
-                            backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان")
+                            backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان",
+                            cloudState = cloudState,
+                            onCloudClick = {
+                                if (cloudState.status == com.goldex.companion.desktop.sync.DesktopSyncStatus.AUTH_REQUIRED || !cloudState.enabled) {
+                                    workspace.openCloudOtp()
+                                } else {
+                                    screenScope.launch { workspace.cloud.syncNow() }
+                                }
+                            })
                         AnimatedVisibility(
                             visible = state.error != null || state.notice != null,
                             enter = if (state.reduceMotion) fadeIn(tween(0)) else LuxuryMotion.ItemAddEnter,
@@ -188,6 +201,28 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         InventoryDialogs(workspace.inventory)
         DesktopInvoiceDialogs(workspace)
         DesktopCustomerDialogs(workspace.customers, workspace.invoices::refreshed)
+        DesktopDialogHost(showCloudOtp) {
+            DesktopOtpDialog(
+                workspace = workspace,
+                onDismiss = workspace::closeCloudOtp
+            )
+        }
+        DesktopDialogHost(showLicense) {
+            DesktopLicenseDialog(
+                onDismiss = workspace::closeLicenseDialog,
+                onActivate = { code ->
+                    screenScope.launch {
+                        val res = workspace.license.activateCode(code)
+                        if (res is com.goldex.companion.data.license.LicenseResult.Success) {
+                            workspace.closeLicenseDialog()
+                            workspace.notify("لایسنس با موفقیت فعال شد.")
+                        } else {
+                            workspace.notify("کد لایسنس نامعتبر است یا منقضی شده است.")
+                        }
+                    }
+                }
+            )
+        }
         if (updater != null)
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart,
                 visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)

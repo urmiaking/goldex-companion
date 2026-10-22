@@ -9,8 +9,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.CloudDone
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material3.*
+import com.goldex.companion.desktop.sync.DesktopSyncStatus
+import com.goldex.companion.desktop.sync.DesktopSyncUiState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +50,8 @@ internal fun workspaceDate(now: Long): String {
 
 @Composable internal fun WorkspaceHeader(state: WorkspaceState, actions: (@Composable () -> Unit)? = null,
     titleOverride: String? = null, subtitleOverride: String? = null, onBack: (() -> Unit)? = null,
-    backTag: String = "customer-back", backDescription: String = "بازگشت به مشتریان") {
+    backTag: String = "customer-back", backDescription: String = "بازگشت به مشتریان",
+    cloudState: DesktopSyncUiState? = null, onCloudClick: (() -> Unit)? = null) {
     val colors = LocalGoldExColors.current
     BoxWithConstraints(Modifier.fillMaxWidth().testTag("workspace-header")) {
         val heading: @Composable () -> Unit = {
@@ -71,14 +79,57 @@ internal fun workspaceDate(now: Long): String {
         }
         val status: @Composable () -> Unit = {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                val online = state.connection == ConnectionStatus.ONLINE
-                val statusColor = if (online) colors.marketGainText else colors.textMuted
-                Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,
-                    modifier = Modifier.height(WorkspaceControlHeight).testTag("connection-chip")) {
-                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Box(Modifier.size(6.dp).background(statusColor, CircleShape))
-                        Text(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (cloudState != null) {
+                    val statusColor = when (cloudState.status) {
+                        DesktopSyncStatus.SYNCED -> colors.marketGainText
+                        DesktopSyncStatus.SYNCING -> colors.syncBlue
+                        DesktopSyncStatus.PENDING, DesktopSyncStatus.AUTH_REQUIRED -> colors.goldPrimary
+                        DesktopSyncStatus.OFFLINE, DesktopSyncStatus.DISABLED -> colors.textMuted
+                        DesktopSyncStatus.ERROR -> colors.errorRed
+                    }
+                    val icon = when (cloudState.status) {
+                        DesktopSyncStatus.DISABLED -> Icons.Outlined.CloudOff
+                        DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.PENDING, DesktopSyncStatus.SYNCING -> Icons.Outlined.CloudSync
+                        DesktopSyncStatus.SYNCED -> Icons.Outlined.CloudDone
+                        DesktopSyncStatus.OFFLINE, DesktopSyncStatus.ERROR -> Icons.Outlined.CloudOff
+                    }
+                    val label = when (cloudState.status) {
+                        DesktopSyncStatus.DISABLED -> "ابری: غیرفعال"
+                        DesktopSyncStatus.AUTH_REQUIRED -> "نیاز به ورود ابری"
+                        DesktopSyncStatus.PENDING -> if (cloudState.pendingCount > 0) "${PersianNumberFormatter.toPersianDigits(cloudState.pendingCount.toString())} سند در انتظار" else "در انتظار همگام‌سازی"
+                        DesktopSyncStatus.SYNCING -> "در حال همگام‌سازی..."
+                        DesktopSyncStatus.SYNCED -> "ابری: همگام"
+                        DesktopSyncStatus.OFFLINE -> "ابری: آفلاین"
+                        DesktopSyncStatus.ERROR -> "خطای همگام‌سازی"
+                    }
+                    Surface(
+                        shape = WorkspaceControlShape,
+                        color = colors.surfaceElevated,
+                        border = colors.hairlineBorder,
+                        modifier = Modifier
+                            .height(WorkspaceControlHeight)
+                            .testTag("connection-chip")
+                            .then(if (onCloudClick != null) Modifier.clickable(onClick = onCloudClick) else Modifier)
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(icon, contentDescription = label, tint = statusColor, modifier = Modifier.size(17.dp))
+                            Text(label, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        }
+                    }
+                } else {
+                    val online = state.connection == ConnectionStatus.ONLINE
+                    val statusColor = if (online) colors.marketGainText else colors.textMuted
+                    Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,
+                        modifier = Modifier.height(WorkspaceControlHeight).testTag("connection-chip")) {
+                        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Box(Modifier.size(6.dp).background(statusColor, CircleShape))
+                            Text(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        }
                     }
                 }
                 Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,

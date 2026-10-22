@@ -70,6 +70,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.data.MarketRates
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.InventoryCategory
 import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Karat
@@ -189,6 +192,9 @@ fun AddInventoryItemModal(
     )
 
     var selectedCategory by remember { mutableStateOf(InventoryCategory.RINGS) }
+    var selectedCoinType by remember { mutableStateOf(CoinType.EMAMI) }
+    var hasHologram by remember { mutableStateOf(true) }
+    var coinUnitPriceInput by remember { mutableStateOf("") }
 
     fun generateCode(cat: InventoryCategory): String {
         val prefix = when (cat) {
@@ -285,7 +291,11 @@ fun AddInventoryItemModal(
         }
     }
 
-    val isFormValid = titleInput.isNotBlank() && grossWeightDouble > 0.0
+    val isFormValid = if (selectedCategory == InventoryCategory.COINS) {
+        titleInput.isNotBlank() && quantityInt > 0
+    } else {
+        titleInput.isNotBlank() && grossWeightDouble > 0.0
+    }
 
     Dialog(
         onDismissRequest = handleDismiss,
@@ -449,6 +459,16 @@ fun AddInventoryItemModal(
                                     modifier = Modifier.clickable {
                                         selectedCategory = cat
                                         codeInput = generateCode(cat)
+                                        if (cat == InventoryCategory.COINS) {
+                                            titleInput = selectedCoinType.titleFa
+                                            grossWeightInput = selectedCoinType.totalWeightGrams.toString()
+                                            stoneWeightInput = "0"
+                                            wageInput = "0"
+                                            val p = rates.getCoinPrice(selectedCoinType)
+                                            if (p > 0L && coinUnitPriceInput.isBlank()) {
+                                                coinUnitPriceInput = p.toString()
+                                            }
+                                        }
                                     }
                                 ) {
                                     Text(
@@ -464,6 +484,372 @@ fun AddInventoryItemModal(
                         }
                     }
 
+                    if (selectedCategory == InventoryCategory.COINS) {
+                        // ─── Bank Coin Dedicated Form ────────────────────────────────
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "نوع مسکوک رسمی بانک مرکزی",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                                Text(
+                                    text = "عیار ۹۰۰ (۲۱.۶ عیار)",
+                                    fontSize = 10.sp,
+                                    color = colors.goldPrimary,
+                                    fontFamily = VazirmatnFamily
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                CoinType.entries.forEach { c ->
+                                    val isSelected = selectedCoinType == c
+                                    val livePrice = rates.getCoinPrice(c)
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
+                                        border = BorderStroke(
+                                            width = if (isSelected) 1.4.dp else 0.8.dp,
+                                            color = if (isSelected) colors.goldPrimary else colors.border
+                                        ),
+                                        modifier = Modifier.clickable {
+                                            selectedCoinType = c
+                                            titleInput = c.titleFa
+                                            grossWeightInput = c.totalWeightGrams.toString()
+                                            stoneWeightInput = "0"
+                                            val p = rates.getCoinPrice(c)
+                                            if (p > 0L) {
+                                                coinUnitPriceInput = p.toString()
+                                            }
+                                        }
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = c.titleFa,
+                                                fontSize = 11.5.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) colors.goldPrimary else colors.textMain,
+                                                fontFamily = VazirmatnFamily
+                                            )
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "${PersianNumberFormatter.formatWeight(c.totalWeightGrams)} گرم",
+                                                    fontSize = 10.sp,
+                                                    color = colors.textMuted,
+                                                    fontFamily = VazirmatnFamily
+                                                )
+                                                if (livePrice > 0L) {
+                                                    Text(
+                                                        text = "${PersianNumberFormatter.formatPrice(livePrice.toDouble())} ت",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
+                                                        fontFamily = VazirmatnFamily
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Product Code & RFID Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                GoldInputField(
+                                    value = codeInput,
+                                    onValueChange = { codeInput = it },
+                                    label = "کد محصول / بارکد",
+                                    trailingText = null,
+                                    keyboardType = KeyboardType.Text
+                                )
+                                IconButton(
+                                    onClick = { codeInput = generateCode(selectedCategory) },
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(top = 8.dp, end = 4.dp)
+                                        .size(34.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "تولید کد جدید",
+                                        tint = colors.goldPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                GoldInputField(
+                                    value = rfidInput,
+                                    onValueChange = { rfidInput = it },
+                                    label = "شناسه وکیوم / بارکد خوان",
+                                    trailingText = null,
+                                    keyboardType = KeyboardType.Text
+                                )
+                            }
+                        }
+
+                        // Title Input
+                        GoldInputField(
+                            value = titleInput,
+                            onValueChange = { titleInput = it },
+                            label = "عنوان کامل مسکوک بانکی",
+                            trailingText = null,
+                            keyboardType = KeyboardType.Text
+                        )
+
+                        // Location & Quantity Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(modifier = Modifier.weight(1.5f)) {
+                                GoldInputField(
+                                    value = locationInput,
+                                    onValueChange = { locationInput = it },
+                                    label = "محل نگهداری / گاوصندوق",
+                                    trailingText = null,
+                                    keyboardType = KeyboardType.Text
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                GoldInputField(
+                                    value = quantityInput,
+                                    onValueChange = { quantityInput = it },
+                                    label = "تعداد سکه",
+                                    trailingText = "عدد",
+                                    keyboardType = KeyboardType.Number
+                                )
+                            }
+                        }
+
+                        // Unit Price Field
+                        val liveCoinMarketPrice = rates.getCoinPrice(selectedCoinType)
+                        val cleanCoinPrice = PersianNumberFormatter.toEnglishDigits(coinUnitPriceInput.ifBlank { liveCoinMarketPrice.toString() }).filter { it.isDigit() }
+                        val unitPriceLong = cleanCoinPrice.toLongOrNull() ?: liveCoinMarketPrice
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                val displayPrice = if (cleanCoinPrice.isNotBlank()) {
+                                    PersianNumberFormatter.formatPrice(cleanCoinPrice.toDoubleOrNull() ?: 0.0)
+                                } else ""
+
+                                Box(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                        BasicTextField(
+                                            value = displayPrice,
+                                            onValueChange = { input ->
+                                                val digits = PersianNumberFormatter.toEnglishDigits(input).filter { it.isDigit() }
+                                                coinUnitPriceInput = digits
+                                            },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                fontFamily = VazirmatnFamily,
+                                                fontFeatureSettings = VazirmatnFeatureSettings,
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textMain,
+                                                textAlign = TextAlign.Right,
+                                                textDirection = TextDirection.Ltr
+                                            ),
+                                            cursorBrush = SolidColor(colors.goldPrimary),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            decorationBox = { innerTextField ->
+                                                if (displayPrice.isEmpty()) {
+                                                    Text(
+                                                        text = "قیمت واحد روز مسکوک...",
+                                                        fontFamily = VazirmatnFamily,
+                                                        fontSize = 12.sp,
+                                                        color = colors.textMuted.copy(alpha = 0.55f),
+                                                        textAlign = TextAlign.Right,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                }
+                                                innerTextField()
+                                            }
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "تومان / هر قطعه",
+                                    fontFamily = VazirmatnFamily,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textMuted
+                                )
+                            }
+                        }
+
+                        // Hologram & Packaging Switch
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.surfaceElevated,
+                            border = BorderStroke(0.6.dp, colors.border.copy(alpha = 0.7f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "بسته‌بندی و هولوگرام معتبر بانکی",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.textMain,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "دارای شناسه اصالت و وکیوم رسمی اتحادیه",
+                                        fontSize = 10.sp,
+                                        color = colors.textSecondary,
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+                                Switch(
+                                    checked = hasHologram,
+                                    onCheckedChange = { hasHologram = it },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = colors.goldPrimary,
+                                        checkedTrackColor = colors.goldContainer
+                                    )
+                                )
+                            }
+                        }
+
+                        // Coin Valuation Summary Card
+                        val totalPayableCoin = quantityInt.toLong() * unitPriceLong
+                        val totalCoinWeight = quantityInt * selectedCoinType.totalWeightGrams
+                        val eq18kGrams = totalCoinWeight * (900.0 / 750.0)
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFF131722),
+                            border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "برآورد ارزش مسکوکات بانکی",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFFBBF24),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    Text(
+                                        text = "عیار ۹۰۰ (۲۱.۶ عیار)",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF94A3B8),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "ارزش کل موجودی (${PersianNumberFormatter.toPersianDigits(quantityInt.toString())} عدد):",
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        fontFamily = VazirmatnFamily
+                                    )
+                                    AnimatedPriceText(
+                                        amount = totalPayableCoin,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color(0xFFFBBF24),
+                                        unit = "تومان"
+                                    )
+                                }
+
+                                HorizontalDivider(
+                                    color = Color.White.copy(alpha = 0.1f),
+                                    thickness = 0.6.dp,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(text = "وزن کل مسکوکات:", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
+                                        Text(
+                                            text = "${PersianNumberFormatter.formatWeight(totalCoinWeight)} گرم",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(text = "معادل طلای ۱۸ عیار (۷۵۰):", fontSize = 9.5.sp, color = Color(0xFF94A3B8), fontFamily = VazirmatnFamily)
+                                        Text(
+                                            text = "${PersianNumberFormatter.formatWeight(eq18kGrams)} گرم",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF34D399),
+                                            fontFamily = VazirmatnFamily
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "معاملات مسکوکات رسمی بانک مرکزی بدون اجرت ساخت و معاف از مالیات بر ارزش‌افزوده می‌باشد.",
+                                    fontSize = 9.5.sp,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontFamily = VazirmatnFamily,
+                                    lineHeight = 15.sp
+                                )
+                            }
+                        }
+                    } else {
                     // Product Code & RFID Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1063,8 +1449,9 @@ fun AddInventoryItemModal(
                                 }
                             }
                         }
+                        }
                     }
-                }
+                    }
 
                 HorizontalDivider(color = colors.border.copy(alpha = 0.4f), thickness = 0.7.dp)
 
@@ -1094,22 +1481,25 @@ fun AddInventoryItemModal(
                         GoldButton(
                             text = "ذخیره و صدور اتیکت بارکد",
                             onClick = {
+                                val coinWeight = if (selectedCategory == InventoryCategory.COINS) selectedCoinType.totalWeightGrams else grossWeightDouble
                                 val item = InventoryItem(
                                     id = UUID.randomUUID().toString(),
                                     code = codeInput.ifBlank { generateCode(selectedCategory) },
                                     title = titleInput.trim(),
                                     category = selectedCategory,
                                     location = locationInput.ifBlank { "ویترین اصلی" },
-                                    grossWeightGrams = grossWeightDouble,
-                                    stoneWeightGrams = stoneWeightDouble,
-                                    karat = selectedKarat,
-                                    customKaratValue = effectiveKaratNum,
-                                    workshop = workshopInput.ifBlank { "کارگاه عمومی" },
-                                    wageType = wageType,
-                                    wageValue = wageDouble,
-                                    wagePercent = if (wageType == WageType.PERCENTAGE) wageDouble else 0.0,
-                                    profitPercent = profitPercent,
-                                    taxPercent = taxPercent,
+                                    grossWeightGrams = coinWeight,
+                                    stoneWeightGrams = if (selectedCategory == InventoryCategory.COINS) 0.0 else stoneWeightDouble,
+                                    karat = if (selectedCategory == InventoryCategory.COINS) Karat.K21 else selectedKarat,
+                                    customKaratValue = if (selectedCategory == InventoryCategory.COINS) 900 else effectiveKaratNum,
+                                    workshop = if (selectedCategory == InventoryCategory.COINS) {
+                                        if (hasHologram) "ضرب رسمی بانک مرکزی (هولوگرام‌دار)" else "بدون وکیوم"
+                                    } else workshopInput.ifBlank { "کارگاه عمومی" },
+                                    wageType = if (selectedCategory == InventoryCategory.COINS) WageType.PERCENTAGE else wageType,
+                                    wageValue = if (selectedCategory == InventoryCategory.COINS) 0.0 else wageDouble,
+                                    wagePercent = if (selectedCategory == InventoryCategory.COINS) 0.0 else (if (wageType == WageType.PERCENTAGE) wageDouble else 0.0),
+                                    profitPercent = if (selectedCategory == InventoryCategory.COINS) 0.0 else profitPercent,
+                                    taxPercent = if (selectedCategory == InventoryCategory.COINS) 0.0 else taxPercent,
                                     rfidTag = rfidInput,
                                     quantity = quantityInt
                                 )

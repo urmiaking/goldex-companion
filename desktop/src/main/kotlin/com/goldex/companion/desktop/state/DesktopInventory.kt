@@ -1,6 +1,7 @@
 package com.goldex.companion.desktop.state
 
 import com.goldex.companion.data.InventoryStore
+import com.goldex.companion.data.MarketRates
 import com.goldex.companion.desktop.data.DesktopDataStore
 import com.goldex.companion.desktop.data.InventoryOptions
 import com.goldex.companion.desktop.data.DesktopInventoryOptions
@@ -23,6 +24,7 @@ data class DesktopInventoryState(
     val movement: StockDraft? = null, val pendingDelete: InventoryItem? = null, val showHistory: Boolean = false,
     val saving: Boolean = false, val error: String? = null, val notice: String? = null, val discard: Boolean = false,
     val spot18: Long = 0,
+    val rates: MarketRates = MarketRates(),
     val options: InventoryOptions = InventoryOptions(),
     val draftCategoryId: String? = null,
     val filterCategoryId: String? = null
@@ -72,7 +74,7 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
             )
         }
     }
-    fun quote(spot: Long) { mutable.update { it.copy(spot18 = spot) } }
+    fun quote(spot: Long, marketRates: MarketRates? = null) { mutable.update { it.copy(spot18 = spot, rates = marketRates ?: it.rates) } }
     fun search(value: String) { mutable.update { it.copy(query = value) } }
     fun filter(value: InventoryCategory) { mutable.update { it.copy(category = value, filterCategoryId = null, selectedId = null) } }
     fun filterCustomCategory(id: String) { mutable.update { it.copy(category = InventoryCategory.MISC, filterCategoryId = id, selectedId = null) } }
@@ -87,15 +89,71 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
             mutable.update { it.copy(error = "کد عددی آزاد برای کالای جدید موجود نیست") }
             return
         }
-        mutable.update { it.copy(draft = draft, draftCategoryId = item?.id?.let(it.options.categoryIds::get), error = null, notice = null) }
+        val populatedDraft = if (draft.category == InventoryCategory.COINS && draft.unitPrice.isBlank()) {
+            val c = draft.coinType ?: CoinType.EMAMI
+            val price = state.value.rates.getCoinPrice(c)
+            if (price > 0L) draft.copy(unitPrice = price.toString()) else draft
+        } else draft
+        mutable.update { it.copy(draft = populatedDraft, draftCategoryId = item?.id?.let(it.options.categoryIds::get), error = null, notice = null) }
     }
     fun edit(change: (InventoryDraft) -> InventoryDraft) {
         if (!state.value.saving) mutable.update { current -> current.copy(draft = current.draft?.let(change)?.copy(errors = emptyMap())) }
     }
     fun category(value: InventoryCategory) {
         if (state.value.saving || state.value.draft?.let { it.category == value && state.value.draftCategoryId == null } != false) return
-        edit { it.copy(category = value, profit = when(value) { InventoryCategory.JEWELRY -> "20"; InventoryCategory.COINS -> "0"; else -> "7" }) }
+        val isCoin = value == InventoryCategory.COINS
+        val selectedCoin = if (isCoin) (state.value.draft?.coinType ?: CoinType.EMAMI) else null
+        val defaultCoinPrice = if (isCoin && selectedCoin != null) state.value.rates.getCoinPrice(selectedCoin).takeIf { it > 0 }?.toString().orEmpty() else ""
+        edit {
+            if (isCoin) {
+                val coin = selectedCoin ?: CoinType.EMAMI
+                it.copy(
+                    category = value,
+                    coinType = coin,
+                    title = if (it.title.isBlank() || CoinType.entries.any { c -> c.titleFa == it.title }) coin.titleFa else it.title,
+                    gross = it.gross.ifBlank { coin.totalWeightGrams.toString() },
+                    stone = "0",
+                    purity = "900",
+                    karat = Karat.K21,
+                    wage = "0",
+                    profit = "0",
+                    tax = "0",
+                    location = if (it.location == "ویترین اصلی") "گاوصندوق مسکوکات" else it.location,
+                    unitPrice = if (it.unitPrice.isBlank()) defaultCoinPrice else it.unitPrice
+                )
+            } else {
+                it.copy(
+                    category = value,
+                    coinType = null,
+                    profit = when (value) { InventoryCategory.JEWELRY -> "20"; else -> "7" },
+                    tax = "9",
+                    purity = if (it.purity == "900") "750" else it.purity,
+                    karat = if (it.karat == Karat.K21 && it.purity == "900") Karat.K18 else it.karat,
+                    wage = if (it.wage == "0") "10" else it.wage
+                )
+            }
+        }
         mutable.update { it.copy(draftCategoryId = null) }
+    }
+    fun coinType(coin: CoinType) {
+        if (state.value.saving || state.value.draft == null) return
+        val liveRate = state.value.rates.getCoinPrice(coin)
+        val rateStr = if (liveRate > 0) liveRate.toString() else ""
+        edit {
+            it.copy(
+                category = InventoryCategory.COINS,
+                coinType = coin,
+                title = coin.titleFa,
+                gross = coin.totalWeightGrams.toString(),
+                stone = "0",
+                purity = "900",
+                karat = Karat.K21,
+                wage = "0",
+                profit = "0",
+                tax = "0",
+                unitPrice = rateStr
+            )
+        }
     }
     fun customCategory(id: String) {
         if (state.value.saving || state.value.draft == null || state.value.options.categories.none { it.id == id }) return

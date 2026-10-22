@@ -1,6 +1,7 @@
 package com.goldex.companion.presentation.inventory
 
 import com.goldex.companion.model.*
+import com.goldex.companion.data.MarketRates
 import kotlin.test.*
 
 class InventoryFormTest {
@@ -54,5 +55,48 @@ class InventoryFormTest {
     @Test fun invalidDraftOrMissingQuoteHasNoPrice() {
         assertNull(InventoryForm.preview(valid().copy(stone = "9"), 6_000_000))
         assertNull(InventoryForm.preview(valid(), 0))
+    }
+    @Test fun coinRegistrationValidatesAndConvertsAccurately() {
+        val coinDraft = InventoryDraft(
+            code = "COIN-EMAMI-01",
+            title = CoinType.EMAMI.titleFa,
+            category = InventoryCategory.COINS,
+            gross = "8.136",
+            stone = "",
+            wage = "",
+            profit = "",
+            tax = "",
+            purity = "900",
+            quantity = "5",
+            coinType = CoinType.EMAMI,
+            hasHologram = true
+        )
+        assertTrue(InventoryForm.validate(coinDraft).isEmpty())
+        val item = InventoryForm.toItem(coinDraft)
+        assertEquals("COIN-EMAMI-01", item.code)
+        assertEquals(CoinType.EMAMI.titleFa, item.title)
+        assertEquals(InventoryCategory.COINS, item.category)
+        assertEquals(8.136, item.grossWeightGrams)
+        assertEquals(0.0, item.stoneWeightGrams)
+        assertEquals(900, item.customKaratValue)
+        assertEquals(0.0, item.wageValue)
+        assertEquals(0.0, item.profitPercent)
+        assertEquals(0.0, item.taxPercent)
+        assertEquals(5, item.quantity)
+        assertEquals(8.136 * (900.0 / 750.0), item.weightIn18kGrams, 0.0001)
+
+        val reconstructedDraft = InventoryForm.from(item)
+        assertEquals(CoinType.EMAMI, reconstructedDraft.coinType)
+        assertTrue(reconstructedDraft.hasHologram)
+        val roundtripItem = InventoryForm.toItem(reconstructedDraft)
+        assertEquals(item.code, roundtripItem.code)
+        assertEquals(item.title, roundtripItem.title)
+        assertEquals(item.grossWeightGrams, roundtripItem.grossWeightGrams)
+        assertEquals(item.customKaratValue, roundtripItem.customKaratValue)
+        assertEquals(item.quantity, roundtripItem.quantity)
+
+        val rates = MarketRates(coinEmami = 54_000_000L, coinHalf = 28_000_000L)
+        assertEquals(54_000_000L, rates.getCoinPrice(CoinType.EMAMI))
+        assertEquals(28_000_000L, rates.getCoinPrice(CoinType.HALF))
     }
 }

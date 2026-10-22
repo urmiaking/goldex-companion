@@ -74,6 +74,7 @@ fun DesktopOnboardingWizardScreen(
 
     var inventoryState by remember { mutableStateOf(OpeningInventoryInput()) }
     var licenseState by remember { mutableStateOf(DesktopWizardLicenseState()) }
+    var isOnlineSync by remember { mutableStateOf(workspace.cloud.state.value.enabled) }
     var isSubmitting by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -103,6 +104,7 @@ fun DesktopOnboardingWizardScreen(
                 // Submit final onboarding
                 isSubmitting = true
                 coroutineScope.launch {
+                    workspace.cloud.setEnabled(isOnlineSync)
                     try {
                         if (licenseState.choice == DesktopWizardLicenseChoice.CODE && licenseState.licenseCode.isNotBlank()) {
                             val codeResult = workspace.license.activateCode(licenseState.licenseCode)
@@ -245,7 +247,9 @@ fun DesktopOnboardingWizardScreen(
                                     licenseState = licenseState,
                                     onLicenseChange = { licenseState = it },
                                     currentSpotPrice = currentSpotPrice,
-                                    onNavigateToStep = { targetStep -> currentStep = targetStep }
+                                    onNavigateToStep = { targetStep -> currentStep = targetStep },
+                                    isOnlineSync = isOnlineSync,
+                                    onOnlineSyncChange = { isOnlineSync = it }
                                 )
                             }
                         }

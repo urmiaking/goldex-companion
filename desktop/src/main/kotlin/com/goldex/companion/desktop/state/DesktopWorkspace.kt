@@ -82,12 +82,36 @@ class DesktopWorkspace(
     private val preferences: SettingsStore = storage
     val calculator = ManualGoldCalculator(preferences.loadSettings())
     val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
-    val customers = com.goldex.companion.desktop.customers.DesktopCustomers(storage, scope) {
+    val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
+    val showCloudOtpDialog = MutableStateFlow(false)
+    val showLicenseDialog = MutableStateFlow(false)
+    fun openCloudOtp() { showCloudOtpDialog.value = true }
+    fun closeCloudOtp() { showCloudOtpDialog.value = false }
+    fun openLicenseDialog(message: String? = null) {
+        if (message != null) {
+            mutable.update { it.copy(notice = message) }
+        }
+        showLicenseDialog.value = true
+    }
+    fun closeLicenseDialog() { showLicenseDialog.value = false }
+    fun notify(message: String) { mutable.update { it.copy(notice = message) } }
+
+    val customers = com.goldex.companion.desktop.customers.DesktopCustomers(
+        storage = storage,
+        scope = scope,
+        isLicensed = { license.getCachedInfo().isLicensed },
+        onLicenseRequired = { openLicenseDialog(it) }
+    ) {
         market.snapshot.value?.rates ?: DesktopMarketRepository.emptyRates()
     }
-    val invoices = DesktopInvoices(customers, scope, preferences::loadSettings) { market.snapshot.value?.rates?.gold18 ?: 0L }
+    val invoices = DesktopInvoices(
+        customers = customers,
+        scope = scope,
+        settings = preferences::loadSettings,
+        isLicensed = { license.getCachedInfo().isLicensed },
+        onLicenseRequired = { openLicenseDialog(it) }
+    ) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
-    val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
     val cloud = com.goldex.companion.desktop.sync.DesktopSyncCoordinator(
         storage = storage,
         licenseStore = license,
@@ -111,7 +135,7 @@ class DesktopWorkspace(
         scope.launch { connectivity.status.collect { connection -> mutable.update { it.copy(connection = connection) } } }
         scope.launch {
             market.snapshot.collect { quote ->
-                inventory.quote(quote?.rates?.gold18 ?: 0)
+                inventory.quote(quote?.rates?.gold18 ?: 0, quote?.rates)
                 calculatorRates.updateQuote(quote)
                 mutable.update { it.copy(snapshot = quote, assets = DesktopPortfolioPolicy.project(portfolio.getItems(), quote?.rates), now = System.currentTimeMillis()) }
             }
@@ -167,11 +191,19 @@ class DesktopWorkspace(
         if (destination == DesktopDestination.REPORTING) reporting.loadData()
     }
     fun openCustomerInvoice(customer: Customer) {
+        if (!license.getCachedInfo().isLicensed) {
+            openLicenseDialog("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+            return
+        }
         navigate(DesktopDestination.INVOICES)
         if (invoices.hasDraft) invoices.manager.reportMessage("پیش‌نویس فاکتور باز است؛ ابتدا آن را ذخیره کنید")
         else invoices.newInvoice(customer)
     }
     fun openCalculatorInvoice() {
+        if (!license.getCachedInfo().isLicensed) {
+            openLicenseDialog("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+            return
+        }
         if (invoices.hasDraft || invoices.hasDialog || invoices.saving) {
             navigate(DesktopDestination.INVOICES)
             invoices.manager.reportMessage("پیش‌نویس فاکتور باز است؛ ابتدا آن را ذخیره کنید")

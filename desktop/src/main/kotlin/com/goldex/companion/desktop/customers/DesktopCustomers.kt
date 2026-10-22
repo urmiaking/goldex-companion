@@ -24,7 +24,15 @@ internal val HubArrowRight: ImageVector = ImageVector.Builder("HubArrowRight", 2
 }.build()
 
 /** Windows composition root for the Android customer workflows, using the shared money policies. */
-class DesktopCustomers(storage: DesktopDataStore, scope: CoroutineScope, marketQuote: () -> MarketRates) {
+class DesktopCustomers(
+    storage: DesktopDataStore,
+    scope: CoroutineScope,
+    val isLicensed: () -> Boolean = { true },
+    val onLicenseRequired: (String) -> Unit = {},
+    marketQuote: () -> MarketRates
+) {
+    constructor(storage: DesktopDataStore, scope: CoroutineScope, marketQuote: () -> MarketRates) :
+        this(storage, scope, { true }, {}, marketQuote)
     val repository = DesktopCustomerStore(storage)
     val invoices = DesktopCustomerInvoiceStore(storage, repository)
     val manager = CustomerManagerViewModel(repository, repository, invoices, scope)
@@ -35,6 +43,10 @@ class DesktopCustomers(storage: DesktopDataStore, scope: CoroutineScope, marketQ
         isAddCustomerDialogVisible || isCustomerManagerVisible || isAddLedgerEntryModalVisible || editingCustomer != null || pendingDeleteCustomer != null || settlement.state.value.customer != null
     }
     fun openPayment(customer: Customer) {
+        if (!isLicensed()) {
+            onLicenseRequired("ثبت پرداخت تسویه نیازمند اشتراک معتبر است.")
+            return
+        }
         if (abs(customer.goldDebtGrams) > 1e-10 || customer.cashDebtTomans != 0L) settlement.open(customer)
         else manager.openAddLedgerEntry(customer)
     }

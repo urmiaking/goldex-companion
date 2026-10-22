@@ -205,4 +205,24 @@ class DesktopLicenseAndCloudTest {
         }
         assertTrue(found, "Remote customer should be loaded in workspace after sync")
     }
+
+    @Test
+    fun unlicensedStateLocksInvoiceAndPaymentFeatures() {
+        val customer = com.goldex.companion.model.Customer(id = "c_unlicensed", name = "تست لایسنس")
+        assertFalse(workspace.license.getCachedInfo().isLicensed)
+
+        // Attempting to open invoice for customer while unlicensed
+        workspace.openCustomerInvoice(customer)
+        assertTrue(workspace.showLicenseDialog.value)
+        assertEquals("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.", workspace.state.value.notice)
+        assertFalse(workspace.invoices.hasDraft)
+
+        workspace.closeLicenseDialog()
+        assertFalse(workspace.showLicenseDialog.value)
+
+        // Attempting to open payment while unlicensed
+        workspace.customers.openPayment(customer)
+        assertTrue(workspace.showLicenseDialog.value)
+        assertEquals("ثبت پرداخت تسویه نیازمند اشتراک معتبر است.", workspace.state.value.notice)
+    }
 }

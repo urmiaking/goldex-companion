@@ -1,5 +1,6 @@
 package com.goldex.companion.data
 
+import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.MarketRateItemType
 
 enum class PriceSource(val labelFa: String) {
@@ -22,7 +23,15 @@ data class MarketRates(
     val lastUpdated: String = "--:--:--",
     val source: PriceSource = PriceSource.ISIGNAL,
     val isLive: Boolean = true
-)
+) {
+    fun getCoinPrice(coinType: CoinType): Long = when (coinType) {
+        CoinType.EMAMI -> coinEmami
+        CoinType.BAHAR -> coinBahar
+        CoinType.HALF -> coinHalf
+        CoinType.QUARTER -> coinQuarter
+        CoinType.GERAMI -> coinGerami
+    }
+}
 
 data class MarketRateItemSummary(
     val type: MarketRateItemType,

@@ -123,10 +123,22 @@ import kotlin.math.abs
     }
     DesktopDialogHost(state.takeIf { it.isAddLedgerEntryModalVisible && it.ledgerEntryTargetCustomer != null }, modal = true) { displayed ->
         AddLedgerEntryModal(customer = displayed.ledgerEntryTargetCustomer!!, editingTransaction = displayed.editingLedgerTransaction,
-            onDismiss = { if (!feature.saving) manager.closeAddLedgerEntry() }, onSaveEntry = { manager.saveLedgerEntry(it) },
+            onDismiss = { if (!feature.saving) manager.closeAddLedgerEntry() }, onSaveEntry = {
+                if (!feature.isLicensed()) {
+                    feature.onLicenseRequired("ثبت سند در دفتر معین نیازمند اشتراک معتبر است.")
+                } else {
+                    manager.saveLedgerEntry(it)
+                }
+            },
             isSaving = displayed.isSaving, error = displayed.error)
     }
     DesktopDialogHost(settlement.takeIf { it.customer != null }, modal = true) { displayed -> CustomerSettlementModal(displayed, feature.settlement,
-        onConfirm = { feature.settlement.confirm { manager.refreshAfterSettlement(); onSettlementComplete() } },
+        onConfirm = {
+            if (!feature.isLicensed()) {
+                feature.onLicenseRequired("ثبت تسویه نیازمند اشتراک معتبر است.")
+            } else {
+                feature.settlement.confirm { manager.refreshAfterSettlement(); onSettlementComplete() }
+            }
+        },
         onIndependentEntry = { val customer = displayed.customer; feature.settlement.close(); customer?.let(manager::openAddLedgerEntry) }) }
 }
