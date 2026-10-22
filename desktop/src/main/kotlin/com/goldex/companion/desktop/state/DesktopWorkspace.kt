@@ -71,7 +71,8 @@ class DesktopWorkspace(
     ratesBoardGateway: DesktopRatesBoardGateway = DesktopRatesBoardRepository(storage.directory),
     rateHistoryGateway: DesktopRateHistoryGateway = DesktopRateHistoryRepository(storage.directory),
     private val waitForNextTick: suspend (Long) -> Unit = { delay(it) },
-    initialWizardOpen: Boolean? = null
+    initialWizardOpen: Boolean? = null,
+    isLicensedOverride: (() -> Boolean)? = null
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
@@ -83,6 +84,7 @@ class DesktopWorkspace(
     val calculator = ManualGoldCalculator(preferences.loadSettings())
     val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
     val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
+    val isLicensed: () -> Boolean = isLicensedOverride ?: { license.getCachedInfo().isLicensed }
     val showCloudOtpDialog = MutableStateFlow(false)
     val showLicenseDialog = MutableStateFlow(false)
     fun openCloudOtp() { showCloudOtpDialog.value = true }
@@ -99,7 +101,7 @@ class DesktopWorkspace(
     val customers = com.goldex.companion.desktop.customers.DesktopCustomers(
         storage = storage,
         scope = scope,
-        isLicensed = { license.getCachedInfo().isLicensed },
+        isLicensed = isLicensed,
         onLicenseRequired = { openLicenseDialog(it) }
     ) {
         market.snapshot.value?.rates ?: DesktopMarketRepository.emptyRates()
@@ -108,7 +110,7 @@ class DesktopWorkspace(
         customers = customers,
         scope = scope,
         settings = preferences::loadSettings,
-        isLicensed = { license.getCachedInfo().isLicensed },
+        isLicensed = isLicensed,
         onLicenseRequired = { openLicenseDialog(it) }
     ) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
@@ -191,7 +193,7 @@ class DesktopWorkspace(
         if (destination == DesktopDestination.REPORTING) reporting.loadData()
     }
     fun openCustomerInvoice(customer: Customer) {
-        if (!license.getCachedInfo().isLicensed) {
+        if (!isLicensed()) {
             openLicenseDialog("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
             return
         }
@@ -200,7 +202,7 @@ class DesktopWorkspace(
         else invoices.newInvoice(customer)
     }
     fun openCalculatorInvoice() {
-        if (!license.getCachedInfo().isLicensed) {
+        if (!isLicensed()) {
             openLicenseDialog("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
             return
         }

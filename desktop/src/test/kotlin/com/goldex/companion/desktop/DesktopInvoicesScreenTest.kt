@@ -27,7 +27,7 @@ class DesktopInvoicesScreenTest {
             SaveBarterInvoiceUseCase(DesktopCustomerInvoiceStore(store, customers), customers, customers)
                 .save(BarterInvoice(id = "synthetic-invoice", invoiceNumber = "14051234", customer = customer,
                     spotPrice18k = 6_000_000, debtBasis = InvoiceDebtBasis.CASH, salesItems = listOf(item())))
-            val workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }))
+            val workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }), isLicensedOverride = { true })
             try { action(workspace) } finally { workspace.close() }
         }
     }

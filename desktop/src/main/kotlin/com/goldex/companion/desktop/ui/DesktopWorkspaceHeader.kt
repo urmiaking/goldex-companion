@@ -108,7 +108,7 @@ internal fun workspaceDate(now: Long): String {
                         border = colors.hairlineBorder,
                         modifier = Modifier
                             .height(WorkspaceControlHeight)
-                            .testTag("connection-chip")
+                            .testTag("cloud-sync-chip")
                             .then(if (onCloudClick != null) Modifier.clickable(onClick = onCloudClick) else Modifier)
                     ) {
                         Row(
@@ -120,16 +120,15 @@ internal fun workspaceDate(now: Long): String {
                             Text(label, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                         }
                     }
-                } else {
-                    val online = state.connection == ConnectionStatus.ONLINE
-                    val statusColor = if (online) colors.marketGainText else colors.textMuted
-                    Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,
-                        modifier = Modifier.height(WorkspaceControlHeight).testTag("connection-chip")) {
-                        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                            Box(Modifier.size(6.dp).background(statusColor, CircleShape))
-                            Text(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        }
+                }
+                val online = state.connection == ConnectionStatus.ONLINE
+                val statusColor = if (online) colors.marketGainText else colors.textMuted
+                Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,
+                    modifier = Modifier.height(WorkspaceControlHeight).testTag("connection-chip")) {
+                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Box(Modifier.size(6.dp).background(statusColor, CircleShape))
+                        Text(if (online) "آنلاین" else "آفلاین", color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
                 }
                 Surface(shape = WorkspaceControlShape, color = colors.surfaceElevated, border = colors.hairlineBorder,

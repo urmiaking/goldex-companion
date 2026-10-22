@@ -23,7 +23,7 @@ class DesktopCustomersScreenTest {
     private lateinit var workspace: DesktopWorkspace
     @Before fun setup() {
         store = DesktopDataStore(temporary.newFolder().toPath())
-        workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }))
+        workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }), isLicensedOverride = { true })
     }
     @After fun cleanup() { workspace.close(); store.close() }
     private fun render() = compose.setContent {
