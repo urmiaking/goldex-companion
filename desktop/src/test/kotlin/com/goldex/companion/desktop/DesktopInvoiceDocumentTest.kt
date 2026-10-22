@@ -45,4 +45,102 @@ class DesktopInvoiceDocumentTest {
         assertFails { DesktopInvoiceDocuments.save(invoice(1), AppSettings(invoiceLogoUri = path.resolveSibling("missing.png").toString()), path) }
         assertContentEquals(original, Files.readAllBytes(path))
     }
+
+    private fun screenshot(name: String, image: java.awt.image.BufferedImage) {
+        val path = java.io.File(System.getProperty("qirato.screenshotDir"), "$name.png")
+        path.parentFile.mkdirs()
+        ImageIO.write(image, "png", path)
+    }
+
+    @Test fun summaryAndSellerSignatureAppearOnlyOnTheFinalPage() {
+        val signature = java.awt.image.BufferedImage(180, 60, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        signature.createGraphics().let { g ->
+            try { g.color = java.awt.Color.BLACK; g.stroke = java.awt.BasicStroke(8f); g.drawLine(10, 45, 170, 15) }
+            finally { g.dispose() }
+        }
+        val asset = temporary.newFile("signature.png")
+        ImageIO.write(signature, "png", asset); signature.flush()
+        val settings = AppSettings(galleryName = "گالری طلای آزمون", managerName = "مدیر آزمون",
+            unionCode = "۱۲۳۴", invoiceSignatureUri = asset.toURI().toString())
+        val pages = DesktopInvoiceDocuments.render(invoice(9), settings)
+        val unsigned = DesktopInvoiceDocuments.render(invoice(9), settings.copy(invoiceSignatureUri = ""))
+        try {
+            assertEquals(3, pages.size)
+            assertEquals(0xFFFFFEFA.toInt(), pages.first().getRGB(1120, 740), "Continuation pages have no payable summary")
+            assertEquals(0xFFFFF0B8.toInt(), pages.last().getRGB(1120, 740), "Last page contains the Android golden total")
+            pages.indices.forEach { index ->
+                var changed = 0
+                for (y in 700 until 748) for (x in 110 until 270) {
+                    if (pages[index].getRGB(x, y) != unsigned[index].getRGB(x, y)) changed++
+                }
+                if (index < pages.lastIndex) assertEquals(0, changed)
+                else assertTrue(changed > 20, "Signature adds visible ink in the seller approval area")
+                screenshot("invoice-parity-page-${index + 1}", pages[index])
+            }
+        } finally { (pages + unsigned).forEach { it.flush() } }
+    }
+
+    @Test fun stoneDeductionAndReceivedItemAreVisibleInTheOfficialTable() {
+        val crafted = CraftedGoldItem(id = "crafted", title = "دستبند طلای نگین‌دار", grossWeight = 3.456,
+            stoneWeight = .123, netWeight = 3.333, spotPrice = 6_000_000, wageInput = 10.0, wageAmount = 1_999_800.0,
+            profitPercent = 7.0, profitAmount = 1_539_846.0, taxPercent = 10.0, taxAmount = 353_964.6,
+            rawGoldValue = 19_998_000.0, totalPayable = 23_891_610.6, equivalent18kWeight = 3.333)
+        val received = ScrapGoldItem(id = "received", title = "طلای مستعمل مشتری", grossWeight = 1.125, stoneWeight = .125,
+            netWeight = 1.0, spotPrice = 6_000_000, effectiveGramPrice = 5_880_000,
+            totalPayable = 5_880_000.0, equivalent18kWeight = .98)
+        val sample = invoice(0).copy(salesItems = listOf(crafted), receivedItems = listOf(received),
+            note = "توضیحات آزمایشی خرید و تهاتر", createdAt = 1_792_576_800_000)
+        val settings = AppSettings(galleryName = "طلا و جواهر قیراط", managerName = "مدیر گالری", unionCode = "123456",
+            galleryPhone = "02112345678", galleryAddress = "تهران، خیابان نمونه، پلاک ۱۲")
+        val page = DesktopInvoiceDocuments.render(sample, settings).single()
+        val changed = DesktopInvoiceDocuments.render(sample.copy(salesItems = listOf(crafted.copy(stoneWeight = .987))), settings).single()
+        try {
+            val stoneCellChanged = (366 until 402).any { y -> (450 until 536).any { x -> page.getRGB(x, y) != changed.getRGB(x, y) } }
+            assertTrue(stoneCellChanged, "Stone deduction must be printed, not silently omitted")
+            assertEquals(0xFFFFF1F0.toInt(), page.getRGB(80, 447), "Received rows use the Android red-tinted background")
+            assertEquals(0xFFFFFFFF.toInt(), page.getRGB(80, 397), "Sale rows remain distinct from receipts")
+            screenshot("invoice-android-layout", page)
+        } finally { page.flush(); changed.flush() }
+    }
+
+    @Test fun logoAndStampKeepAspectRatioAndDoNotReplaceTheSellerSignature() {
+        fun asset(name: String, width: Int, height: Int, color: java.awt.Color): String {
+            val image = java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB)
+            val g = image.createGraphics()
+            try { g.color = color; g.fillRect(0, 0, width, height) } finally { g.dispose() }
+            val file = temporary.newFile(name)
+            ImageIO.write(image, "png", file); image.flush()
+            return file.toURI().toString()
+        }
+        val page = DesktopInvoiceDocuments.render(invoice(1), AppSettings(
+            invoiceLogoUri = asset("logo.png", 300, 100, java.awt.Color.BLUE),
+            invoiceStampUri = asset("stamp.png", 100, 100, java.awt.Color.RED),
+            invoiceSignatureUri = asset("seller.png", 300, 100, java.awt.Color.GREEN))).single()
+        try {
+            assertEquals(java.awt.Color.BLUE.rgb, page.getRGB(1085, 89))
+            assertEquals(java.awt.Color.WHITE.rgb, page.getRGB(1085, 60), "Wide logo is centered without stretching")
+            assertEquals(java.awt.Color.RED.rgb, page.getRGB(117, 722))
+            assertEquals(java.awt.Color.GREEN.rgb, page.getRGB(232, 718))
+            screenshot("invoice-brand-assets", page)
+        } finally { page.flush() }
+    }
+
+    @Test fun emptyAndLongMixedDirectionFieldsStayInsideThePaper() {
+        val settings = AppSettings(galleryName = "گالری آزمایشی ABC 123 ".repeat(30), managerName = "نام مدیر ".repeat(40),
+            galleryAddress = "نشانی واحد صنفی ".repeat(100), unionCode = "1234567890")
+        val sample = invoice(1).copy(customer = Customer(name = "مشتری نمونه ".repeat(40), phone = "09123456789"),
+            salesItems = listOf((invoice(1).salesItems.single() as BankCoinItem).copy(title = "سکه امامی 1405 ABC ".repeat(40))),
+            note = "توضیحات آزمایشی ".repeat(60))
+        for ((name, fixture) in listOf("empty" to invoice(0), "long-fields" to sample)) {
+            val page = DesktopInvoiceDocuments.render(fixture, settings).single()
+            try {
+                assertEquals(1190, page.width); assertEquals(840, page.height)
+                for (y in 0 until page.height) for (x in listOf(0, 20, 1189)) {
+                    assertEquals(0xFFFFFEFA.toInt(), page.getRGB(x, y), "Text must remain inside document margins")
+                }
+                screenshot("invoice-$name", page)
+            } finally { page.flush() }
+        }
+    }
+
 }
