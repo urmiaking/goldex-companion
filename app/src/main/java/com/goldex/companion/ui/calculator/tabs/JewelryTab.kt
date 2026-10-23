@@ -46,6 +46,7 @@ import com.goldex.companion.model.WageType
 import com.goldex.companion.ui.calculator.*
 import com.goldex.companion.ui.components.AnimatedPriceText
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.components.InlineCustomKaratChip
 import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldInputField
 import com.goldex.companion.ui.components.LuxurySegmentedControl
@@ -56,76 +57,7 @@ import com.goldex.companion.ui.theme.goldButtonGradient
 import com.goldex.companion.ui.theme.goldButtonText
 import com.goldex.companion.ui.theme.heroCardGradient
 
-@Composable
-private fun InlineCustomKaratChip(
-    value: String,
-    onValueChange: (String) -> Unit,
-    isSelected: Boolean,
-    onSelect: () -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = "سفارشی"
-) {
-    val colors = LocalGoldExColors.current
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) colors.goldContainer.copy(alpha = 0.5f) else colors.surfaceElevated,
-        border = BorderStroke(if (isSelected) 1.2.dp else 0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
-        modifier = modifier
-            .height(36.dp)
-            .clickable { onSelect() }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            BasicTextField(
-                value = PersianNumberFormatter.toPersianDigits(value),
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() || ch in '\u06F0'..'\u06F9' }
-                    val clean = PersianNumberFormatter.toEnglishDigits(filtered)
-                    onValueChange(clean)
-                    onSelect()
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                textStyle = TextStyle(
-                    fontFamily = VazirmatnFamily,
-                    fontFeatureSettings = VazirmatnFeatureSettings,
-                    fontSize = 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    color = if (isSelected) colors.goldPrimary else colors.textMain,
-                    textDirection = TextDirection.Ltr
-                ),
-                cursorBrush = SolidColor(colors.goldPrimary),
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (value.isEmpty()) {
-                            Text(
-                                text = placeholder,
-                                fontSize = 10.5.sp,
-                                color = colors.textMuted,
-                                fontFamily = VazirmatnFamily,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
-        }
-    }
-}
 
-/**
- * Pixel-perfect Jewelry Calculator Tab adhering strictly to Google Stitch
- * Design Screen ID: 5e8f08bf3eea421a888f20d95c28262c and user reference.
- */
 @Composable
 fun JewelryTab(
     viewModel: JewelryActions,

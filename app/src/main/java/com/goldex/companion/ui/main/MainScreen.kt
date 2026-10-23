@@ -141,6 +141,7 @@ fun MainScreen(
     val settingsState by settingsViewModel.uiState.collectAsState()
     val updateState by updateViewModel.uiState.collectAsState()
     val karatConvertUiState by karatConvertViewModel.uiState.collectAsState()
+    LaunchedEffect(mainUiState.rates.gold18) { karatConvertViewModel.onSpotPriceChanged(mainUiState.rates.gold18) }
     val barterUiState by barterInvoiceViewModel.uiState.collectAsState()
     val licenseUiState by licenseViewModel.uiState.collectAsState()
     val inventoryState by inventoryViewModel.uiState.collectAsState()
@@ -854,35 +855,29 @@ fun MainScreen(
                     onConvertWeightChanged = karatConvertViewModel::onConvertWeightChanged,
                     onConvertFromKarat = karatConvertViewModel::onConvertFromKarat,
                     onConvertToKarat = karatConvertViewModel::onConvertToKarat,
+                    onCustomFromKaratChanged = karatConvertViewModel::onCustomFromKaratChanged,
+                    onCustomToKaratChanged = karatConvertViewModel::onCustomToKaratChanged,
+                    onSelectCustomFromKarat = karatConvertViewModel::selectCustomFromKarat,
+                    onSelectCustomToKarat = karatConvertViewModel::selectCustomToKarat,
                     onSwapConvertKarats = karatConvertViewModel::swapConvertKarats,
                     onSetConvertMode = karatConvertViewModel::setConvertMode,
                     onAssayKaratChanged = karatConvertViewModel::onAssayKaratChanged,
                     onAgreedKaratChanged = karatConvertViewModel::onAgreedKaratChanged,
                     onTransferToInvoice = {
-                        val currentSpot = GoldCalculationUseCases.toSpotPrice18k(
-                            PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
-                            mainUiState.priceBasisTab
-                        ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-
+                        val currentSpot = if (barterUiState.subScreen != InvoicesSubScreen.LIST) {
+                            barterUiState.invoice.spotPrice18k
+                        } else {
+                            mainUiState.rates.gold18
+                        }
+                        val barterItem = karatConvertViewModel.createInvoiceItem(currentSpot)
+                        if (barterItem == null) {
+                            QiratoToast.show(context, "وزن، عیار و نرخ معتبر لازم است")
+                            return@KaratConvertScreen
+                        }
                         if (barterUiState.subScreen == InvoicesSubScreen.LIST) {
                             barterInvoiceViewModel.openNewInvoice(currentSpot)
                         }
-
-                        val eq18k = karatConvertUiState.convertedWeight
-                        val barterItem = BarterCalculationUseCases.calculateCraftedItem(
-                            title = "طلای تبدیل عیار (${karatConvertUiState.convertFromKarat.karatNumber} به ${karatConvertUiState.convertToKarat.karatNumber})",
-                            karat = Karat.K18,
-                            customKaratValue = 750,
-                            grossWeight = eq18k,
-                            stoneWeight = 0.0,
-                            spotPrice18k = currentSpot,
-                            wageType = WageType.PERCENTAGE,
-                            wageInput = 0.0,
-                            profitPercent = 0.0,
-                            taxPercent = 0.0
-                        )
                         barterInvoiceViewModel.addSalesItem(barterItem)
-                        mainViewModel.addItemToInvoice()
                         mainViewModel.setKaratConvertVisible(false)
                         mainViewModel.selectTab(AppTab.INVOICES)
                         QiratoToast.show(context, "قطعه به سبد فاکتور افزوده شد ✓")
@@ -979,7 +974,6 @@ fun MainScreen(
                     uiState = barterUiState,
                     marketRates = marketRates,
                     customerList = customerState.customerList,
-                    onSetCustomerRole = barterInvoiceViewModel::setCustomerRole,
                     onSetDebtBasis = barterInvoiceViewModel::setDebtBasis,
                     onOpenDatedSettlement = {
                         val inv = barterUiState.invoice

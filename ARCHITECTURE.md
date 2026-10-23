@@ -47,7 +47,7 @@ Feature ViewModels & State Holders:
   -> PortfolioManagerViewModel (PortfolioStore)
   -> SettingsViewModel (SettingsStore)
   -> UpdateViewModel (AppUpdateChecker)
-  -> KaratConvertViewModel (GoldCalculationUseCases)
+  -> KaratConvertViewModel (KaratConversionPolicy)
   -> MainViewModel (market/cache/source/connectivity ports, SettingsStore, injected work dispatcher)
   -> LicenseViewModel (LicenseStore)
   -> CloudSyncViewModel (Android SyncCoordinator)
@@ -325,7 +325,8 @@ Use an Architecture Decision Record for decisions involving persistence, money r
 - `DashboardScreen` consumes `DashboardUiState` instead of the global ViewModel.
 - `LiveRatesScreen` consumes `MarketRatesUiState` instead of the aggregate calculator state.
 - `PortfolioTab` receives explicit mutation callbacks and items/rates, decoupled from ViewModels.
-- Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`.
+- Karat conversion owns its input and event state in `ui/calculator/KaratConvertViewModel.kt`. Android's full-screen converter consumes this state only; `core/domain/calculator/KaratConversionPolicy.kt` validates custom fineness, computes target/pure/750-equivalent weights and conditional assay deltas. Inputs 1–24 use the jewelry calculator convention (rounded thousandths), 25–1000 are literal thousandths; 24 is 1000, 999 remains distinct. Assay cash differences use signed decimal `SettlementArithmetic.assayDifferenceToTomans` with HALF_UP whole-toman rounding, independent of the agreed fineness. Missing/invalid fields have no output; unavailable rates/overflow have no cash value. Invoice transfer always uses the actual 750-equivalent gold content, never destination-weight relabeled as 750, and never mutates the jewelry calculator cart. `InlineCustomKaratChip` is shared by the Android jewelry form and converter, with a 48dp converter touch target.
+- Android's new-customer form omits the role selector while retaining its previous retail default. The invoice editor presents only contractual debt basis; legacy role fields and null-basis historical behavior remain unchanged. Archive dates derive from the stored `createdAt` in the Persian calendar. More-page management destinations have icon/title headers without static status chips, and reflow to one column for phone widths/large text.
 - Customer, portfolio, and invoice JSON compatibility is centralized in `data/PersistenceJsonCodecs.kt` and covered by pure compatibility tests.
 - Independent feature ViewModels (`CustomerManagerViewModel`, `InvoiceManagerViewModel`, `PortfolioManagerViewModel`, `SettingsViewModel`, `UpdateViewModel`, `KaratConvertViewModel`) are fully wired into the UI and coordinate directly with dialogs and preview cards.
 - The root composition shell lives in `MainViewModel` and `MainScreen`. MainViewModel retains shell/market/calculator state; it is a migration seam rather than a claim that all feature state has been separated.
