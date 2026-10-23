@@ -43,7 +43,7 @@ import com.goldex.companion.ui.theme.LocalGoldExColors
  * Replaces the obsolete Navigation Drawer with an ergonomic, luxury Persian Sovereign Aurum hub:
  * 1. Jeweler Profile & Guild Hero Card with Live Union Accreditation Badge
  * 2. Quick Metrics Ribbon (Active Counterparties, Bullion Inventory, License Validity)
- * 3. 2x2 Specialized Operations Grid (Ledger, Melt Lab, Workshop Orders, Vault Inventory)
+ * 3. Adaptive Specialized Operations Grid (Ledger, Melt Lab, Workshop Orders, Vault Inventory)
  * 4. Supplementary Calculation Tools Group (Karat Conversion, Coin Bubble, Cloud Backup)
  * 5. Union Settings & Invoice Configuration Group (VAT/Profit margin, Official Letterhead, Biometrics)
  * 6. Official Guild Support & Industry Formula Reference Group
@@ -364,75 +364,10 @@ fun MoreHubScreen(
                     fontWeight = FontWeight.Bold,
                     color = colors.textSecondary
                 )
-                Text(
-                    text = "۴ سامانه فعال",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.goldPrimary
-                )
+
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Card 1: دفتر حساب و معین
-                ManagementGridCard(
-                    title = "دفتر حساب و معین",
-                    subtitle = "بدهکاران، بستانکاران و مانده‌ها",
-                    badgeText = "۴ مانده‌دار",
-                    badgeColor = colors.errorRed,
-                    icon = HubMenuBook,
-                    iconBg = Color(0xFFFFF1F2),
-                    iconTint = Color(0xFFE11D48),
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateLedger
-                )
-
-                // Card 2: آبشده و ری‌گیری
-                ManagementGridCard(
-                    title = "آبشده و ری‌گیری",
-                    subtitle = "ثبت شماره انگ، آزمایشگاه و عیار",
-                    badgeText = "۳ پاکت",
-                    badgeColor = colors.goldPrimary,
-                    icon = HubInbox,
-                    iconBg = Color(0xFFFFFBEB),
-                    iconTint = Color(0xFFB45309),
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateMelt
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Card 3: مرکز گزارشات و ترازنامه
-                ManagementGridCard(
-                    title = "گزارشات و ترازنامه",
-                    subtitle = "تحلیل سود، تراز مالی و عملکرد",
-                    badgeText = "تحلیلی",
-                    badgeColor = Color(0xFF2563EB),
-                    icon = HubReporting,
-                    iconBg = Color(0xFFEFF6FF),
-                    iconTint = Color(0xFF1D4ED8),
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateReporting
-                )
-
-                // Card 4: انبار و ویترین طلا
-                ManagementGridCard(
-                    title = "انبار و ویترین طلا",
-                    subtitle = "موجودی کارهای ساخته، سکه و سنگ",
-                    badgeText = "بارکدخوان",
-                    badgeColor = colors.profitGreen,
-                    icon = HubShowcase,
-                    iconBg = Color(0xFFECFDF5),
-                    iconTint = Color(0xFF059669),
-                    modifier = Modifier.weight(1f),
-                    onClick = onNavigateInventory
-                )
-            }
+            ManagementGrid(onNavigateLedger, onNavigateMelt, onNavigateReporting, onNavigateInventory)
         }
 
         // ==========================================
@@ -986,11 +921,35 @@ internal fun AppVersionFooter() {
 }
 
 @Composable
-private fun ManagementGridCard(
+internal fun ManagementGrid(onLedger: () -> Unit, onMelt: () -> Unit, onReporting: () -> Unit, onInventory: () -> Unit) {
+    val colors = LocalGoldExColors.current
+    val destinations = listOf(
+        ManagementDestination("دفتر حساب و معین", "بدهکاران، بستانکاران و مانده‌ها", HubMenuBook, Color(0xFFFFF1F2), Color(0xFFE11D48), onLedger),
+        ManagementDestination("آبشده و ری‌گیری", "ثبت شماره انگ، آزمایشگاه و عیار", HubInbox, Color(0xFFFFFBEB), colors.goldPrimary, onMelt),
+        ManagementDestination("گزارشات و ترازنامه", "تحلیل سود، تراز مالی و عملکرد", HubReporting, Color(0xFFEFF6FF), Color(0xFF1D4ED8), onReporting),
+        ManagementDestination("انبار و ویترین طلا", "موجودی کارهای ساخته، سکه و سنگ", HubShowcase, Color(0xFFECFDF5), Color(0xFF059669), onInventory)
+    )
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columns = if (maxWidth >= 460.dp * fontScale) 2 else 1
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            destinations.chunked(columns).forEach { items ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items.forEach { item ->
+                        ManagementGridCard(item.title, item.subtitle, item.icon, item.background, item.tint, Modifier.weight(1f), item.onClick)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class ManagementDestination(val title: String, val subtitle: String, val icon: ImageVector, val background: Color, val tint: Color, val onClick: () -> Unit)
+
+@Composable
+internal fun ManagementGridCard(
     title: String,
     subtitle: String,
-    badgeText: String,
-    badgeColor: Color,
     icon: ImageVector,
     iconBg: Color,
     iconTint: Color,
@@ -1014,8 +973,8 @@ private fun ManagementGridCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
@@ -1033,38 +992,25 @@ private fun ManagementGridCard(
                     )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = badgeColor.copy(alpha = 0.12f),
-                    border = BorderStroke(0.6.dp, badgeColor.copy(alpha = 0.35f))
-                ) {
-                    Text(
-                        text = badgeText,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = badgeColor,
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Column {
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.5.sp,
                     color = colors.textMain,
-                    maxLines = 1
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 10.sp,
-                    color = colors.textMuted,
-                    maxLines = 1
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = subtitle,
+                fontSize = 10.sp,
+                color = colors.textMuted,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
         }
     }
 }

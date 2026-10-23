@@ -37,7 +37,7 @@ class LargeRecordListStateTest {
         runBlocking { withTimeout(10_000) { flow.first(predicate) } }
 
     @Test fun twoThousandLinkedInvoicesUseBulkLedgerLookupOffTheUiThread() {
-        val invoices = (0 until 2000).map { BarterInvoice(id = "invoice-$it", invoiceNumber = "invoice-$it", customer = Customer(id = "owner", name = "مشتری")) }
+        val invoices = (0 until 2000).map { BarterInvoice(id = "invoice-$it", invoiceNumber = "invoice-$it", createdAt = 1710936000000L, customer = Customer(id = "owner", name = "مشتری")) }
         val singleReads = AtomicInteger()
         val bulkReads = AtomicInteger()
         val customers = object : MemoryCustomers() {
@@ -55,6 +55,7 @@ class LargeRecordListStateTest {
             override fun getBarterInvoices(): List<BarterInvoice> { onWorker(); return super.getBarterInvoices() }
         }, customers, workDispatcher = worker))
         val loaded = await(vm.uiState) { !it.isLoading && it.invoicesList.size == 2000 }
+        assertEquals("۱۴۰۳/۰۱/۰۱", loaded.invoicesList.first().createdAtText)
         assertEquals(1, bulkReads.get())
         assertEquals(0, singleReads.get())
         assertTrue(loaded.invoicesList.all { it.status == InvoiceStatus.PARTIALLY_PAID })

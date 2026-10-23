@@ -4,852 +4,214 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.goldex.companion.ui.theme.ButtonShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.goldex.companion.data.MarketRates
+import com.goldex.companion.domain.calculator.KaratConversionPolicy
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
-import com.goldex.companion.ui.calculator.*
-import com.goldex.companion.ui.components.AnimatedNumberText
-import com.goldex.companion.ui.components.AnimatedPriceText
-import com.goldex.companion.ui.components.GoldButton
-import com.goldex.companion.ui.components.LuxurySegmentedControl
-import com.goldex.companion.ui.hub.HubArrowRight
+import com.goldex.companion.ui.calculator.CalcContentCopy
+import com.goldex.companion.ui.calculator.CalcSwapHoriz
+import com.goldex.companion.ui.calculator.KaratConvertMode
+import com.goldex.companion.ui.calculator.KaratConvertUiState
+import com.goldex.companion.ui.components.*
 import com.goldex.companion.ui.theme.LocalGoldExColors
-import com.goldex.companion.ui.theme.VazirmatnFamily
-import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import com.goldex.companion.ui.theme.heroCardGradient
 
-/**
- * Dedicated Full Screen: Karat Converter & Assay Lab Settlement
- * Adheres strictly to Stitch Screen ID: 3d1b87d2ad7d4d659884f0a454e9aab3
- */
 @Composable
 fun KaratConvertScreen(
     uiState: KaratConvertUiState,
-    rates: com.goldex.companion.data.MarketRates,
+    rates: MarketRates,
     onBack: () -> Unit,
     onConvertWeightChanged: (String) -> Unit,
     onConvertFromKarat: (Karat) -> Unit,
     onConvertToKarat: (Karat) -> Unit,
+    onCustomFromKaratChanged: (String) -> Unit,
+    onCustomToKaratChanged: (String) -> Unit,
     onSwapConvertKarats: () -> Unit,
     onSetConvertMode: (KaratConvertMode) -> Unit,
     onAssayKaratChanged: (String) -> Unit,
     onAgreedKaratChanged: (String) -> Unit,
     onTransferToInvoice: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSelectCustomFromKarat: () -> Unit = {},
+    onSelectCustomToKarat: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val colors = LocalGoldExColors.current
-    val scrollState = rememberScrollState()
-
-    // Calculations
-    val inputWeight = PersianNumberFormatter.parsePersianOrEnglish(uiState.convertWeightInput) ?: 0.0
-    val fromRatio = uiState.convertFromKarat.purityRatio
-    val toRatio = uiState.convertToKarat.purityRatio
-    val targetWeight = if (toRatio > 0) inputWeight * (fromRatio / toRatio) else 0.0
-    val pureGold24k = inputWeight * fromRatio // pure 24k (1000/1000 ratio)
-
-    // Conditional Assay Lab Settlement Math
-    val agreedKaratNum = PersianNumberFormatter.parsePersianOrEnglish(uiState.agreedKaratInput) ?: 750.0
-    val assayKaratNum = PersianNumberFormatter.parsePersianOrEnglish(uiState.assayKaratInput) ?: 742.0
-    val karatDiff = assayKaratNum - agreedKaratNum
-    val settlementWeight = if (agreedKaratNum > 0) inputWeight * (assayKaratNum / agreedKaratNum) else inputWeight
-    val weightDiff = settlementWeight - inputWeight
-    val spot18k = rates.gold18.toDouble()
-    val settlementRial = (weightDiff * spot18k)
-
+    val context = LocalContext.current
+    val direct = uiState.convertMode == KaratConvertMode.DIRECT
+    val cash = uiState.assayCashTomans
+    val valid = uiState.invoiceGold750 != null
+    val resultText = "وزن مبدا: ${PersianNumberFormatter.toPersianDigits(uiState.convertWeightInput)} گرم\n" + if (direct) {
+        "عیار مبدا: ${PersianNumberFormatter.toPersianDigits(uiState.fromInput)} • مقصد: ${PersianNumberFormatter.toPersianDigits(uiState.toInput)}\n" +
+        "وزن در عیار مقصد: ${weightText(uiState.conversion?.targetWeight)} گرم\n" +
+            "معادل ۷۵۰: ${weightText(uiState.conversion?.gold750Weight)} گرم\n" +
+            "طلای خالص: ${weightText(uiState.conversion?.pureGoldWeight)} گرم"
+    } else {
+        "عیار شرط: ${PersianNumberFormatter.toPersianDigits(uiState.agreedKaratInput)} • آزمایشگاه: ${PersianNumberFormatter.toPersianDigits(uiState.assayKaratInput)}\n" +
+        "وزن تعدیل‌شده در عیار شرط: ${weightText(uiState.assay?.adjustedWeight)} گرم\n" +
+            "اختلاف طلای ۷۵۰: ${uiState.assay?.let { PersianNumberFormatter.formatSignedWeight(it.gold750Difference) } ?: "—"} گرم\n" +
+            "ارزش اختلاف: ${cash?.let { signedTomans(it) } ?: "—"} تومان"
+    }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
-            modifier = modifier
-                .fillMaxSize()
-                .background(colors.background),
+            modifier = modifier.fillMaxSize(),
             containerColor = colors.background,
             topBar = {
-                Surface(
-                    color = colors.surface,
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    shadowElevation = 2.dp
+                Row(
+                    Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            IconButton(
-                                onClick = onBack,
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(ButtonShape)
-                                    .background(colors.surfaceElevated)
-                                    .border(0.6.dp, colors.goldBorder, ButtonShape)
-                            ) {
-                                Icon(
-                                    imageVector = HubArrowRight,
-                                    contentDescription = "بازگشت",
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(colors.goldPrimary)
-                                    )
-                                    Text(
-                                        text = "تبدیل عیار و محاسبه شرطی",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMain
-                                    )
-                                }
-                                Text(
-                                    text = "فرمول استاندارد ری‌گیری و تبدیل ۷۵۰ به ۹۹۹",
-                                    fontSize = 10.sp,
-                                    color = colors.textMuted
-                                )
-                            }
-                        }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, "بازگشت", tint = colors.goldPrimary)
                     }
+                    Text("تبدیل عیار و محاسبه شرطی", color = colors.textMain, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
-        ) { paddingValues ->
+        ) { padding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(13.dp)
+                Modifier.fillMaxSize().padding(padding).imePadding().verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp).padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ─── 1. Dark Card: مانیتور تبدیل زنده ─────────────────────────
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(0.6.dp, colors.goldBorder),
-                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(colors.heroCardGradient)
-                            .padding(15.dp),
-                        verticalArrangement = Arrangement.spacedBy(11.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.profitGreen)
-                                )
-                                Text(
-                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
-                                        "خروجی تبدیل وزن معادل استاندارد"
-                                    else
-                                        "نتیجه تسویه و تصفیه ری‌گیری",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = colors.goldPrimary.copy(alpha = 0.2f),
-                                border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.4f))
-                            ) {
-                                Text(
-                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
-                                        "پایه عیار (${uiState.convertToKarat.karatNumber})"
-                                    else
-                                        "عیار شرط: ${PersianNumberFormatter.toPersianDigits(uiState.agreedKaratInput)}",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.goldPrimary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-
-                        // 2 Columns in boxes
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (uiState.convertMode == KaratConvertMode.DIRECT) {
-                                // Column 1: عیار مقصد
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.05f),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Text(
-                                            text = "وزن در عیار مقصد (${uiState.convertToKarat.karatNumber})",
-                                            fontSize = 10.sp,
-                                            color = Color.White.copy(alpha = 0.6f)
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.Bottom,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            AnimatedNumberText(
-                                                text = PersianNumberFormatter.formatWeight(targetWeight),
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = colors.goldPrimary
-                                            )
-                                            Text(
-                                                text = "گرم",
-                                                fontSize = 11.sp,
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                modifier = Modifier.padding(bottom = 1.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "تراز استاندارد صنف",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = colors.profitGreen
-                                        )
-                                    }
-                                }
-
-                                // Column 2: شمش خالص ۲۴
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.05f),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Text(
-                                            text = "معادل در شمش خالص (۹۹۹)",
-                                            fontSize = 10.sp,
-                                            color = Color.White.copy(alpha = 0.6f)
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.Bottom,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            AnimatedNumberText(
-                                                text = PersianNumberFormatter.formatWeight(pureGold24k),
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = Color.White
-                                            )
-                                            Text(
-                                                text = "گرم",
-                                                fontSize = 11.sp,
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                modifier = Modifier.padding(bottom = 1.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "طلای ناب ۲۴ عیار",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = colors.goldSecondary
-                                        )
-                                    }
-                                }
-                            } else {
-                                // Settlement Mode Column 1: وزن نهایی پس از ری‌گیری
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.05f),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Text(
-                                            text = "وزن نهایی پس از ری‌گیری",
-                                            fontSize = 10.sp,
-                                            color = Color.White.copy(alpha = 0.6f)
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.Bottom,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            AnimatedNumberText(
-                                                text = PersianNumberFormatter.formatWeight(settlementWeight),
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = colors.goldPrimary
-                                            )
-                                            Text(
-                                                text = "گرم",
-                                                fontSize = 11.sp,
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                modifier = Modifier.padding(bottom = 1.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "اختلاف: ${PersianNumberFormatter.formatSignedWeight(weightDiff)} گرم",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                        )
-                                    }
-                                }
-
-                                // Settlement Mode Column 2: ارزش ریالی تسویه اختلاف
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.05f),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(10.dp),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Text(
-                                            text = "ارزش ریالی تسویه اختلاف",
-                                            fontSize = 10.sp,
-                                            color = Color.White.copy(alpha = 0.6f)
-                                        )
-                                        Row(
-                                            verticalAlignment = Alignment.Bottom,
-                                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
-                                            AnimatedPriceText(
-                                                amount = kotlin.math.abs(settlementRial).toLong(),
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                            )
-                                            Text(
-                                                text = "تومان",
-                                                fontSize = 11.sp,
-                                                color = Color.White.copy(alpha = 0.8f),
-                                                modifier = Modifier.padding(bottom = 1.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = if (settlementRial >= 0) "مازاد عیار (طلب شما)" else "کسری عیار (بدهی شما)",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Formula Banner
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color.Black.copy(alpha = 0.35f),
-                            border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.3f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
-                                        "فرمول صنف زرگری:"
-                                    else
-                                        "وضعیت تسویه ری‌گیری:",
-                                    fontSize = 10.sp,
-                                    color = Color.White.copy(alpha = 0.65f)
-                                )
-                                Text(
-                                    text = if (uiState.convertMode == KaratConvertMode.DIRECT)
-                                        "وزن × (عیار مبدا ÷ عیار مقصد)"
-                                    else
-                                        "${PersianNumberFormatter.formatSignedInteger(karatDiff.toInt())} خط ${if (karatDiff >= 0) "مازاد" else "کسری"} • ${if (settlementRial >= 0) "بستانکار" else "بدهکار"}",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.goldPrimary
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // ─── 2. Mode Selector: مستقیم vs شرطی ری‌گیری ────────────────
                 LuxurySegmentedControl(
-                    items = listOf(KaratConvertMode.DIRECT, KaratConvertMode.SETTLEMENT),
-                    selectedItem = uiState.convertMode,
-                    onItemSelected = onSetConvertMode,
-                    label = { it.labelFa },
-                    modifier = Modifier.fillMaxWidth()
+                    items = KaratConvertMode.values().toList(), selectedItem = uiState.convertMode,
+                    onItemSelected = onSetConvertMode, label = { it.labelFa }, modifier = Modifier.fillMaxWidth(), height = 48.dp, fontSize = 14.sp
                 )
-
-                // ─── 3. Inputs Card: مشخصات طلای مبدا ─────────────────────────
+                ConversionCard {
+                    GoldInputField(
+                        value = uiState.convertWeightInput, onValueChange = onConvertWeightChanged,
+                        label = "وزن طلا", trailingText = "گرم", isDecimal = true,
+                        modifier = Modifier.fillMaxWidth().testTag("convert-weight")
+                    )
+                    if (direct) {
+                        KaratChoice("عیار مبدا", uiState.convertFromKarat, uiState.customFromKarat, onConvertFromKarat, onCustomFromKaratChanged, onSelectCustomFromKarat, "from")
+                        GoldButton("جابه‌جایی مبدا و مقصد", onSwapConvertKarats, Modifier.fillMaxWidth(), icon = CalcSwapHoriz, isSecondary = true)
+                        KaratChoice("عیار مقصد", uiState.convertToKarat, uiState.customToKarat, onConvertToKarat, onCustomToKaratChanged, onSelectCustomToKarat, "to")
+                    } else {
+                        GoldInputField(
+                            value = uiState.agreedKaratInput, onValueChange = onAgreedKaratChanged, label = "عیار شرط",
+                            useThousandsSeparator = false, modifier = Modifier.fillMaxWidth().testTag("assay-agreed"),
+                            isError = invalidKarat(uiState.agreedKaratInput), errorMessage = "عیار باید بین ۱ تا ۱۰۰۰ باشد"
+                        )
+                        GoldInputField(
+                            value = uiState.assayKaratInput, onValueChange = onAssayKaratChanged, label = "عیار آزمایشگاه",
+                            useThousandsSeparator = false, modifier = Modifier.fillMaxWidth().testTag("assay-actual"),
+                            isError = invalidKarat(uiState.assayKaratInput), errorMessage = "عیار باید بین ۱ تا ۱۰۰۰ باشد"
+                        )
+                    }
+                    Text("۱ تا ۲۴: عیار معمول • ۲۵ تا ۱۰۰۰: عیار در هزار", color = colors.textSecondary, fontSize = 12.sp)
+                }
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = colors.surface,
-                    border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                    shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp), color = Color.Transparent,
+                    border = BorderStroke(0.6.dp, colors.goldBorder), modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = CalcScale,
-                                    contentDescription = null,
-                                    tint = colors.goldPrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "مشخصات طلای مبدا",
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textMain
-                                )
-                            }
+                    Column(Modifier.background(colors.heroCardGradient).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(if (direct) "نتیجه تبدیل" else "نتیجه ری‌گیری", color = colors.goldSecondary, fontWeight = FontWeight.Bold)
+                        if (!valid) {
+                            Text("وزن و عیار معتبر را وارد کنید", color = Color.White, modifier = Modifier.testTag("convert-empty"))
+                        } else if (direct) {
+                            ResultValue("وزن در عیار مقصد", weightText(uiState.conversion?.targetWeight), "گرم")
+                            ResultValue("معادل استاندارد ۷۵۰", weightText(uiState.conversion?.gold750Weight), "گرم")
+                            ResultValue("طلای خالص ۱۰۰۰", weightText(uiState.conversion?.pureGoldWeight), "گرم")
+                            Text("وزن × عیار مبدا ÷ عیار مقصد", color = colors.goldSecondary, fontSize = 12.sp)
+                        } else {
+                            val assay = uiState.assay!!
+                            ResultValue("وزن تعدیل‌شده در عیار شرط", weightText(assay.adjustedWeight), "گرم")
+                            ResultValue("اختلاف طلای ۷۵۰", PersianNumberFormatter.formatSignedWeight(assay.gold750Difference), "گرم")
+                            ResultValue("ارزش اختلاف", cash?.let { signedTomans(it) } ?: "—", "تومان")
                             Text(
-                                text = "ترازو دقیق آزمایشگاهی",
-                                fontSize = 10.sp,
-                                color = colors.textMuted
+                                when {
+                                    assay.gold750Difference > 0 -> "به نفع صاحب طلا (بستانکار)"
+                                    assay.gold750Difference < 0 -> "به عهده صاحب طلا (بدهکار)"
+                                    else -> "بدون اختلاف عیار"
+                                }, color = colors.goldSecondary, fontSize = 13.sp
                             )
-                        }
-
-                        // Weight Input Box
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("اختلاف طلای ۷۵۰ = وزن × (عیار آزمایشگاه − عیار شرط) ÷ ۷۵۰", color = Color.White, fontSize = 12.sp)
                             Text(
-                                text = "وزن دقیق مبدا (گرم)",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.textSecondary
+                                if (rates.gold18 > 0L) "نرخ مبنا: ${PersianNumberFormatter.formatPrice(rates.gold18.toDouble())} تومان برای هر گرم ۷۵۰"
+                                else "نرخ طلا موجود نیست؛ ارزش تومانی محاسبه نمی‌شود",
+                                color = Color.White, fontSize = 12.sp
                             )
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 9.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    BasicTextField(
-                                        value = PersianNumberFormatter.toPersianDigits(uiState.convertWeightInput),
-                                        onValueChange = onConvertWeightChanged,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontFamily = VazirmatnFamily,
-                                            fontFeatureSettings = VazirmatnFeatureSettings,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.textMain,
-                                            textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Ltr
-                                        ),
-                                        cursorBrush = SolidColor(colors.goldPrimary),
-                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
-                                    )
-                                    Text(
-                                        text = "گرم",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMuted
-                                    )
-                                }
-                            }
-                        }
-
-                        // Karat From & To
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // عیار مبدا
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "عیار مبدا",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.textSecondary
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Karat.values().forEach { k ->
-                                        val isSel = uiState.convertFromKarat == k
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (isSel) colors.goldContainer else colors.surfaceElevated,
-                                            border = if (isSel) BorderStroke(0.8.dp, colors.goldPrimary) else null,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable { onConvertFromKarat(k) }
-                                        ) {
-                                            Text(
-                                                text = "${k.karatNumber}",
-                                                fontSize = 11.sp,
-                                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSel) colors.goldPrimary else colors.textMain,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.padding(vertical = 7.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Explicit swap action: the label makes the intent clear at a glance.
-                            Surface(
-                                onClick = onSwapConvertKarats,
-                                shape = ButtonShape,
-                                color = colors.goldContainer,
-                                border = BorderStroke(0.8.dp, colors.goldBorder),
-                                modifier = Modifier
-                                    .padding(top = 18.dp)
-                                    .height(40.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = CalcSwapHoriz,
-                                        contentDescription = null,
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Text(
-                                        text = "جابه‌جایی",
-                                        fontSize = 8.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.goldPrimary
-                                    )
-                                }
-                            }
-
-                            // عیار مقصد
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "عیار مقصد",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.textSecondary
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Karat.values().forEach { k ->
-                                        val isSel = uiState.convertToKarat == k
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (isSel) colors.goldContainer else colors.surfaceElevated,
-                                            border = if (isSel) BorderStroke(0.8.dp, colors.goldPrimary) else null,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clickable { onConvertToKarat(k) }
-                                        ) {
-                                            Text(
-                                                text = "${k.karatNumber}",
-                                                fontSize = 11.sp,
-                                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSel) colors.goldPrimary else colors.textMain,
-                                                textAlign = TextAlign.Center,
-                                                modifier = Modifier.padding(vertical = 7.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
-
-                // ─── 4. Card: محاسبه معامله شرطی و ری‌گیری ───────────────────
-                AnimatedVisibility(visible = uiState.convertMode == KaratConvertMode.SETTLEMENT) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = colors.surface,
-                        border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
-                        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = CalcFactCheck,
-                                        contentDescription = null,
-                                        tint = colors.goldPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "محاسبه معامله شرطی (تصفیه ری‌گیری)",
-                                        fontSize = 12.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.textMain
-                                    )
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = colors.goldContainer.copy(alpha = 0.3f)
-                                ) {
-                                    Text(
-                                        text = "انگ قطعی",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.goldPrimary,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            // Input row for assay
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("عیار شرط‌شده:", fontSize = 10.sp, color = colors.textSecondary)
-                                    BasicTextField(
-                                        value = PersianNumberFormatter.toPersianDigits(uiState.agreedKaratInput),
-                                        onValueChange = onAgreedKaratChanged,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontFamily = VazirmatnFamily,
-                                            fontFeatureSettings = VazirmatnFeatureSettings,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.textMain,
-                                            textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Ltr
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(colors.surfaceElevated)
-                                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("عیار جواب آزمایشگاه:", fontSize = 10.sp, color = colors.textSecondary)
-                                    BasicTextField(
-                                        value = PersianNumberFormatter.toPersianDigits(uiState.assayKaratInput),
-                                        onValueChange = onAssayKaratChanged,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontFamily = VazirmatnFamily,
-                                            fontFeatureSettings = VazirmatnFeatureSettings,
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.goldPrimary,
-                                            textAlign = TextAlign.Right,
-                                            textDirection = TextDirection.Ltr
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(colors.surfaceElevated)
-                                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                                    )
-                                }
-                            }
-
-                            // Settlement breakdown box
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.surfaceElevated,
-                                border = BorderStroke(0.6.dp, colors.border),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("اختلاف عیار ری‌گیری:", fontSize = 11.sp, color = colors.textSecondary)
-                                        AnimatedNumberText(
-                                            text = "${PersianNumberFormatter.formatSignedInteger(karatDiff.toInt())} خط (${if (karatDiff >= 0) "مازاد" else "کسری"})",
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (karatDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                        )
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("اختلاف وزن طلا:", fontSize = 11.sp, color = colors.textSecondary)
-                                        AnimatedNumberText(
-                                            text = PersianNumberFormatter.formatSignedWeight(weightDiff),
-                                            unit = "گرم طلا",
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (weightDiff >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                        )
-                                    }
-                                    HorizontalDivider(color = colors.border, thickness = 0.5.dp)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text("ارزش ریالی تسویه اختلاف:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = colors.textMain)
-                                        AnimatedPriceText(
-                                            amount = kotlin.math.abs(settlementRial).toLong(),
-                                            unit = "تومان",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (settlementRial >= 0) colors.profitGreen else Color(0xFFEF4444)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GoldButton("کپی", {
+                        (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("تبدیل عیار", resultText))
+                    }, Modifier.weight(1f), icon = CalcContentCopy, isSecondary = true, enabled = valid)
+                    GoldButton("اشتراک", {
+                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, resultText) }, "اشتراک نتیجه"))
+                    }, Modifier.weight(1f), icon = Icons.Outlined.Share, isSecondary = true, enabled = valid)
                 }
-
-                // ─── 5. Bottom Action Buttons ────────────────────────────────
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    GoldButton(
-                        text = "انتقال به فاکتور",
-                        onClick = {
-                            onTransferToInvoice()
-                            Toast.makeText(context, "به فاکتور منتقل شد ✓", Toast.LENGTH_SHORT).show()
-                        },
-                        icon = CalcReceiptLong,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    GoldButton(
-                        text = "اشتراک گزارش",
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val report = buildString {
-                                appendLine("📋 گزارش تبدیل عیار قیراط")
-                                appendLine("─────────────────")
-                                appendLine("وزن ورودی: ${PersianNumberFormatter.formatWeight(inputWeight)} گرم (${uiState.convertFromKarat.labelFa})")
-                                appendLine("وزن معادل: ${PersianNumberFormatter.formatWeight(targetWeight)} گرم (${uiState.convertToKarat.labelFa})")
-                                appendLine("شمش خالص: ${PersianNumberFormatter.formatWeight(pureGold24k)} گرم (۲۴ عیار)")
-                                if (uiState.convertMode == KaratConvertMode.SETTLEMENT) {
-                                    appendLine("تسویه ری‌گیری: ${PersianNumberFormatter.formatPrice(kotlin.math.abs(settlementRial))} ت")
-                                }
-                            }
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Karat Report", report))
-                            Toast.makeText(context, "گزارش در کلیپ‌بورد کپی شد ✓", Toast.LENGTH_SHORT).show()
-                        },
-                        icon = CalcShare,
-                        isSecondary = true,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
+                GoldButton("افزودن طلای ۷۵۰ به فاکتور", onTransferToInvoice, Modifier.fillMaxWidth().testTag("convert-transfer"), icon = Icons.Outlined.Add, enabled = valid)
+                Text("وزن معادل ۷۵۰ به فاکتور افزوده می‌شود؛ اختلاف ری‌گیری پرداخت ثبت نمی‌کند.", color = colors.textSecondary, fontSize = 12.sp)
             }
         }
+    }
+}
+
+private fun signedTomans(value: Long): String = PersianNumberFormatter.toPersianDigits(com.goldex.companion.platform.DecimalFormatting.groupedInteger(value).removePrefix("-")) + if (value < 0) "-" else if (value > 0) "+" else ""
+
+private fun invalidKarat(input: String): Boolean = input.isNotEmpty() && input.toIntOrNull()?.let(KaratConversionPolicy::fineness) == null
+private fun weightText(weight: Double?): String = weight?.let(PersianNumberFormatter::formatWeight) ?: "—"
+
+@Composable
+private fun ConversionCard(content: @Composable ColumnScope.() -> Unit) {
+    val colors = LocalGoldExColors.current
+    Surface(shape = RoundedCornerShape(16.dp), color = colors.surface, border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)), shadowElevation = if (colors.isDark) 0.dp else 2.dp) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    }
+}
+
+@Composable
+private fun KaratChoice(title: String, selected: Karat, custom: String?, onSelect: (Karat) -> Unit, onCustom: (String) -> Unit, onSelectCustom: () -> Unit, tag: String) {
+    val colors = LocalGoldExColors.current
+    Text(title, color = colors.textMain, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Karat.values().forEach { karat ->
+            val active = custom == null && selected == karat
+            Surface(
+                onClick = { onSelect(karat) }, shape = RoundedCornerShape(10.dp),
+                color = if (active) colors.goldContainer else colors.surfaceElevated,
+                border = BorderStroke(0.6.dp, if (active) colors.goldPrimary else colors.border),
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("$tag-${karat.karatNumber}")
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(PersianNumberFormatter.toPersianDigits(karat.karatNumber.toString()), color = if (active) colors.goldPrimary else colors.textMain, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        InlineCustomKaratChip(value = custom ?: "", onValueChange = onCustom, isSelected = custom != null,
+            onSelect = onSelectCustom, modifier = Modifier.weight(1.3f).testTag("$tag-custom"), height = 48.dp, fontSize = 14.sp, accessibilityLabel = "$title سفارشی")
+    }
+    if (custom != null && invalidKarat(custom)) Text("عیار باید بین ۱ تا ۱۰۰۰ باشد", color = colors.errorRed, fontSize = 12.sp)
+}
+
+@Composable
+private fun ResultValue(label: String, value: String, unit: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, color = Color.White, fontSize = 13.sp)
+        AnimatedPriceTicker(text = "$value $unit", color = LocalGoldExColors.current.goldSecondary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }

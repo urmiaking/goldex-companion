@@ -252,7 +252,7 @@ class BarterInvoiceViewModel(
             customerName = customerName,
             customerInitials = initials,
             isVerified = true,
-            createdAtText = "کد فاکتور: ${currentInv.cleanInvoiceNumber} • همین الان",
+            createdAtText = invoiceDate(currentInv.createdAt),
             status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
             statusDetail = if (isSettled) {
                 if (recordedEntries.any { it.settlement != null }) "تسویه کامل"
@@ -623,4 +623,9 @@ class InvoiceListSummary(invoices: List<InvoiceListItem>) {
     val workshop = invoices.count { it.status == InvoiceStatus.WORKSHOP }
     val goldWeight = invoices.sumOf { it.barterInvoice?.balance?.totalSales18kWeight ?: 0.0 }
     val turnoverMillionTomans = invoices.sumOf { it.finalAmount } / 1_000_000L
+}
+
+internal fun invoiceDate(timestamp: Long): String {
+    val (year, month, day) = com.goldex.companion.domain.reporting.ShamsiCalendarHelper.millisToShamsi(timestamp)
+    return PersianNumberFormatter.toPersianDigits(com.goldex.companion.domain.reporting.ShamsiCalendarHelper.formatShamsi(year, month, day))
 }

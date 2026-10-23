@@ -11,6 +11,12 @@ actual object SettlementArithmetic {
             .setScale(0, RoundingMode.HALF_UP).longValueExact()
     }
 
+    actual fun assayDifferenceToTomans(weightGrams: Double, finenessDifference: Int, rate: Long): Long {
+        require(weightGrams.isFinite() && weightGrams >= 0 && rate > 0)
+        return BigDecimal.valueOf(weightGrams).multiply(BigDecimal.valueOf(finenessDifference.toLong()))
+            .multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(750), 0, RoundingMode.HALF_UP).longValueExact()
+    }
+
     actual fun tomansToGold(amount: Long, rate: Long): Double {
         require(amount >= 0 && rate > 0)
         return BigDecimal.valueOf(amount).divide(BigDecimal.valueOf(rate), MathContext.DECIMAL128).toDouble()

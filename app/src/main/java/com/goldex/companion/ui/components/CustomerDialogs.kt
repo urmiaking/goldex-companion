@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -532,7 +534,6 @@ fun AddCustomerDialog(
     var phone by remember { mutableStateOf("") }
     var nationalId by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf("مشتری عادی (مصرف‌کننده)") }
     var hasError by remember { mutableStateOf(false) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -546,10 +547,11 @@ fun AddCustomerDialog(
                 border = androidx.compose.foundation.BorderStroke(0.8.dp, colors.goldBorder),
                 modifier = Modifier
                     .fillMaxWidth(0.90f)
+                    .imePadding()
                     .padding(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Header
@@ -579,24 +581,6 @@ fun AddCustomerDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
-                    }
-
-                    // Counterparty Role Selector
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "نوع طرف حساب:",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textSecondary
-                        )
-                        LuxurySegmentedControl(
-                            items = listOf("مشتری عادی (مصرف‌کننده)", "همکار و بنکدار"),
-                            selectedItem = selectedRole,
-                            onItemSelected = { selectedRole = it },
-                            label = { it },
-                            modifier = Modifier.fillMaxWidth(),
-                            height = 36.dp
-                        )
                     }
 
                     // Name (Required)
@@ -710,7 +694,7 @@ fun AddCustomerDialog(
                                         phone = phone.trim(),
                                         nationalId = nationalId.trim(),
                                         note = note.trim(),
-                                        role = selectedRole
+                                        role = "مشتری عادی (مصرف‌کننده)"
                                     )
                                     onSaveCustomer(customer)
                                 }
