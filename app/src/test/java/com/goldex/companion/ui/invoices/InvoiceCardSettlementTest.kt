@@ -37,7 +37,7 @@ class InvoiceCardSettlementTest {
             invoiceNumber = "101",
             customerName = "علی محمدی",
             customerInitials = "عم",
-            createdAtText = "کد فاکتور: 101 • همین الان",
+            createdAtText = "کد فاکتور: 101 • 1403/01/01",
             status = InvoiceStatus.PARTIALLY_PAID,
             statusDetail = "تسویه نشده",
             itemsSummary = "طلای ۱۸ عیار",
@@ -60,6 +60,8 @@ class InvoiceCardSettlementTest {
                 )
             }
         }
+
+        compose.onNodeWithText("کد فاکتور: ۱۰۱ • ۱۴۰۳/۰۱/۰۱").assertExists()
 
         // Verify status badge is displayed (not replaced by settle button)
         compose.onNodeWithText("تسویه نشده").assertExists()
