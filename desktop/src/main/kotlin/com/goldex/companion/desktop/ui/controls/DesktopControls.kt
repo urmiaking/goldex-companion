@@ -93,13 +93,14 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
 }
 
 /** Compact text navigation shared by both dashboard card links. */
-@Composable internal fun DesktopNavigationLink(text: String, onClick: () -> Unit, icon: ImageVector, modifier: Modifier = Modifier) {
+@Composable internal fun DesktopNavigationLink(text: String, onClick: () -> Unit, icon: ImageVector, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val c = LocalGoldExColors.current
-    TextButton(onClick, modifier, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
+    val tint = if (enabled) c.goldPrimary else c.textMuted
+    TextButton(onClick, modifier, enabled = enabled && LocalDesktopDialogInputEnabled.current, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text, color = c.goldPrimary, fontFamily = VazirmatnFamily, fontSize = 12.5.sp,
+            Text(text, Modifier.testTag("desktop-navigation-label"), color = tint, fontFamily = VazirmatnFamily, fontSize = 12.5.sp,
                 fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Icon(icon, null, Modifier.size(16.dp), tint = c.goldPrimary)
+            Icon(icon, null, Modifier.size(16.dp).testTag("desktop-navigation-icon"), tint = tint)
         }
     }
 }

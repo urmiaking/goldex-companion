@@ -8,7 +8,8 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.common.PDRectangle
-import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory
+import de.rototor.pdfbox.graphics2d.PdfBoxGraphics2D
+import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.pdfbox.printing.PDFPageable
 import java.awt.*
 import java.awt.datatransfer.StringSelection
@@ -27,28 +28,14 @@ object DesktopInvoiceDocuments {
         if (bold) "/font/vazirmatn_bold.ttf" else "/font/vazirmatn_regular.ttf"))
         .use { Font.createFont(Font.TRUETYPE_FONT, it) }
 
-    fun render(invoice: BarterInvoice, settings: AppSettings): List<BufferedImage> {
-        val model = OfficialInvoiceDocumentFactory.create(invoice, settings)
-        val regular = font(false); val bold = font(true)
-        val assets = mutableListOf<BufferedImage>()
+    /** Rasterize the real PDF only for the on-screen preview, never for export or printing. */
+    fun render(invoice: BarterInvoice, settings: AppSettings): List<BufferedImage> = document(invoice, settings).use { pdf ->
         val pages = mutableListOf<BufferedImage>()
-        fun asset(uri: String) = loadBrand(uri)?.also { assets.add(it) }
         try {
-            val logo = asset(settings.invoiceLogoUri)
-            val signature = asset(settings.invoiceSignatureUri)
-            val stamp = asset(settings.invoiceStampUri)
-            val chunks = model.rows.chunked(ROWS_PER_PAGE).ifEmpty { listOf(emptyList()) }
-            chunks.forEachIndexed { index, rows ->
-                val image = BufferedImage(1190, 840, BufferedImage.TYPE_INT_RGB)
-                pages.add(image)
-                val g = image.createGraphics()
-                try { DesktopInvoicePageRenderer(g, regular, bold).draw(model, settings, rows, index, chunks.size, logo, signature, stamp) }
-                finally { g.dispose() }
-            }
-            return pages
-        } catch (error: Exception) {
-            pages.forEach { it.flush() }; throw error
-        } finally { assets.forEach { it.flush() } }
+            val renderer = PDFRenderer(pdf)
+            repeat(pdf.numberOfPages) { pages.add(renderer.renderImageWithDPI(it, 144f)) }
+            pages
+        } catch (error: Exception) { pages.forEach { it.flush() }; throw error }
     }
 
     private fun loadBrand(uri: String): BufferedImage? {
@@ -67,17 +54,31 @@ object DesktopInvoiceDocuments {
         }
     }
 
+    /** Real vector PDF: AWT shapes/glyph outlines remain paths at any zoom or print resolution. */
     private fun document(invoice: BarterInvoice, settings: AppSettings): PDDocument {
         val result = PDDocument()
+        val assets = mutableListOf<BufferedImage>()
+        fun asset(uri: String) = loadBrand(uri)?.also { assets.add(it) }
         try {
-            render(invoice, settings).forEach { image ->
+            val model = OfficialInvoiceDocumentFactory.create(invoice, settings)
+            val regular = font(false); val bold = font(true)
+            val logo = asset(settings.invoiceLogoUri)
+            val signature = asset(settings.invoiceSignatureUri)
+            val stamp = asset(settings.invoiceStampUri)
+            val chunks = model.rows.chunked(ROWS_PER_PAGE).ifEmpty { listOf(emptyList()) }
+            chunks.forEachIndexed { index, rows ->
+                val page = PDPage(PDRectangle(595f, 420f))
+                result.addPage(page)
+                val graphics = PdfBoxGraphics2D(result, 595f, 420f)
                 try {
-                    val page = PDPage(PDRectangle(595f, 420f)); result.addPage(page)
-                    PDPageContentStream(result, page).use { it.drawImage(LosslessFactory.createFromImage(result, image), 0f, 0f, 595f, 420f) }
-                } finally { image.flush() }
+                    DesktopInvoicePageRenderer(graphics, regular, bold, scale = 1.0)
+                        .draw(model, settings, rows, index, chunks.size, logo, signature, stamp)
+                } finally { graphics.dispose() }
+                PDPageContentStream(result, page).use { it.drawForm(graphics.xFormObject) }
             }
             return result
         } catch (error: Exception) { result.close(); throw error }
+        finally { assets.forEach { it.flush() } }
     }
 
     /** Write to a sibling temporary file first; failure never replaces an existing exported invoice. */

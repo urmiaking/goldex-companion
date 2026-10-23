@@ -20,6 +20,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("com.google.zxing:core:3.5.3")
     implementation("org.apache.pdfbox:pdfbox:3.0.7")
+    implementation("de.rototor.pdfbox:graphics2d:3.0.5")
     implementation("org.xerial:sqlite-jdbc:3.45.2.0")
     testImplementation(kotlin("test-junit"))
     testImplementation(compose.desktop.uiTestJUnit4)
