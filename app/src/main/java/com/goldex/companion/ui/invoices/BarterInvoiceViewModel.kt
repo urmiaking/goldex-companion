@@ -252,7 +252,7 @@ class BarterInvoiceViewModel(
             customerName = customerName,
             customerInitials = initials,
             isVerified = true,
-            createdAtText = invoiceDate(currentInv.createdAt),
+            createdAtText = "کد فاکتور: ${PersianNumberFormatter.toPersianDigits(currentInv.cleanInvoiceNumber)} • ${invoiceDate(currentInv.createdAt)}",
             status = if (isSettled) InvoiceStatus.SETTLED else InvoiceStatus.PARTIALLY_PAID,
             statusDetail = if (isSettled) {
                 if (recordedEntries.any { it.settlement != null }) "تسویه کامل"

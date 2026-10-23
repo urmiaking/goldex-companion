@@ -55,7 +55,7 @@ class LargeRecordListStateTest {
             override fun getBarterInvoices(): List<BarterInvoice> { onWorker(); return super.getBarterInvoices() }
         }, customers, workDispatcher = worker))
         val loaded = await(vm.uiState) { !it.isLoading && it.invoicesList.size == 2000 }
-        assertEquals("۱۴۰۳/۰۱/۰۱", loaded.invoicesList.first().createdAtText)
+        assertEquals("کد فاکتور: invoice-۰ • ۱۴۰۳/۰۱/۰۱", loaded.invoicesList.first().createdAtText)
         assertEquals(1, bulkReads.get())
         assertEquals(0, singleReads.get())
         assertTrue(loaded.invoicesList.all { it.status == InvoiceStatus.PARTIALLY_PAID })
