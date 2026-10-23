@@ -143,4 +143,59 @@ class DesktopInvoiceDocumentTest {
         }
     }
 
+
+    private fun inspectVectors(resources: org.apache.pdfbox.pdmodel.PDResources): Pair<Int, Int> {
+        var images = 0
+        var curves = 0
+        for (name in resources.xObjectNames) {
+            when (val objectValue = resources.getXObject(name)) {
+                is org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject -> images++
+                is org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject -> {
+                    curves += org.apache.pdfbox.pdfparser.PDFStreamParser(objectValue).parse()
+                        .filterIsInstance<org.apache.pdfbox.contentstream.operator.Operator>().count { it.name == "c" }
+                    val nested = inspectVectors(objectValue.resources)
+                    images += nested.first; curves += nested.second
+                }
+            }
+        }
+        return images to curves
+    }
+
+    @Test fun exportedInvoiceContainsVectorArtworkInsteadOfPageSizedBitmapsAtEveryZoom() {
+        val path = temporary.newFolder().toPath().resolve("vector.pdf")
+        DesktopInvoiceDocuments.save(invoice(9), AppSettings(galleryName = "طلا و جواهر قیراط", managerName = "مدیر آزمون", unionCode = "1234"), path)
+        Loader.loadPDF(path.toFile()).use { pdf ->
+            assertEquals(3, pdf.numberOfPages)
+            for (page in pdf.pages) {
+                val stats = inspectVectors(page.resources)
+                assertEquals(0, stats.first, "An invoice without brand images must contain no raster XObjects, including nested forms")
+                assertTrue(stats.second > 100, "Persian glyphs and artwork must be vector curves")
+            }
+            val enlarged = PDFRenderer(pdf).renderImageWithDPI(0, 576f)
+            try {
+                assertEquals(4760, enlarged.width)
+                assertEquals(3360, enlarged.height)
+                screenshot("invoice-vector-zoom-800percent", enlarged.getSubimage(207 * 8, 28 * 8, 181 * 8, 34 * 8))
+            } finally { enlarged.flush() }
+        }
+        val output = java.io.File(System.getProperty("qirato.screenshotDir"), "invoice-vector.pdf")
+        output.parentFile.mkdirs()
+        Files.copy(path, output.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+
+    @Test fun onlyOriginalBrandAssetRemainsRasterInAnOtherwiseVectorPdf() {
+        val logo = temporary.newFile("original-logo.png")
+        val bitmap = java.awt.image.BufferedImage(300, 100, java.awt.image.BufferedImage.TYPE_INT_RGB)
+        val g = bitmap.createGraphics()
+        try { g.color = java.awt.Color.BLUE; g.fillRect(0, 0, 300, 100) } finally { g.dispose() }
+        ImageIO.write(bitmap, "png", logo); bitmap.flush()
+        val output = temporary.newFile("branded-vector.pdf")
+        DesktopInvoiceDocuments.save(invoice(1), AppSettings(invoiceLogoUri = logo.toURI().toString()), output.toPath())
+        Loader.loadPDF(output).use { pdf ->
+            val stats = inspectVectors(pdf.getPage(0).resources)
+            assertEquals(1, stats.first, "Only the original logo may be an image; the whole page must stay vector")
+            assertTrue(stats.second > 100)
+        }
+    }
+
 }

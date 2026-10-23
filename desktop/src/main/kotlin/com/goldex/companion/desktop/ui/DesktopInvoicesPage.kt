@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -110,8 +111,9 @@ import com.goldex.companion.ui.theme.*
 
 @Composable private fun InvoiceDirectory(state: BarterInvoiceUiState, feature: DesktopInvoices, modifier: Modifier) {
     val colors = LocalGoldExColors.current
+    val host by feature.host.collectAsState()
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val columns = when { maxWidth >= 1000.dp -> 3; maxWidth >= 660.dp -> 2; else -> 1 }
+        val columns = when { maxWidth >= 1320.dp -> 3; maxWidth >= 880.dp -> 2; else -> 1 }
         LazyVerticalGrid(GridCells.Fixed(columns), modifier = Modifier.fillMaxSize().testTag("invoices-table"),
             contentPadding = PaddingValues(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             item(key = "overview", span = { GridItemSpan(maxLineSpan) }) {
@@ -136,7 +138,12 @@ import com.goldex.companion.ui.theme.*
                     if (state.invoicesList.isNotEmpty()) DesktopActionButton("نمایش همه", { feature.manager.setSearchQuery(""); feature.manager.setSelectedFilter(InvoiceFilterTab.ALL) }, icon = Icons.Outlined.FilterAltOff, isSecondary = true)
                 }
             }
-            items(state.filteredInvoices, key = { it.id }, contentType = { "invoice" }) { item -> InvoiceCard(item, feature) }
+            items(state.filteredInvoices, key = { it.id }, contentType = { "invoice" }) { item ->
+                InvoiceArchiveCard(item, busy = state.isSaving || host.documentBusy,
+                    onView = { item.barterInvoice?.let(feature::preview) },
+                    onDetails = { feature.manager.openInvoiceDetails(item) }, onDelete = { feature.requestDelete(item) },
+                    onSettle = { feature.settle(item) }, onPrint = { item.barterInvoice?.let { feature.export(it, print = true) } })
+            }
         }
     }
 }
@@ -173,11 +180,11 @@ import com.goldex.companion.ui.theme.*
     }
 }
 
-@Composable private fun InvoiceCard(item: InvoiceListItem, feature: DesktopInvoices) {
+@Composable internal fun InvoiceArchiveCard(item: InvoiceListItem, busy: Boolean,
+    onView: () -> Unit, onDetails: () -> Unit, onDelete: () -> Unit, onSettle: () -> Unit, onPrint: () -> Unit,
+    modifier: Modifier = Modifier) {
     val colors = LocalGoldExColors.current
-    val ui by feature.manager.uiState.collectAsState()
-    val saving = ui.isSaving
-    LuxuryCard(Modifier.testTag("invoice-card-${item.id}"), hasTopHairline = true, contentPadding = PaddingValues(14.dp)) {
+    LuxuryCard(modifier.testTag("invoice-card-${item.id}"), hasTopHairline = true, contentPadding = PaddingValues(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Surface(shape = CircleShape, color = colors.goldContainer, modifier = Modifier.size(38.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.ReceiptLong, null, tint = colors.goldPrimary) }
@@ -186,9 +193,8 @@ import com.goldex.companion.ui.theme.*
                 Text(item.customerName, color = colors.textMain, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("شماره ${PersianNumberFormatter.toPersianDigits(item.cleanInvoiceNumber)} • ${item.createdAtText}", color = colors.textMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconButton({ feature.requestDelete(item) }, Modifier.size(36.dp).testTag("invoice-delete-${item.id}"), enabled = !saving) {
-                Icon(Icons.Outlined.DeleteOutline, "حذف فاکتور", tint = colors.errorRed, modifier = Modifier.size(18.dp))
-            }
+            DesktopNavigationLink("مشاهده", onView, Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                Modifier.testTag("invoice-preview-${item.id}"), enabled = !busy && item.barterInvoice != null)
         }
         val items = item.barterInvoice?.let { it.salesItems + it.receivedItems }.orEmpty()
         val summary = items.firstOrNull()?.title.orEmpty() + if (items.size > 1) " (+${PersianNumberFormatter.toPersianDigits((items.size - 1).toString())} قلم دیگر)" else ""
@@ -209,14 +215,16 @@ import com.goldex.companion.ui.theme.*
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            DesktopActionButton("جزئیات", { feature.manager.openInvoiceDetails(item) }, Modifier.weight(1f).testTag("invoice-open-${item.id}"), isSecondary = true, enabled = !saving, icon = Icons.Outlined.Visibility
-)
-            DesktopActionButton("PDF / چاپ", { item.barterInvoice?.let { feature.preview(it) } }, Modifier.weight(1f).testTag("invoice-preview-${item.id}"), isSecondary = true, enabled = !saving, icon = Icons.Outlined.Print
-)
+        Row(Modifier.fillMaxWidth().testTag("invoice-actions-${item.id}"), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            DesktopActionButton("جزئیات", onDetails, Modifier.weight(1f).testTag("invoice-open-${item.id}"),
+                isSecondary = true, enabled = !busy, icon = Icons.Outlined.Info)
+            DesktopActionButton("حذف", onDelete, Modifier.weight(1f).testTag("invoice-delete-${item.id}"),
+                isSecondary = true, enabled = !busy, icon = Icons.Outlined.DeleteOutline)
+            DesktopActionButton("تسویه", onSettle, Modifier.weight(1f).testTag("invoice-settle-${item.id}"),
+                enabled = !busy && item.status != InvoiceStatus.SETTLED && item.barterInvoice != null, icon = Icons.Outlined.Payments)
+            DesktopActionButton("چاپ", onPrint, Modifier.weight(1f).testTag("invoice-print-${item.id}"),
+                isSecondary = true, enabled = !busy && item.barterInvoice != null, icon = Icons.Outlined.Print)
         }
-        if (item.status != InvoiceStatus.SETTLED) DesktopActionButton("تسویه فاکتور", { feature.settle(item) },
-            Modifier.fillMaxWidth().testTag("invoice-settle-${item.id}"), enabled = !saving, icon = Icons.Outlined.Payments)
     }
 }
 

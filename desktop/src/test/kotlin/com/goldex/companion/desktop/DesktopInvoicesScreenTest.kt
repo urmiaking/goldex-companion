@@ -64,6 +64,22 @@ class DesktopInvoicesScreenTest {
         }
     }
 
+    @Test fun archiveActionsRemainInOneRowAtMinimumWindowWidth() = withWorkspace { workspace ->
+        workspace.navigate(DesktopDestination.INVOICES)
+        runDesktopComposeUiTest(width = 940, height = 700) {
+            setContent { val state by workspace.state.collectAsState(); GoldExCompanionTheme(state.dark) { DesktopWorkspaceScreen(workspace, {}, "test") } }
+            waitUntil(10000) { workspace.invoices.manager.uiState.value.invoicesList.size == 1 && !workspace.invoices.manager.uiState.value.isLoading }
+            val tags = listOf("invoice-open-synthetic-invoice", "invoice-delete-synthetic-invoice",
+                "invoice-settle-synthetic-invoice", "invoice-print-synthetic-invoice")
+            onNodeWithTag("invoice-print-synthetic-invoice").performScrollTo()
+            val card = onNodeWithTag("invoice-card-synthetic-invoice").fetchSemanticsNode().boundsInRoot
+            val buttons = tags.map { onNodeWithTag(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot }
+            assertTrue(buttons.all { it.top == buttons.first().top && it.bottom == buttons.first().bottom })
+            assertTrue(buttons.all { it.left >= card.left && it.right <= card.right })
+            screenshot("invoices-list-minimum.png")
+        }
+    }
+
     @Test fun invoiceCanBeIssuedFromCustomerAndDraftSurvivesPageNavigation() = withWorkspace { workspace ->
         workspace.navigate(DesktopDestination.CUSTOMERS)
         runDesktopComposeUiTest(width = 1100, height = 1000) {

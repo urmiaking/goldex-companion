@@ -13,12 +13,13 @@ import java.awt.image.BufferedImage
 import java.text.AttributedString
 
 /** AWT port of OfficialInvoicePdfGenerator's A5 artwork, in the same 595 x 420 coordinates.
- * Preview, export and the Windows print spooler all consume these exact pages.
+ * The PDF canvas receives vector paths; preview rasterization happens only in the viewer.
  */
 internal class DesktopInvoicePageRenderer(
     private val g: Graphics2D,
     private val regular: Font,
-    private val bold: Font
+    private val bold: Font,
+    private val scale: Double = 2.0
 ) {
     private companion object {
         const val BASE_PAGE_WIDTH = 595f
@@ -34,7 +35,7 @@ internal class DesktopInvoicePageRenderer(
 
     fun draw(model: OfficialInvoiceDocument, settings: AppSettings, rows: List<OfficialInvoiceRow>,
         pageIndex: Int, pageCount: Int, logo: BufferedImage?, signature: BufferedImage?, stamp: BufferedImage?) {
-        g.scale(2.0, 2.0)
+        g.scale(scale, scale)
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
