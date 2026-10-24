@@ -474,7 +474,8 @@ private fun ReportingModuleCard(
         color = colors.surface,
         border = BorderStroke(1.dp, colors.border),
         shadowElevation = 2.dp,
-        modifier = modifier.clickable(onClick = onClick)
+        onClick = onClick,
+        modifier = modifier
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(

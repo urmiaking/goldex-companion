@@ -50,9 +50,13 @@ class DesktopInvoicesScreenTest {
             onNodeWithTag("invoices-search").performTextReplacement("نام ناموجود")
             onNodeWithTag("invoice-empty").assertIsDisplayed()
             onNodeWithTag("invoices-search").performTextReplacement("")
+            onNodeWithTag("invoice-print-synthetic-invoice").performScrollTo().performClick()
+            onNodeWithTag("invoice-pdf-preview").assertIsDisplayed()
+            runOnIdle { assertFalse(workspace.invoices.host.value.documentBusy, "Archive print opens preview before native printing") }
+            waitUntil(10000) { onAllNodesWithTag("invoice-export").fetchSemanticsNodes().isNotEmpty() }
+            onNodeWithContentDescription("بستن پیش‌نمایش").performClick()
             onNodeWithTag("invoice-preview-synthetic-invoice").performClick()
             onNodeWithTag("invoice-pdf-preview").assertIsDisplayed()
-            waitUntil(10000) { onAllNodesWithTag("invoice-export").fetchSemanticsNodes().isNotEmpty() }
             onNodeWithContentDescription("بستن پیش‌نمایش").performClick()
             runOnIdle { workspace.toggleTheme() }
             screenshot("invoices-list-dark.png")

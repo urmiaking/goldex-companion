@@ -909,6 +909,7 @@ private fun TableActionTooltip(
                                 border = if (isCurrent) null else BorderStroke(0.6.dp, colors.border.copy(alpha = 0.5f)),
                                 modifier = Modifier
                                     .size(28.dp)
+                                    .clip(RoundedCornerShape(6.dp))
                                     .clickable { currentPage = pageNum }
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
@@ -1054,7 +1055,7 @@ private fun TableActionTooltip(
                                             color = if (isCurrent) colors.goldContainer else colors.surface,
                                             border = BorderStroke(0.8.dp, if (isCurrent) colors.goldPrimary else colors.border),
                                             modifier = Modifier.then(
-                                                if (!isCurrent) Modifier.clickable {
+                                                if (!isCurrent) Modifier.clip(RoundedCornerShape(6.dp)).clickable {
                                                     feature.open(item)
                                                     feature.edit { it.copy(location = targetLoc) }
                                                     feature.save()

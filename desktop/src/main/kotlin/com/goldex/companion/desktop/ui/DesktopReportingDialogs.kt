@@ -168,7 +168,7 @@ internal fun DesktopShamsiDateRangeDialog(
                             shape = ButtonShape,
                             color = if (isSelectingStart) colors.goldContainer.copy(alpha = 0.25f) else colors.surfaceElevated,
                             border = BorderStroke(1.dp, if (isSelectingStart) colors.goldPrimary else colors.border),
-                            modifier = Modifier.weight(1f).clickable {
+                            modifier = Modifier.weight(1f).clip(ButtonShape).clickable {
                                 isSelectingStart = true
                                 viewYear = selectedStart.first
                                 viewMonth = selectedStart.second
@@ -192,7 +192,7 @@ internal fun DesktopShamsiDateRangeDialog(
                             shape = ButtonShape,
                             color = if (!isSelectingStart) colors.goldContainer.copy(alpha = 0.25f) else colors.surfaceElevated,
                             border = BorderStroke(1.dp, if (!isSelectingStart) colors.goldPrimary else colors.border),
-                            modifier = Modifier.weight(1f).clickable {
+                            modifier = Modifier.weight(1f).clip(ButtonShape).clickable {
                                 isSelectingStart = false
                                 viewYear = selectedEnd.first
                                 viewMonth = selectedEnd.second

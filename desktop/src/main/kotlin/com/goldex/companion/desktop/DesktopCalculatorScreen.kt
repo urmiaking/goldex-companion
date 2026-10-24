@@ -948,6 +948,7 @@ internal fun DesktopInlineCustomKaratChip(
         ),
         modifier = modifier
             .height(40.dp)
+            .clip(RoundedCornerShape(10.dp))
             .clickable(enabled = enabled) { onSelect() }
     ) {
         Box(

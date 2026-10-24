@@ -93,7 +93,6 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
     val licenseInfo by workspace.license.licenseInfo.collectAsState()
     val cloudState by workspace.cloud.state.collectAsState()
     var showLicenseDialog by remember { mutableStateOf(false) }
-    var showOtpDialog by remember { mutableStateOf(false) }
     var showClearDataConfirm by remember { mutableStateOf(false) }
     var licenseMessage by remember { mutableStateOf<String?>(null) }
     PageScroll {
@@ -324,70 +323,16 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                 }
             }
 
-            // Cloud Sync Card
             LuxuryCard(Modifier.weight(1f).fillMaxHeight().testTag("settings-cloud-sync-card")) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.CloudSync, null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
                     PageTitle("همگام‌سازی ابری")
                 }
-                val syncBadgeColor = when (cloudState.status) {
-                    DesktopSyncStatus.SYNCED -> colors.profitGreen
-                    DesktopSyncStatus.SYNCING -> colors.goldPrimary
-                    DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.DISABLED -> colors.textMuted
-                    else -> colors.errorRed
-                }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = syncBadgeColor.copy(alpha = 0.12f),
-                    border = BorderStroke(0.6.dp, syncBadgeColor.copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(syncBadgeColor))
-                        Text(
-                            text = if (cloudState.phone.isNotBlank()) "متصل به شماره ${PersianNumberFormatter.toPersianDigits(cloudState.phone)} (${cloudState.status.titleFa})" else "حساب ابری: ${cloudState.status.titleFa}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = syncBadgeColor
-                        )
-                    }
-                }
-                Text("همگام‌سازی دوطرفه فاکتورها، مشتریان و اسناد با فضای ابری امن و نسخه اندروید.", fontSize = 11.sp, color = colors.textSecondary)
-                if (cloudState.message.isNotBlank()) {
-                    Text(cloudState.message, fontSize = 11.sp, color = colors.textMuted)
-                }
+                Text(cloudState.status.titleFa, color = colors.textMain, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("مدیریت حساب، وضعیت ارسال و دریافت و اتصال به نسخه اندروید", color = colors.textSecondary, fontSize = 12.sp)
                 Spacer(Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (cloudState.phone.isBlank() || cloudState.status == DesktopSyncStatus.AUTH_REQUIRED || cloudState.status == DesktopSyncStatus.DISABLED) {
-                        GoldButton(
-                            text = "ورود با پیامک (OTP)",
-                            onClick = { showOtpDialog = true },
-                            icon = Icons.Outlined.Login,
-                            isSecondary = false,
-                            modifier = Modifier.fillMaxWidth().testTag("open-otp-dialog")
-                        )
-                    } else {
-                        GoldButton(
-                            text = "همگام‌سازی",
-                            onClick = { scope.launch { workspace.cloud.syncNow() } },
-                            icon = Icons.Outlined.Sync,
-                            isSecondary = false,
-                            isLoading = cloudState.busy,
-                            modifier = Modifier.weight(1.2f).testTag("sync-cloud-btn")
-                        )
-                        GoldButton(
-                            text = "خروج",
-                            onClick = { scope.launch { workspace.cloud.logout() } },
-                            icon = Icons.Outlined.Logout,
-                            isSecondary = true,
-                            modifier = Modifier.weight(0.8f).testTag("logout-cloud-btn")
-                        )
-                    }
-                }
+                GoldButton("مدیریت فضای ابری", workspace::openCloudSettings, Modifier.fillMaxWidth().testTag("open-cloud-dialog"),
+                    icon = Icons.Outlined.CloudSync, isSecondary = true)
             }
         }
 
@@ -422,13 +367,6 @@ private fun values(rates: MarketRates) = listOf(rates.gold18, rates.gold24, rate
                     }
                 }
             }
-        )
-    }
-
-    DesktopDialogHost(showOtpDialog) {
-        DesktopOtpDialog(
-            workspace = workspace,
-            onDismiss = { showOtpDialog = false }
         )
     }
 
