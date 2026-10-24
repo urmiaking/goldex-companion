@@ -85,10 +85,11 @@ class DesktopWorkspace(
     val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
     val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
     val isLicensed: () -> Boolean = isLicensedOverride ?: { license.getCachedInfo().isLicensed }
-    val showCloudOtpDialog = MutableStateFlow(false)
+    private val cloudDialogVisible = MutableStateFlow(false)
+    val showCloudDialog = cloudDialogVisible.asStateFlow()
     val showLicenseDialog = MutableStateFlow(false)
-    fun openCloudOtp() { showCloudOtpDialog.value = true }
-    fun closeCloudOtp() { showCloudOtpDialog.value = false }
+    fun openCloudSettings() { cloudDialogVisible.value = true }
+    fun closeCloudSettings() { cloudDialogVisible.value = false }
     fun openLicenseDialog(message: String? = null) {
         if (message != null) {
             mutable.update { it.copy(notice = message) }

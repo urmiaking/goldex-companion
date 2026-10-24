@@ -72,7 +72,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
     val rateDetail by workspace.rateDetail.state.collectAsState()
     val reportingState by workspace.reporting.uiState.collectAsState()
     val cloudState by workspace.cloud.state.collectAsState()
-    val showCloudOtp by workspace.showCloudOtpDialog.collectAsState()
+    val showCloud by workspace.showCloudDialog.collectAsState()
     val showLicense by workspace.showLicenseDialog.collectAsState()
     val screenScope = rememberCoroutineScope()
     val statementCustomer = customerState.selectedCustomerForStatement.takeIf { state.destination == DesktopDestination.CUSTOMERS }
@@ -99,7 +99,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                 } else {
                     val compact = maxWidth < 1080.dp
                     Row(Modifier.fillMaxSize()) {
-                    Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
+                    Sidebar(state, workspace, compact, version, updater, state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft && !showCloud)
                     Column(
                         Modifier.weight(1f).fillMaxHeight().padding(
                             start = if (compact) 16.dp else 24.dp,
@@ -134,13 +134,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             }, backTag = if (state.destination == DesktopDestination.INVOICES) "invoice-back" else if (state.destination == DesktopDestination.RATE_DETAIL) "rate-details-close" else if (state.destination == DesktopDestination.REPORTING) "reporting-back" else "customer-back",
                             backDescription = if (state.destination == DesktopDestination.INVOICES) "بازگشت به فاکتورها" else if (state.destination == DesktopDestination.RATE_DETAIL) "بازگشت به تابلوی نرخ‌ها" else if (state.destination == DesktopDestination.REPORTING) "بازگشت به مرکز گزارشات" else "بازگشت به مشتریان",
                             cloudState = cloudState,
-                            onCloudClick = {
-                                if (cloudState.status == com.goldex.companion.desktop.sync.DesktopSyncStatus.AUTH_REQUIRED || !cloudState.enabled) {
-                                    workspace.openCloudOtp()
-                                } else {
-                                    screenScope.launch { workspace.cloud.syncNow() }
-                                }
-                            })
+                            onCloudClick = workspace::openCloudSettings)
                         AnimatedVisibility(
                             visible = state.error != null || state.notice != null,
                             enter = if (state.reduceMotion) fadeIn(tween(0)) else LuxuryMotion.ItemAddEnter,
@@ -201,10 +195,10 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         InventoryDialogs(workspace.inventory)
         DesktopInvoiceDialogs(workspace)
         DesktopCustomerDialogs(workspace.customers, workspace.invoices::refreshed)
-        DesktopDialogHost(showCloudOtp) {
-            DesktopOtpDialog(
+        DesktopDialogHost(showCloud) {
+            DesktopCloudDialog(
                 workspace = workspace,
-                onDismiss = workspace::closeCloudOtp
+                onDismiss = workspace::closeCloudSettings
             )
         }
         DesktopDialogHost(showLicense) {
@@ -225,7 +219,7 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
         }
         if (updater != null)
             WindowsUpdatePrompt(updater, canRestart = !state.saving && !inventoryState.saving && state.settingsDraft == null, onRestart = onRestart,
-                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft)
+                visible = state.draft == null && state.pendingDelete == null && !inventoryState.hasDialog && !customerDialog && !invoiceDialog && !workspace.invoices.hasDraft && !showCloud)
         DesktopDialogHost(state.pendingDelete) { item ->
             AlertDialog(onDismissRequest = { if (!state.saving) workspace.requestDelete(null) },
                 title = { Text("حذف دارایی") }, text = { Text("«${item.title}» از فهرست دارایی‌ها حذف شود؟ نسخه قبلی اطلاعات در پشتیبان محلی حفظ می‌شود.") },

@@ -189,6 +189,7 @@ internal fun ThirdPartyBarterPickerDialog(
                                     border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.6f)),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
                                         .clickable {
                                             val cust = customers.firstOrNull { it.name == inv.customerName }
                                                 ?: Customer(name = inv.customerName)
@@ -283,6 +284,7 @@ internal fun ThirdPartyBarterPickerDialog(
                                     border = BorderStroke(0.6.dp, colors.border),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
                                         .clickable {
                                             onSelectCustomerLedger(cust)
                                             onDismiss()

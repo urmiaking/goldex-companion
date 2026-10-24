@@ -426,7 +426,7 @@ fun DesktopWizardCompletionPane(
                     // Option 1: Trial
                     val isTrial = licenseState.choice == DesktopWizardLicenseChoice.TRIAL
                     Surface(
-                        modifier = Modifier.weight(1f).clickable {
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable {
                             onLicenseChange(licenseState.copy(choice = DesktopWizardLicenseChoice.TRIAL))
                         },
                         shape = RoundedCornerShape(14.dp),
@@ -483,7 +483,7 @@ fun DesktopWizardCompletionPane(
                     // Option 2: Code
                     val isCode = licenseState.choice == DesktopWizardLicenseChoice.CODE
                     Surface(
-                        modifier = Modifier.weight(1f).clickable {
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable {
                             onLicenseChange(licenseState.copy(choice = DesktopWizardLicenseChoice.CODE))
                         },
                         shape = RoundedCornerShape(14.dp),

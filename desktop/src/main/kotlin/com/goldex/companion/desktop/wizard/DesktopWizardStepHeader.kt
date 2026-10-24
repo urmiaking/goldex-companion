@@ -291,6 +291,7 @@ fun DesktopWizardStepHeader(
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable(enabled = isPast) { onStepClick(step) }
                             .testTag("wizard-step-pill-${step.stepNumber}")
                     ) {

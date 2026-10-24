@@ -142,7 +142,7 @@ import com.goldex.companion.ui.theme.*
                 InvoiceArchiveCard(item, busy = state.isSaving || host.documentBusy,
                     onView = { item.barterInvoice?.let(feature::preview) },
                     onDetails = { feature.manager.openInvoiceDetails(item) }, onDelete = { feature.requestDelete(item) },
-                    onSettle = { feature.settle(item) }, onPrint = { item.barterInvoice?.let { feature.export(it, print = true) } })
+                    onSettle = { feature.settle(item) }, onPrint = { item.barterInvoice?.let(feature::preview) })
             }
         }
     }

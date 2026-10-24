@@ -333,6 +333,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
         ),
         modifier = modifier
             .height(height)
+            .clip(RoundedCornerShape(10.dp))
             .clickable(enabled = active) { onSelect() }
     ) {
         Box(

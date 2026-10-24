@@ -253,6 +253,7 @@ fun AddInvoiceItemModal(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .height(42.dp)
+                                                    .clip(RoundedCornerShape(10.dp))
                                                     .clickable { selectedCategory = category }
                                             ) {
                                                 Row(
@@ -485,6 +486,7 @@ private fun CraftedGoldForm(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         isCustomKarat = false
                                         selectedKaratPreset = karatVal
@@ -1038,6 +1040,7 @@ private fun ScrapGoldForm(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         isCustomKarat = false
                                         selectedBaseKaratPreset = k
@@ -1467,6 +1470,7 @@ private fun MeltGoldForm(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         isCustomKarat = false
                                         selectedKaratPreset = k
@@ -1750,6 +1754,7 @@ private fun BankCoinForm(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
                                 .clickable {
                                     selectedCoin = c
                                     val livePrice = getCoinMarketPrice(rates, c)

@@ -309,6 +309,7 @@ fun CustomerPickerDialog(
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
                                         .clickable {
                                             onSelectCustomer(customer)
                                             onDismiss()

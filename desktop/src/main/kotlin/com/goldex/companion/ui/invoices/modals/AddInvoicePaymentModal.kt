@@ -625,6 +625,7 @@ fun AddInvoicePaymentModal(
                                                             border = BorderStroke(0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                                                             modifier = Modifier
                                                                 .weight(1f)
+                                                                .clip(RoundedCornerShape(8.dp))
                                                                 .clickable { ledgerDueDate = term }
                                                         ) {
                                                             Text(
@@ -692,6 +693,7 @@ fun AddInvoicePaymentModal(
                                                             border = BorderStroke(0.6.dp, if (isSelected) colors.goldPrimary else colors.border),
                                                             modifier = Modifier
                                                                 .weight(1f)
+                                                                .clip(RoundedCornerShape(8.dp))
                                                                 .clickable { bullionKaratStr = kPreset }
                                                         ) {
                                                             Text(
@@ -777,6 +779,7 @@ fun AddInvoicePaymentModal(
                                                     border = BorderStroke(0.8.dp, colors.goldBorder),
                                                     modifier = Modifier
                                                         .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(10.dp))
                                                         .clickable { isThirdPartyPickerVisible = true }
                                                 ) {
                                                     Row(
@@ -870,6 +873,7 @@ fun AddInvoicePaymentModal(
                                         border = BorderStroke(0.6.dp, colors.goldBorder),
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
                                             .clickable {
                                                 when (selectedChannel) {
                                                     SettlementMethod.POS -> posStr = remainingBalance.toString()

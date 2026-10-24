@@ -556,7 +556,7 @@ private fun InvoiceMetaAndRateCard(
                     Surface(
                         shape = ButtonShape,
                         color = Color(0x22FFFFFF),
-                        modifier = Modifier.clickable { onEditRateClick() }
+                        modifier = Modifier.clip(ButtonShape).clickable { onEditRateClick() }
                     ) {
                         Text(
                             text = "تغییر نرخ",
@@ -696,6 +696,7 @@ private fun CustomerAndAccountCard(
                 border = BorderStroke(0.8.dp, if (customer != null) colors.goldBorder else colors.border),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .clickable(onClick = onChangeCustomerClick)
             ) {
                 Row(
@@ -1195,7 +1196,7 @@ private fun ItemsSectionCard(
                     shape = ButtonShape,
                     color = colors.goldContainer.copy(alpha = 0.5f),
                     border = BorderStroke(0.6.dp, colors.goldBorder),
-                    modifier = Modifier.clickable { onAddItemClick() }
+                    modifier = Modifier.clip(ButtonShape).clickable { onAddItemClick() }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -1467,7 +1468,7 @@ private fun SettlementSection(
                     shape = ButtonShape,
                     color = colors.goldContainer.copy(alpha = 0.5f),
                     border = BorderStroke(0.6.dp, colors.goldBorder),
-                    modifier = Modifier.clickable(onClick = onOpenAddPaymentModal)
+                    modifier = Modifier.clip(ButtonShape).clickable(onClick = onOpenAddPaymentModal)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -1613,6 +1614,7 @@ private fun SettlementSection(
                             border = BorderStroke(0.6.dp, colors.goldBorder.copy(alpha = 0.5f)),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
                                 .clickable(enabled = pItem.settlement == null) { onEditPaymentItem(pItem) }
                         ) {
                             Row(
@@ -1864,6 +1866,7 @@ private fun EditRateDialog(
                         border = BorderStroke(0.5.dp, colors.goldBorder.copy(alpha = 0.4f)),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { rateStr = liveRate.toString() }
                     ) {
                         Row(
