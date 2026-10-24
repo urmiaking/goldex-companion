@@ -22,7 +22,7 @@ XML reports: 222 desktop tests (41 suites), 249 Android-host tests (40 suites), 
 
 Packaged Qirato.exe --verify-runtime reported version 0.56.84 and passed font, icon, shared codecs, customer/invoice storage, financial and official PDF checks; exit 0. Existing SDK XML, image-decoder fixture and SLF4J diagnostics did not fail the gates. Local full APK assembly/signing was not run. Light/dark cloud screenshots were visually inspected at the minimum 940x700 window. No physical printer or live SMS/account connection was exercised.
 
-The Windows release/CI links will be added after publication; Android stays at 0.56.83 (172). Screenshots are generated in desktop/build/screenshots; no production records are used.
+Delivery target: [windows-v0.56.84](https://github.com/urmiaking/goldex-companion/releases/tag/windows-v0.56.84). [Issue #321](https://github.com/urmiaking/goldex-companion/issues/321) records the final CI run and publication/asset metadata before closure. Android stays at 0.56.83 (172). Screenshots are generated in desktop/build/screenshots; no production records are used.
 
 ## Graph scope and limits
 
