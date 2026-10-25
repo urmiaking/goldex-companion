@@ -85,6 +85,13 @@ class DesktopWorkspace(
     val calculatorRates = DesktopCalculatorRates(calculator, market.snapshot.value)
     val license = com.goldex.companion.desktop.license.DesktopLicenseRepository(storage.directory, scope)
     val isLicensed: () -> Boolean = isLicensedOverride ?: { license.getCachedInfo().isLicensed }
+    fun isMainFeatureLocked(): Boolean {
+        if (isLicensed()) return false
+        val status = license.getCachedInfo().status
+        return status == com.goldex.companion.data.license.LicenseStatus.TRIAL_EXPIRED ||
+               status == com.goldex.companion.data.license.LicenseStatus.REVOKED ||
+               state.value.settings.hasCompletedOnboarding
+    }
     private val cloudDialogVisible = MutableStateFlow(false)
     val showCloudDialog = cloudDialogVisible.asStateFlow()
     val showLicenseDialog = MutableStateFlow(false)
@@ -187,6 +194,16 @@ class DesktopWorkspace(
 
     fun navigate(destination: DesktopDestination) {
         if (invoices.saving || invoices.hasDialog) return
+        if (isMainFeatureLocked() && destination in listOf(
+            DesktopDestination.CALCULATOR,
+            DesktopDestination.INVOICES,
+            DesktopDestination.CUSTOMERS,
+            DesktopDestination.INVENTORY,
+            DesktopDestination.REPORTING
+        )) {
+            openLicenseDialog("استفاده از این بخش نیازمند فعال‌سازی اشتراک است.")
+            return
+        }
         mutable.update { it.copy(destination = destination, notice = null) }
         if (destination == DesktopDestination.INVOICES) invoices.manager.reloadInvoices()
         if (destination == DesktopDestination.CUSTOMERS) customers.manager.loadCustomers()

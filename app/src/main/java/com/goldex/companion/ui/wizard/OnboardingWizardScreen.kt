@@ -275,23 +275,12 @@ fun OnboardingWizardScreen(
                 ) {
                     when (currentStep) {
                         WizardStep.INTRO -> {
-                            // Secondary: Right side in RTL (first in Row)
-                            GoldButton(
-                                text = if (isValidating) "در حال اتصال..." else "ورود مهمان",
-                                isSecondary = true,
-                                isLoading = isValidating,
-                                enabled = !isValidating,
-                                onClick = { requestGuestLoginWithValidation() },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            // Primary: Left side in RTL (second in Row)
                             GoldButton(
                                 text = "شروع و ثبت مشخصات",
-                                trailingIcon = if (isValidating) null else WizardArrowLeft,
-                                enabled = !isValidating,
+                                trailingIcon = WizardArrowLeft,
+                                enabled = true,
                                 onClick = { currentStep = WizardStep.PROFILE },
-                                modifier = Modifier.weight(1.8f)
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
 

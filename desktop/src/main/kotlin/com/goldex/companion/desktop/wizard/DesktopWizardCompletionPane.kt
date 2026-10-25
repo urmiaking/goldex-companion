@@ -456,7 +456,7 @@ fun DesktopWizardCompletionPane(
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
-                                        text = "طرح آزمایشی رایگان (۱۴ روز)",
+                                        text = "طرح آزمایشی رایگان (۷ روز)",
                                         fontSize = 13.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isTrial) colors.textMain else colors.textSecondary
@@ -567,7 +567,7 @@ fun DesktopWizardCompletionPane(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "شناسه پایدار دستگاه شما به صورت امن ثبت شده و دوره آزمایشی ۱۴ روزه بلافاصله پس از تأیید فعال خواهد شد.",
+                                text = "شناسه پایدار دستگاه شما به صورت امن ثبت شده و دوره آزمایشی ۷ روزه بلافاصله پس از تأیید فعال خواهد شد.",
                                 fontSize = 12.5.sp,
                                 color = colors.textSecondary
                             )

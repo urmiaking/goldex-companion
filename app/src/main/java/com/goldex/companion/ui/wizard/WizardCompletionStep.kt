@@ -346,7 +346,7 @@ fun WizardCompletionContent(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "🎁 فعال‌سازی مهلت تست ۱۴ روزه رایگان (پیشنهادی)",
+                            text = "🎁 فعال‌سازی مهلت تست ۷ روزه رایگان (پیشنهادی)",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = colors.textMain

@@ -160,22 +160,72 @@ fun DesktopWorkspaceScreen(workspace: DesktopWorkspace, onBackup: () -> Unit, ve
                             pages.SaveableStateProvider(destination.name) {
                                 when (destination) {
                                     DesktopDestination.DASHBOARD -> DesktopDashboardPage(state, workspace.dashboard, workspace)
-                                    DesktopDestination.CALCULATOR -> DesktopCalculatorScreen(
-                                        calculator = workspace.calculator,
-                                        dark = state.dark,
-                                        showHeader = false,
-                                        marketRates = workspace.calculatorRates,
-                                        onNavigateToInvoice = workspace::openCalculatorInvoice,
-                                        onThemeChange = { workspace.toggleTheme() }
-                                    )
+                                    DesktopDestination.CALCULATOR -> {
+                                        if (workspace.isMainFeatureLocked()) {
+                                            DesktopLicenseLockedPage(
+                                                title = "ماشین‌حساب طلا و مسکوکات",
+                                                description = "مهلت استفاده آزمایشی از ماشین‌حساب طلا به پایان رسیده است. جهت محاسبه قیمت طلا، اجرت، سود و صدور فاکتور، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { workspace.openLicenseDialog() }
+                                            )
+                                        } else {
+                                            DesktopCalculatorScreen(
+                                                calculator = workspace.calculator,
+                                                dark = state.dark,
+                                                showHeader = false,
+                                                marketRates = workspace.calculatorRates,
+                                                onNavigateToInvoice = workspace::openCalculatorInvoice,
+                                                onThemeChange = { workspace.toggleTheme() }
+                                            )
+                                        }
+                                    }
                                     DesktopDestination.RATES -> RatesPage(state, workspace)
                                     DesktopDestination.RATE_DETAIL -> DesktopRateDetailPage(state, workspace)
                                     DesktopDestination.PORTFOLIO -> PortfolioPage(state, workspace)
                                     DesktopDestination.SETTINGS -> SettingsPage(state, workspace, onBackup)
-                                    DesktopDestination.INVENTORY -> DesktopInventoryPage(state, workspace.inventory)
-                                    DesktopDestination.INVOICES -> DesktopInvoicesPage(state, workspace)
-                                    DesktopDestination.CUSTOMERS -> DesktopCustomersPage(workspace)
-                                    DesktopDestination.REPORTING -> DesktopReportingPage(workspace.reporting, workspace)
+                                    DesktopDestination.INVENTORY -> {
+                                        if (workspace.isMainFeatureLocked()) {
+                                            DesktopLicenseLockedPage(
+                                                title = "انبار و ویترین طلا",
+                                                description = "دسترسی به کارتابل انبار و موجودی نیازمند اشتراک معتبر است. جهت ثبت مصنوعات و پایش موجودی، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { workspace.openLicenseDialog() }
+                                            )
+                                        } else {
+                                            DesktopInventoryPage(state, workspace.inventory)
+                                        }
+                                    }
+                                    DesktopDestination.INVOICES -> {
+                                        if (workspace.isMainFeatureLocked()) {
+                                            DesktopLicenseLockedPage(
+                                                title = "مدیریت و صدور فاکتورها",
+                                                description = "دسترسی به دفتر فاکتورها نیازمند اشتراک معتبر است. برای صدور، مشاهده و چاپ فاکتورها، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { workspace.openLicenseDialog() }
+                                            )
+                                        } else {
+                                            DesktopInvoicesPage(state, workspace)
+                                        }
+                                    }
+                                    DesktopDestination.CUSTOMERS -> {
+                                        if (workspace.isMainFeatureLocked()) {
+                                            DesktopLicenseLockedPage(
+                                                title = "دفتر حساب و مشتریان",
+                                                description = "دسترسی به حسابداری و مشتریان نیازمند اشتراک معتبر است. برای مدیریت مانده‌حساب‌ها و گردش مالی، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { workspace.openLicenseDialog() }
+                                            )
+                                        } else {
+                                            DesktopCustomersPage(workspace)
+                                        }
+                                    }
+                                    DesktopDestination.REPORTING -> {
+                                        if (workspace.isMainFeatureLocked()) {
+                                            DesktopLicenseLockedPage(
+                                                title = "مرکز گزارشات و تراز مالی",
+                                                description = "دسترسی به مرکز گزارشات و ترازنامه نیازمند اشتراک معتبر است. جهت مشاهده گزارش سود و زیان، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { workspace.openLicenseDialog() }
+                                            )
+                                        } else {
+                                            DesktopReportingPage(workspace.reporting, workspace)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -275,12 +325,24 @@ private fun icon(destination: DesktopDestination): ImageVector = when (destinati
                 val selectionColor by animateColorAsState(if (selected) colors.goldContainer else Color.Transparent,
                     tween(if (state.reduceMotion) 0 else 180), label = "sidebar-selection")
                 var focused by remember(destination) { mutableStateOf(false) }
+                val isLocked = workspace.isMainFeatureLocked() && destination in listOf(
+                    DesktopDestination.CALCULATOR,
+                    DesktopDestination.INVOICES,
+                    DesktopDestination.CUSTOMERS,
+                    DesktopDestination.INVENTORY,
+                    DesktopDestination.REPORTING
+                )
+                val onNavClick = if (isLocked) {
+                    { workspace.openLicenseDialog("جهت دسترسی به ${destination.title}، لطفاً اشتراک قیراط را فعال نمایید.") }
+                } else {
+                    { workspace.navigate(destination) }
+                }
                 Surface(color = selectionColor, shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.border(if (focused) 1.dp else 0.dp, if (focused) colors.goldPrimary else Color.Transparent, RoundedCornerShape(14.dp))) {
-                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    if (compact) Column(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = onNavClick).testTag("nav-${destination.name}").padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(if (destination == DesktopDestination.INVENTORY) "انبار و ویترین" else if (destination == DesktopDestination.INVOICES) "فاکتورها" else destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 11.sp, maxLines = 1)
-                    } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = { workspace.navigate(destination) }).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    } else Row(Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused }.selectable(selected, onClick = onNavClick).testTag("nav-${destination.name}").padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Icon(icon(destination), null, Modifier.size(22.dp), tint = if (selected) colors.goldPrimary else colors.textMuted)
                         Text(destination.title, color = if (selected) colors.goldPrimary else colors.textSecondary, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1)
                     }

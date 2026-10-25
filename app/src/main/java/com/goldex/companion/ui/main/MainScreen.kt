@@ -96,6 +96,7 @@ import com.goldex.companion.ui.wizard.WizardLicenseChoice
 import com.goldex.companion.ui.license.LicenseViewModel
 import com.goldex.companion.ui.security.AppLockViewModel
 import com.goldex.companion.ui.license.LicenseActivationModal
+import com.goldex.companion.ui.license.LicenseLockedPlaceholder
 import com.goldex.companion.ui.reporting.ReportingScreen
 import com.goldex.companion.ui.reporting.ReportingDetailScreen
 import com.goldex.companion.ui.reporting.ShamsiDateRangePickerDialog
@@ -509,26 +510,61 @@ fun MainScreen(
                                                 recentInvoices = barterUiState.invoicesList.take(5)
                                             ),
                                             onNavigateCalculator = {
-                                                mainViewModel.selectTab(AppTab.CALCULATOR)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از ماشین‌حساب نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.selectTab(AppTab.CALCULATOR)
+                                                }
                                             },
                                             onNavigateInvoices = {
-                                                barterInvoiceViewModel.navigateBackToList()
-                                                mainViewModel.selectTab(AppTab.INVOICES)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به فاکتورها نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    barterInvoiceViewModel.navigateBackToList()
+                                                    mainViewModel.selectTab(AppTab.INVOICES)
+                                                }
                                             },
                                             onNavigateConvert = {
-                                                mainViewModel.setKaratConvertVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از تبدیل عیار نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setKaratConvertVisible(true)
+                                                }
                                             },
                                             onNavigateCoinBubble = {
-                                                mainViewModel.setCoinBubbleVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از حباب سکه نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setCoinBubbleVisible(true)
+                                                }
                                             },
                                             onNavigateMelt = {
-                                                mainViewModel.setMeltVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از طلای آبشده نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setMeltVisible(true)
+                                                }
                                             },
                                             onNavigateLedger = {
-                                                customerViewModel.openCustomerLedger()
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به دفتر حساب نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    customerViewModel.openCustomerLedger()
+                                                }
                                             },
                                             onNavigateInventory = {
-                                                inventoryViewModel.setInventoryVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به انبار و ویترین نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    inventoryViewModel.setInventoryVisible(true)
+                                                }
                                             },
                                             onOpenLicenseActivation = {
                                                 licenseViewModel.setActivationDialogVisible(true)
@@ -562,7 +598,12 @@ fun MainScreen(
                                             ),
                                             onRefresh = { mainViewModel.refreshRates() },
                                             onNavigateCalculator = {
-                                                mainViewModel.selectTab(AppTab.CALCULATOR)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از ماشین‌حساب نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.selectTab(AppTab.CALCULATOR)
+                                                }
                                             },
                                             onNavigateRateDetail = { rateType ->
                                                 mainViewModel.openRateDetail(rateType)
@@ -571,7 +612,14 @@ fun MainScreen(
                                     }
 
                                     AppTab.CALCULATOR -> {
-                                        JewelryTab(
+                                        if (!licenseInfo.isLicensed) {
+                                            LicenseLockedPlaceholder(
+                                                featureName = "ماشین‌حساب طلا و مسکوکات",
+                                                description = "مهلت استفاده آزمایشی از ماشین‌حساب طلا به پایان رسیده است. جهت انجام محاسبات روز، تعیین سود و اجرت، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { licenseViewModel.setActivationDialogVisible(true) }
+                                            )
+                                        } else {
+                                            JewelryTab(
                                             viewModel = mainViewModel,
                                             uiState = mainUiState.toJewelryUiState(),
                                             onAddToInvoice = {
@@ -618,10 +666,18 @@ fun MainScreen(
                                                 }
                                             }
                                         )
+                                        }
                                     }
 
                                     AppTab.INVOICES -> {
-                                        InvoicesManagementScreen(
+                                        if (!licenseInfo.isLicensed) {
+                                            LicenseLockedPlaceholder(
+                                                featureName = "مدیریت و صدور فاکتورها",
+                                                description = "دسترسی به دفتر فاکتورها نیازمند اشتراک معتبر است. برای صدور، مشاهده و چاپ فاکتورها، لطفاً اشتراک قیراط را فعال نمایید.",
+                                                onActivate = { licenseViewModel.setActivationDialogVisible(true) }
+                                            )
+                                        } else {
+                                            InvoicesManagementScreen(
                                             uiState = barterUiState,
                                             onRetry = barterInvoiceViewModel::reloadInvoices,
                                             onSearchQueryChange = barterInvoiceViewModel::setSearchQuery,
@@ -663,6 +719,7 @@ fun MainScreen(
                                                 }
                                             }
                                         )
+                                        }
                                     }
 
                                     AppTab.MORE -> {
@@ -712,22 +769,52 @@ fun MainScreen(
                                                 }
                                             },
                                             onNavigateLedger = {
-                                                customerViewModel.openCustomerLedger()
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به دفتر حساب نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    customerViewModel.openCustomerLedger()
+                                                }
                                             },
                                             onNavigateMelt = {
-                                                mainViewModel.setMeltVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از طلای آبشده نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setMeltVisible(true)
+                                                }
                                             },
                                             onNavigateInventory = {
-                                                inventoryViewModel.setInventoryVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به انبار و ویترین نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    inventoryViewModel.setInventoryVisible(true)
+                                                }
                                             },
                                             onNavigateConvert = {
-                                                mainViewModel.setKaratConvertVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از تبدیل عیار نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setKaratConvertVisible(true)
+                                                }
                                             },
                                             onNavigateCoinBubble = {
-                                                mainViewModel.setCoinBubbleVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "استفاده از حباب سکه نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    mainViewModel.setCoinBubbleVisible(true)
+                                                }
                                             },
                                             onNavigateReporting = {
-                                                reportingViewModel.setReportingVisible(true)
+                                                if (!licenseInfo.isLicensed) {
+                                                    licenseViewModel.setActivationDialogVisible(true)
+                                                    QiratoToast.show(context, "دسترسی به مرکز گزارشات نیازمند اشتراک معتبر است.")
+                                                } else {
+                                                    reportingViewModel.setReportingVisible(true)
+                                                }
                                             },
                                             onOpenTaxProfitModal = {
                                                 settingsViewModel.setTaxProfitModalVisible(true)
@@ -779,7 +866,14 @@ fun MainScreen(
                     // Floating Glassmorphic Dock pinned to bottom center
                     GlassmorphicDock(
                         selectedTab = mainUiState.selectedTab,
-                        onTabSelected = { mainViewModel.selectTab(it) },
+                        onTabSelected = { tab ->
+                            if (!licenseInfo.isLicensed && (tab == AppTab.CALCULATOR || tab == AppTab.INVOICES)) {
+                                licenseViewModel.setActivationDialogVisible(true)
+                                QiratoToast.show(context, "استفاده از این بخش نیازمند فعال‌سازی اشتراک است.")
+                            } else {
+                                mainViewModel.selectTab(tab)
+                            }
+                        },
                         modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
@@ -1231,9 +1325,7 @@ fun MainScreen(
                         }
                     },
                     onSkip = {
-                        settingsViewModel.completeOnboarding()
                         mainViewModel.setWizardVisible(false)
-                        QiratoToast.show(context, "ورود به عنوان مهمان (دوره آزمایشی فعال شد)")
                     }
                 )
             }

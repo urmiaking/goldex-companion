@@ -1353,7 +1353,7 @@ private fun DashboardLicenseAlertBanner(
                 border = if (isDark) colors.goldBorder.copy(alpha = 0.6f) else colors.goldBorder,
                 accent = if (isDark) colors.goldPrimary else colors.goldSecondary,
                 icon = DashAlertGift,
-                title = "مهلت تست ۱۴ روزه رایگان قیراط",
+                title = "مهلت تست ۷ روزه رایگان قیراط",
                 subtitle = "جهت دسترسی کامل به صدور فاکتور و دفاتر",
                 buttonText = "فعال‌سازی"
             )

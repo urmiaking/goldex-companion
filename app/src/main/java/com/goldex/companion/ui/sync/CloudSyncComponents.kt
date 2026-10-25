@@ -862,7 +862,7 @@ fun CloudSettingsContent(
                         ) {
                             Icon(HubShieldCheck, contentDescription = null, tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
                             Text(
-                                text = "دورهٔ آزمایشی ۱۴ روزه رایگان",
+                                text = "دورهٔ آزمایشی ۷ روزه رایگان",
                                 fontWeight = FontWeight.Bold,
                                 color = colors.goldPrimary,
                                 fontSize = 13.sp
@@ -919,7 +919,7 @@ fun CloudSettingsContent(
             }
             if (form.error.contains("مجوز") || state.status == SyncStatus.LICENSE_REQUIRED) {
                 GoldButton(
-                    text = "فعال‌سازی مهلت تست ۱۴ روزه رایگان",
+                    text = "فعال‌سازی مهلت تست ۷ روزه رایگان",
                     onClick = { viewModel.activateTrial() },
                     isLoading = form.busy,
                     enabled = !form.busy,
@@ -1669,7 +1669,7 @@ fun WizardCloudSyncSection(
                     }
                     if (form.error.contains("مجوز") || state.status == SyncStatus.LICENSE_REQUIRED) {
                         GoldButton(
-                            text = "فعال‌سازی مهلت تست ۱۴ روزه رایگان",
+                            text = "فعال‌سازی مهلت تست ۷ روزه رایگان",
                             onClick = { viewModel.activateTrial() },
                             isLoading = form.busy,
                             enabled = !form.busy,

@@ -248,7 +248,7 @@ fun LicenseActivationModal(
                                     val (badgeText, badgeColor) = when (licenseInfo.status) {
                                         LicenseStatus.LIFETIME -> "اشتراک دائمی فعال است" to colors.profitGreen
                                         LicenseStatus.TRIAL_ACTIVE -> "مهلت تست فعال (${PersianNumberFormatter.toPersianDigits(licenseInfo.remainingDays)} روز باقی‌مانده)" to Color(0xFFF59E0B)
-                                        LicenseStatus.TRIAL_EXPIRED -> "مهلت تست ۱۴ روزه به پایان رسیده است" to colors.errorRed
+                                        LicenseStatus.TRIAL_EXPIRED -> "مهلت تست ۷ روزه به پایان رسیده است" to colors.errorRed
                                         LicenseStatus.REVOKED -> "این حساب توسط مدیریت مسدود شده است" to colors.errorRed
                                         LicenseStatus.NONE -> "نسخه رایگان (مهلت تست فعال نشده)" to colors.textMuted
                                     }
@@ -375,7 +375,7 @@ fun LicenseActivationModal(
                                             horizontalArrangement = Arrangement.Center
                                         ) {
                                             Text(
-                                                text = "🎁 فعال‌سازی ۱۴ روز مهلت تست رایگان",
+                                                text = "🎁 فعال‌سازی ۷ روز مهلت تست رایگان",
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = colors.goldPrimary

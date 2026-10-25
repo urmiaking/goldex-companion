@@ -7,6 +7,7 @@ import com.goldex.companion.desktop.data.DesktopDataStore
 import com.goldex.companion.desktop.data.DesktopMarketRepository
 import com.goldex.companion.desktop.license.DesktopDeviceIdentity
 import com.goldex.companion.desktop.license.DesktopLicenseRepository
+import com.goldex.companion.desktop.state.DesktopDestination
 import com.goldex.companion.desktop.state.DesktopWorkspace
 import com.goldex.companion.desktop.sync.DesktopCloudKeys
 import com.goldex.companion.desktop.sync.DesktopSyncCoordinator
@@ -69,7 +70,7 @@ class DesktopLicenseAndCloudTest {
         val json = JSONObject().apply {
             put("status", LicenseStatus.TRIAL_ACTIVE.name)
             put("token", "tok_test_123")
-            put("remainingDays", 14)
+            put("remainingDays", 7)
         }
         Files.writeString(dir.resolve("license.json"), json.toString())
         repo.reload()
@@ -77,7 +78,7 @@ class DesktopLicenseAndCloudTest {
         val reloaded = repo.getCachedInfo()
         assertEquals(LicenseStatus.TRIAL_ACTIVE, reloaded.status)
         assertEquals("tok_test_123", reloaded.token)
-        assertEquals(14, reloaded.remainingDays)
+        assertEquals(7, reloaded.remainingDays)
     }
 
     @Test
@@ -224,5 +225,41 @@ class DesktopLicenseAndCloudTest {
         workspace.customers.openPayment(customer)
         assertTrue(workspace.showLicenseDialog.value)
         assertEquals("ثبت پرداخت تسویه نیازمند اشتراک معتبر است.", workspace.state.value.notice)
+    }
+
+    @Test
+    fun expiredTrialLocksMainFeaturesIncludingCalculatorAndPromptsLicenseActivation() {
+        val dir = temporary.newFolder().toPath()
+        val json = org.json.JSONObject().apply {
+            put("status", LicenseStatus.TRIAL_EXPIRED.name)
+            put("token", "tok_expired")
+            put("remainingDays", 0)
+        }
+        java.nio.file.Files.writeString(dir.resolve("license.json"), json.toString())
+        val testStore = DesktopDataStore(dir)
+        testStore.saveSettings(testStore.loadSettings().copy(hasCompletedOnboarding = true))
+        val testMarket = DesktopMarketRepository(testStore, fetch = { error("offline test") })
+        val testWorkspace = DesktopWorkspace(testStore, testMarket)
+
+        try {
+            assertTrue(testWorkspace.isMainFeatureLocked())
+            assertFalse(testWorkspace.isLicensed())
+
+            // Calculator navigation must be blocked when trial is expired
+            testWorkspace.navigate(DesktopDestination.CALCULATOR)
+            assertTrue(testWorkspace.showLicenseDialog.value)
+            assertEquals("استفاده از این بخش نیازمند فعال‌سازی اشتراک است.", testWorkspace.state.value.notice)
+            assertEquals(DesktopDestination.DASHBOARD, testWorkspace.state.value.destination)
+
+            testWorkspace.closeLicenseDialog()
+
+            // Invoices navigation must also be blocked
+            testWorkspace.navigate(DesktopDestination.INVOICES)
+            assertTrue(testWorkspace.showLicenseDialog.value)
+            assertEquals(DesktopDestination.DASHBOARD, testWorkspace.state.value.destination)
+        } finally {
+            testWorkspace.close()
+            testStore.close()
+        }
     }
 }

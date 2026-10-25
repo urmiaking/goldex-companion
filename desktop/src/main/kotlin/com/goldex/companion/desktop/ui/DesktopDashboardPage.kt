@@ -115,12 +115,27 @@ import com.goldex.companion.ui.theme.*
             }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val actions = listOf(
-                    QuickAction("ثبت محصول جدید", Icons.Outlined.Add, "quick-ثبت محصول", isPrimary = true, onClick = workspace::openInventoryItem),
-                    QuickAction("محاسبه طلا", Icons.Outlined.Calculate, "quick-محاسبه طلا", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.CALCULATOR) }),
+                    QuickAction("ثبت محصول جدید", Icons.Outlined.Add, "quick-ثبت محصول", isPrimary = true, onClick = {
+                        if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("جهت ثبت محصول جدید نیاز به فعال‌سازی اشتراک دارید.")
+                        else workspace.openInventoryItem()
+                    }),
+                    QuickAction("محاسبه طلا", Icons.Outlined.Calculate, "quick-محاسبه طلا", isPrimary = false, onClick = {
+                        if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("استفاده از ماشین‌حساب نیازمند اشتراک معتبر است.")
+                        else workspace.navigate(DesktopDestination.CALCULATOR)
+                    }),
                     QuickAction("تابلوی نرخ‌ها", Icons.Outlined.ShowChart, "quick-تابلوی نرخ‌ها", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.RATES) }),
-                    QuickAction("انبار و ویترین", Icons.Outlined.Inventory2, "quick-انبار و ویترین", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVENTORY) }),
-                    QuickAction("صدور فاکتور", Icons.Outlined.ReceiptLong, "quick-صدور فاکتور", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.INVOICES) }),
-                    QuickAction("مرکز گزارشات", Icons.Outlined.Analytics, "quick-گزارشات", isPrimary = false, onClick = { workspace.navigate(DesktopDestination.REPORTING) })
+                    QuickAction("انبار و ویترین", Icons.Outlined.Inventory2, "quick-انبار و ویترین", isPrimary = false, onClick = {
+                        if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("دسترسی به انبار نیازمند اشتراک معتبر است.")
+                        else workspace.navigate(DesktopDestination.INVENTORY)
+                    }),
+                    QuickAction("صدور فاکتور", Icons.Outlined.ReceiptLong, "quick-صدور فاکتور", isPrimary = false, onClick = {
+                        if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
+                        else workspace.navigate(DesktopDestination.INVOICES)
+                    }),
+                    QuickAction("مرکز گزارشات", Icons.Outlined.Analytics, "quick-گزارشات", isPrimary = false, onClick = {
+                        if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("دسترسی به مرکز گزارشات نیازمند اشتراک معتبر است.")
+                        else workspace.navigate(DesktopDestination.REPORTING)
+                    })
                 )
                 if (maxWidth >= 900.dp) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -453,7 +468,10 @@ private data class QuickAction(
     LuxuryCard(Modifier.testTag("dashboard-invoices"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             PageTitle("آخرین فاکتورهای ثبت‌شده", Modifier.weight(1f))
-            DesktopNavigationLink("دفتر فاکتورها", { workspace.navigate(DesktopDestination.INVOICES) },
+            DesktopNavigationLink("دفتر فاکتورها", {
+                if (workspace.isMainFeatureLocked()) workspace.openLicenseDialog("دسترسی به دفتر فاکتورها نیازمند اشتراک معتبر است.")
+                else workspace.navigate(DesktopDestination.INVOICES)
+            },
                 Icons.AutoMirrored.Outlined.ArrowForward, Modifier.testTag("dashboard-invoice-ledger"))
         }
 

@@ -80,7 +80,7 @@ class WizardGuestTrialGuardTest {
         var capturedError: String? = null
         var isValidating = true
 
-        val expectedError = "مهلت استفاده آزمایشی (۱۴ روز) برای این دستگاه به پایان رسیده است."
+        val expectedError = "مهلت استفاده آزمایشی (۷ روز) برای این دستگاه به پایان رسیده است."
 
         val onValidateLicense: (WizardLicenseChoice, String, () -> Unit, (String) -> Unit) -> Unit =
             { choice, _, _, onError ->
@@ -118,7 +118,7 @@ class WizardGuestTrialGuardTest {
             trialResult = LicenseResult.Success(
                 info = LicenseInfo(
                     status = LicenseStatus.TRIAL_ACTIVE,
-                    remainingDays = 14
+                    remainingDays = 7
                 ),
                 message = "مهلت تست فعال شد."
             )
@@ -167,6 +167,26 @@ class WizardGuestTrialGuardTest {
         assertFalse(successCalled)
         assertEquals(errorMessage, capturedError)
         assertEquals(errorMessage, viewModel.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun testExpiredTrialStatusBlocksLicenseAndSetsExpired() {
+        val expired = LicenseInfo(
+            status = LicenseStatus.TRIAL_EXPIRED,
+            remainingDays = 0,
+            lastMessage = "مهلت تست منقضی شده است"
+        )
+        assertFalse(expired.isLicensed)
+        assertTrue(expired.isExpired)
+
+        val active = LicenseInfo(
+            status = LicenseStatus.TRIAL_ACTIVE,
+            remainingDays = 7,
+            lastMessage = "مهلت تست ۷ روزه فعال است"
+        )
+        assertTrue(active.isLicensed)
+        assertFalse(active.isExpired)
+        assertEquals(7, active.remainingDays)
     }
 
     private class FakeLicenseStore(

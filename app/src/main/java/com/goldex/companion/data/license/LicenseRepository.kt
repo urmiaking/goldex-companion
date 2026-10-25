@@ -28,7 +28,7 @@ class LicenseRepository(private val context: Context) : LicenseStore {
     override fun getCachedInfo(): LicenseInfo = _licenseInfo.value
 
     /**
-     * فعال‌سازی مهلت تست ۱۴ روزه رایگان
+     * فعال‌سازی مهلت تست ۷ روزه رایگان
      */
     override suspend fun activateTrial(): LicenseResult = withContext(Dispatchers.IO) {
         val identity = DeviceIdentityManager.getDeviceIdentity(context)
@@ -54,7 +54,7 @@ class LicenseRepository(private val context: Context) : LicenseStore {
                 }
                 val token = json.optString("licenseToken", "")
                 val expiresAt = json.optString("expiresAt", "")
-                val remainingDays = json.optInt("remainingDays", 14)
+                val remainingDays = json.optInt("remainingDays", 7)
 
                 val newInfo = LicenseInfo(
                     status = status,

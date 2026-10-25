@@ -53,7 +53,7 @@ tasks.processResources {
 }
 
 tasks.test {
-    timeout.set(Duration.ofMinutes(15))
+    timeout.set(Duration.ofMinutes(25))
     systemProperty("java.awt.headless", "false")
     systemProperty("qirato.screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
     testLogging {

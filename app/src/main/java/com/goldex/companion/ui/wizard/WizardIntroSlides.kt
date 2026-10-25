@@ -653,7 +653,7 @@ fun WizardIntroContent(
 @Composable
 fun WizardIntroSlides(
     onStartWizard: () -> Unit,
-    onSkipAsGuest: () -> Unit,
+    onSkipAsGuest: (() -> Unit)? = null,
     isLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -684,24 +684,32 @@ fun WizardIntroSlides(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Secondary / Guest: Right side in Persian RTL (first in Row)
-                GoldButton(
-                    text = if (isLoading) "در حال اتصال..." else "ورود مهمان",
-                    isSecondary = true,
-                    isLoading = isLoading,
-                    enabled = !isLoading,
-                    onClick = onSkipAsGuest,
-                    modifier = Modifier.weight(1f)
-                )
+                if (onSkipAsGuest != null) {
+                    GoldButton(
+                        text = if (isLoading) "در حال اتصال..." else "ورود مهمان",
+                        isSecondary = true,
+                        isLoading = isLoading,
+                        enabled = !isLoading,
+                        onClick = onSkipAsGuest,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                // Primary / Start: Left side in Persian RTL (second in Row)
-                GoldButton(
-                    text = "شروع و ثبت مشخصات",
-                    trailingIcon = if (isLoading) null else WizardArrowLeft,
-                    enabled = !isLoading,
-                    onClick = onStartWizard,
-                    modifier = Modifier.weight(1.8f)
-                )
+                    GoldButton(
+                        text = "شروع و ثبت مشخصات",
+                        trailingIcon = if (isLoading) null else WizardArrowLeft,
+                        enabled = !isLoading,
+                        onClick = onStartWizard,
+                        modifier = Modifier.weight(1.8f)
+                    )
+                } else {
+                    GoldButton(
+                        text = "شروع و ثبت مشخصات",
+                        trailingIcon = if (isLoading) null else WizardArrowLeft,
+                        enabled = !isLoading,
+                        onClick = onStartWizard,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

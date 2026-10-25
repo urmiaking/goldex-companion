@@ -58,7 +58,7 @@ class DesktopLicenseRepository(
                 }
                 val token = json.optString("licenseToken", "")
                 val expiresAt = json.optString("expiresAt", "")
-                val remainingDays = json.optInt("remainingDays", 14)
+                val remainingDays = json.optInt("remainingDays", 7)
 
                 val newInfo = LicenseInfo(
                     status = status,
@@ -84,9 +84,9 @@ class DesktopLicenseRepository(
             if (_licenseInfo.value.status == LicenseStatus.NONE) {
                 val fallbackTrial = LicenseInfo(
                     status = LicenseStatus.TRIAL_ACTIVE,
-                    remainingDays = 14,
+                    remainingDays = 7,
                     lastVerifiedAt = System.currentTimeMillis(),
-                    lastMessage = "طرح آزمایشی ۱۴ روزه فعال شد (همگام‌سازی ابری در اولین اتصال)"
+                    lastMessage = "طرح آزمایشی ۷ روزه فعال شد (همگام‌سازی ابری در اولین اتصال)"
                 )
                 saveLicense(fallbackTrial)
                 return@withContext LicenseResult.Success(fallbackTrial, fallbackTrial.lastMessage ?: "")
