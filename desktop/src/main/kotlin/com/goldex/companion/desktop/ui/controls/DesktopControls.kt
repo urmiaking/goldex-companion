@@ -241,6 +241,38 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     }
 }
 
+/** Standard desktop text field colors with prominent gold focus and subtle gold outline in dark mode. */
+@Composable internal fun desktopTextFieldColors(
+    colors: GoldExAppColors = LocalGoldExColors.current,
+    focusedBorderColor: Color = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+    unfocusedBorderColor: Color = if (colors.isDark) Color(0x52D4AF37) else colors.border,
+    focusedContainerColor: Color = colors.surfaceElevated,
+    unfocusedContainerColor: Color = colors.surface,
+    errorBorderColor: Color = colors.errorRed,
+    errorLabelColor: Color = colors.errorRed,
+    cursorColor: Color = colors.goldPrimary,
+    focusedLabelColor: Color = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+    unfocusedLabelColor: Color = colors.textMuted,
+    focusedTextColor: Color = colors.textMain,
+    unfocusedTextColor: Color = colors.textMain,
+    disabledBorderColor: Color = colors.border,
+    disabledTextColor: Color = colors.textMuted
+): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = focusedBorderColor,
+    unfocusedBorderColor = unfocusedBorderColor,
+    focusedContainerColor = focusedContainerColor,
+    unfocusedContainerColor = unfocusedContainerColor,
+    errorBorderColor = errorBorderColor,
+    errorLabelColor = errorLabelColor,
+    cursorColor = cursorColor,
+    focusedLabelColor = focusedLabelColor,
+    unfocusedLabelColor = unfocusedLabelColor,
+    focusedTextColor = focusedTextColor,
+    unfocusedTextColor = unfocusedTextColor,
+    disabledBorderColor = disabledBorderColor,
+    disabledTextColor = disabledTextColor
+)
+
 /** All Windows outlined inputs use the same 12dp shape. Floating labels stay transparent. */
 @Composable internal fun DesktopOutlinedTextField(
     value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier,
@@ -253,7 +285,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default,
     singleLine: Boolean = false, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE, minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    colors: TextFieldColors = OutlinedTextFieldDefaults.colors()
+    colors: TextFieldColors = desktopTextFieldColors()
 ) {
     com.goldex.companion.ui.components.GoldOutlinedTextField(value, onValueChange, modifier, enabled, readOnly,
         textStyle.copy(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp),
@@ -270,7 +302,7 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
     Surface(modifier.height(DesktopControls.Height), shape = DesktopControls.BodyShape, color = c.surface,
-        border = BorderStroke(if (focused) 1.dp else .6.dp, if (focused) c.goldPrimary else c.border)) {
+        border = BorderStroke(if (focused) 2.dp else 1.dp, if (focused) (if (c.isDark) c.goldSecondary else c.goldPrimary) else if (c.isDark) Color(0x52D4AF37) else c.border)) {
         Row(Modifier.padding(start = 12.dp, end = 2.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Search, null, Modifier.size(DesktopControls.IconSize), tint = c.goldPrimary)
@@ -328,8 +360,8 @@ internal val LocalDesktopReduceMotion = staticCompositionLocalOf { false }
         shape = RoundedCornerShape(10.dp),
         color = if (isSelected) c.goldContainer.copy(alpha = 0.5f) else c.surfaceElevated,
         border = BorderStroke(
-            if (focused || isSelected) 1.2.dp else 0.8.dp,
-            if (focused || isSelected) c.goldPrimary else c.border.copy(alpha = 0.6f)
+            if (focused || isSelected) 1.5.dp else 1.dp,
+            if (focused || isSelected) (if (c.isDark) c.goldSecondary else c.goldPrimary) else if (c.isDark) Color(0x52D4AF37) else c.border.copy(alpha = 0.6f)
         ),
         modifier = modifier
             .height(height)

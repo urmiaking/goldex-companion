@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
@@ -101,10 +102,10 @@ fun GoldInputField(
                 unfocusedContainerColor = colors.surface,
                 disabledContainerColor = colors.surfaceVariant,
                 errorContainerColor = colors.surface,
-                focusedBorderColor = colors.goldPrimary,
-                unfocusedBorderColor = colors.border,
+                focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                 errorBorderColor = colors.errorRed,
-                focusedLabelColor = colors.goldPrimary,
+                focusedLabelColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
                 unfocusedLabelColor = colors.textSecondary,
                 errorLabelColor = colors.errorRed,
                 focusedTextColor = colors.textMain,

@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -446,8 +447,8 @@ private fun ProductDropdown(
             readOnly = true, enabled = !saving, singleLine = true,
             textStyle = TextStyle(fontFamily = VazirmatnFamily, fontFeatureSettings = VazirmatnFeatureSettings,
                 fontSize = 15.sp, color = colors.textMain, textDirection = TextDirection.ContentOrRtl),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.goldPrimary,
-                focusedLabelColor = colors.goldPrimary, unfocusedBorderColor = colors.border,
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                focusedLabelColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary, unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                 unfocusedLabelColor = colors.textMuted, focusedContainerColor = colors.surface,
                 unfocusedContainerColor = colors.surface, cursorColor = colors.goldPrimary),
             trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, null, tint = colors.textMuted) }

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.input.key.Key
@@ -172,5 +173,41 @@ class WindowsControlContractTest {
             }
         } }
         assertEquals(emptyList(), violations, violations.joinToString("\n"))
+    }
+
+    @Test fun desktopTextFieldColorsProvidesEnhancedDarkModeGoldBorder() = runDesktopComposeUiTest(width = 300, height = 200) {
+        var isDark by mutableStateOf(true)
+        var darkUnfocused: Color? = null
+        var darkFocused: Color? = null
+        var lightUnfocused: Color? = null
+        var lightFocused: Color? = null
+
+        setContent {
+            GoldExCompanionTheme(isDarkTheme = isDark) {
+                val c = com.goldex.companion.ui.theme.LocalGoldExColors.current
+                if (isDark) {
+                    darkUnfocused = if (c.isDark) Color(0x52D4AF37) else c.border
+                    darkFocused = if (c.isDark) c.goldSecondary else c.goldPrimary
+                } else {
+                    lightUnfocused = if (c.isDark) Color(0x52D4AF37) else c.border
+                    lightFocused = if (c.isDark) c.goldSecondary else c.goldPrimary
+                }
+                DesktopOutlinedTextField(
+                    value = "تست ورودی",
+                    onValueChange = {},
+                    modifier = Modifier.testTag("test-input")
+                )
+            }
+        }
+        runOnIdle {
+            assertEquals(Color(0x52D4AF37), darkUnfocused)
+            assertNotEquals(com.goldex.companion.ui.theme.DarkGoldExColors.border, darkUnfocused)
+            assertEquals(com.goldex.companion.ui.theme.DarkGoldExColors.goldSecondary, darkFocused)
+            isDark = false
+        }
+        runOnIdle {
+            assertEquals(com.goldex.companion.ui.theme.LightGoldExColors.border, lightUnfocused)
+            assertEquals(com.goldex.companion.ui.theme.LightGoldExColors.goldPrimary, lightFocused)
+        }
     }
 }

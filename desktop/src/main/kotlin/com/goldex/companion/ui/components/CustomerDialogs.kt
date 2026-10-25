@@ -583,8 +583,8 @@ fun AddCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -608,8 +608,8 @@ fun AddCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -626,8 +626,8 @@ fun AddCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -644,8 +644,8 @@ fun AddCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -768,8 +768,8 @@ fun EditCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -793,8 +793,8 @@ fun EditCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -811,8 +811,8 @@ fun EditCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )
@@ -829,8 +829,8 @@ fun EditCustomerDialog(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = colors.surfaceElevated,
                             unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.goldPrimary,
-                            unfocusedBorderColor = colors.border,
+                            focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                            unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                             focusedTextColor = colors.textMain,
                             unfocusedTextColor = colors.textMain
                         )

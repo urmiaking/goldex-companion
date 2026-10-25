@@ -639,8 +639,8 @@ private fun InputPanel(
                                 shape = RoundedCornerShape(10.dp),
                                 color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
                                 border = BorderStroke(
-                                    if (isSelected) 1.2.dp else 0.8.dp,
-                                    if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+                                    if (isSelected) 1.5.dp else 1.dp,
+                                    if (isSelected) (if (colors.isDark) colors.goldSecondary else colors.goldPrimary) else if (colors.isDark) Color(0x52D4AF37) else colors.border.copy(alpha = 0.5f)
                                 ),
                                 modifier = Modifier
                                     .weight(1f)
@@ -943,8 +943,8 @@ internal fun DesktopInlineCustomKaratChip(
         shape = RoundedCornerShape(10.dp),
         color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
         border = BorderStroke(
-            if (isSelected) 1.2.dp else 0.8.dp,
-            if (isSelected) colors.goldPrimary else colors.border.copy(alpha = 0.5f)
+            if (isSelected) 1.5.dp else 1.dp,
+            if (isSelected) (if (colors.isDark) colors.goldSecondary else colors.goldPrimary) else if (colors.isDark) Color(0x52D4AF37) else colors.border.copy(alpha = 0.5f)
         ),
         modifier = modifier
             .height(40.dp)
@@ -1083,8 +1083,8 @@ private fun NumericInput(
             keyboardOptions = KeyboardOptions(keyboardType = if (integer) KeyboardType.Number else KeyboardType.Decimal),
             shape = RoundedCornerShape(10.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = colors.goldPrimary,
-                unfocusedBorderColor = colors.border,
+                focusedBorderColor = if (colors.isDark) colors.goldSecondary else colors.goldPrimary,
+                unfocusedBorderColor = if (colors.isDark) Color(0x52D4AF37) else colors.border,
                 focusedContainerColor = colors.surfaceElevated,
                 unfocusedContainerColor = colors.surface,
                 errorBorderColor = colors.errorRed,
