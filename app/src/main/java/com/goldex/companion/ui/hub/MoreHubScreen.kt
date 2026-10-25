@@ -929,9 +929,9 @@ internal fun ManagementGrid(onLedger: () -> Unit, onMelt: () -> Unit, onReportin
         ManagementDestination("گزارشات و ترازنامه", "تحلیل سود، تراز مالی و عملکرد", HubReporting, Color(0xFFEFF6FF), Color(0xFF1D4ED8), onReporting),
         ManagementDestination("انبار و ویترین طلا", "موجودی کارهای ساخته، سکه و سنگ", HubShowcase, Color(0xFFECFDF5), Color(0xFF059669), onInventory)
     )
-    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    // Fixed 2-column grid layout for goldsmith management shortcuts
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = if (maxWidth >= 460.dp * fontScale) 2 else 1
+        val columns = 2
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             destinations.chunked(columns).forEach { items ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

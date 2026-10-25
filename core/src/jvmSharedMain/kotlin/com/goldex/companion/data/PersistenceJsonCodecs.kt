@@ -113,13 +113,13 @@ object PersistenceJsonCodecs {
                 val id = obj.stringValue("id").trim()
                 val name = obj.stringValue("name").trim()
                 if (id.isEmpty() || name.isEmpty()) continue
-                val role = obj.optString("role", "بنکدار و همکار بازار").ifBlank { "بنکدار و همکار بازار" }
+                val role = obj.stringValue("role", "بنکدار و همکار بازار")
                 val goldDebtGrams = obj.doubleValue("goldDebtGrams", 0.0)
                 val cashDebtTomans = obj.longValue("cashDebtTomans", 0L)
                 val accountCode = obj.optString("accountCode", "")
                 val isVerified = if (obj.has("isVerified")) obj.optBoolean("isVerified", true) else true
-                val cityOrMarket = obj.optString("cityOrMarket", "بازار بزرگ تهران").ifBlank { "بازار بزرگ تهران" }
-                val lastActivityTime = obj.optString("lastActivityTime", "امروز").ifBlank { "امروز" }
+                val cityOrMarket = obj.stringValue("cityOrMarket", "بازار بزرگ تهران")
+                val lastActivityTime = obj.stringValue("lastActivityTime", "امروز")
                 customers += Customer(
                     id = id,
                     name = name,
@@ -915,7 +915,7 @@ object PersistenceJsonCodecs {
         runCatching { enumValueOf<T>(value) }.getOrDefault(default)
 
     private fun JSONObject.stringValue(key: String, default: String = ""): String =
-        optString(key).takeUnless { it == "" || it == "null" } ?: default
+        if (!has(key) || isNull(key)) default else optString(key).takeUnless { it == "null" } ?: default
 
     private fun JSONObject.longValue(key: String, default: Long): Long =
         opt(key)?.toString()?.toLongOrNull() ?: default

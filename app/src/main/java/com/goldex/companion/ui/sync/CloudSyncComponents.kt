@@ -1081,9 +1081,11 @@ internal fun CloudAccountActions(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (signedIn) {
             GoldButton(
-                text = if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی دستی همین حالا",
-                icon = HubCloudSync,
-                onClick = onSync,
+                text = if (state.status == SyncStatus.RESTORE_REQUIRED) {
+                    if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال بازیابی..." else "بازیابی اطلاعات از ابر"
+                } else if (state.busy || formBusy || state.status == SyncStatus.SYNCING) "در حال همگام‌سازی..." else "همگام‌سازی دستی همین حالا",
+                icon = if (state.status == SyncStatus.RESTORE_REQUIRED) HubCloudDownload else HubCloudSync,
+                onClick = if (state.status == SyncStatus.RESTORE_REQUIRED) onRestore else onSync,
                 isLoading = state.busy || formBusy || state.status == SyncStatus.SYNCING,
                 enabled = !state.busy && !formBusy,
                 modifier = Modifier.fillMaxWidth()

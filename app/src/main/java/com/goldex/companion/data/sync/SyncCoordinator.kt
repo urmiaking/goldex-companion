@@ -171,7 +171,7 @@ class SyncCoordinator private constructor(private val context: Context) {
         }
         if(status==SyncStatus.WRITER_CHANGED) preferences.edit().putBoolean("writerInvalid",true).apply()
         _state.update { it.copy(status=status,readOnly=preferences.getBoolean("writerInvalid",false)) }
-        if(!onboarding) requestSync()
+        if(!onboarding && status == SyncStatus.PENDING) requestSync()
     }
     suspend fun logout() = mutex.withLock { setEnabled(false); api.logout(); _state.update { it.copy(phone="",status=SyncStatus.DISABLED,restoredGeneration=0) } }
     fun showError(e: Exception) { _state.update { it.copy(message=message((e as? CloudException)?.code ?: "SERVER_ERROR"),busy=false) } }
@@ -426,6 +426,7 @@ class SyncCoordinator private constructor(private val context: Context) {
             "ACCOUNT_SWITCH_REQUIRES_BACKUP" -> "دادهٔ این نصب به حساب دیگری متصل است؛ ابتدا پشتیبان و فضای جدا لازم است"
             "LOCAL_CHANGED_DURING_RESTORE" -> "هنگام بازیابی دادهٔ محلی تغییر کرد؛ دوباره تأیید کنید"
             "GROUP_TOO_LARGE" -> "حجم عملیات بیشتر از حد مجاز است؛ عملیات در صف حفظ شد"
+            "INVALID_RECORD" -> "قالب اطلاعات دریافتی از سرور معتبر نیست"
             else -> "همگام‌سازی انجام نشد؛ اطلاعات و صف ارسال محفوظ است"
         }
     }

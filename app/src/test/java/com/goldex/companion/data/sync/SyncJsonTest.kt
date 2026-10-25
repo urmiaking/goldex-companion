@@ -4,6 +4,7 @@ import com.goldex.companion.data.PersistenceJsonCodecs
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.CraftedGoldItem
+import com.goldex.companion.model.InventoryItem
 import java.math.BigDecimal
 import org.json.*
 import org.junit.Assert.*
@@ -95,5 +96,55 @@ class SyncJsonTest {
         assertEquals("39041920", SyncJson.numericStrings("3.904192E+7"))
         assertEquals("1112692620", SyncJson.numericStrings("1.11269262E+9"))
         assertEquals("299049600", SyncJson.numericStrings(299049600L))
+    }
+
+    @Test fun customerWithEmptyStringsPreservesExactFieldsAcrossRoundTrip() {
+        val customer = Customer(
+            id = "c_empty",
+            name = "مشتری فاقد اطلاعات تکمیلی",
+            phone = "09120000000",
+            nationalId = "",
+            note = "",
+            createdAt = 1000L,
+            role = "",
+            goldDebtGrams = 0.0,
+            cashDebtTomans = 0L,
+            accountCode = "",
+            isVerified = true,
+            cityOrMarket = "",
+            lastActivityTime = ""
+        )
+        val record = SyncJson.record(customer)
+        val encoded = JSONArray().put(record).toString()
+        val decoded = PersistenceJsonCodecs.decodeCustomers(encoded).single()
+        val again = SyncJson.record(decoded)
+        again.keys().forEach { key ->
+            if (record.has(key)) {
+                assertEquals("Customer key $key must match canonically", SyncJson.canonical(record.get(key)), SyncJson.canonical(again.get(key)))
+            }
+        }
+    }
+
+    @Test fun inventoryItemWithEmptyLocationAndWorkshopPreservesExactFieldsAcrossRoundTrip() {
+        val item = InventoryItem(
+            id = "inv_empty",
+            code = "CODE-1",
+            title = "کالای بدون کارگاه و محل",
+            location = "",
+            workshop = "",
+            rfidTag = "",
+            imageUrl = "",
+            grossWeightGrams = 10.0,
+            stoneWeightGrams = 0.0
+        )
+        val record = SyncJson.record(item)
+        val encoded = JSONArray().put(record).toString()
+        val decoded = PersistenceJsonCodecs.decodeInventoryItems(encoded).single()
+        val again = SyncJson.record(decoded)
+        again.keys().forEach { key ->
+            if (record.has(key)) {
+                assertEquals("Inventory key $key must match canonically", SyncJson.canonical(record.get(key)), SyncJson.canonical(again.get(key)))
+            }
+        }
     }
 }

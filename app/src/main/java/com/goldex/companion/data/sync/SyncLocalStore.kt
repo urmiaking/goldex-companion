@@ -66,7 +66,18 @@ class SyncLocalStore(private val context: Context, val db: GoldexDatabase) {
         }
         // A tolerant legacy decoder must not silently default malformed cloud fields.
         val again = SyncJson.record(result)
-        again.keys().forEach { key -> if (payload.has(key) && SyncJson.canonical(payload.get(key)) != SyncJson.canonical(again.get(key))) throw CloudException("INVALID_RECORD") }
+        again.keys().forEach { key ->
+            if (payload.has(key)) {
+                val pVal = SyncJson.canonical(payload.get(key))
+                val aVal = SyncJson.canonical(again.get(key))
+                if (pVal != aVal) {
+                    val pNum = payload.optString(key).toDoubleOrNull()
+                    val aNum = again.optString(key).toDoubleOrNull()
+                    val numericMatch = pNum != null && aNum != null && pNum == aNum
+                    if (!numericMatch) throw CloudException("INVALID_RECORD")
+                }
+            }
+        }
         return result
     }
     fun applyRecord(type: String, id: String, payload: JSONObject?) {
