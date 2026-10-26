@@ -45,11 +45,33 @@ object SyncJson {
         defaultProfitPercent=j.getString("defaultProfitPercent"), defaultTaxPercent=j.getString("defaultTaxPercent"),
         defaultWageType=WageType.valueOf(j.getString("defaultWageType")), priceSource=PriceSource.valueOf(j.getString("priceSource")), autoSyncRates=j.getBoolean("autoSyncRates"))
     fun canonical(value: Any?): String = when(value) {
-        is JSONObject -> value.keys().asSequence().toList().sorted().joinToString(",", "{", "}") { JSONObject.quote(it) + ":" + canonical(value.get(it)) }
+        is JSONObject -> value.keys().asSequence().toList().sorted().joinToString(",", "{", "}") { canonicalString(it) + ":" + canonical(value.get(it)) }
         is JSONArray -> (0 until value.length()).joinToString(",", "[", "]") { canonical(value.get(it)) }
-        is String -> JSONObject.quote(value)
+        is String -> canonicalString(value)
         null, JSONObject.NULL -> "null"
         else -> value.toString()
+    }
+    /** JSON.stringify-compatible quoting, independent of Android's escaping of '/'. */
+    private fun canonicalString(value: String): String = buildString {
+        append('"')
+        value.forEachIndexed { index, char ->
+            when (char) {
+                '"' -> append("\\\"")
+                '\\' -> append("\\\\")
+                '\b' -> append("\\b")
+                '\u000c' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> {
+                    val unpaired = (char.isHighSurrogate() && (index + 1 == value.length || !value[index + 1].isLowSurrogate())) ||
+                        (char.isLowSurrogate() && (index == 0 || !value[index - 1].isHighSurrogate()))
+                    if (char < ' ' || unpaired) append("\\u").append(char.code.toString(16).padStart(4, '0'))
+                    else append(char)
+                }
+            }
+        }
+        append('"')
     }
     private val knownFields = mapOf(
         "customer" to setOf("accountCode","cashDebtTomans","cityOrMarket","createdAt","goldDebtGrams","id","isVerified","lastActivityTime","name","nationalId","note","phone","role"),

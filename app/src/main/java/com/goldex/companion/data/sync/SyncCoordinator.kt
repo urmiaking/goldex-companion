@@ -276,7 +276,8 @@ class SyncCoordinator private constructor(private val context: Context) {
                 ensureEnabled()
                 val result=api.request("cloud/snapshot/page",JSONObject().put("snapshotId",id).put("page",page))
                 val records=result.getJSONArray("records")
-                require(sha(SyncJson.canonical(records).toByteArray())==result.getString("hash"))
+                if (sha(SyncJson.canonical(records).toByteArray(Charsets.UTF_8)) != result.getString("hash"))
+                    throw CloudException("SNAPSHOT_HASH_MISMATCH")
                 local.dao.stage(SyncStaging(id,page,records.toString()))
             }
             local.activateSnapshot(id,info.getString("workspaceId"),start.getLong("revision"),info.getLong("writerEpoch"),info.getLong("lastSequence"),cut)
@@ -284,7 +285,17 @@ class SyncCoordinator private constructor(private val context: Context) {
             downloadAssets()
             _state.update { it.copy(busy=false,status=SyncStatus.PENDING,readOnly=false,restoredGeneration=it.restoredGeneration+1) }
             requestSync()
-        } catch(e: Exception) { showError(e); throw e }
+        } catch(e: CancellationException) { _state.update { it.copy(busy=false,status=SyncStatus.RESTORE_REQUIRED) }; throw e }
+        catch(e: Exception) {
+            val status = when ((e as? CloudException)?.code) {
+                "AUTH_REQUIRED", "FRESH_OTP_REQUIRED" -> SyncStatus.AUTH_REQUIRED
+                "LICENSE_REQUIRED" -> SyncStatus.LICENSE_REQUIRED
+                else -> SyncStatus.RESTORE_REQUIRED
+            }
+            _state.update { it.copy(status=status) }
+            showError(e)
+            throw e
+        }
     }
     suspend fun takeover(acceptUnsyncedLoss: Boolean) = mutex.withLock {
         require(acceptUnsyncedLoss)
@@ -427,6 +438,9 @@ class SyncCoordinator private constructor(private val context: Context) {
             "LOCAL_CHANGED_DURING_RESTORE" -> "هنگام بازیابی دادهٔ محلی تغییر کرد؛ دوباره تأیید کنید"
             "GROUP_TOO_LARGE" -> "حجم عملیات بیشتر از حد مجاز است؛ عملیات در صف حفظ شد"
             "INVALID_RECORD" -> "قالب اطلاعات دریافتی از سرور معتبر نیست"
+            "SNAPSHOT_HASH_MISMATCH" -> "بررسی صحت نسخه ابری موفق نبود؛ اطلاعات محلی محفوظ است. بازیابی را دوباره انجام دهید"
+            "CLOUD_UNAVAILABLE", "SERVER_ERROR" -> "ارتباط با سرویس ابری برقرار نشد؛ کمی بعد دوباره تلاش کنید"
+            "INVALID_DEVICE_PROOF" -> "تأیید هویت دستگاه موفق نبود؛ دوباره وارد حساب شوید"
             else -> "همگام‌سازی انجام نشد؛ اطلاعات و صف ارسال محفوظ است"
         }
     }

@@ -1842,7 +1842,8 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
     }
 
     @Synchronized
-    fun activateSnapshot(snapshotId: String, workspace: String, revision: Long, epoch: Long, sequence: Long) = transaction {
+    fun activateSnapshot(snapshotId: String, workspace: String, revision: Long, epoch: Long, sequence: Long, expectedNextSequence: Long? = null) = transaction {
+        if (expectedNextSequence != null && checkpoint().nextSequence != expectedNextSequence) throw DesktopCloudException("LOCAL_CHANGED_DURING_RESTORE")
         val pages = stagedSnapshot(snapshotId)
         val records = pages.flatMap { p ->
             val a = JSONArray(p.payload)
@@ -1880,6 +1881,18 @@ class DesktopSqliteDatabase(val dbFile: Path) : AutoCloseable, SyncUnitOfWork,
             initialized = true
         ))
         clearStagedSnapshot(snapshotId)
+        setSystemSetting("opening_inventory_seeded", "true")
+    }
+
+    /** SQLite creates a consistent, independent copy including pending sync and checkpoints. */
+    @Synchronized
+    fun backupBeforeCloudRestore(target: Path) {
+        Files.createDirectories(target.parent)
+        require(!Files.exists(target))
+        connection.prepareStatement("VACUUM INTO ?").use { statement ->
+            statement.setString(1, target.toAbsolutePath().toString())
+            statement.execute()
+        }
     }
 
     @Synchronized

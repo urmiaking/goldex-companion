@@ -84,19 +84,20 @@ internal fun workspaceDate(now: Long): String {
                     val statusColor = when (cloudState.status) {
                         DesktopSyncStatus.SYNCED -> colors.marketGainText
                         DesktopSyncStatus.SYNCING -> colors.syncBlue
-                        DesktopSyncStatus.PENDING, DesktopSyncStatus.AUTH_REQUIRED -> colors.goldPrimary
+                        DesktopSyncStatus.PENDING, DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.RESTORE_REQUIRED -> colors.goldPrimary
                         DesktopSyncStatus.OFFLINE, DesktopSyncStatus.DISABLED -> colors.textMuted
                         DesktopSyncStatus.ERROR -> colors.errorRed
                     }
                     val icon = when (cloudState.status) {
                         DesktopSyncStatus.DISABLED -> Icons.Outlined.CloudOff
-                        DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.PENDING, DesktopSyncStatus.SYNCING -> Icons.Outlined.CloudSync
+                        DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.PENDING, DesktopSyncStatus.SYNCING, DesktopSyncStatus.RESTORE_REQUIRED -> Icons.Outlined.CloudSync
                         DesktopSyncStatus.SYNCED -> Icons.Outlined.CloudDone
                         DesktopSyncStatus.OFFLINE, DesktopSyncStatus.ERROR -> Icons.Outlined.CloudOff
                     }
                     val label = when (cloudState.status) {
                         DesktopSyncStatus.DISABLED -> "ابری: غیرفعال"
                         DesktopSyncStatus.AUTH_REQUIRED -> "نیاز به ورود ابری"
+                        DesktopSyncStatus.RESTORE_REQUIRED -> "آماده بازیابی حساب"
                         DesktopSyncStatus.PENDING -> if (cloudState.pendingCount > 0) "${PersianNumberFormatter.toPersianDigits(cloudState.pendingCount.toString())} سند در انتظار" else "در انتظار همگام‌سازی"
                         DesktopSyncStatus.SYNCING -> "در حال همگام‌سازی..."
                         DesktopSyncStatus.SYNCED -> "ابری: همگام"

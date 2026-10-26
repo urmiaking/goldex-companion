@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Login
 import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +27,8 @@ import com.goldex.companion.desktop.state.DesktopWorkspace
 import com.goldex.companion.data.license.LicenseResult
 import com.goldex.companion.data.license.LicenseStatus
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton
+import com.goldex.companion.desktop.ui.controls.DesktopDialogHost
+import com.goldex.companion.desktop.ui.DesktopCloudDialog
 import com.goldex.companion.domain.onboarding.OpeningInventoryInput
 import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
@@ -77,6 +80,15 @@ fun DesktopOnboardingWizardScreen(
     var isOnlineSync by remember { mutableStateOf(workspace.cloud.state.value.enabled) }
     var isSubmitting by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    val cloudState by workspace.cloud.state.collectAsState()
+    var showCloudRestore by remember { mutableStateOf(false) }
+    val initialRestoredGeneration = remember { cloudState.restoredGeneration }
+    LaunchedEffect(cloudState.restoredGeneration) {
+        if (showCloudRestore && cloudState.restoredGeneration > initialRestoredGeneration && workspace.completeCloudOnboarding()) {
+            showCloudRestore = false
+            onClose()
+        }
+    }
 
     fun handleNext() {
         when (currentStep) {
@@ -276,6 +288,16 @@ fun DesktopOnboardingWizardScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            if (currentStep == DesktopWizardStep.INTRO) {
+                                DesktopActionButton(
+                                    text = "حساب دارم؛ ورود و بازیابی",
+                                    onClick = { showCloudRestore = true },
+                                    icon = Icons.Outlined.Login,
+                                    isSecondary = true,
+                                    enabled = !isSubmitting,
+                                    modifier = Modifier.testTag("wizard-cloud-restore")
+                                )
+                            }
                             if (currentStep != DesktopWizardStep.INTRO) {
                                 DesktopActionButton(
                                     text = "مرحله قبل",
@@ -323,6 +345,11 @@ fun DesktopOnboardingWizardScreen(
                     }
                 }
             }
+        }
+    }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        DesktopDialogHost(showCloudRestore) {
+            DesktopCloudDialog(workspace) { showCloudRestore = false }
         }
     }
 }

@@ -79,6 +79,29 @@ class DesktopOnboardingWizardTest {
     private fun field(tag: String) = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
 
     @Test
+    fun existingAccountEntryOpensCloudLoginWithoutProfileOrInventorySetup() {
+        renderStandaloneWizard()
+        compose.onNodeWithTag("wizard-cloud-restore").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("cloud-account-dialog").assertIsDisplayed()
+        compose.onNodeWithTag("cloud-dialog-login").performClick()
+        compose.onNodeWithTag("cloud-otp-dialog").assertIsDisplayed()
+        compose.onNodeWithText("انصراف").performClick()
+        compose.onNodeWithTag("cloud-dialog-close").performClick()
+        compose.onNodeWithTag("wizard-intro-pane").assertIsDisplayed()
+        compose.runOnIdle { assertFalse(store.loadSettings().hasCompletedOnboarding) }
+    }
+
+    @Test
+    fun restoredWizardKeepsRemoteProfileAndDoesNotSeedOpeningInventory() {
+        store.saveSettings(store.loadSettings().copy(galleryName = "گالری ابری"))
+        assertTrue(workspace.completeWizard(store.loadSettings().copy(galleryName = "نباید جایگزین شود"),
+            OpeningInventoryInput(vitrinWeight = "100"), restoredFromCloud = true))
+        assertEquals("گالری ابری", store.loadSettings().galleryName)
+        assertTrue(store.inventory.getItems().isEmpty())
+        assertTrue(store.loadSettings().hasCompletedOnboarding)
+    }
+
+    @Test
     fun dashboardShowsWelcomeBannerWhenOnboardingIncomplete() {
         renderScreen()
         assertFalse(store.loadSettings().hasCompletedOnboarding)
