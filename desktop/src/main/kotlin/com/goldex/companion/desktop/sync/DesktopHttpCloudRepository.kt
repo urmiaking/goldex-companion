@@ -14,12 +14,19 @@ import java.nio.file.Path
 
 class DesktopCloudException(val code: String, val status: Int = 0, val details: JSONObject? = null, val retryAfter: Long = 0) : Exception(code)
 
+interface DesktopCloudRepository {
+    suspend fun request(path: String, body: JSONObject? = null): JSONObject
+    suspend fun requestCode(phone: String): JSONObject
+    suspend fun verifyCode(challenge: JSONObject, code: String, phone: String): JSONObject
+    suspend fun logout()
+}
+
 class DesktopHttpCloudRepository(
     private val directory: Path,
     val keys: DesktopCloudKeys,
     private val licenseStore: LicenseStore,
     private val appVersion: String = "0.56.75"
-) {
+) : DesktopCloudRepository {
     private val refreshMutex = Mutex()
 
     private suspend fun raw(path: String, body: JSONObject?, access: String? = null): JSONObject = withContext(Dispatchers.IO) {
@@ -47,7 +54,7 @@ class DesktopHttpCloudRepository(
         }
     }
 
-    suspend fun request(path: String, body: JSONObject?): JSONObject {
+    override suspend fun request(path: String, body: JSONObject?): JSONObject {
         val before = keys.read() ?: throw DesktopCloudException("AUTH_REQUIRED", 401)
         try {
             return raw(path, body, before.getString("accessToken"))
@@ -66,9 +73,9 @@ class DesktopHttpCloudRepository(
         return raw(path, body, keys.read()!!.getString("accessToken"))
     }
 
-    suspend fun requestCode(phone: String): JSONObject = raw("auth/otp/request", JSONObject().put("phone", phone))
+    override suspend fun requestCode(phone: String): JSONObject = raw("auth/otp/request", JSONObject().put("phone", phone))
 
-    suspend fun verifyCode(challenge: JSONObject, code: String, phone: String): JSONObject {
+    override suspend fun verifyCode(challenge: JSONObject, code: String, phone: String): JSONObject {
         val identity = DesktopDeviceIdentity.get(directory, appVersion)
         val public = keys.publicKey()
         var license = licenseStore.getCachedInfo()
@@ -95,7 +102,7 @@ class DesktopHttpCloudRepository(
         return result
     }
 
-    suspend fun logout() {
+    override suspend fun logout() {
         try { request("auth/logout", JSONObject()) } finally { keys.clear() }
     }
 }

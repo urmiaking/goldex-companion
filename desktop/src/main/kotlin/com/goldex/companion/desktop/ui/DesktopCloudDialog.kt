@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
     val scope = rememberCoroutineScope()
     var login by remember { mutableStateOf(false) }
     var signingOut by remember { mutableStateOf(false) }
+    var confirmRestore by remember { mutableStateOf(false) }
     if (login) {
         DesktopOtpDialog(workspace) { login = false }
     } else {
@@ -36,20 +37,35 @@ import kotlinx.coroutines.launch
             onLogout = {
                 signingOut = true
                 scope.launch { try { workspace.cloud.logout() } finally { signingOut = false } }
+            }, onRestore = { confirmRestore = true })
+    }
+    DesktopDialogHost(confirmRestore) {
+        DesktopAlertDialog(onDismissRequest = { confirmRestore = false },
+            title = { Text("بازیابی حساب ابری") },
+            text = { Text("اطلاعات حساب ابری جایگزین اطلاعات این دستگاه می‌شود. پیش از جایگزینی، پشتیبان محلی مستقل ذخیره می‌شود. ادامه می‌دهید؟") },
+            confirmButton = {
+                Row(Modifier.width(360.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DesktopActionButton("انصراف", { confirmRestore = false }, Modifier.weight(1f), Icons.Outlined.Close, isSecondary = true)
+                    DesktopActionButton("تأیید و بازیابی", {
+                        confirmRestore = false
+                        scope.launch { workspace.cloud.restore(true) }
+                    }, Modifier.weight(1.5f).testTag("cloud-confirm-restore"), Icons.Outlined.CloudDownload)
+                }
             })
     }
 }
 
 @Composable internal fun CloudAccountDialog(
     state: DesktopSyncUiState, onDismiss: () -> Unit, onLogin: () -> Unit,
-    onEnabledChange: (Boolean) -> Unit, onSync: () -> Unit, onLogout: () -> Unit
+    onEnabledChange: (Boolean) -> Unit, onSync: () -> Unit, onLogout: () -> Unit,
+    onRestore: () -> Unit = {}
 ) {
     val colors = LocalGoldExColors.current
     val needsLogin = state.phone.isBlank() || state.status == DesktopSyncStatus.AUTH_REQUIRED
     val statusColor = when (state.status) {
         DesktopSyncStatus.SYNCED -> colors.marketGainText
         DesktopSyncStatus.SYNCING -> colors.syncBlue
-        DesktopSyncStatus.PENDING, DesktopSyncStatus.AUTH_REQUIRED -> colors.goldPrimary
+        DesktopSyncStatus.PENDING, DesktopSyncStatus.AUTH_REQUIRED, DesktopSyncStatus.RESTORE_REQUIRED -> colors.goldPrimary
         DesktopSyncStatus.ERROR -> colors.errorRed
         DesktopSyncStatus.OFFLINE, DesktopSyncStatus.DISABLED -> colors.textMuted
     }
@@ -117,8 +133,10 @@ import kotlinx.coroutines.launch
                     } else {
                         DesktopActionButton("خروج از حساب", onLogout, Modifier.weight(1f).testTag("cloud-dialog-logout"),
                             Icons.Outlined.Logout, isSecondary = true, enabled = !state.busy)
-                        DesktopActionButton("همگام‌سازی", onSync, Modifier.weight(1f).testTag("cloud-dialog-sync"),
-                            Icons.Outlined.Sync, enabled = state.enabled && !state.busy, isLoading = state.busy)
+                        val needsRestore = state.status == DesktopSyncStatus.RESTORE_REQUIRED
+                        DesktopActionButton(if (needsRestore) "بازیابی حساب" else "همگام‌سازی", if (needsRestore) onRestore else onSync,
+                            Modifier.weight(1f).testTag(if (needsRestore) "cloud-dialog-restore" else "cloud-dialog-sync"),
+                            if (needsRestore) Icons.Outlined.CloudDownload else Icons.Outlined.Sync, enabled = state.enabled && !state.busy, isLoading = state.busy)
                     }
                 }
             }

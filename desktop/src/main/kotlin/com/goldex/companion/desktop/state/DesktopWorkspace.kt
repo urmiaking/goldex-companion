@@ -247,13 +247,18 @@ class DesktopWorkspace(
     fun openAsset(item: PortfolioItem? = null) { if (!inventory.state.value.hasDialog) mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
     fun openWizard() { mutable.update { it.copy(isWizardOpen = true) } }
     fun closeWizard() { mutable.update { it.copy(isWizardOpen = false) } }
+    fun completeCloudOnboarding(): Boolean {
+        if (cloud.state.value.restoredGeneration == 0L) return false
+        return completeWizard(state.value.settings, com.goldex.companion.domain.onboarding.OpeningInventoryInput(), restoredFromCloud = true)
+    }
     fun completeWizard(
         updatedSettings: AppSettings,
         input: com.goldex.companion.domain.onboarding.OpeningInventoryInput,
-        targetDestination: DesktopDestination = DesktopDestination.DASHBOARD
+        targetDestination: DesktopDestination = DesktopDestination.DASHBOARD,
+        restoredFromCloud: Boolean = false
     ): Boolean {
         return try {
-            completeOnboarding.complete(updatedSettings, input, restoredFromCloud = false)
+            completeOnboarding.complete(updatedSettings, input, restoredFromCloud = restoredFromCloud)
             val freshSettings = storage.loadSettings()
             inventory.reload()
             calculator.updateDefaults(freshSettings)

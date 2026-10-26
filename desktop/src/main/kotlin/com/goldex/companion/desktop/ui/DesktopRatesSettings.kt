@@ -877,7 +877,9 @@ internal fun DesktopOtpDialog(
                         error = error
                     )
                 } else {
-                    Text("کد ۶ رقمی پیامک‌شده به شماره ${phone} را وارد کنید:", fontSize = 12.sp, color = colors.textSecondary)
+                    val temporaryCode = challenge?.optString("temporaryCode").orEmpty()
+                    Text(if (temporaryCode.isNotBlank()) "کد موقت ورود: ${PersianNumberFormatter.toPersianDigits(temporaryCode)}"
+                        else "کد ۶ رقمی پیامک‌شده به شماره ${PersianNumberFormatter.toPersianDigits(phone)} را وارد کنید:", fontSize = 12.sp, color = colors.textSecondary)
                     DesktopField(
                         value = otpCode,
                         onChange = { otpCode = it; error = null },
@@ -909,7 +911,7 @@ internal fun DesktopOtpDialog(
                                 res.onSuccess {
                                     challenge = it
                                 }.onFailure {
-                                    error = it.message ?: "خطا در ارسال پیامک"
+                                    error = DesktopSyncCoordinator.errorMessage(it as? Exception ?: Exception())
                                 }
                             }
                         },
@@ -922,7 +924,7 @@ internal fun DesktopOtpDialog(
                         text = "تأیید و اتصال",
                         onClick = {
                             val cleanOtp = PersianNumberFormatter.toEnglishDigits(otpCode).trim()
-                            if (cleanOtp.length < 4) {
+                            if (!cleanOtp.matches(Regex("[0-9]{6}"))) {
                                 error = "کد تأیید نامعتبر است"
                                 return@GoldButton
                             }
@@ -934,7 +936,7 @@ internal fun DesktopOtpDialog(
                                 res.onSuccess {
                                     onDismiss()
                                 }.onFailure {
-                                    error = it.message ?: "کد نامعتبر است"
+                                    error = DesktopSyncCoordinator.errorMessage(it as? Exception ?: Exception())
                                 }
                             }
                         },

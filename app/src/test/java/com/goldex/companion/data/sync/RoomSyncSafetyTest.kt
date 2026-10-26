@@ -87,6 +87,23 @@ class RoomSyncSafetyTest {
         assertEquals(9L,db.syncDao().metadata("customer","id")!!.localVersion)
         assertTrue(db.syncDao().conflicts().isEmpty())
     }
+    @Test fun validServerSnapshotRestoresPersianDatesExactMoneyAndProfileAtomically() {
+        customers.addCustomer(Customer(id="local",name="before",createdAt=1))
+        val remote=Customer(id="remote",name="حساب ابری",createdAt=2,cashDebtTomans=9007199254740993L,goldDebtGrams=0.001)
+        val ledger=LedgerTransaction(id="remote-ledger",customerId="remote",timestamp=3,dateTime="۱۴۰۵/۰۸/۰۴")
+        fun record(type: String, payload: JSONObject) = JSONObject().put("type",type).put("id",payload.getString("id")).put("version",3).put("deleted",false).put("payload",payload)
+        val records=JSONArray().put(record("customer",SyncJson.record(remote))).put(record("ledger",SyncJson.record(ledger)))
+            .put(record("businessSettings",SyncJson.business(com.goldex.companion.data.AppSettings(galleryName="گالری ابری"))))
+        val expectedNextSequence=db.syncDao().checkpoint()!!.nextSequence
+        db.syncDao().stage(SyncStaging("snapshot",0,records.toString()))
+        SyncLocalStore(ApplicationProvider.getApplicationContext(),db).activateSnapshot("snapshot","workspace",12,1,7,expectedNextSequence)
+        assertEquals(remote,customers.getCustomers().single())
+        assertEquals(ledger,db.ledgerTransactionDao().queryAll().single().toDomain())
+        assertEquals("گالری ابری",JSONObject(db.syncDao().business()!!.payload).getString("galleryName"))
+        assertEquals(8L,db.syncDao().checkpoint()!!.nextSequence)
+        assertEquals(0,db.syncDao().pendingCount())
+        assertEquals(3L,db.syncDao().metadata("customer","remote")!!.version)
+    }
     @Test fun corruptRestoreKeepsActiveDataQueueAndStaging() {
         customers.addCustomer(Customer(id="safe",name="keep",createdAt=1))
         val record=JSONObject().put("type","customer").put("id","broken").put("version",1).put("deleted",false).put("payload",JSONObject().put("id","broken").put("name","bad").put("cashDebtTomans","not-money"))
