@@ -26,3 +26,8 @@ MSI remains unsigned until Windows Authenticode identity is provisioned. Android
 ## Revisit
 
 Revisit for code signing, enterprise/all-users installation, different install roots or persistent downloaded-update recovery. Those need explicit compatibility/recovery policy, not deletion of arbitrary previous folders.
+
+
+## Successful update cache retention (0.56.89)
+
+Keep the current canonical MSI source at its original staging path for repair. Once installation and runtime/version verification succeed and the app is reopened, prune only successful helper stages with strictly older versions, matching fixed install/storage paths, recognized flat file names, and no reparse points. No recursive delete is used; unfamiliar or locked files retain the stage. Failed and unfinished updates keep their diagnostic/recovery evidence. The new app also invokes cleanup-only mode during installed update discovery, so old helpers that applied this version need no retroactive modification. This mode requires a successful stage matching the running version and never depends on network success. Repeated cleanup is idempotent; failures do not fail installation or discovery. Disposable installer CI verifies old-stage removal and same-version reinstall from the retained current MSI; local tests exercise failure/unknown/newer guards and legacy-helper recovery without installing.

@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +36,7 @@ import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import com.goldex.companion.ui.theme.VazirmatnFamily
 import com.goldex.companion.ui.theme.heroCardGradient
 import com.goldex.companion.ui.util.ThousandsSeparatorVisualTransformation
@@ -77,7 +81,7 @@ fun DesktopMeltCalculatorPane(
         appendLine("محاسبه‌شده با فرمول رسمی اتحادیه طلا و جواهر")
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         val wide = maxWidth >= 940.dp
         if (wide) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -179,7 +183,7 @@ private fun MeltInputCard(
     val colors = LocalGoldExColors.current
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = BorderStroke(0.8.dp, colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 2.dp,
@@ -226,9 +230,12 @@ private fun MeltInputCard(
                 value = mesghalInput,
                 onValueChange = onMesghalChange,
                 label = { Text("مظنه آبشده (یک مثقال ۱۷)") },
-                prefix = { Text("تومان ", color = colors.textMuted, fontSize = 13.sp) },
+                trailingIcon = { Text("تومان ", color = colors.textMuted, fontSize = 13.sp) },
                 visualTransformation = ThousandsSeparatorVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                    color = colors.textMain, textDirection = TextDirection.Ltr),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("melt-mesghal-field")
             )
@@ -238,49 +245,23 @@ private fun MeltInputCard(
                 value = weightInput,
                 onValueChange = onWeightChange,
                 label = { Text("وزن قطعه آبشده (ترازوی طلافروشی)") },
-                prefix = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
+                trailingIcon = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                    color = colors.textMain, textDirection = TextDirection.Ltr),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("melt-weight-field")
             )
 
-            // Karat input and preset chips
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DesktopOutlinedTextField(
+                Text("عیار قطعه (انگ ری‌گیری)", color = colors.textMain, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                DesktopKaratSelector(
                     value = karatInput,
                     onValueChange = onKaratChange,
-                    label = { Text("عیار قطعه (انگ ری‌گیری یا استاندارد)") },
-                    prefix = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("melt-karat-field")
+                    presets = listOf("705" to "۱۷ (۷۰۵)", "735" to "۷۳۵", "750" to "۱۸ (۷۵۰)", "999" to "۲۴ (۹۹۹)"),
+                    tag = "melt-karat"
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("عیارهای رایج:", fontSize = 12.sp, color = colors.textMuted)
-                    DesktopFilterChip(
-                        text = "۷۰۵ (مظنه سنتی)",
-                        selected = karatInput == "705",
-                        onClick = { onKaratChange("705") },
-                        modifier = Modifier.testTag("melt-karat-705")
-                    )
-                    DesktopFilterChip(
-                        text = "۷۳۵ (متفرقه مستعمل)",
-                        selected = karatInput == "735",
-                        onClick = { onKaratChange("735") },
-                        modifier = Modifier.testTag("melt-karat-735")
-                    )
-                    DesktopFilterChip(
-                        text = "۷۵۰ (استاندارد ۱۸)",
-                        selected = karatInput == "750",
-                        onClick = { onKaratChange("750") },
-                        modifier = Modifier.testTag("melt-karat-750")
-                    )
-                }
             }
         }
     }

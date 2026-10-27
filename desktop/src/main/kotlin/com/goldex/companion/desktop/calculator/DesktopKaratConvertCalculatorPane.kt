@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -31,6 +35,8 @@ import com.goldex.companion.model.Karat
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.PersianWordsFormatter
 import com.goldex.companion.ui.components.AnimatedPriceTicker
+import com.goldex.companion.ui.theme.VazirmatnFamily
+import com.goldex.companion.ui.theme.VazirmatnFeatureSettings
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
 
@@ -144,7 +150,7 @@ fun DesktopKaratConvertCalculatorPane(
             )
         }
 
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
             val wide = maxWidth >= 940.dp
 
             if (selectedMode == KaratMode.DIRECT) {
@@ -263,7 +269,7 @@ private fun DirectConvertInputCard(
     val colors = LocalGoldExColors.current
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = BorderStroke(0.8.dp, colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 2.dp,
@@ -286,8 +292,11 @@ private fun DirectConvertInputCard(
                 value = weightInput,
                 onValueChange = onWeightChange,
                 label = { Text("وزن اولیه طلا") },
-                prefix = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
+                trailingIcon = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                    color = colors.textMain, textDirection = TextDirection.Ltr),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("karat-direct-weight-field")
             )
@@ -302,8 +311,11 @@ private fun DirectConvertInputCard(
                         value = fromFinenessInput,
                         onValueChange = onFromFinenessChange,
                         label = { Text("عیار مبدا (از)") },
-                        prefix = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
+                        trailingIcon = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                            color = colors.textMain, textDirection = TextDirection.Ltr),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("karat-from-field")
                     )
@@ -323,8 +335,11 @@ private fun DirectConvertInputCard(
                         value = toFinenessInput,
                         onValueChange = onToFinenessChange,
                         label = { Text("عیار مقصد (به)") },
-                        prefix = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
+                        trailingIcon = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                            color = colors.textMain, textDirection = TextDirection.Ltr),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("karat-to-field")
                     )
@@ -449,7 +464,7 @@ private fun AssayInputCard(
     val colors = LocalGoldExColors.current
 
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = colors.surface,
         border = BorderStroke(0.8.dp, colors.goldBorder),
         shadowElevation = if (colors.isDark) 0.dp else 2.dp,
@@ -472,8 +487,11 @@ private fun AssayInputCard(
                 value = assayWeightInput,
                 onValueChange = onAssayWeightChange,
                 label = { Text("وزن قطعه مورد آزمایش (ترازو)") },
-                prefix = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
+                trailingIcon = { Text("گرم ", color = colors.textMuted, fontSize = 13.sp) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                    fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                    color = colors.textMain, textDirection = TextDirection.Ltr),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().testTag("assay-weight-field")
             )
@@ -484,8 +502,11 @@ private fun AssayInputCard(
                         value = agreedFinenessInput,
                         onValueChange = onAgreedFinenessChange,
                         label = { Text("عیار شرط معامله (معمولاً ۷۵۰)") },
-                        prefix = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
+                        trailingIcon = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                            color = colors.textMain, textDirection = TextDirection.Ltr),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("assay-agreed-field")
                     )
@@ -496,8 +517,11 @@ private fun AssayInputCard(
                         value = labAssayFinenessInput,
                         onValueChange = onLabAssayFinenessChange,
                         label = { Text("عیار برگه ری‌گیری (انگ آزمایشگاه)") },
-                        prefix = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
+                        trailingIcon = { Text("عیار ", color = colors.textMuted, fontSize = 13.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = TextStyle(fontFamily = VazirmatnFamily,
+                            fontFeatureSettings = VazirmatnFeatureSettings, fontSize = 15.sp,
+                            color = colors.textMain, textDirection = TextDirection.Ltr),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("assay-lab-field")
                     )

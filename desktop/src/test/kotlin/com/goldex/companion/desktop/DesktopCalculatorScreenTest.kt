@@ -31,7 +31,7 @@ class DesktopCalculatorScreenTest {
         compose.onNodeWithTag("copy").assertIsEnabled()
         compose.onNodeWithTag("input-TAX").performScrollTo().performTextReplacement("10")
         compose.onNodeWithText("۱۴,۳۳۶,۴۰۰").assertExists()
-        compose.onNodeWithTag("reset").performClick()
+        compose.onNodeWithTag("reset").performScrollTo().performClick()
         compose.onNodeWithTag("copy").assertIsNotEnabled()
         compose.runOnIdle { assertNull(calculator.state.value.result) }
     }

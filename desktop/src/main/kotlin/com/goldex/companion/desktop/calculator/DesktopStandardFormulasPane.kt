@@ -3,6 +3,7 @@ package com.goldex.companion.desktop.calculator
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,15 +26,16 @@ import com.goldex.companion.desktop.ui.controls.DesktopActionButton
 import com.goldex.companion.desktop.ui.controls.DesktopFilterChip
 import com.goldex.companion.desktop.ui.controls.DesktopSearchField
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
 
 enum class FormulaCategory(val title: String) {
-    ALL("همه فرمول‌ها"),
-    INVOICE("محاسبه فاکتور و ارزش‌افزوده"),
-    KARAT("تبدیل و کسری عیار"),
-    COIN("حباب و مسکوکات"),
-    MELT("تهاتر و آبشده")
+    ALL("همه"),
+    INVOICE("فاکتور"),
+    KARAT("عیار"),
+    COIN("مسکوکات"),
+    MELT("آبشده")
 }
 
 data class FormulaCardItem(
@@ -234,12 +236,11 @@ fun DesktopStandardFormulasPane(
         }
 
         // Search and Filter Bar
-        Row(
+        Column(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 FormulaCategory.values().forEach { cat ->
                     DesktopFilterChip(
                         text = cat.title,
@@ -250,8 +251,8 @@ fun DesktopStandardFormulasPane(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.width(260.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) {
                     DesktopSearchField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
@@ -321,11 +322,8 @@ private fun FormulaCard(
 ) {
     val colors = LocalGoldExColors.current
 
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = BorderStroke(0.8.dp, colors.goldBorder),
-        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+    LuxuryCard(
+        contentPadding = PaddingValues(0.dp),
         modifier = Modifier.fillMaxWidth().testTag("formula-card-${item.id}")
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -399,8 +397,8 @@ private fun FormulaCard(
             // Union Guild Tip
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = colors.goldPrimary.copy(alpha = 0.08f),
-                border = BorderStroke(0.5.dp, colors.goldPrimary.copy(alpha = 0.3f)),
+                color = colors.surfaceElevated,
+                border = BorderStroke(0.5.dp, colors.border),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
