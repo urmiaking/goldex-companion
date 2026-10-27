@@ -22,8 +22,29 @@ class WindowsUpdateInstaller(
     private val network: WindowsUpdateNetwork = WindowsUpdateNetwork()
 ) : WindowsUpdateGateway {
     // Development images run directly; automatic installation belongs to MSI installations.
-    override suspend fun check() = if (installRoot?.let { Files.isRegularFile(it.resolve(".qirato-msi")) } == true)
-        network.check(version) else null
+    override suspend fun check(): WindowsRelease? {
+        if (installRoot?.let { Files.isRegularFile(it.resolve(".qirato-msi")) } != true) return null
+        cleanupPreviousSources()
+        return network.check(version)
+    }
+
+    private suspend fun cleanupPreviousSources() = withContext(Dispatchers.IO) {
+        // Running the newly installed helper also handles updates applied by an
+        // older app whose helper did not yet know about cache cleanup.
+        val temporary = runCatching { Files.createTempDirectory("qirato-cache-cleanup-") }.getOrNull() ?: return@withContext
+        val script = temporary.resolve("cleanup.ps1")
+        val log = temporary.resolve("cleanup.log")
+        try {
+            checkNotNull(javaClass.getResourceAsStream("/update/install-msi.ps1")).use { Files.copy(it, script) }
+            runVerification(ProcessBuilder(powershell().toString(), "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", "-File", script.toString(), "-CleanupOnly", "-InstalledVersion", version.toString(),
+                "-DataDirectory", dataDirectory.toAbsolutePath().normalize().toString()), log)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { /* Cleanup is best effort and cannot block update discovery. */ }
+        finally {
+            runCatching { Files.deleteIfExists(script); Files.deleteIfExists(log); Files.deleteIfExists(temporary) }
+        }
+    }
 
     override suspend fun prepare(release: WindowsRelease, progress: (Long, Long) -> Unit, verifying: () -> Unit): PreparedWindowsUpdate = withContext(Dispatchers.IO) {
         val root = checkNotNull(installRoot) { "Run the installed application" }.toAbsolutePath().normalize()

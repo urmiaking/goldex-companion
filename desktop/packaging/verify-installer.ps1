@@ -71,6 +71,15 @@ New-Item -ItemType Directory -Path $data -Force | Out-Null
 $sentinel = Join-Path $data 'installer-test-sentinel.txt'
 [IO.File]::WriteAllText($sentinel, 'preserved across install upgrade uninstall')
 $before = (Get-FileHash -LiteralPath $sentinel).Hash
+# A successful previous download must be pruned only after this upgrade succeeds.
+$oldStage = Join-Path (Split-Path $root -Parent) ('.qirato-update-' + [guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path $oldStage | Out-Null
+$oldPackage = Join-Path $oldStage "Qirato-Windows-x64-$previousVersion.msi"
+Copy-Item -LiteralPath $previous -Destination $oldPackage
+@{installRoot=$root;stagingRoot=$oldStage;bundle=$oldPackage;version=$previousVersion;dataDirectory=$data} |
+    ConvertTo-Json | Set-Content -LiteralPath (Join-Path $oldStage 'plan.json') -Encoding UTF8
+@{success=$true;version=$previousVersion} | ConvertTo-Json |
+    Set-Content -LiteralPath (Join-Path $oldStage 'result.json') -Encoding UTF8
 $app = Start-Process (Join-Path $root 'Qirato.exe') -WorkingDirectory $root -WindowStyle Hidden -PassThru
 $deadline = [DateTime]::UtcNow.AddSeconds(30)
 while (!(Test-Path -LiteralPath (Join-Path $data 'workspace.lock')) -and !$app.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
@@ -127,6 +136,8 @@ if (!$helper.WaitForExit(180000) -or $helper.ExitCode -ne 0) {
 $installed = @(Products)
 if ($installed.Count -ne 1 -or $installed[0].DisplayVersion -ne $Version -or $installed[0].PSChildName -eq $old[0].PSChildName) { throw 'Previous product was not replaced' }
 if (Test-Path -LiteralPath (Join-Path $root 'app\previous-only.txt')) { throw 'Obsolete installer-owned file remained after upgrade' }
+if (Test-Path -LiteralPath $oldStage) { throw 'Successful previous updater cache remained after upgrade' }
+if (!(Test-Path -LiteralPath $package)) { throw 'Current MSI repair source was removed' }
 if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $before) { throw 'Upgrade changed user data' }
 AssertShortcuts
 $reopened = @(Get-Process Qirato -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq (Join-Path $root 'Qirato.exe') })
@@ -151,10 +162,10 @@ foreach ($process in $reopened) {
     [void]$process.WaitForExit(10000)
 }
 # Reinstall is idempotent and older packages are rejected.
-Install $current
+Install $package
 $downgrade = Start-Process $msiexec -ArgumentList @('/i', ('"'+$previous+'"'), '/qn', '/norestart') -WindowStyle Hidden -PassThru -Wait
 if ($downgrade.ExitCode -eq 0) { throw 'Downgrade was allowed' }
 $uninstall = Start-Process $msiexec -ArgumentList @('/x', $installed[0].PSChildName, '/qn', '/norestart') -WindowStyle Hidden -PassThru -Wait
 if ($uninstall.ExitCode -ne 0 -or @(Products).Count -ne 0 -or (Test-Path -LiteralPath (Join-Path $root 'Qirato.exe'))) { throw 'Uninstall did not remove owned application' }
 if ((Get-FileHash -LiteralPath $sentinel).Hash -ne $before) { throw 'Uninstall changed user data' }
-Write-Output 'Installer verified: shortcuts, helper wait/reopen, major upgrade, downgrade rejection, uninstall, data preservation.'
+Write-Output 'Installer verified: shortcuts, helper wait/reopen, major upgrade, previous cache cleanup, current repair source, downgrade rejection, uninstall, data preservation.'

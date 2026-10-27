@@ -25,6 +25,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import com.goldex.companion.domain.calculator.GoldCalculationUseCases
@@ -59,6 +62,7 @@ import com.goldex.companion.ui.components.GoldButton
 import com.goldex.companion.ui.components.GoldOutlinedTextField
 import com.goldex.companion.desktop.calculator.*
 import com.goldex.companion.desktop.ui.controls.DesktopFilterRow
+import com.goldex.companion.desktop.ui.controls.DesktopCalculatorTabs
 import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
 import com.goldex.companion.ui.components.LuxurySegmentedControl
 import com.goldex.companion.ui.theme.*
@@ -117,14 +121,7 @@ fun DesktopCalculatorScreen(
             }
 
             // Multi-Mode Tabs Bar
-            DesktopFilterRow(
-                items = DesktopCalculatorTab.values().toList(),
-                selectedItem = selectedTab,
-                onItemSelected = { selectedTab = it },
-                label = { it.title },
-                modifier = Modifier.fillMaxWidth().testTag("calculator-tab-bar"),
-                fillWidth = false
-            )
+            DesktopCalculatorTabs(selectedTab, { selectedTab = it })
 
             val reduceMotion = LocalDesktopReduceMotion.current
             AnimatedContent(
@@ -618,72 +615,15 @@ private fun InputPanel(
                         )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val presets = listOf(
-                            "750" to "۱۸ (۷۵۰)",
-                            "705" to "۱۷ (۷۰۵)",
-                            "875" to "۲۱ (۸۷۵)",
-                            "999" to "۲۴ (۹۹۹)"
-                        )
-                        val standardKarats = listOf("750", "705", "875", "999")
-                        val currentKarat = state.input(CalculatorField.KARAT)
-                        val isCustomKarat = currentKarat.isNotBlank() && currentKarat !in standardKarats
-
-                        presets.forEach { (karatVal, label) ->
-                            val isSelected = !isCustomKarat && currentKarat == karatVal
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
-                                border = BorderStroke(
-                                    if (isSelected) 1.5.dp else 1.dp,
-                                    if (isSelected) (if (colors.isDark) colors.goldSecondary else colors.goldPrimary) else if (colors.isDark) Color(0x52D4AF37) else colors.border.copy(alpha = 0.5f)
-                                ),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .clickable {
-                                        if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, karatVal)
-                                        else calculator.setInput(CalculatorField.KARAT, karatVal)
-                                    }
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = label,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) colors.goldPrimary else colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        }
-
-                        // 5th Item: Custom Karat Chip (with inline typing)
-                        DesktopInlineCustomKaratChip(
-                            value = if (isCustomKarat) currentKarat else "",
-                            onValueChange = { newVal ->
-                                if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, newVal)
-                                else calculator.setInput(CalculatorField.KARAT, newVal)
-                            },
-                            isSelected = isCustomKarat,
-                            onSelect = {
-                                if (!isCustomKarat) {
-                                    if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, "")
-                                    else calculator.setInput(CalculatorField.KARAT, "")
-                                }
-                            },
-                            modifier = Modifier.weight(1.1f).height(40.dp),
-                            placeholder = "سفارشی"
-                        )
-                    }
+                    DesktopKaratSelector(
+                        value = state.input(CalculatorField.KARAT),
+                        onValueChange = { value ->
+                            if (marketRates != null) marketRates.setInput(CalculatorField.KARAT, value)
+                            else calculator.setInput(CalculatorField.KARAT, value)
+                        },
+                        presets = listOf("750" to "۱۸ (۷۵۰)", "705" to "۱۷ (۷۰۵)", "875" to "۲۱ (۸۷۵)", "999" to "۲۴ (۹۹۹)"),
+                        tag = "karat"
+                    )
                 }
             }
         }
@@ -939,6 +879,7 @@ internal fun DesktopInlineCustomKaratChip(
     inputTag: String = "input-KARAT"
 ) {
     val colors = LocalGoldExColors.current
+    val focus = remember { FocusRequester() }
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = if (isSelected) colors.goldContainer else colors.surfaceElevated,
@@ -949,7 +890,7 @@ internal fun DesktopInlineCustomKaratChip(
         modifier = modifier
             .height(40.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable(enabled = enabled) { onSelect() }
+            .clickable(enabled = enabled) { focus.requestFocus() }
     ) {
         Box(
             modifier = Modifier
@@ -963,7 +904,6 @@ internal fun DesktopInlineCustomKaratChip(
                     val filtered = it.filter { ch -> ch.isDigit() || ch in '\u06F0'..'\u06F9' }
                     val clean = PersianNumberFormatter.toEnglishDigits(filtered)
                     onValueChange(clean)
-                    onSelect()
                 },
                 singleLine = true,
                 enabled = enabled,
@@ -977,7 +917,8 @@ internal fun DesktopInlineCustomKaratChip(
                     textDirection = TextDirection.Ltr
                 ),
                 cursorBrush = SolidColor(colors.goldPrimary),
-                modifier = Modifier.testTag(inputTag),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus)
+                    .onFocusChanged { if (it.isFocused) onSelect() }.testTag(inputTag),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier.fillMaxWidth(),
@@ -1112,12 +1053,12 @@ private fun ResultPanel(
     // Deep Obsidian Card
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = Color(0xFF13151A),
+        color = Color.Transparent,
         border = colors.goldHairlineBorder,
         shadowElevation = if (colors.isDark) 0.dp else 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
+        Column(Modifier.background(colors.heroCardGradient)) {
             Box(
                 Modifier.fillMaxWidth()
                     .height(2.dp)
@@ -1132,7 +1073,7 @@ private fun ResultPanel(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(Modifier.size(8.dp).background(Color(0xFFEAB308), CircleShape))
+                Box(Modifier.size(8.dp).background(colors.goldPrimary, CircleShape))
                 Text(
                     "خلاصه محاسبه و فاکتور",
                     color = Color.White,
@@ -1144,8 +1085,8 @@ private fun ResultPanel(
             // Top Inset Hero Display
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = Color(0xFF0C0D11),
-                border = BorderStroke(1.dp, Color(0xFF222630)),
+                color = Color.Black.copy(alpha = .18f),
+                border = BorderStroke(.5.dp, colors.goldBorder.copy(alpha = .3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -1155,7 +1096,7 @@ private fun ResultPanel(
                 ) {
                     Text(
                         "مبلغ نهایی پرداخت مشتری:",
-                        color = Color(0xFF9CA3AF),
+                        color = Color.White.copy(alpha = .7f),
                         fontSize = 12.5.sp,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Start
@@ -1168,14 +1109,14 @@ private fun ResultPanel(
                         AnimatedPriceTicker(
                             text = result?.let { PersianNumberFormatter.formatPrice(it.totalPayable) } ?: "—",
                             modifier = Modifier.alignByBaseline().testTag("total"),
-                            color = Color(0xFFFBBF24),
+                            color = colors.goldSecondary,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             "تومان",
-                            color = Color(0xFFFBBF24),
+                            color = colors.goldSecondary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.alignByBaseline().testTag("total-unit")
@@ -1186,7 +1127,7 @@ private fun ResultPanel(
                             "(${PersianWordsFormatter.toWords(result.totalPayable.toLong())})"
                         else
                             "(سیستم آماده محاسبه است)",
-                        color = Color(0xFF9CA3AF),
+                        color = Color.White.copy(alpha = .7f),
                         fontSize = 11.sp,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
@@ -1238,8 +1179,8 @@ private fun ResultPanel(
             // Inset Pill for Effective Gram Price
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color(0xFF0C0D11),
-                border = BorderStroke(1.dp, Color(0xFF222630)),
+                color = Color.Black.copy(alpha = .18f),
+                border = BorderStroke(.5.dp, colors.goldBorder.copy(alpha = .3f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1258,11 +1199,11 @@ private fun ResultPanel(
                     ) {
                         AnimatedPriceTicker(
                             text = result?.let { PersianNumberFormatter.formatPrice(it.effectiveGramPrice) } ?: "—",
-                            color = Color(0xFFFBBF24),
+                            color = colors.goldSecondary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Text("تومان", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+                        Text("تومان", color = Color.White.copy(alpha = .7f), fontSize = 11.sp)
                     }
                 }
             }

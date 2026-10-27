@@ -37,6 +37,7 @@ import com.goldex.companion.desktop.ui.controls.DesktopOutlinedTextField
 import com.goldex.companion.model.CoinBubbleResult
 import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.PersianNumberFormatter
+import com.goldex.companion.ui.components.LuxuryCard
 import com.goldex.companion.ui.components.AnimatedPriceTicker
 import com.goldex.companion.ui.theme.LocalGoldExColors
 import com.goldex.companion.ui.theme.heroCardGradient
@@ -328,16 +329,14 @@ private fun CoinCard(
     }
 
     val badgeLabel = when {
+        result.bubbleAmount < 0 -> "زیر ارزش ذاتی"
         result.bubblePercent < 12.0 -> "حباب منطقی"
         result.bubblePercent < 22.0 -> "حباب متوسط"
         else -> "حباب بالا و پرریسک"
     }
 
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = colors.surface,
-        border = BorderStroke(0.8.dp, if (isOverridden) colors.goldPrimary else colors.goldBorder),
-        shadowElevation = if (colors.isDark) 0.dp else 2.dp,
+    LuxuryCard(
+        contentPadding = PaddingValues(0.dp),
         modifier = Modifier.fillMaxWidth().testTag("coin-card-${result.coinType.name}")
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -420,6 +419,8 @@ private fun CoinCard(
                     }
                 }
             }
+
+            CoinValueComposition(result, badgeColor)
 
             // Intrinsic vs Bubble Breakdown
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
