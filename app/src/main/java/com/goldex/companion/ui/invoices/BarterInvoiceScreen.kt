@@ -64,6 +64,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -299,23 +300,11 @@ fun BarterInvoiceScreen(
                     title = "اقلام فروش ما (تحویلی)",
                     items = invoice.salesItems,
                     onAddItemClick = { onOpenAddItemModal(InvoiceItemCategory.CRAFTED, true) },
+                    onInventoryClick = onOpenInventoryPicker,
                     onEditItemClick = { onOpenEditItemModal(it, true) },
                     onDeleteItemClick = onDeleteSalesItem,
                     isSales = true
                 )
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.goldContainer.copy(alpha = 0.35f),
-                    border = BorderStroke(0.8.dp, colors.goldBorder),
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onOpenInventoryPicker)
-                ) {
-                    Text("انتخاب کالا از انبار برای فروش",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                        color = colors.goldPrimary, fontFamily = VazirmatnFamily,
-                        fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                }
-
                 // 4. Received Items Section (اقلام دریافتی تهاتر)
                 ItemsSectionCard(
                     sectionNumber = 2,
@@ -1071,6 +1060,7 @@ private fun ItemsSectionCard(
     title: String,
     items: List<BarterItem>,
     onAddItemClick: () -> Unit,
+    onInventoryClick: (() -> Unit)? = null,
     onEditItemClick: (BarterItem) -> Unit,
     onDeleteItemClick: (String) -> Unit,
     isSales: Boolean
@@ -1147,30 +1137,44 @@ private fun ItemsSectionCard(
                     }
                 }
 
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().testTag("invoice-sale-actions"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Surface(
-                    shape = ButtonShape,
-                    color = colors.goldContainer.copy(alpha = 0.5f),
-                    border = BorderStroke(0.6.dp, colors.goldBorder),
-                    modifier = Modifier.clickable { onAddItemClick() }
+                    onClick = onAddItemClick,
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.goldContainer,
+                    border = BorderStroke(1.dp, colors.goldBorder),
+                    modifier = Modifier.weight(1f).height(44.dp).testTag("invoice-add-manual-item")
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center) {
+                        Icon(InvoicePlusVector, null, tint = colors.goldPrimary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (isSales) "افزودن قلم فروش" else "افزودن قلم تهاتر",
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            color = colors.goldPrimary, fontFamily = VazirmatnFamily, maxLines = 1)
+                    }
+                }
+                if (isSales && onInventoryClick != null) {
+                    Surface(
+                        onClick = onInventoryClick,
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceElevated,
+                        border = BorderStroke(1.dp, colors.goldBorder),
+                        modifier = Modifier.weight(1f).height(44.dp).testTag("invoice-add-stock-item")
                     ) {
-                        Icon(
-                            imageVector = InvoicePlusVector,
-                            contentDescription = null,
-                            tint = colors.goldPrimary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = if (isSales) "افزودن قلم فروش" else "افزودن قلم تهاتر",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.goldPrimary,
-                            fontFamily = VazirmatnFamily
-                        )
+                        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center) {
+                            Text("▤", fontSize = 18.sp, color = colors.goldPrimary)
+                            Spacer(Modifier.width(5.dp))
+                            Text("انتخاب از انبار", fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                color = colors.textMain, fontFamily = VazirmatnFamily, maxLines = 1)
+                        }
                     }
                 }
             }
