@@ -89,7 +89,7 @@ class DesktopInventory(private val storage: DesktopDataStore, private val scope:
             mutable.update { it.copy(error = "کد عددی آزاد برای کالای جدید موجود نیست") }
             return
         }
-        val populatedDraft = if (draft.category == InventoryCategory.COINS && draft.unitPrice.isBlank()) {
+        val populatedDraft = if (item == null && draft.category == InventoryCategory.COINS && draft.unitPrice.isBlank()) {
             val c = draft.coinType ?: CoinType.EMAMI
             val price = state.value.rates.getCoinPrice(c)
             if (price > 0L) draft.copy(unitPrice = price.toString()) else draft

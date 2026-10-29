@@ -162,7 +162,8 @@ private fun InlineCustomKaratChip(
 fun AddInventoryItemModal(
     rates: MarketRates,
     onDismiss: () -> Unit,
-    onSaveItem: (InventoryItem) -> Unit
+    onSaveItem: (InventoryItem) -> Unit,
+    editingItem: InventoryItem? = null
 ) {
     val colors = LocalGoldExColors.current
     val coroutineScope = rememberCoroutineScope()
@@ -191,10 +192,14 @@ fun AddInventoryItemModal(
         label = "scrimAlpha"
     )
 
-    var selectedCategory by remember { mutableStateOf(InventoryCategory.RINGS) }
-    var selectedCoinType by remember { mutableStateOf(CoinType.EMAMI) }
-    var hasHologram by remember { mutableStateOf(true) }
-    var coinUnitPriceInput by remember { mutableStateOf("") }
+    var selectedCategory by remember(editingItem) { mutableStateOf(editingItem?.category ?: InventoryCategory.RINGS) }
+    var selectedCoinType by remember(editingItem) {
+        mutableStateOf(editingItem?.coinType ?: CoinType.entries.firstOrNull { it.titleFa == editingItem?.title } ?: CoinType.EMAMI)
+    }
+    var hasHologram by remember(editingItem) { mutableStateOf(editingItem?.coinHasHologram ?: true) }
+    var coinUnitPriceInput by remember(editingItem) { mutableStateOf(editingItem?.coinUnitPrice?.toString().orEmpty()) }
+    var selectedCoinConfirmed by remember(editingItem) { mutableStateOf(editingItem?.coinType != null || editingItem == null) }
+    var hologramConfirmed by remember(editingItem) { mutableStateOf(editingItem?.coinHasHologram != null || editingItem == null) }
 
     fun generateCode(cat: InventoryCategory): String {
         val prefix = when (cat) {
@@ -210,8 +215,8 @@ fun AddInventoryItemModal(
         return "$prefix-$num"
     }
 
-    var codeInput by remember { mutableStateOf(generateCode(InventoryCategory.RINGS)) }
-    var titleInput by remember { mutableStateOf("") }
+    var codeInput by remember(editingItem) { mutableStateOf(editingItem?.code ?: generateCode(InventoryCategory.RINGS)) }
+    var titleInput by remember(editingItem) { mutableStateOf(editingItem?.title.orEmpty()) }
     var rfidInput by remember { mutableStateOf("") }
     var locationInput by remember { mutableStateOf("") }
 
@@ -225,7 +230,7 @@ fun AddInventoryItemModal(
     var workshopInput by remember { mutableStateOf("") }
     var wageType by remember { mutableStateOf(WageType.PERCENTAGE) }
     var wageInput by remember { mutableStateOf("10") }
-    var quantityInput by remember { mutableStateOf("1") }
+    var quantityInput by remember(editingItem) { mutableStateOf(editingItem?.quantity?.toString() ?: "1") }
     var showCustomWageDialog by remember { mutableStateOf(false) }
     var tempWagePercent by remember { mutableStateOf("") }
 
@@ -291,8 +296,12 @@ fun AddInventoryItemModal(
         }
     }
 
+    val storedCoinPrice = PersianNumberFormatter.parseToCleanLong(coinUnitPriceInput)
+        ?: if (editingItem == null) rates.getCoinPrice(selectedCoinType).takeIf { it > 0 } else null
     val isFormValid = if (selectedCategory == InventoryCategory.COINS) {
-        titleInput.isNotBlank() && quantityInt > 0
+        titleInput.isNotBlank() && quantityInt > 0 &&
+            storedCoinPrice != null && storedCoinPrice in 1..1_000_000_000_000_000L &&
+            selectedCoinConfirmed && hologramConfirmed
     } else {
         titleInput.isNotBlank() && grossWeightDouble > 0.0
     }
@@ -524,6 +533,7 @@ fun AddInventoryItemModal(
                                         ),
                                         modifier = Modifier.clickable {
                                             selectedCoinType = c
+                                            selectedCoinConfirmed = true
                                             titleInput = c.titleFa
                                             grossWeightInput = c.totalWeightGrams.toString()
                                             stoneWeightInput = "0"
@@ -744,13 +754,29 @@ fun AddInventoryItemModal(
                                 }
                                 Switch(
                                     checked = hasHologram,
-                                    onCheckedChange = { hasHologram = it },
+                                    onCheckedChange = { hasHologram = it; hologramConfirmed = true },
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = colors.goldPrimary,
                                         checkedTrackColor = colors.goldContainer
                                     )
                                 )
                             }
+                        }
+
+                        if (!selectedCoinConfirmed) {
+                            Text(
+                                "نوع واقعی سکه را از گزینه‌های بالا انتخاب کنید.",
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily
+                            )
+                        }
+                        if (!hologramConfirmed) {
+                            Text(
+                                "وضعیت وکیوم را بررسی و برای تأیید لمس کنید.",
+                                color = colors.goldPrimary,
+                                fontFamily = VazirmatnFamily,
+                                modifier = Modifier.clickable { hologramConfirmed = true }
+                            )
                         }
 
                         // Coin Valuation Summary Card
@@ -1483,7 +1509,7 @@ fun AddInventoryItemModal(
                             onClick = {
                                 val coinWeight = if (selectedCategory == InventoryCategory.COINS) selectedCoinType.totalWeightGrams else grossWeightDouble
                                 val item = InventoryItem(
-                                    id = UUID.randomUUID().toString(),
+                                    id = editingItem?.id ?: UUID.randomUUID().toString(),
                                     code = codeInput.ifBlank { generateCode(selectedCategory) },
                                     title = titleInput.trim(),
                                     category = selectedCategory,
@@ -1501,9 +1527,16 @@ fun AddInventoryItemModal(
                                     profitPercent = if (selectedCategory == InventoryCategory.COINS) 0.0 else profitPercent,
                                     taxPercent = if (selectedCategory == InventoryCategory.COINS) 0.0 else taxPercent,
                                     rfidTag = rfidInput,
-                                    quantity = quantityInt
+                                    quantity = quantityInt,
+                                    coinType = if (selectedCategory == InventoryCategory.COINS) selectedCoinType else null,
+                                    coinUnitPrice = if (selectedCategory == InventoryCategory.COINS) storedCoinPrice else null,
+                                    coinHasHologram = if (selectedCategory == InventoryCategory.COINS) hasHologram else null
                                 )
-                                onSaveItem(item)
+                                onSaveItem(if (editingItem != null) editingItem.copy(
+                                    title = titleInput.trim(),
+                                    coinType = selectedCoinType, coinUnitPrice = storedCoinPrice,
+                                    coinHasHologram = hasHologram
+                                ) else item)
                                 handleDismiss()
                             },
                             enabled = isFormValid,

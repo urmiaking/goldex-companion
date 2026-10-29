@@ -21,7 +21,9 @@ class InventoryFormTest {
     }
     @Test fun wholeTomanPreviewExactlyMatchesAndroidFormulaAcrossWageModesAndCategories() {
         for (category in InventoryCategory.values().filter { it != InventoryCategory.ALL }) for (type in WageType.values()) for (purity in listOf(750, 875, 999)) {
-            val item = InventoryForm.toItem(valid().copy(category = category, purity = purity.toString(), wageType = type, wage = if (type == WageType.PERCENTAGE) "12.375" else "125000", tax = "9.5"))
+            val item = InventoryForm.toItem(valid().copy(category = category, purity = purity.toString(), wageType = type, wage = if (type == WageType.PERCENTAGE) "12.375" else "125000", tax = "9.5",
+                coinType = if (category == InventoryCategory.COINS) CoinType.EMAMI else null,
+                unitPrice = if (category == InventoryCategory.COINS) "54000000" else ""))
             assertEquals(item.calculateEstimatedValue(6_123_457), InventoryForm.price(item, 6_123_457)!!.total)
         }
     }
@@ -69,6 +71,7 @@ class InventoryFormTest {
             purity = "900",
             quantity = "5",
             coinType = CoinType.EMAMI,
+            unitPrice = "54000000",
             hasHologram = true
         )
         assertTrue(InventoryForm.validate(coinDraft).isEmpty())
@@ -83,6 +86,9 @@ class InventoryFormTest {
         assertEquals(0.0, item.profitPercent)
         assertEquals(0.0, item.taxPercent)
         assertEquals(5, item.quantity)
+        assertEquals(CoinType.EMAMI, item.coinType)
+        assertEquals(54_000_000L, item.coinUnitPrice)
+        assertTrue(item.coinHasHologram == true)
         assertEquals(8.136 * (900.0 / 750.0), item.weightIn18kGrams, 0.0001)
 
         val reconstructedDraft = InventoryForm.from(item)

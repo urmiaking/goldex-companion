@@ -46,7 +46,11 @@ data class InventoryItem(
     val rfidTag: String = "",
     val quantity: Int = 1,
     val imageUrl: String = "",
-    val createdAt: Long = SystemClock.nowMillis()
+    val createdAt: Long = SystemClock.nowMillis(),
+    /** Explicit coin identity and agreed per-unit price; null means legacy data needs completion. */
+    val coinType: CoinType? = null,
+    val coinUnitPrice: Long? = null,
+    val coinHasHologram: Boolean? = null
 ) {
     val netGoldWeightGrams: Double
         get() = (grossWeightGrams - stoneWeightGrams).coerceAtLeast(0.0)
@@ -60,6 +64,7 @@ data class InventoryItem(
      * TotalPayable = RawGoldValue + WageAmount + ProfitAmount + TaxAmount
      */
     fun calculateEstimatedValue(spotPrice18k: Long, customVatRate: Double? = null): Long {
+        if (category == InventoryCategory.COINS) coinUnitPrice?.let { return it }
         if (spotPrice18k <= 0L || netGoldWeightGrams <= 0.0) return 0L
         val karatRatio = customKaratValue.toDouble() / 750.0
         val rawGold = (netGoldWeightGrams * spotPrice18k.toDouble() * karatRatio).toLong()

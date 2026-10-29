@@ -31,5 +31,8 @@ data class InventoryItemEntity(
     val rfidTag: String = "",
     val quantity: Int = 1,
     val imageUrl: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val coinType: String? = null,
+    val coinUnitPrice: Long? = null,
+    val coinHasHologram: Boolean? = null
 )

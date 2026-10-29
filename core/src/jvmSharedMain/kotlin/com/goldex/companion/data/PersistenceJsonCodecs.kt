@@ -446,7 +446,11 @@ object PersistenceJsonCodecs {
                     rfidTag = rfidTag,
                     quantity = quantity,
                     imageUrl = imageUrl,
-                    createdAt = createdAt
+                    createdAt = createdAt,
+                    coinType = obj.stringValue("coinType").takeIf { it.isNotBlank() }?.let { enumOrDefault(it, CoinType.EMAMI) },
+                    coinUnitPrice = obj.longValue("coinUnitPrice", 0L).takeIf { it > 0 },
+                    coinHasHologram = if (obj.has("coinHasHologram") && !obj.isNull("coinHasHologram"))
+                        obj.getBoolean("coinHasHologram") else null
                 )
             }
             items
@@ -476,6 +480,9 @@ object PersistenceJsonCodecs {
                 put("quantity", item.quantity)
                 put("imageUrl", item.imageUrl)
                 put("createdAt", item.createdAt)
+                item.coinType?.let { put("coinType", it.name) }
+                item.coinUnitPrice?.let { put("coinUnitPrice", it) }
+                item.coinHasHologram?.let { put("coinHasHologram", it) }
             })
         }
         return array.toString()
@@ -773,6 +780,8 @@ object PersistenceJsonCodecs {
                         count = obj.intValue("count", 1),
                         hasHologram = obj.optBoolean("hasHologram", true),
                         unitPrice = obj.longValue("unitPrice", 0L),
+                        inventoryItemId = obj.stringValue("inventoryItemId"),
+                        inventoryQuantity = obj.intValue("inventoryQuantity", 0),
                         totalPayable = totalPayable,
                         equivalent18kWeight = equivalent18kWeight
                     )
@@ -836,6 +845,10 @@ object PersistenceJsonCodecs {
                     obj.put("count", item.count)
                     obj.put("hasHologram", item.hasHologram)
                     obj.put("unitPrice", item.unitPrice)
+                    if (item.inventoryItemId.isNotBlank()) {
+                        obj.put("inventoryItemId", item.inventoryItemId)
+                        obj.put("inventoryQuantity", item.inventoryQuantity)
+                    }
                 }
             }
             array.put(obj)
