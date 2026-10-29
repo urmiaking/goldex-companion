@@ -610,7 +610,7 @@ private fun CustomerAndAccountCard(
                             .background(colors.goldPrimary)
                     )
                     Text(
-                        text = "مشخصات طرف حساب و نوع فاکتور",
+                        text = "مشخصات طرف حساب",
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.textMain,
