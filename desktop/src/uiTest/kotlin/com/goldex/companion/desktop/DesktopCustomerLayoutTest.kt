@@ -88,7 +88,6 @@ class DesktopCustomerLayoutTest {
                     val lastFilter = onNode(hasText("تسویه‌شده") and hasAnyAncestor(hasTestTag("customer-filters"))).fetchSemanticsNode().boundsInRoot
                     assertTrue(lastFilter.left - filters.left < 15f, "Filter group must not reserve blank width away from search")
                 }
-                save("customers-layout-$width-light.png")
                 onNodeWithTag("customer-statement-layout-1").performClick()
                 onNodeWithTag("customer-payment").assertIsDisplayed()
                 onNodeWithTag("customer-independent-entry").assertIsDisplayed()
@@ -101,17 +100,8 @@ class DesktopCustomerLayoutTest {
                 onNodeWithTag("customer-statement-summary").assertIsDisplayed()
                 onNodeWithTag("customer-back").performClick()
                 runOnIdle { workspace.toggleTheme() }
-                save("customers-layout-$width-dark.png")
             }
         } finally { workspace.close(); store.close() }
-    }
-
-    private fun ComposeUiTest.save(name: String) {
-        val bitmap = onNodeWithTag("workspace-root").captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val encoded = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(encoded.bytes)
-        encoded.close(); image.close(); bitmap.close()
     }
 }
 

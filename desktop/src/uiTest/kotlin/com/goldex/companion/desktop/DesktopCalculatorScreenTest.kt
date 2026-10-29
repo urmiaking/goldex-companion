@@ -88,18 +88,8 @@ class DesktopCalculatorScreenTest {
             }
         }
         val before = calculator.state.value.result
-        saveScreenshot("calculator-light.png")
         compose.onNodeWithTag("theme").performClick()
         compose.onNodeWithText("حالت روز").assertExists()
-        saveScreenshot("calculator-dark.png")
         compose.runOnIdle { assertEquals(before, calculator.state.value.result) }
-    }
-
-    private fun saveScreenshot(name: String) {
-        val image = compose.onRoot().captureToImage().asSkiaBitmap()
-        val encoded = org.jetbrains.skia.Image.makeFromBitmap(image).encodeToData(EncodedImageFormat.PNG)!!
-        val directory = File(System.getProperty("qirato.screenshotDir"))
-        directory.mkdirs()
-        File(directory, name).writeBytes(encoded.bytes)
     }
 }

@@ -1,3 +1,10 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.multiplatform")
@@ -45,21 +52,29 @@ android {
     }
 }
 
-val verifyCoreBoundaries by tasks.registering {
-    group = "verification"
-    description = "Compiles common metadata and rejects platform imports in common business code."
-    dependsOn("compileCommonMainKotlinMetadata")
-    val commonSources = fileTree("src/commonMain") { include("**/*.kt") }
-    inputs.files(commonSources)
-    doLast {
+// A typed task avoids capturing the Gradle script in a doLast closure.
+// It is safe for the configuration cache and can reuse prior verification inputs.
+abstract class VerifyCoreBoundaries : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val commonSources: ConfigurableFileCollection
+
+    @TaskAction
+    fun verify() {
         val platformImport = Regex("""^\s*import\s+(java\.|javax\.|android\.|androidx\.|org\.json\.)""")
         val violations = commonSources.files.sorted().flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
-                if (platformImport.containsMatchIn(line)) "${file.relativeTo(projectDir)}:${index + 1}" else null
+                if (platformImport.containsMatchIn(line)) "${file.name}:${index + 1}" else null
             }
         }
         check(violations.isEmpty()) { "Platform dependencies in commonMain: ${violations.joinToString()}" }
     }
 }
 
+val verifyCoreBoundaries by tasks.registering(VerifyCoreBoundaries::class) {
+    group = "verification"
+    description = "Compiles common metadata and rejects platform imports in common business code."
+    dependsOn("compileCommonMainKotlinMetadata")
+    commonSources.from(fileTree("src/commonMain") { include("**/*.kt") })
+}
 tasks.named("check") { dependsOn(verifyCoreBoundaries) }

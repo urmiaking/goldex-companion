@@ -81,7 +81,6 @@ class WindowsHoverCloudTest {
         for (theme in listOf(false, true)) {
             runOnIdle { dark = theme }
             onNodeWithTag("cloud-dialog-pending").assertTextContains("۳", substring = true)
-            screenshot("cloud-account-${if (theme) "dark" else "light"}.png")
         }
         onNodeWithTag("cloud-dialog-sync").performSemanticsAction(SemanticsActions.RequestFocus)
         onNodeWithTag("cloud-dialog-sync").performKeyInput { pressKey(Key.Enter) }
@@ -130,13 +129,5 @@ class WindowsHoverCloudTest {
                 }
             } finally { workspace.close() }
         }
-    }
-
-    private fun ComposeUiTest.screenshot(name: String) {
-        val bitmap = onNodeWithTag("cloud-account-dialog").captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        try { File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(data.bytes) }
-        finally { data.close(); image.close(); bitmap.close() }
     }
 }

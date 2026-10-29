@@ -58,7 +58,6 @@ class DesktopWorkspaceScreenTest {
         field("asset-title").performTextReplacement("شمش آزمون")
         field("asset-weight").performTextReplacement("۲٫۱۲۵")
         field("asset-cost").performTextReplacement("۱۰۰۰۰۰۰۰")
-        screenshot("asset-dialog.png", "asset-dialog")
         compose.onNodeWithTag("save-asset").performClick()
         compose.waitUntil(10_000) { store.getItems().size == 1 && workspace.state.value.draft == null }
         compose.onNodeWithText("شمش آزمون").assertExists()
@@ -90,25 +89,11 @@ class DesktopWorkspaceScreenTest {
         workspace.close()
         workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }))
         render()
-        screenshot("workspace-light.png")
         compose.onNodeWithTag("workspace-theme").performClick()
         compose.waitUntil(10_000) { workspace.state.value.dark }
-        screenshot("workspace-dark.png")
         compose.onNodeWithTag("nav-RATES").performClick()
-        screenshot("rates-dark.png")
         compose.onNodeWithTag("nav-SETTINGS").performClick()
         compose.onNodeWithTag("open-previous-portfolio").performScrollTo().performClick()
-        screenshot("portfolio-dark.png")
         compose.onNodeWithTag("nav-SETTINGS").performClick()
-        screenshot("settings-dark.png")
-    }
-
-    private fun screenshot(name: String, tag: String = "workspace-root") {
-        val bitmap = compose.onNodeWithTag(tag).captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val encoded = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        val directory = File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }
-        File(directory, name).writeBytes(encoded.bytes)
-        encoded.close(); image.close(); bitmap.close()
     }
 }

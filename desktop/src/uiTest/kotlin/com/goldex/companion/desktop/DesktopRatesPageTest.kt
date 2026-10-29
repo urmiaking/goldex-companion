@@ -77,18 +77,12 @@ class DesktopRatesPageTest {
         onNodeWithTag("rates-gold-currency").assertExists()
         onNodeWithTag("rates-coins").assertExists()
         onNodeWithTag("rates-summary-GOLD18").performMouseInput { moveTo(center) }
-        save(onNodeWithTag("workspace-root"),"rates-refined-header-light.png")
-        save(onNodeWithTag("rates-summary-GOLD18"),"rates-card-hover.png")
         onNodeWithTag("rates-gold-currency").performScrollTo()
-        save(onNodeWithTag("rates-gold-currency"),"rates-refined-gold-light.png")
         onNodeWithTag("rate-row-AED").assertExists()
         onNodeWithTag("rates-coins").performScrollTo()
-        save(onNodeWithTag("rates-coins"),"rates-refined-coins-light.png")
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("rates-coins"),"rates-refined-coins-dark.png")
         onNodeWithTag("rates-gold-currency").performScrollTo()
-        save(onNodeWithTag("rates-gold-currency"),"rates-refined-gold-dark.png")
         onNodeWithTag("nav-SETTINGS").performClick()
         onNodeWithTag("nav-RATES").performClick()
         onNodeWithTag("rate-row-AED").assertExists()
@@ -114,7 +108,6 @@ class DesktopRatesPageTest {
         runOnIdle { workspace.calculatorRates.setInput(CalculatorField.GROSS_WEIGHT,"2.125") }
         onNodeWithTag("rate-detail-GOLD24").performScrollTo().performClick()
         onNodeWithTag("rate-details-page").assertExists()
-        save(onNodeWithTag("rate-details-page"),"rates-stitch-detail.png")
         onNodeWithTag("rate-use-calculator").performScrollTo().performClick()
         runOnIdle {
             assertEquals(DesktopDestination.CALCULATOR,workspace.state.value.destination)
@@ -133,7 +126,6 @@ class DesktopRatesPageTest {
         onNodeWithTag("rate-use-calculator").performScrollTo().assertIsNotEnabled()
         onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("rates-summary-GOLD18").performScrollTo()
-        save(onNodeWithTag("workspace-root"),"rates-refined-compact-light.png")
         onNodeWithTag("manual-rates").assertDoesNotExist()
         onNodeWithTag("rates-summary-GOLD18").performClick()
         waitUntil(5000) { !workspace.rateDetail.state.value.loading }
@@ -141,7 +133,6 @@ class DesktopRatesPageTest {
         onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"),"rates-refined-compact-dark.png")
     }
 
     @Test fun connectionPillDoesNotConfuseOfflineWithUnavailableSavedPrices() = runDesktopComposeUiTest(width=1280,height=1000) {
@@ -175,12 +166,5 @@ class DesktopRatesPageTest {
             onNodeWithTag("postpone-update").performClick()
             onNodeWithTag("workspace-header").assertIsDisplayed()
         } finally { updater.close() }
-    }
-
-    private fun save(node: SemanticsNodeInteraction,name: String) {
-        val bitmap=node.captureToImage().asSkiaBitmap(); val image=org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data=image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(data.bytes)
-        data.close(); image.close(); bitmap.close()
     }
 }

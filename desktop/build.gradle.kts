@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
 import java.time.Duration
@@ -12,6 +13,18 @@ plugins {
 compose { kotlinCompilerPlugin.set("androidx.compose.compiler:compiler:1.5.11") }
 kotlin { jvmToolchain(17) }
 
+// Compose UI integration tests are deliberately outside the default "test" source set.
+// They are expensive (real Compose windows / rendering) and run only with :desktop:uiTest.
+val uiTestSourceSet = sourceSets.create("uiTest") {
+    java.srcDir("src/uiTest/kotlin")
+    compileClasspath += sourceSets["main"].output + sourceSets["test"].output
+    runtimeClasspath += output + compileClasspath
+}
+configurations[uiTestSourceSet.implementationConfigurationName]
+    .extendsFrom(configurations["testImplementation"])
+configurations[uiTestSourceSet.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations["testRuntimeOnly"])
+
 dependencies {
     implementation(project(":core"))
     implementation(project(":shared-ui"))
@@ -23,7 +36,8 @@ dependencies {
     implementation("de.rototor.pdfbox:graphics2d:3.0.5")
     implementation("org.xerial:sqlite-jdbc:3.45.2.0")
     testImplementation(kotlin("test-junit"))
-    testImplementation(compose.desktop.uiTestJUnit4)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    add("uiTestImplementation", compose.desktop.uiTestJUnit4)
 }
 
 compose.desktop {
@@ -52,15 +66,28 @@ tasks.processResources {
     from("version.properties")
 }
 
-tasks.test {
-    timeout.set(Duration.ofMinutes(25))
-    systemProperty("java.awt.headless", "false")
-    systemProperty("qirato.screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
-    testLogging {
-        events("started", "passed", "skipped", "failed")
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
-    }
+// Unlike the built-in test compilation, uiTest must explicitly be a friend
+// of main to access module-internal Compose primitives in existing UI tests.
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileUiTestKotlin") {
+    val mainOutput = sourceSets["main"].output.classesDirs.files.joinToString(",") { it.absolutePath.replace("\\", "/") }
+    kotlinOptions.freeCompilerArgs += "-Xfriend-paths=$mainOutput"
 }
 
+tasks.test {
+    // Pure JVM / domain / storage contract tests; no Compose windows or screenshot output.
+    timeout.set(Duration.ofMinutes(10))
+    systemProperty("java.awt.headless", "true")
+    testLogging { events("failed", "skipped") }
+}
+
+tasks.register<Test>("uiTest") {
+    group = "verification"
+    description = "Optional interactive Compose UI regression tests. Never runs as part of check/test."
+    testClassesDirs = uiTestSourceSet.output.classesDirs
+    classpath = uiTestSourceSet.runtimeClasspath
+    useJUnit()
+    shouldRunAfter(tasks.test)
+    timeout.set(Duration.ofMinutes(25))
+    systemProperty("java.awt.headless", "false")
+    testLogging { events("failed", "skipped") }
+}

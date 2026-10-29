@@ -22,11 +22,11 @@ The agent or chat session operates entirely within `../goldex-<feature-name>`:
 1. Make code changes and additions.
 2. Verify Kotlin syntax:
    ```powershell
-   .\gradlew compileDebugKotlin --no-build-cache --no-daemon -q
+   .\scripts\dev\verify.ps1 -Target windows # choose android/core/shared when appropriate
    ```
 3. Verify all unit tests locally:
    ```powershell
-   .\gradlew testDebugUnitTest --no-daemon -q
+   # The verify.ps1 command already runs the affected business tests.
    ```
 4. Commit changes:
    ```powershell
@@ -75,7 +75,7 @@ git branch -d feature/<feature-name>
 
 ## 3. Worktree Safety Rules
 1. **Never copy keystores**: Never copy `goldex-release.keystore` or private keys into temporary worktrees.
-2. **Memory management**: On Windows, run Gradle tasks with `--no-daemon` when working across multiple worktrees to avoid lingering daemon processes consuming RAM.
+- **Memory management**: Reuse the Gradle daemon and build caches across worktrees; `org.gradle.workers.max=4` limits concurrency. Use `./gradlew --stop` only when daemons actually exhaust resources.
 3. **List active worktrees**: You can view all active worktrees at any time using:
    ```powershell
    git worktree list

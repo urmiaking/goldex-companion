@@ -40,7 +40,6 @@ class DesktopCustomersScreenTest {
         compose.onNodeWithTag("customer-role-selector").assertDoesNotExist()
         field("customer-name").performTextReplacement("مشتری آزمون")
         field("customer-phone").performTextReplacement("۰۹۱۲۳۴۵۶۷۸۹")
-        screenshot("customers-add-light.png", "customer-form")
         compose.onNodeWithText("ثبت و انتخاب").performScrollTo().performClick()
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.size == 1 && !workspace.customers.hasDialog }
         compose.onNodeWithText("مشتری آزمون").assertExists()
@@ -63,23 +62,19 @@ class DesktopCustomersScreenTest {
         render()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.size == 1 }
-        screenshot("customers-ledger-light.png")
         compose.runOnIdle { workspace.customers.manager.openCustomerStatement(contact) }
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.activeCustomerTransactions.isNotEmpty() }
         compose.onNode(hasText(contact.name) and hasTestTag("workspace-heading")).assertExists()
         compose.onNodeWithTag("customer-payment").assertIsDisplayed()
         compose.onNodeWithTag("customer-independent-entry").assertIsDisplayed()
         compose.onNodeWithContentDescription("اشتراک‌گذاری").assertDoesNotExist()
-        screenshot("customers-statement-light.png")
         compose.runOnIdle { workspace.toggleTheme() }
         compose.waitUntil(10_000) { workspace.state.value.dark }
-        screenshot("customers-statement-dark.png")
         compose.onNodeWithTag("nav-RATES").performClick()
         compose.onNodeWithTag("nav-CUSTOMERS").performClick()
         compose.runOnIdle { assertEquals(contact.id, workspace.customers.manager.uiState.value.selectedCustomerForStatement!!.id) }
         compose.onNodeWithTag("customer-back").performClick()
         compose.onNodeWithTag("customer-add").assertIsDisplayed()
-        screenshot("customers-ledger-dark.png")
     }
 
     @Test fun settlementShowsManualRatePreviewAndKeepsCancelOnRight() {
@@ -91,7 +86,6 @@ class DesktopCustomersScreenTest {
         compose.waitUntil(10_000) { !workspace.customers.settlement.state.value.isLoading }
         field("settlementRate").performTextReplacement("۶۰۰۰۰۰۰")
         field("settlementAmount").performTextReplacement("۱۲۰۰۰۰۰۰")
-        screenshot("customers-settlement-light.png", "settlement-dialog")
         val cancel = compose.onNodeWithText("انصراف").fetchSemanticsNode().boundsInRoot
         val confirm = compose.onNodeWithTag("confirmSettlement").fetchSemanticsNode().boundsInRoot
         Assert.assertTrue(cancel.center.x > confirm.center.x)
@@ -108,7 +102,6 @@ class DesktopCustomersScreenTest {
         compose.runOnIdle { workspace.customers.manager.openAddLedgerEntry(contact) }
         compose.onNode(hasSetTextAction() and hasText("وزن ترازو")).performTextReplacement("۲٫۱۲۵")
         compose.onNode(hasSetTextAction() and hasText("عیار ری‌گیری")).performTextReplacement("۷۵۰")
-        screenshot("customers-entry-light.png", "ledger-dialog")
         compose.onNodeWithTag("ledger-save").performClick()
         compose.waitUntil(10_000) { !workspace.customers.manager.uiState.value.isAddLedgerEntryModalVisible }
         compose.runOnIdle {
@@ -157,13 +150,5 @@ class DesktopCustomersScreenTest {
         compose.onNodeWithTag("customer-delete-final").performClick()
         compose.waitUntil(10_000) { workspace.customers.manager.uiState.value.customerList.isEmpty() && !workspace.customers.hasDialog }
         compose.onNodeWithTag("customer-delete-confirmation").assertDoesNotExist()
-    }
-
-    private fun screenshot(name: String, tag: String = "workspace-root") {
-        val bitmap = compose.onNodeWithTag(tag).captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val encoded = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(encoded.bytes)
-        encoded.close(); image.close(); bitmap.close()
     }
 }

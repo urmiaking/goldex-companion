@@ -70,7 +70,6 @@ class WindowsRefinementsScreenTest {
         onNodeWithTag("update-dialog").assertDoesNotExist()
         onNodeWithTag("input-GROSS_WEIGHT").performTextReplacement("2.125")
         assertEquals("2.125", workspace.calculator.state.value.input(CalculatorField.GROSS_WEIGHT))
-        save(onNodeWithTag("workspace-root"), "update-background-download.png")
         onNodeWithTag("nav-INVENTORY").performClick()
         onNodeWithTag("inventory-add").performClick()
         field("inventory-title").performTextInput("پیش‌نویس هنگام دانلود")
@@ -104,7 +103,6 @@ class WindowsRefinementsScreenTest {
         onNodeWithTag("open-updater").assertIsDisplayed()
         onNodeWithTag("workspace-theme").assertIsDisplayed()
         onNodeWithTag("workspace-date").assertIsDisplayed()
-        save(onNodeWithTag("workspace-root"), "sidebar-update-compact.png")
     }
 
     @Test fun inventoryGivesMoreSpaceToSelectionAndUnitsStayOnLeftInBothThemes() = runDesktopComposeUiTest(width = 1400, height = 980) {
@@ -113,11 +111,9 @@ class WindowsRefinementsScreenTest {
         onNodeWithTag("inventory-item-item-0").performClick()
         onNodeWithTag("inventory-details").assertIsDisplayed()
         onNodeWithTag("inventory-charge").assertIsDisplayed()
-        save(onNodeWithTag("workspace-root"), "inventory-refined-light.png")
         onNodeWithTag("close-details").performClick()
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"), "inventory-refined-dark.png")
         onNodeWithTag("inventory-add").performClick()
         fun unit(label: String, tag: String, text: String) {
             val node = onNodeWithTag("field-unit-$label", useUnmergedTree = true)
@@ -137,7 +133,6 @@ class WindowsRefinementsScreenTest {
         unit("اجرت", "inventory-wage", "تومان / گرم")
         field("inventory-wage").performTextReplacement("123456")
         field("inventory-gross").performTextReplacement("۲٫۱۲۵")
-        save(onNodeWithTag("inventory-dialog"), "inventory-unit-adornments.png")
         assertEquals("۲٫۱۲۵", workspace.inventory.state.value.draft!!.gross)
     }
 
@@ -171,11 +166,4 @@ class WindowsRefinementsScreenTest {
     }
 
     private fun ComposeUiTest.field(tag: String) = onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
-    private fun save(node: SemanticsNodeInteraction, name: String) {
-        val bitmap = node.captureToImage().asSkiaBitmap()
-        org.jetbrains.skia.Image.makeFromBitmap(bitmap).use { image -> image.encodeToData()!!.use { data ->
-            File(System.getProperty("qirato.screenshotDir"), name).apply { parentFile.mkdirs(); writeBytes(data.bytes) }
-        } }
-        bitmap.close()
-    }
 }

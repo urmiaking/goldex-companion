@@ -39,7 +39,6 @@ class DesktopRecoveryScreenTest {
                         runOnIdle { dark = theme }
                         onNodeWithTag("wizard-cloud-restore").assertIsDisplayed()
                         onNodeWithTag("wizard-next-btn").assertIsDisplayed()
-                        screenshot("recovery-intro-$width-${if (theme) "dark" else "light"}.png")
                     }
                 }
             } finally { workspace.close() }
@@ -57,13 +56,5 @@ class DesktopRecoveryScreenTest {
         onNodeWithTag("cloud-dialog-restore").assertIsDisplayed().performClick()
         runOnIdle { assertEquals(1, restores); state = state.copy(busy = true) }
         onNodeWithTag("cloud-dialog-restore").assertIsNotEnabled()
-    }
-
-    private fun ComposeUiTest.screenshot(name: String) {
-        val bitmap = onRoot().captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        try { File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(data.bytes) }
-        finally { data.close(); image.close(); bitmap.close() }
     }
 }

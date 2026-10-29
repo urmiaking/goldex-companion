@@ -24,7 +24,7 @@ The user's release policy is mandatory:
 
 ## Verification and recovery
 
-Run the repository's local compile/test gates and `python -m unittest discover -s scripts/release -p "test_*.py"`; keep unit tests local. Validate workflow edits with actionlint. Windows changes also require desktop tests, visual review, packaging and `--verify-runtime`. Local APK assembly/signing remains forbidden.
+Run only affected platform fast tests using `scripts/dev/verify.ps1`. The optional `:desktop:uiTest` is reserved for actual UI interaction regressions; no automated PNG screenshots or routine visual review. For release-routing edits also run `python -m unittest discover -s scripts/release -p "test_*.py"` and actionlint. Windows packaging and `--verify-runtime` remain mandatory in release CI. Local Android release APK assembly/signing is forbidden.
 
 CI selects platform jobs independently and uploads to a draft; publication requires success of all selected jobs and presence of their artifacts. Missing/unchanged version bumps fail before expensive builds. Recovery dispatches the workflow from main with the exact existing tag and `target=android` or `windows`; it may skip the other platform only if that tag already contains its required asset. Recovery does not promote an older already-published release to latest.
 

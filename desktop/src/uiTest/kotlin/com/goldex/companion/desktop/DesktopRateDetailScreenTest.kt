@@ -64,9 +64,7 @@ class DesktopRateDetailScreenTest {
         onAllNodesWithTag("connection-chip").assertCountEquals(1);onNodeWithTag("workspace-date").assertIsDisplayed()
         onNodeWithTag("rate-history-chart").assertIsDisplayed()
         onNodeWithText("همگام‌سازی نرخ‌ها").assertDoesNotExist()
-        save(onNodeWithTag("workspace-root"),"rate-detail-light.png")
         onNodeWithTag("rate-statistics").performScrollTo()
-        save(onNodeWithTag("workspace-root"),"rate-detail-statistics-light.png")
         onNodeWithText("سند قابل نمایش در دسترس نیست").assertExists()
         onNodeWithText("تسویه شد").assertDoesNotExist()
         onNodeWithTag("rate-chart-card").performScrollTo()
@@ -76,7 +74,6 @@ class DesktopRateDetailScreenTest {
             assertEquals(horizon,workspace.rateDetail.state.value.active!!.horizon)
         }
         onNodeWithTag("workspace-theme").performClick();waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"),"rate-detail-dark.png")
         onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         onNodeWithTag("rates-summary-GOLD18").assertExists()
     }
@@ -118,16 +115,9 @@ class DesktopRateDetailScreenTest {
         setContent { val s by workspace.state.collectAsState();GoldExCompanionTheme(isDarkTheme=s.dark) { DesktopWorkspaceScreen(workspace,{},"test") } }
         waitUntil(5000) { !workspace.rateDetail.state.value.loading }
         onNodeWithTag("workspace-date").assertIsDisplayed();onNodeWithTag("rate-chart-card").performScrollTo()
-        save(onNodeWithTag("workspace-root"),"rate-detail-compact.png")
         onNodeWithTag("rate-statistics").performScrollTo().assertIsDisplayed()
         onNodeWithTag("rate-documents").performScrollTo().assertIsDisplayed()
         onNode(hasTestTag("rate-details-close") and hasAnyAncestor(hasTestTag("workspace-header"))).assertIsDisplayed().performClick()
         assertEquals(DesktopDestination.RATES,workspace.state.value.destination)
-    }
-    private fun save(node: SemanticsNodeInteraction,name: String) {
-        val bitmap=node.captureToImage().asSkiaBitmap();val image=org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data=image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(data.bytes)
-        data.close();image.close();bitmap.close()
     }
 }

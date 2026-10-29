@@ -39,9 +39,7 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("close-details").performClick()
         onNodeWithTag("inventory-privacy").performClick()
         waitUntil(5000) { workspace.inventory.state.value.visible }
-        save(onNodeWithTag("workspace-root"), "inventory-wide-light.png")
         onNodeWithTag("workspace-theme").performClick(); waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"), "inventory-wide-dark.png")
         onNodeWithText("النگو").performClick()
         onNodeWithTag("inventory-item-item-1").assertExists(); onNodeWithTag("inventory-item-item-0").assertDoesNotExist()
         onNodeWithText("همه").performClick()
@@ -61,7 +59,6 @@ class DesktopInventoryScreenTest {
         field("inventory-stone").performTextReplacement("۰٫۱۲۵")
         onNodeWithText("سفارشی").performClick()
         field("inventory-purity").performTextInput("۷۳۵")
-        save(onNodeWithTag("inventory-dialog"), "inventory-form-light.png")
         onNodeWithTag("inventory-save").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
         assertEquals(4, workspace.inventory.state.value.items.size)
@@ -74,7 +71,6 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("movement-save").performClick()
         onNodeWithText("تعداد مثبت وارد کنید؛ خروج نباید بیشتر از موجودی باشد").assertExists()
         field("movement-count").performTextReplacement("۱")
-        save(onNodeWithTag("inventory-movement-dialog"), "inventory-movement.png")
         onNodeWithTag("movement-save").performClick()
         waitUntil(5000) { workspace.inventory.state.value.movement == null && !workspace.inventory.state.value.saving }
         assertEquals(0, store.inventory.getItems().first { it.id == item.id }.quantity)
@@ -84,7 +80,6 @@ class DesktopInventoryScreenTest {
     }
     @Test fun compactWindowHasCompleteFormAndRetainsDraftAcrossNavigation() = runDesktopComposeUiTest(width = 940, height = 700) {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.41") } }
-        save(onNodeWithTag("workspace-root"), "inventory-compact.png")
         onNodeWithTag("inventory-item-item-0").performScrollTo().performClick(); onNodeWithTag("inventory-details").assertIsDisplayed()
         runOnIdle { workspace.inventory.select(null) }
         onNodeWithTag("inventory-add").performClick()
@@ -93,11 +88,9 @@ class DesktopInventoryScreenTest {
         val saveBounds = onNodeWithTag("inventory-save").fetchSemanticsNode().boundsInRoot
         assertTrue(cancelBounds.left > saveBounds.right, "RTL cancel must stay to the right of save")
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).performTextInput("پیش‌نویس محفوظ")
-        save(onNodeWithTag("inventory-dialog"), "inventory-form-compact.png")
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-photo"))
         onNodeWithTag("inventory-photo").assertIsDisplayed()
         onNodeWithTag("inventory-save").assertIsDisplayed()
-        save(onNodeWithTag("inventory-dialog"), "inventory-form-compact-bottom.png")
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-title"))
         runOnIdle { workspace.navigate(DesktopDestination.RATES) }
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).assertTextContains("پیش‌نویس محفوظ")
@@ -117,7 +110,6 @@ class DesktopInventoryScreenTest {
         onNode(hasText(original.category.titleFa) and hasAnyAncestor(hasTestTag("inventory-category-menu"))).performClick()
         field("inventory-purity").performTextReplacement("۷۵۰")
         field("inventory-purity").assertExists() // Typing a preset must not remove the focused custom input.
-        save(onNodeWithTag("inventory-dialog"), "inventory-form-dark-top.png")
         onNodeWithTag("inventory-form-scroll").performScrollToNode(hasTestTag("inventory-quantity"))
         field("inventory-quantity").assertIsNotEnabled()
         onNodeWithTag("inventory-location-open").performClick()
@@ -125,7 +117,6 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("inventory-location-new").performTextInput("سینی جدید")
         onNodeWithTag("inventory-location-create").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draft?.location == "سینی جدید" && !workspace.inventory.state.value.saving }
-        save(onNodeWithTag("inventory-dialog"), "inventory-form-dark.png")
         onNodeWithTag("inventory-save").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draft == null && !workspace.inventory.state.value.saving }
         val saved = store.inventory.getItems().first { it.id == original.id }
@@ -147,7 +138,6 @@ class DesktopInventoryScreenTest {
         onNodeWithTag("inventory-category-create").performClick()
         onNodeWithText("نام را وارد کنید؛ حداکثر ۵۰ حرف").assertExists()
         onNodeWithTag("inventory-category-new").performTextInput("آویز")
-        save(onNodeWithTag("inventory-category-menu"), "inventory-category-create.png")
         onNodeWithTag("inventory-category-create").performClick()
         waitUntil(5000) { workspace.inventory.state.value.draftCategoryTitle == "آویز" && !workspace.inventory.state.value.saving }
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("inventory-title"))).performTextInput("آویز جدید")
@@ -175,13 +165,6 @@ class DesktopInventoryScreenTest {
         assertTrue(file.delete())
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.41") } }
         onAllNodesWithContentDescription("تصویر کالا")[0].assertIsDisplayed()
-        save(onNodeWithTag("workspace-root"), "inventory-photo.png")
         assertTrue(InventoryPhoto.isValid(store.inventory.getItems().first().imageUrl))
-    }
-    private fun save(node: SemanticsNodeInteraction, name: String) {
-        val bitmap = node.captureToImage().asSkiaBitmap(); val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir"), name).apply { parentFile.mkdirs(); writeBytes(data.bytes) }
-        data.close(); image.close(); bitmap.close()
     }
 }

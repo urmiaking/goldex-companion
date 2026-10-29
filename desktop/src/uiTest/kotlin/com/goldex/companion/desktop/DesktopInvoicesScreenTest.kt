@@ -44,7 +44,6 @@ class DesktopInvoicesScreenTest {
             val status = onNodeWithTag("connection-chip").fetchSemanticsNode().boundsInRoot
             assertEquals(calendar.center.y, action.center.y)
             assertEquals(status.height, action.height)
-            screenshot("invoices-list-light.png")
             onNodeWithTag("invoices-search").performTextReplacement("۱۴۰۵۱۲۳۴")
             onNodeWithTag("invoice-card-synthetic-invoice").assertIsDisplayed()
             onNodeWithTag("invoices-search").performTextReplacement("نام ناموجود")
@@ -59,7 +58,6 @@ class DesktopInvoicesScreenTest {
             onNodeWithTag("invoice-pdf-preview").assertIsDisplayed()
             onNodeWithContentDescription("بستن پیش‌نمایش").performClick()
             runOnIdle { workspace.toggleTheme() }
-            screenshot("invoices-list-dark.png")
             onNodeWithTag("invoice-delete-synthetic-invoice").performClick()
             onNodeWithTag("invoice-delete-final").performClick()
             waitUntil(10000) { workspace.invoices.manager.uiState.value.invoicesList.isEmpty() && !workspace.invoices.manager.uiState.value.isLoading }
@@ -80,7 +78,6 @@ class DesktopInvoicesScreenTest {
             val buttons = tags.map { onNodeWithTag(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot }
             assertTrue(buttons.all { it.top == buttons.first().top && it.bottom == buttons.first().bottom })
             assertTrue(buttons.all { it.left >= card.left && it.right <= card.right })
-            screenshot("invoices-list-minimum.png")
         }
     }
 
@@ -97,7 +94,6 @@ class DesktopInvoicesScreenTest {
                 workspace.invoices.manager.setDebtBasis(InvoiceDebtBasis.CASH)
                 workspace.invoices.manager.addSalesItem(item())
             }
-            screenshot("invoices-editor-light.png")
             onNodeWithTag("nav-RATES").performClick()
             onNodeWithTag("nav-INVOICES").performClick()
             onNodeWithTag("invoice-editor").assertIsDisplayed()
@@ -122,20 +118,9 @@ class DesktopInvoicesScreenTest {
             waitUntil(10000) { !workspace.invoices.manager.uiState.value.isItemModalVisible }
             assertEquals(2.5, (workspace.invoices.manager.uiState.value.invoice.salesItems.single() as CraftedGoldItem).netWeight)
             runOnIdle { workspace.invoices.manager.openEditItemModal(workspace.invoices.manager.uiState.value.invoice.salesItems.single(), true) }
-            screenshot("invoice-item-form.png")
             runOnIdle { workspace.invoices.manager.closeItemModal() }
             runOnIdle { workspace.invoices.manager.addSalesItem(item()) }
             onNodeWithText("ثبت پرداخت").performScrollTo().performClick()
-            screenshot("invoice-payment-form.png")
         }
-    }
-
-    private fun ComposeUiTest.screenshot(name: String) {
-        val roots = onAllNodes(isRoot())
-        val bitmap = roots[roots.fetchSemanticsNodes().lastIndex].captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val encoded = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        try { File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve(name).writeBytes(encoded.bytes) }
-        finally { encoded.close(); image.close(); bitmap.close() }
     }
 }

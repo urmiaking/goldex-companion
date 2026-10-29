@@ -64,10 +64,12 @@ Cloud synchronization is off by default on each device. Open its row in the sett
 JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` یا `sdk.dir` در فایل محلی و ثبت‌نشدهٔ `local.properties` مشخص کنید. پروژه را در Android Studio باز کنید و Gradle sync را انجام دهید.
 
 ```powershell
-.\gradlew.bat compileDebugKotlin --no-build-cache --no-daemon -q
-.\gradlew.bat testDebugUnitTest --no-daemon -q
-.\gradlew.bat :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q
+.\scripts\dev\verify.ps1 -Target android  # Android business tests
+.\scripts\dev\verify.ps1 -Target windows  # Windows fast JVM tests
+.\scripts\dev\verify.ps1 -Target shared   # Shared core + both hosts
 ```
+
+تست‌های سنگین Compose UI در مسیر اختیاری `:desktop:uiTest` قرار دارند و هیچ PNG خودکاری تولید نمی‌شود. Gradle Daemon، Build Cache و Configuration Cache برای توسعهٔ افزایشی فعال‌اند. [راهنمای تست سریع](docs/development/fast-verification.md).
 
 `app` میزبان Android، `core` محل مدل‌ها و منطق مشترک، `shared-ui` محل تم و کامپوننت‌های مشترک و `desktop` میزبان ویندوز است. جزئیات این مرحله در [ADR 0010](docs/adr/0010-windows-calculator-foundation.md) و [راهنمای بررسی ویندوز](docs/testing/windows-calculator.md) آمده است.
 
@@ -85,7 +87,7 @@ JDK 17 و Android SDK 34 لازم است. مسیر SDK را با `ANDROID_HOME` 
 
 ```powershell
 .\gradlew.bat :desktop:run --no-daemon
-.\gradlew.bat :desktop:test --no-daemon -q
+.\gradlew.bat :desktop:test -q
 .\gradlew.bat :desktop:createDistributable --no-daemon
 ```
 

@@ -44,9 +44,7 @@ class WindowsUpdateScreenTest {
             }
         }
         compose.onNodeWithTag("restart-update").assertIsEnabled()
-        screenshot("update-light.png")
         compose.runOnIdle { dark.value = true }
-        screenshot("update-dark.png")
         compose.onNodeWithTag("postpone-update").performClick()
         assertFalse(updater.state.value.dialog); assertEquals(0, restart)
         compose.onNodeWithTag("update-dialog").assertDoesNotExist()
@@ -60,12 +58,5 @@ class WindowsUpdateScreenTest {
         compose.onNodeWithTag("restart-update").assertIsNotEnabled()
         compose.onNodeWithTag("postpone-update").assertIsEnabled()
         assertEquals(0, restart)
-    }
-
-    private fun screenshot(name: String) {
-        compose.waitForIdle()
-        val bitmap = compose.onNodeWithTag("update-dialog").captureToImage().asSkiaBitmap()
-        val output = File(System.getProperty("qirato.screenshotDir"), name).apply { parentFile.mkdirs() }
-        org.jetbrains.skia.Image.makeFromBitmap(bitmap).use { image -> image.encodeToData()?.use { output.writeBytes(it.bytes) } }
     }
 }

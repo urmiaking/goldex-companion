@@ -75,7 +75,6 @@ class DesktopControlAdjustmentsTest {
             assertEquals(contracted.bottom,onNodeWithTag("settings-rate-sources").fetchSemanticsNode().boundsInRoot.bottom)
             onNodeWithTag("price-source-TALA_IR").performClick()
             runOnIdle { assertEquals(PriceSource.TALA_IR,workspace.state.value.settingsDraft!!.priceSource) }
-            save(onNodeWithTag("workspace-root"),"settings-aligned-${if(dark) "dark" else "light"}.png")
         }
     }
     @Test fun inventoryLocationDropdownPreservesFilterAndDashboardLedgerNavigation()=runDesktopComposeUiTest(width=940,height=700) {
@@ -88,7 +87,6 @@ class DesktopControlAdjustmentsTest {
         onNodeWithTag("inventory-location-selector").performClick()
         onNodeWithTag("inventory-location-all").performClick()
         onNodeWithTag("inventory-location-selector").assertTextContains("همه موقعیت‌ها (کل گالری)")
-        save(onNodeWithTag("workspace-root"),"inventory-location-dropdown.png")
         onNodeWithTag("nav-DASHBOARD").performClick()
         onNodeWithText("اطلاعات این رایانه با گوشی به‌صورت خودکار همگام نمی‌شود.").assertDoesNotExist()
         onNodeWithTag("dashboard-all-rates").performScrollTo().performClick()
@@ -98,15 +96,8 @@ class DesktopControlAdjustmentsTest {
         val label = onNode(hasTestTag("rate-details-label") and hasAnyAncestor(hasTestTag("rate-detail-GOLD18")),useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
         val arrow = onNode(hasTestTag("rate-details-arrow") and hasAnyAncestor(hasTestTag("rate-detail-GOLD18")),useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
         assertTrue(arrow.right <= label.left, "RTL details arrow must follow the label on its visual left")
-        save(onNodeWithTag("workspace-root"),"rates-compact-details.png")
         onNodeWithTag("nav-DASHBOARD").performClick()
         onNodeWithTag("dashboard-invoice-ledger").performScrollTo().performClick()
         runOnIdle { assertEquals(DesktopDestination.INVOICES,workspace.state.value.destination) }
-    }
-    private fun save(node: SemanticsNodeInteraction,name: String) {
-        val bitmap=node.captureToImage().asSkiaBitmap(); val image=org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data=image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir")).apply{mkdirs()}.resolve(name).writeBytes(data.bytes)
-        data.close(); image.close(); bitmap.close()
     }
 }
