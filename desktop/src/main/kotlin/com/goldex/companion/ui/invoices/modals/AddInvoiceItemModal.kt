@@ -1251,6 +1251,7 @@ private fun ScrapGoldForm(
 
                         ReceiptBreakdownRow(
                             label = "معادل وزنی ۱۸ عیار:",
+                            labelColor = Color(0xFFCBD5E1),
                             content = {
                                 AnimatedNumberText(
                                     text = PersianNumberFormatter.formatWeight(item.equivalent18kWeight),
@@ -1264,6 +1265,7 @@ private fun ScrapGoldForm(
 
                         ReceiptBreakdownRow(
                             label = "قیمت موثر هر گرم:",
+                            labelColor = Color(0xFFCBD5E1),
                             content = {
                                 AnimatedPriceText(
                                     amount = item.effectiveGramPrice,
@@ -1277,6 +1279,7 @@ private fun ScrapGoldForm(
 
                         ReceiptBreakdownRow(
                             label = "عیار پرداختی توافقی:",
+                            labelColor = Color(0xFFCBD5E1),
                             content = {
                                 Text(
                                     text = "${PersianNumberFormatter.toPersianDigits(item.payableKarat.toString())} خط",
@@ -2037,6 +2040,7 @@ private fun BankCoinForm(
 @Composable
 private fun ReceiptBreakdownRow(
     label: String,
+    labelColor: Color? = null,
     content: @Composable () -> Unit
 ) {
     val colors = LocalGoldExColors.current
@@ -2048,7 +2052,7 @@ private fun ReceiptBreakdownRow(
         Text(
             text = label,
             fontSize = 11.5.sp,
-            color = colors.textSecondary,
+            color = labelColor ?: colors.textSecondary,
             fontFamily = VazirmatnFamily
         )
         content()
