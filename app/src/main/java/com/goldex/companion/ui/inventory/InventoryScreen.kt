@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -142,6 +143,8 @@ fun InventoryScreen(
     onConfirmAdjustment: (StockAdjustment) -> Unit,
     onDeleteItem: (String) -> Unit,
     onTransferToInvoice: (InventoryItem) -> Unit,
+    onEditCoin: (InventoryItem) -> Unit = {},
+    onSaveEditedItem: (InventoryItem) -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
     val colors = LocalGoldExColors.current
@@ -533,6 +536,7 @@ fun InventoryScreen(
                             item = item,
                             spotPrice18k = spotPrice,
                             onTransferToInvoice = { onTransferToInvoice(item) },
+                            onEditCoin = { onEditCoin(item) },
                             onAdjustStock = { onOpenAdjustModal(item) },
                             onPrintTag = {
                                 QiratoToast.show(context, "اتیکت حرارتی ${item.code} با موفقیت آماده چاپ شد")
@@ -552,8 +556,11 @@ fun InventoryScreen(
             if (uiState.isAddModalOpen) {
                 AddInventoryItemModal(
                     rates = rates,
+                    editingItem = uiState.editingCoin,
                     onDismiss = onCloseAddModal,
-                    onSaveItem = onSaveNewItem
+                    onSaveItem = { item ->
+                        if (uiState.editingCoin == null) onSaveNewItem(item) else onSaveEditedItem(item)
+                    }
                 )
             }
 
@@ -639,6 +646,7 @@ private fun InventoryItemCard(
     spotPrice18k: Long,
     onTransferToInvoice: () -> Unit,
     onAdjustStock: () -> Unit,
+    onEditCoin: () -> Unit,
     onPrintTag: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -824,7 +832,9 @@ private fun InventoryItemCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "برآورد مظنه روز ویترین (با سود ${PersianNumberFormatter.toPersianDigits(item.profitPercent.toInt().toString())}٪):",
+                            text = if (item.category == InventoryCategory.COINS)
+                                (if (item.coinUnitPrice == null) "قیمت واحد: نیازمند تکمیل" else "قیمت ثبت‌شده هر سکه:")
+                                else "برآورد مظنه روز ویترین (با سود ${PersianNumberFormatter.toPersianDigits(item.profitPercent.toInt().toString())}٪):",
                             fontSize = 10.sp,
                             color = colors.textSecondary,
                             fontFamily = VazirmatnFamily
@@ -863,6 +873,13 @@ private fun InventoryItemCard(
                     height = 38.dp,
                     modifier = Modifier.weight(1.1f)
                 )
+
+                if (item.category == InventoryCategory.COINS) {
+                    IconButton(onClick = onEditCoin, modifier = Modifier.size(38.dp)) {
+                        Icon(Icons.Default.Edit, contentDescription = "تکمیل مشخصات سکه",
+                            tint = colors.goldPrimary, modifier = Modifier.size(20.dp))
+                    }
+                }
 
                 // Delete Button: Clean transparent icon-only button without gray filled background
                 IconButton(

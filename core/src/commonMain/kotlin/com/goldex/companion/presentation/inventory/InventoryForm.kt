@@ -43,6 +43,9 @@ object InventoryForm {
         val stone = weight(draft.stone.ifBlank { "0" })
         if (gross == null || gross <= 0) put("gross", "وزن مثبت با حداکثر سه رقم اعشار وارد کنید")
         if (draft.category == InventoryCategory.COINS) {
+            if (draft.coinType == null) put("coinType", "نوع سکه را انتخاب کنید")
+            if (normalize(draft.unitPrice).toLongOrNull()?.let { it in 1..1_000_000_000_000_000L } != true)
+                put("unitPrice", "قیمت واحد سکه الزامی است")
             if (stone != null && stone > 0 && gross != null && stone >= gross) put("stone", "وزن نگین باید کمتر از وزن ناخالص باشد")
             if (integer(draft.purity)?.let { it in 100..1000 } != true) put("purity", "عیار بین ۱۰۰ و ۱۰۰۰ وارد کنید")
             if (integer(draft.quantity)?.let { it in (if (draft.id == null) 1 else 0)..1_000_000 } != true) put("quantity", "تعداد صحیح و حداقل ۱ وارد کنید")
@@ -70,13 +73,9 @@ object InventoryForm {
     }
 
     fun from(item: InventoryItem): InventoryDraft {
-        val detectedCoin = if (item.category == InventoryCategory.COINS) {
-            CoinType.entries.firstOrNull {
-                it.titleFa == item.title ||
-                it.name.equals(item.code.substringAfter("COIN-").substringBefore("-"), ignoreCase = true) ||
-                abs(it.totalWeightGrams - item.grossWeightGrams) < 0.01
-            } ?: CoinType.EMAMI
-        } else null
+        // A historical coin might share an exact weight/title with another mint.
+        // No stored subtype means the owner must explicitly choose one on edit.
+        val detectedCoin = if (item.category == InventoryCategory.COINS) item.coinType else null
 
         return InventoryDraft(
             id = item.id,
@@ -98,7 +97,8 @@ object InventoryForm {
             tax = item.taxPercent.toString(),
             image = item.imageUrl,
             coinType = detectedCoin,
-            hasHologram = !item.workshop.contains("بدون وکیوم") && !item.rfidTag.contains("NO_HOLOGRAM")
+            hasHologram = item.coinHasHologram ?: (!item.workshop.contains("بدون وکیوم") && !item.rfidTag.contains("NO_HOLOGRAM")),
+            unitPrice = item.coinUnitPrice?.toString().orEmpty()
         )
     }
 
@@ -132,6 +132,9 @@ object InventoryForm {
             quantity = integer(draft.quantity)!!,
             profitPercent = profitVal,
             taxPercent = taxVal,
+            coinType = if (isCoin) draft.coinType else null,
+            coinUnitPrice = if (isCoin) normalize(draft.unitPrice).toLong() else null,
+            coinHasHologram = if (isCoin) draft.hasHologram else null,
             imageUrl = draft.image
         )
     }

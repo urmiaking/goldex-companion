@@ -9,6 +9,9 @@ data class InventoryPriceBreakdown(val raw: Long, val wage: Long, val profit: Lo
 /** Preserves InventoryItem's established operation order and whole-toman truncation. */
 object InventoryPricing {
     fun breakdown(item: InventoryItem, spot18: Long): InventoryPriceBreakdown? {
+        if (item.category == InventoryCategory.COINS) item.coinUnitPrice?.let {
+            return InventoryPriceBreakdown(raw = it, wage = 0, profit = 0, tax = 0)
+        }
         if (spot18 !in 1..1_000_000_000_000L) return null
         val rawValue = item.netGoldWeightGrams * spot18 * (item.customKaratValue.toDouble() / 750.0)
         if (!rawValue.isFinite() || rawValue > 1_000_000_000_000_000_000.0) return null

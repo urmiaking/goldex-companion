@@ -99,7 +99,9 @@ data class BankCoinItem(
     val hasHologram: Boolean = true,
     val unitPrice: Long,
     override val totalPayable: Double,
-    override val equivalent18kWeight: Double
+    override val equivalent18kWeight: Double,
+    override val inventoryItemId: String = "",
+    override val inventoryQuantity: Int = 0
 ) : BarterItem {
     override val category: InvoiceItemCategory = InvoiceItemCategory.COIN
 }

@@ -10,9 +10,7 @@ import kotlin.math.absoluteValue
  */
 object InventorySalePolicy {
     fun createLine(product: InventoryItem, count: Int, quote18: Long): CraftedGoldItem {
-        require(product.category != InventoryCategory.COINS) {
-            "سکه‌ها باید با نوع و قیمت واحد مشخص ثبت شوند؛ فروش انباری سکه هنوز پشتیبانی نمی‌شود"
-        }
+        require(product.category != InventoryCategory.COINS) { "سکه باید به‌عنوان قلم سکه بانکی ثبت شود" }
         require(count in 1..product.quantity) { "تعداد درخواستی بیشتر از موجودی انبار است" }
         require(product.grossWeightGrams.isFinite() && product.stoneWeightGrams.isFinite() &&
             product.netGoldWeightGrams.isFinite() &&
@@ -33,6 +31,21 @@ object InventorySalePolicy {
             profitPercent = product.profitPercent,
             taxPercent = product.taxPercent
         ).copy(inventoryItemId = product.id, inventoryQuantity = count)
+    }
+
+
+    /** Uses the stored coin snapshot, never maps bank coins to crafted-gold tax/wage rules. */
+    fun createSaleLine(product: InventoryItem, count: Int, quote18: Long): BarterItem {
+        if (product.category != InventoryCategory.COINS) return createLine(product, count, quote18)
+        require(count in 1..product.quantity) { "تعداد سکه بیشتر از موجودی انبار است" }
+        val type = requireNotNull(product.coinType) { "نوع سکه در انبار مشخص نیست؛ اطلاعات کالا را تکمیل کنید" }
+        val unitPrice = requireNotNull(product.coinUnitPrice) { "قیمت واحد سکه در انبار مشخص نیست؛ اطلاعات کالا را تکمیل کنید" }
+        val hologram = requireNotNull(product.coinHasHologram) { "وضعیت وکیوم سکه را در انبار تکمیل کنید" }
+        require(unitPrice in 1..1_000_000_000_000_000L && count.toLong() <= 1_000_000_000_000_000L / unitPrice) {
+            "قیمت یا تعداد سکه معتبر نیست"
+        }
+        return BarterCalculationUseCases.calculateCoinItem(type, count, hologram, unitPrice)
+            .copy(title = product.title, inventoryItemId = product.id, inventoryQuantity = count)
     }
 
     private fun allocations(invoice: BarterInvoice?): Map<String, Int> {

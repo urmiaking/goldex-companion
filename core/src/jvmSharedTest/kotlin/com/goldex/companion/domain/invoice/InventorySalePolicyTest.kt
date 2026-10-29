@@ -109,5 +109,74 @@ class InventorySalePolicyTest {
             PersistenceJsonCodecs.encodeBarterInvoices(listOf(invoice(manual)))
         ).single().salesItems.single().inventoryItemId)
     }
+
+    private fun coin(available: Int = 5) = InventoryItem(
+        id = "coin-product", code = "COIN-BAHAR", title = "سکه بهار آزادی",
+        category = InventoryCategory.COINS, quantity = available,
+        grossWeightGrams = CoinType.BAHAR.totalWeightGrams, customKaratValue = 900,
+        coinType = CoinType.BAHAR, coinUnitPrice = 71_250_000L,
+        coinHasHologram = false
+    )
+
+    @Test fun coinSaleUsesExactBankCoinPricingAndReversesOnDelete() {
+        val inv = MemoryInventory(coin())
+        val invoices = MemoryInvoices()
+        val customers = EmptyCustomers()
+        val line = InventorySalePolicy.createSaleLine(inv.item, 2, 24_000_000L)
+        assertIs<BankCoinItem>(line)
+        assertEquals(CoinType.BAHAR, line.coinType)
+        assertFalse(line.hasHologram)
+        assertEquals(71_250_000L, line.unitPrice)
+        assertEquals(2, line.count)
+        assertEquals(142_500_000.0, line.totalPayable)
+        assertEquals("coin-product", line.inventoryItemId)
+        assertEquals(2, line.inventoryQuantity)
+        val record = BarterInvoice(id = "coin-invoice", invoiceNumber = "1405002",
+            spotPrice18k = 24_000_000L, salesItems = listOf(line))
+        val save = SaveBarterInvoiceUseCase(invoices, customers, unit, inv)
+        save.save(record)
+        assertEquals(3, inv.item.quantity)
+        save.save(record)
+        assertEquals(3, inv.item.quantity)
+        assertEquals(1, inv.history.size)
+        assertIs<InvoiceDeletionResult.Deleted>(InvoiceDeletionUseCase(invoices, customers, unit, inv).delete(record.id))
+        assertEquals(5, inv.item.quantity)
+        assertEquals(2, inv.history.size)
+    }
+
+    @Test fun legacyCoinMustBeCompletedBeforeSaleAndJsonRemainsCompatible() {
+        val legacy = coin().copy(coinType = null, coinUnitPrice = null, coinHasHologram = null)
+        assertFailsWith<IllegalArgumentException> {
+            InventorySalePolicy.createSaleLine(legacy, 1, 24_000_000L)
+        }
+        val rawLegacy = PersistenceJsonCodecs.encodeInventoryItems(listOf(legacy))
+        val migrated = PersistenceJsonCodecs.decodeInventoryItems(rawLegacy).single()
+        assertNull(migrated.coinType)
+        assertNull(migrated.coinUnitPrice)
+        assertNull(migrated.coinHasHologram)
+        val record = coin()
+        val raw = PersistenceJsonCodecs.encodeInventoryItems(listOf(record))
+        assertEquals(record, PersistenceJsonCodecs.decodeInventoryItems(raw).single())
+    }
+
+    @Test fun bankCoinInvoiceLinkSurvivesCodecAndStockShortageIsRejected() {
+        val product = coin(2)
+        val line = InventorySalePolicy.createSaleLine(product, 2, 24_000_000L)
+        val invoice = BarterInvoice(id = "coin-sale", invoiceNumber = "1405003",
+            spotPrice18k = 24_000_000L, salesItems = listOf(line))
+        val restored = PersistenceJsonCodecs.decodeBarterInvoices(
+            PersistenceJsonCodecs.encodeBarterInvoices(listOf(invoice))
+        ).single().salesItems.single()
+        assertIs<BankCoinItem>(restored)
+        assertEquals("coin-product", restored.inventoryItemId)
+        assertEquals(2, restored.inventoryQuantity)
+        val inv = MemoryInventory(product.copy(quantity = 1))
+        val invoices = MemoryInvoices()
+        assertFailsWith<IllegalArgumentException> {
+            SaveBarterInvoiceUseCase(invoices, EmptyCustomers(), unit, inv).save(invoice)
+        }
+        assertTrue(invoices.records.isEmpty())
+        assertEquals(1, inv.item.quantity)
+    }
 }
 

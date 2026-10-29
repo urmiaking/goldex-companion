@@ -2,6 +2,7 @@ package com.goldex.companion.data.local.db.mappers
 
 import com.goldex.companion.data.local.db.entities.InventoryItemEntity
 import com.goldex.companion.data.local.db.entities.StockAdjustmentEntity
+import com.goldex.companion.model.CoinType
 import com.goldex.companion.model.InventoryCategory
 import com.goldex.companion.model.InventoryItem
 import com.goldex.companion.model.Karat
@@ -47,7 +48,10 @@ fun InventoryItemEntity.toDomain(): InventoryItem {
         rfidTag = rfidTag,
         quantity = quantity,
         imageUrl = imageUrl,
-        createdAt = createdAt
+        createdAt = createdAt,
+        coinType = coinType?.let { runCatching { CoinType.valueOf(it) }.getOrNull() },
+        coinUnitPrice = coinUnitPrice,
+        coinHasHologram = coinHasHologram
     )
 }
 
@@ -71,7 +75,10 @@ fun InventoryItem.toEntity(): InventoryItemEntity {
         rfidTag = rfidTag,
         quantity = quantity,
         imageUrl = imageUrl,
-        createdAt = createdAt
+        createdAt = createdAt,
+        coinType = coinType?.name,
+        coinUnitPrice = coinUnitPrice,
+        coinHasHologram = coinHasHologram
     )
 }
 

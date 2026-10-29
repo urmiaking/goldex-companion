@@ -31,6 +31,9 @@ fun InventorySalePickerContent(
     var selectedId by remember { mutableStateOf<String?>(null) }
     var countText by remember { mutableStateOf("1") }
     val selected = products.firstOrNull { it.id == selectedId }
+    fun sellable(item: InventoryItem): Boolean =
+        item.category != com.goldex.companion.model.InventoryCategory.COINS ||
+            (item.coinType != null && item.coinUnitPrice?.let { it > 0 } == true && item.coinHasHologram != null)
     val count = countText.map { digit ->
         when (digit) {
             in '۰'..'۹' -> ('0'.code + (digit.code - '۰'.code)).toChar()
@@ -54,7 +57,7 @@ fun InventorySalePickerContent(
                 fontWeight = FontWeight.Bold, color = colors.textMain)
             Text("موجودی فقط پس از ثبت نهایی فاکتور کسر می‌شود.", fontFamily = VazirmatnFamily,
                 fontSize = 11.sp, color = colors.textSecondary)
-            Text("فروش انباری سکه به دلیل نیاز به تعیین نوع و قیمت واحد، فعلاً جداگانه انجام می‌شود.",
+            Text("سکه‌های قدیمی بدون نوع و قیمت واحد، پس از تکمیل اطلاعاتشان قابل فروش هستند.",
                 fontFamily = VazirmatnFamily, fontSize = 10.sp, color = colors.textMuted)
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
@@ -78,7 +81,11 @@ fun InventorySalePickerContent(
                         Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
                             Text(item.title, color = colors.textMain, fontFamily = VazirmatnFamily,
                                 fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                            Text("کد: ${item.code}  •  موجودی: ${item.quantity} عدد  •  وزن: ${item.netGoldWeightGrams} گرم",
+                            Text(
+                                if (!sellable(item)) "نیازمند تکمیل نوع، قیمت یا وکیوم در انبار"
+                                else if (item.category == com.goldex.companion.model.InventoryCategory.COINS)
+                                    "نوع: ${item.coinType?.titleFa} • واحد: ${item.coinUnitPrice} تومان • موجودی: ${item.quantity} عدد"
+                                else "کد: ${item.code} • موجودی: ${item.quantity} عدد • وزن: ${item.netGoldWeightGrams} گرم",
                                 color = colors.textSecondary, fontFamily = VazirmatnFamily, fontSize = 11.sp)
                         }
                     }
@@ -95,7 +102,7 @@ fun InventorySalePickerContent(
                 TextButton(onClick = onDismiss) { Text("انصراف", fontFamily = VazirmatnFamily) }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = { selected?.let { onConfirm(it.id, count!!) } },
-                    enabled = selected != null && count != null && count in 1..selected.quantity) {
+                    enabled = selected != null && sellable(selected) && count != null && count in 1..selected.quantity) {
                     Text("افزودن به فاکتور", fontFamily = VazirmatnFamily)
                 }
             }

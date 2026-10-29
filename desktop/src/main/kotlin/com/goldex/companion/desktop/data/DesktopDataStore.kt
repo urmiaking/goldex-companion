@@ -346,7 +346,13 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
                 require(record.getString("karat") in Karat.values().map { it.name })
                 require(record.getString("wageType") in WageType.values().map { it.name })
                 val item = PersistenceJsonCodecs.decodeInventoryItems(JSONArray().put(record).toString()).single()
-                require(InventoryForm.validate(InventoryForm.from(item)).isEmpty())
+                val itemErrors = InventoryForm.validate(InventoryForm.from(item))
+                require(if (item.category == InventoryCategory.COINS && item.coinUnitPrice == null)
+                    itemErrors.keys.all { it == "unitPrice" || it == "coinType" } else itemErrors.isEmpty())
+                if (record.has("coinType")) require(record.getString("coinType") in CoinType.entries.map { it.name })
+                if (record.has("coinUnitPrice")) require(record.get("coinUnitPrice").toString().toLongOrNull()?.let {
+                    it in 1..1_000_000_000_000_000L } == true)
+                if (record.has("coinHasHologram")) require(record.get("coinHasHologram") is Boolean)
                 // Do not accept codec defaults for malformed numeric persisted fields.
                 for (field in listOf("grossWeightGrams", "stoneWeightGrams", "wageValue", "profitPercent", "taxPercent")) require(record.get(field) is Number && record.getDouble(field).isFinite())
                 for (field in listOf("quantity", "customKaratValue", "createdAt")) require(record.get(field).toString().toLongOrNull() != null)

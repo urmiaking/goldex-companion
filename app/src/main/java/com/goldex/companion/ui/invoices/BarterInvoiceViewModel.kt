@@ -490,7 +490,7 @@ class BarterInvoiceViewModel(
     fun openInventoryPicker() {
         work.submit {
             val products = inventoryStore?.getItems().orEmpty().filter {
-                it.quantity > 0 && it.category != com.goldex.companion.model.InventoryCategory.COINS
+                it.quantity > 0
             }
             _uiState.update { it.copy(isInventoryPickerVisible = true, inventoryItems = products) }
         }
@@ -504,7 +504,7 @@ class BarterInvoiceViewModel(
         val snapshot = _uiState.value
         val product = snapshot.inventoryItems.firstOrNull { it.id == itemId }
         if (product == null) { reportMessage("کالا در انبار پیدا نشد"); return }
-        val line = runCatching { InventorySalePolicy.createLine(product, count, snapshot.invoice.spotPrice18k) }
+        val line = runCatching { InventorySalePolicy.createSaleLine(product, count, snapshot.invoice.spotPrice18k) }
             .getOrElse { reportMessage(it.message ?: "مشخصات کالا معتبر نیست"); return }
         _uiState.update { state ->
             state.copy(invoice = state.invoice.copy(salesItems = state.invoice.salesItems + line),

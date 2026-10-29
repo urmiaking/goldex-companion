@@ -1024,6 +1024,8 @@ fun MainScreen(
                     onSearchQueryChanged = inventoryViewModel::setSearchQuery,
                     onOpenAddModal = inventoryViewModel::openAddModal,
                     onCloseAddModal = inventoryViewModel::closeAddModal,
+                    onEditCoin = inventoryViewModel::openCoinEditor,
+                    onSaveEditedItem = inventoryViewModel::updateItem,
                     onOpenAdjustModal = inventoryViewModel::openAdjustModal,
                     onCloseAdjustModal = inventoryViewModel::closeAdjustModal,
                     onSaveNewItem = inventoryViewModel::addItem,
@@ -1034,25 +1036,19 @@ fun MainScreen(
                             PersianNumberFormatter.parseToCleanLong(mainUiState.spotPriceInput) ?: 0L,
                             mainUiState.priceBasisTab
                         ).takeIf { it > 0 } ?: mainUiState.rates.gold18.takeIf { it > 0 } ?: 23_360_000L
-
-                        barterInvoiceViewModel.openNewInvoice(currentSpot)
-
-                        val barterItem = BarterCalculationUseCases.calculateCraftedItem(
-                            title = item.title,
-                            karat = item.karat,
-                            customKaratValue = item.customKaratValue,
-                            grossWeight = item.grossWeightGrams,
-                            stoneWeight = item.stoneWeightGrams,
-                            spotPrice18k = currentSpot,
-                            wageType = WageType.PERCENTAGE,
-                            wageInput = item.wagePercent,
-                            profitPercent = item.profitPercent,
-                            taxPercent = item.taxPercent
-                        )
-                        barterInvoiceViewModel.addSalesItem(barterItem)
-                        inventoryViewModel.setInventoryVisible(false)
-                        mainViewModel.selectTab(AppTab.INVOICES)
-                        QiratoToast.show(context, "کالای ${item.code} به فاکتور منتقل شد")
+                        val sale = runCatching {
+                            com.goldex.companion.domain.invoice.InventorySalePolicy.createSaleLine(item, 1, currentSpot)
+                        }.getOrElse {
+                            QiratoToast.show(context, it.message ?: "اطلاعات سکه یا موجودی معتبر نیست")
+                            null
+                        }
+                        if (sale != null) {
+                            barterInvoiceViewModel.openNewInvoice(currentSpot)
+                            barterInvoiceViewModel.addSalesItem(sale)
+                            inventoryViewModel.setInventoryVisible(false)
+                            mainViewModel.selectTab(AppTab.INVOICES)
+                            QiratoToast.show(context, "کالای ${item.code} به فاکتور منتقل شد")
+                        }
                     }
                 )
             }

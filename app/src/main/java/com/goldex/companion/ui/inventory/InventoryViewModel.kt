@@ -19,6 +19,7 @@ data class InventoryUiState(
     val selectedCategory: InventoryCategory = InventoryCategory.ALL,
     val searchQuery: String = "",
     val isAddModalOpen: Boolean = false,
+    val editingCoin: InventoryItem? = null,
     val isAdjustModalOpen: Boolean = false,
     val selectedItemForAdjustment: InventoryItem? = null,
     val isInventoryVisible: Boolean = false,
@@ -83,11 +84,16 @@ class InventoryViewModel(
     }
 
     fun openAddModal() {
-        _uiState.update { it.copy(isAddModalOpen = true) }
+        _uiState.update { it.copy(isAddModalOpen = true, editingCoin = null) }
+    }
+
+    fun openCoinEditor(item: InventoryItem) {
+        if (item.category != InventoryCategory.COINS) return
+        _uiState.update { it.copy(isAddModalOpen = true, editingCoin = item) }
     }
 
     fun closeAddModal() {
-        _uiState.update { it.copy(isAddModalOpen = false) }
+        _uiState.update { it.copy(isAddModalOpen = false, editingCoin = null) }
     }
 
     fun openAdjustModal(item: InventoryItem? = null) {
@@ -119,7 +125,7 @@ class InventoryViewModel(
         work.submit {
             repository.updateItem(item)
             refreshItems()
-
+            closeAddModal()
         }
     }
 
