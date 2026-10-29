@@ -112,8 +112,8 @@ class DesktopDataStore(val directory: Path) : PortfolioStore, SettingsStore, Onb
         } catch (_: Exception) {}
     }
 
-    @Synchronized private fun inventoryItems() = PersistenceJsonCodecs.decodeInventoryItems((document.optJSONArray("inventory") ?: JSONArray()).toString()).toList()
-    @Synchronized private fun inventoryAdjustments() = PersistenceJsonCodecs.decodeStockAdjustments((document.optJSONArray("stockAdjustments") ?: JSONArray()).toString()).toList()
+    @Synchronized private fun inventoryItems() = PersistenceJsonCodecs.decodeInventoryItems(((financialDraft ?: document).optJSONArray("inventory") ?: JSONArray()).toString()).toList()
+    @Synchronized private fun inventoryAdjustments() = PersistenceJsonCodecs.decodeStockAdjustments(((financialDraft ?: document).optJSONArray("stockAdjustments") ?: JSONArray()).toString()).toList()
     @Synchronized fun loadInventoryOptions() = DesktopInventoryOptions.read(document)
 
     @Synchronized fun addInventoryOption(key: String, name: String): InventoryOption {

@@ -728,6 +728,8 @@ object PersistenceJsonCodecs {
                         taxPercent = obj.doubleValue("taxPercent", 0.0),
                         taxAmount = obj.doubleValue("taxAmount", 0.0),
                         rawGoldValue = obj.doubleValue("rawGoldValue", 0.0),
+                        inventoryItemId = obj.stringValue("inventoryItemId"),
+                        inventoryQuantity = obj.optInt("inventoryQuantity", 0),
                         totalPayable = totalPayable,
                         equivalent18kWeight = equivalent18kWeight
                     )
@@ -805,6 +807,10 @@ object PersistenceJsonCodecs {
                     obj.put("taxPercent", item.taxPercent)
                     obj.put("taxAmount", item.taxAmount)
                     obj.put("rawGoldValue", item.rawGoldValue)
+                    if (item.inventoryItemId.isNotBlank()) {
+                        obj.put("inventoryItemId", item.inventoryItemId)
+                        obj.put("inventoryQuantity", item.inventoryQuantity)
+                    }
                 }
                 is ScrapGoldItem -> {
                     obj.put("baseKarat", item.baseKarat)

@@ -9,11 +9,14 @@ import com.goldex.companion.model.LedgerTransaction
 import com.goldex.companion.domain.customers.invoiceOutstanding
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceStore
+import com.goldex.companion.data.InventoryStore
 import com.goldex.companion.domain.invoice.InvoiceLedgerSyncUseCase
 import com.goldex.companion.domain.invoice.InvoiceDeletionUseCase
 import com.goldex.companion.domain.invoice.InvoiceDeletionResult
 import com.goldex.companion.model.PersianNumberFormatter
 import com.goldex.companion.model.BarterBalance
+import com.goldex.companion.model.InventoryItem
+import com.goldex.companion.domain.invoice.InventorySalePolicy
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.BarterItem
 import com.goldex.companion.model.Customer
@@ -41,6 +44,8 @@ data class BarterInvoiceUiState(
     val subScreen: InvoicesSubScreen = InvoicesSubScreen.LIST,
     val invoice: BarterInvoice = BarterInvoice(),
     val isItemModalVisible: Boolean = false,
+    val isInventoryPickerVisible: Boolean = false,
+    val inventoryItems: List<InventoryItem> = emptyList(),
     val targetCategory: InvoiceItemCategory = InvoiceItemCategory.CRAFTED,
     val isAddingToSales: Boolean = true,
     val editingItem: BarterItem? = null,
@@ -84,6 +89,7 @@ class BarterInvoiceViewModel(
     private val syncUnit: com.goldex.companion.data.sync.SyncUnitOfWork? = null,
     private val scope: kotlinx.coroutines.CoroutineScope,
     private val workDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val inventoryStore: InventoryStore? = null,
     private val currentGold18: () -> Long = { 0L }
 ) {
 
@@ -291,7 +297,7 @@ class BarterInvoiceViewModel(
         (currentInv.salesItems + currentInv.receivedItems).firstNotNullOfOrNull(::invoiceItemError)?.let { reportMessage(it); return }
         _uiState.update { it.copy(isSaving = true, error = null) }
         work.submit(onSuccess = { _uiState.update { it.copy(isSaving = false) }; onComplete() }) {
-            invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit).save(currentInv) }
+            invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit, inventoryStore).save(currentInv) }
             val saved = invoiceStore?.getBarterInvoices()
                 ?: (listOf(currentInv) + snapshot.invoicesList.mapNotNull { it.barterInvoice }.filterNot { it.id == currentInv.id })
             val cards = createInvoiceList(saved)
@@ -360,7 +366,7 @@ class BarterInvoiceViewModel(
         }
         val updatedPayments = currentInvoice.payments + payment
         val updatedInvoice = currentInvoice.copy(payments = updatedPayments)
-        invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit).save(updatedInvoice) }
+        invoiceStore?.let { com.goldex.companion.domain.invoice.SaveBarterInvoiceUseCase(it, customerStore, syncUnit, inventoryStore).save(updatedInvoice) }
         val savedInvoices = invoiceStore?.getBarterInvoices().orEmpty()
         val cards = createInvoiceList(savedInvoices)
         val summary = InvoiceListSummary(cards)
@@ -472,6 +478,10 @@ class BarterInvoiceViewModel(
     }
 
     fun openEditItemModal(item: BarterItem, isSales: Boolean) {
+        if (item.inventoryItemId.isNotBlank()) {
+            reportMessage("برای تغییر قلم انباری، آن را حذف و مجدداً از انبار انتخاب کنید")
+            return
+        }
         _uiState.update {
             it.copy(
                 isItemModalVisible = true,
@@ -484,6 +494,31 @@ class BarterInvoiceViewModel(
 
     fun closeItemModal() {
         _uiState.update { it.copy(isItemModalVisible = false, editingItem = null) }
+    }
+
+    fun openInventoryPicker() {
+        work.submit {
+            val products = inventoryStore?.getItems().orEmpty().filter {
+                it.quantity > 0 && it.category != com.goldex.companion.model.InventoryCategory.COINS
+            }
+            _uiState.update { it.copy(isInventoryPickerVisible = true, inventoryItems = products) }
+        }
+    }
+
+    fun closeInventoryPicker() {
+        _uiState.update { it.copy(isInventoryPickerVisible = false) }
+    }
+
+    fun addInventorySale(itemId: String, count: Int) {
+        val snapshot = _uiState.value
+        val product = snapshot.inventoryItems.firstOrNull { it.id == itemId }
+        if (product == null) { reportMessage("کالا در انبار پیدا نشد"); return }
+        val line = runCatching { InventorySalePolicy.createLine(product, count, snapshot.invoice.spotPrice18k) }
+            .getOrElse { reportMessage(it.message ?: "مشخصات کالا معتبر نیست"); return }
+        _uiState.update { state ->
+            state.copy(invoice = state.invoice.copy(salesItems = state.invoice.salesItems + line),
+                isInventoryPickerVisible = false)
+        }
     }
 
     fun saveItem(item: BarterItem) {
@@ -555,7 +590,7 @@ class BarterInvoiceViewModel(
     }
 
     private fun deleteInvoiceInternal(invoiceId: String): Boolean {
-        val result = invoiceStore?.let { InvoiceDeletionUseCase(it, customerStore, syncUnit).delete(invoiceId) }
+        val result = invoiceStore?.let { InvoiceDeletionUseCase(it, customerStore, syncUnit, inventoryStore).delete(invoiceId) }
             ?: InvoiceDeletionResult.Failed(rollbackSucceeded = true)
         val deleted = result is InvoiceDeletionResult.Deleted
         val message = when (result) {

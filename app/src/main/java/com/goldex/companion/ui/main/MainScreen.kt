@@ -701,7 +701,7 @@ fun MainScreen(
                                             } },
                                             onDeleteInvoice = { invoiceId ->
                                                 barterInvoiceViewModel.deleteInvoice(invoiceId) { deleted ->
-                                                    if (deleted) customerViewModel.loadCustomers()
+                                                    if (deleted) { customerViewModel.loadCustomers(); inventoryViewModel.loadItems() }
                                                     QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
                                                 }
                                             },
@@ -1085,6 +1085,9 @@ fun MainScreen(
                     onSetSyncWithLedger = barterInvoiceViewModel::setSyncWithLedger,
                     onSetNote = barterInvoiceViewModel::setNote,
                     onOpenAddItemModal = barterInvoiceViewModel::openAddItemModal,
+                    onOpenInventoryPicker = barterInvoiceViewModel::openInventoryPicker,
+                    onCloseInventoryPicker = barterInvoiceViewModel::closeInventoryPicker,
+                    onAddInventorySale = barterInvoiceViewModel::addInventorySale,
                     onOpenEditItemModal = barterInvoiceViewModel::openEditItemModal,
                     onCloseItemModal = barterInvoiceViewModel::closeItemModal,
                     onSaveItem = barterInvoiceViewModel::saveItem,
@@ -1108,6 +1111,7 @@ fun MainScreen(
                     onFinalSubmit = {
                         barterInvoiceViewModel.submitAndSaveCurrentInvoice {
                             customerViewModel.loadCustomers()
+                            inventoryViewModel.loadItems()
                             QiratoToast.show(context, barterInvoiceViewModel.uiState.value.statusMessage)
                         }
                     },

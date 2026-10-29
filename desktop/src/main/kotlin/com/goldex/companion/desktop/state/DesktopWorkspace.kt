@@ -119,7 +119,9 @@ class DesktopWorkspace(
         scope = scope,
         settings = preferences::loadSettings,
         isLicensed = isLicensed,
-        onLicenseRequired = { openLicenseDialog(it) }
+        onLicenseRequired = { openLicenseDialog(it) },
+        inventoryStore = storage.inventory,
+        onInventoryUpdated = inventory::reload
     ) { market.snapshot.value?.rates?.gold18 ?: 0L }
     val reporting = DesktopReporting(customers.invoices, customers.repository, storage.inventory, preferences, scope)
     val cloud = com.goldex.companion.desktop.sync.DesktopSyncCoordinator(
@@ -206,6 +208,7 @@ class DesktopWorkspace(
         }
         mutable.update { it.copy(destination = destination, notice = null) }
         if (destination == DesktopDestination.INVOICES) invoices.manager.reloadInvoices()
+        if (destination == DesktopDestination.INVENTORY) inventory.reload()
         if (destination == DesktopDestination.CUSTOMERS) customers.manager.loadCustomers()
         if (destination == DesktopDestination.DASHBOARD) dashboard.select(dashboard.state.value.horizon)
         if (destination == DesktopDestination.REPORTING) reporting.loadData()
