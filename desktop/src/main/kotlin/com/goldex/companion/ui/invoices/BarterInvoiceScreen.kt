@@ -122,7 +122,6 @@ fun BarterInvoiceScreen(
     uiState: BarterInvoiceUiState,
     marketRates: MarketRates,
     customerList: List<Customer> = emptyList(),
-    onSetCustomerRole: (CustomerRole) -> Unit = {},
     onSetDebtBasis: (com.goldex.companion.model.InvoiceDebtBasis) -> Unit = {},
     onOpenDatedSettlement: () -> Unit = {},
     onSetSettlementMethod: (SettlementMethod) -> Unit,
@@ -278,8 +277,6 @@ fun BarterInvoiceScreen(
                 // 2. Customer & Counterparty Card (Simplified)
                 CustomerAndAccountCard(
                     customer = invoice.customer,
-                    customerRole = invoice.customerRole,
-                    onSetCustomerRole = onSetCustomerRole,
                     onChangeCustomerClick = onOpenCustomerPicker
                 )
 
@@ -579,8 +576,6 @@ private fun InvoiceMetaAndRateCard(
 @Composable
 private fun CustomerAndAccountCard(
     customer: Customer?,
-    customerRole: CustomerRole,
-    onSetCustomerRole: (CustomerRole) -> Unit,
     onChangeCustomerClick: () -> Unit
 ) {
     val colors = LocalGoldExColors.current
@@ -633,60 +628,6 @@ private fun CustomerAndAccountCard(
                         .padding(horizontal = 4.dp, vertical = 2.dp),
                     fontFamily = VazirmatnFamily
                 )
-            }
-
-            // Customer Role Selector (Retail vs Wholesaler)
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = colors.surfaceElevated,
-                border = BorderStroke(0.6.dp, colors.border),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val isRetail = customerRole == CustomerRole.RETAIL
-                    // Retail Option
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (isRetail) colors.goldPrimary else Color.Transparent)
-                            .clickable { onSetCustomerRole(CustomerRole.RETAIL) }
-                            .padding(vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "💳 فروش ریالی (مشتری)",
-                            fontSize = 11.sp,
-                            fontWeight = if (isRetail) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isRetail) Color.White else colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-
-                    // Wholesaler Option
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (!isRetail) colors.goldPrimary else Color.Transparent)
-                            .clickable { onSetCustomerRole(CustomerRole.WHOLESALER) }
-                            .padding(vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "⚖️ تهاتر وزنی (همکار)",
-                            fontSize = 11.sp,
-                            fontWeight = if (!isRetail) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isRetail) Color.White else colors.textSecondary,
-                            fontFamily = VazirmatnFamily
-                        )
-                    }
-                }
             }
 
             // Customer Details Interactive Card

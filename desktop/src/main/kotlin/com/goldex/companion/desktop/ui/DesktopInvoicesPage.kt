@@ -87,7 +87,7 @@ import com.goldex.companion.ui.theme.*
                         BarterInvoiceScreen(
                             uiState = invoiceState, marketRates = state.snapshot?.rates ?: com.goldex.companion.desktop.data.DesktopMarketRepository.emptyRates(),
                             customerList = customers.customerList,
-                            onSetCustomerRole = manager::setCustomerRole, onSetDebtBasis = manager::setDebtBasis,
+                            onSetDebtBasis = manager::setDebtBasis,
                             onOpenDatedSettlement = feature::settleEditor, onSetSettlementMethod = manager::setSettlementMethod,
                             onSetCashPosAmount = manager::setCashPosAmount, onSetLedgerAmount = manager::setLedgerAmount,
                             onSetPosTrackingCode = manager::setPosTrackingCode, onSetLedgerDueDate = manager::setLedgerDueDate,
