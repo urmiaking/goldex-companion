@@ -106,6 +106,7 @@ import com.goldex.companion.ui.invoices.components.InvoicePdfVector
 import com.goldex.companion.ui.invoices.components.InvoicePlusVector
 import com.goldex.companion.ui.invoices.components.InvoiceSmsVector
 import com.goldex.companion.ui.invoices.components.InvoiceTrashVector
+import com.goldex.companion.ui.components.InventorySalePickerContent
 import com.goldex.companion.ui.invoices.modals.AddInvoiceItemModal
 import com.goldex.companion.ui.invoices.modals.AddInvoicePaymentModal
 import com.goldex.companion.ui.theme.LocalGoldExColors
@@ -135,6 +136,9 @@ fun BarterInvoiceScreen(
     onSetSyncWithLedger: (Boolean) -> Unit = {},
     onSetNote: (String) -> Unit,
     onOpenAddItemModal: (InvoiceItemCategory, Boolean) -> Unit,
+    onOpenInventoryPicker: () -> Unit = {},
+    onCloseInventoryPicker: () -> Unit = {},
+    onAddInventorySale: (String, Int) -> Unit = { _, _ -> },
     onOpenEditItemModal: (BarterItem, Boolean) -> Unit,
     onCloseItemModal: () -> Unit,
     onSaveItem: (BarterItem) -> Unit,
@@ -307,6 +311,18 @@ fun BarterInvoiceScreen(
                     onDeleteItemClick = onDeleteSalesItem,
                     isSales = true
                 )
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.goldContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(0.8.dp, colors.goldBorder),
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onOpenInventoryPicker)
+                ) {
+                    Text("انتخاب کالا از انبار برای فروش",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        color = colors.goldPrimary, fontFamily = VazirmatnFamily,
+                        fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
 
                 // 4. Received Items Section (اقلام دریافتی تهاتر)
                 ItemsSectionCard(
@@ -405,6 +421,10 @@ fun BarterInvoiceScreen(
                         isPaymentModalVisible = false
                     }
                 )
+            }
+
+            DesktopDialogHost(uiState.takeIf { it.isInventoryPickerVisible }, modal = true) {
+                InventorySalePickerContent(uiState.inventoryItems, onCloseInventoryPicker, onAddInventorySale)
             }
 
             // Add / Edit Item Modal

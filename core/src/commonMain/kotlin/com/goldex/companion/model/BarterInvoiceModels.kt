@@ -28,6 +28,9 @@ sealed interface BarterItem {
     val category: InvoiceItemCategory
     val totalPayable: Double
     val equivalent18kWeight: Double
+    /** Only sales linked to an inventory product cause automatic stock movements. */
+    val inventoryItemId: String get() = ""
+    val inventoryQuantity: Int get() = 0
 }
 
 data class CraftedGoldItem(
@@ -48,7 +51,9 @@ data class CraftedGoldItem(
     val taxAmount: Double,
     val rawGoldValue: Double,
     override val totalPayable: Double,
-    override val equivalent18kWeight: Double
+    override val equivalent18kWeight: Double,
+    override val inventoryItemId: String = "",
+    override val inventoryQuantity: Int = 0
 ) : BarterItem {
     override val category: InvoiceItemCategory = InvoiceItemCategory.CRAFTED
 }

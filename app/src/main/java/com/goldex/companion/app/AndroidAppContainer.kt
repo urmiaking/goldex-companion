@@ -68,7 +68,7 @@ class AndroidAppContainer(context: Context) {
                 )
                 InventoryViewModel::class.java -> InventoryViewModel(inventory)
                 ReportingViewModel::class.java -> ReportingViewModel(invoices, customers, inventory, settings)
-                BarterInvoiceViewModel::class.java -> BarterInvoiceViewModel(invoices, customers, syncUnit) { market.rates.value.gold18 }
+                BarterInvoiceViewModel::class.java -> BarterInvoiceViewModel(invoices, customers, syncUnit, inventoryStore = inventory) { market.rates.value.gold18 }
                 LicenseViewModel::class.java -> LicenseViewModel(license)
                 CloudSyncViewModel::class.java -> CloudSyncViewModel(cloud)
                 UpdateViewModel::class.java -> UpdateViewModel()

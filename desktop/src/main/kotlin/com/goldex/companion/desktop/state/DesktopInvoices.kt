@@ -24,6 +24,8 @@ class DesktopInvoices(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val isLicensed: () -> Boolean = { true },
     private val onLicenseRequired: (String) -> Unit = {},
+    private val inventoryStore: com.goldex.companion.data.InventoryStore? = null,
+    private val onInventoryUpdated: () -> Unit = {},
     private val quote: () -> Long
 ) {
     constructor(
@@ -41,13 +43,13 @@ class DesktopInvoices(
         onLicenseRequired = {},
         quote = quote
     )
-    val manager = BarterInvoiceViewModel(customers.invoices, customers.repository, customers.repository, scope, dispatcher, currentGold18 = quote)
+    val manager = BarterInvoiceViewModel(customers.invoices, customers.repository, customers.repository, scope, dispatcher, inventoryStore = inventoryStore, currentGold18 = quote)
     private val mutable = MutableStateFlow(InvoiceHostState())
     val host = mutable.asStateFlow()
     val saving get() = manager.uiState.value.isSaving || host.value.documentBusy
     val hasDraft get() = manager.uiState.value.subScreen == InvoicesSubScreen.EDITOR
     val hasDialog get() = with(host.value) { customerPicker || pendingDeletion != null || preview != null || paymentDialog } ||
-        with(manager.uiState.value) { isItemModalVisible || isRateEditDialogVisible || settlementShortcutInvoice != null }
+        with(manager.uiState.value) { isItemModalVisible || isInventoryPickerVisible || isRateEditDialogVisible || settlementShortcutInvoice != null }
 
     fun newInvoice(customer: Customer? = null) {
         if (!isLicensed()) {
@@ -67,7 +69,7 @@ class DesktopInvoices(
     fun delete() {
         val item = host.value.pendingDeletion ?: return
         manager.deleteInvoice(item.id) { deleted ->
-            if (deleted) { mutable.update { it.copy(pendingDeletion = null) }; customers.manager.loadCustomers() }
+            if (deleted) { mutable.update { it.copy(pendingDeletion = null) }; customers.manager.loadCustomers(); onInventoryUpdated() }
         }
     }
     fun save() {
@@ -75,7 +77,7 @@ class DesktopInvoices(
             onLicenseRequired("جهت صدور فاکتور نیاز به فعال‌سازی اشتراک دارید.")
             return
         }
-        manager.submitAndSaveCurrentInvoice { customers.manager.loadCustomers() }
+        manager.submitAndSaveCurrentInvoice { customers.manager.loadCustomers(); onInventoryUpdated() }
     }
     fun settle(item: InvoiceListItem) { item.barterInvoice?.let(::settle) }
     fun settle(invoice: BarterInvoice) {

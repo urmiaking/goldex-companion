@@ -2,6 +2,7 @@ package com.goldex.companion.domain.invoice
 
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceStore
+import com.goldex.companion.data.InventoryStore
 import com.goldex.companion.model.BarterInvoice
 import com.goldex.companion.model.Customer
 import com.goldex.companion.model.LedgerTransaction
@@ -21,7 +22,8 @@ sealed interface InvoiceDeletionResult {
 class InvoiceDeletionUseCase(
     private val invoices: InvoiceStore,
     private val customers: CustomerStore?,
-    private val unit: SyncUnitOfWork? = null
+    private val unit: SyncUnitOfWork? = null,
+    private val inventory: InventoryStore? = null
 ) {
     fun delete(invoiceId: String): InvoiceDeletionResult {
         if (unit == null) return deleteWithoutTransaction(invoiceId)
@@ -48,6 +50,9 @@ class InvoiceDeletionUseCase(
                 }) {
                 return InvoiceDeletionResult.ReferencedByTransfer
             }
+            require(unit != null || !InventorySalePolicy.hasLinkedItems(invoice)) {
+                "برگشت فروش انباری نیازمند تراکنش یکپارچه است"
+            }
             // Even a currently unsynced invoice can still have entries from an earlier save.
             val ledger = customers ?: return InvoiceDeletionResult.MissingLedgerStore
             transactions = ledger.getTransactionsByInvoiceId(invoiceId)
@@ -64,6 +69,7 @@ class InvoiceDeletionUseCase(
             }
             transactionsDeleteAttempted = transactions.isNotEmpty()
             if (transactionsDeleteAttempted) ledger.deleteTransactionsByInvoiceId(invoiceId)
+            InventorySalePolicy.reconcile(invoice, null, inventory)
             invoiceDeleteAttempted = true
             invoices.deleteBarterInvoice(invoiceId)
             return InvoiceDeletionResult.Deleted(invoice, saved.filterNot { it.id == invoiceId })

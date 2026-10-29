@@ -2,10 +2,11 @@ package com.goldex.companion.domain.invoice
 
 import com.goldex.companion.data.CustomerStore
 import com.goldex.companion.data.InvoiceStore
+import com.goldex.companion.data.InventoryStore
 import com.goldex.companion.data.sync.SyncUnitOfWork
 import com.goldex.companion.model.BarterInvoice
 
-class SaveBarterInvoiceUseCase(private val invoices: InvoiceStore, private val customers: CustomerStore?, private val unit: SyncUnitOfWork? = null) {
+class SaveBarterInvoiceUseCase(private val invoices: InvoiceStore, private val customers: CustomerStore?, private val unit: SyncUnitOfWork? = null, private val inventory: InventoryStore? = null) {
     fun save(invoice: BarterInvoice) {
         val action = {
             val previous = invoices.getBarterInvoices().firstOrNull { it.id == invoice.id }
@@ -45,6 +46,12 @@ class SaveBarterInvoiceUseCase(private val invoices: InvoiceStore, private val c
                 payments = finalPayments.filterNot { it.id in datedIds || it.settlement != null } + preservedPayments,
                 deletedSettlementIds = emptyList()
             )
+            // Linked stock must never be written outside a financial transaction.
+            require(unit != null || (!InventorySalePolicy.hasLinkedItems(previous) &&
+                !InventorySalePolicy.hasLinkedItems(savedInvoice))) {
+                "ثبت فروش انباری نیازمند تراکنش یکپارچه است"
+            }
+            InventorySalePolicy.reconcile(previous, savedInvoice, inventory)
             invoices.saveBarterInvoice(savedInvoice)
             val target = invoice.customer ?: previous?.customer
             if (target != null && customers != null) {
