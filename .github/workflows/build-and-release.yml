@@ -65,7 +65,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
       - name: Configure release signing
         env:
@@ -91,7 +91,7 @@ jobs:
       - name: Build signed APK
         run: |
           set -e -o pipefail
-          ./gradlew assembleRelease --stacktrace 2>&1 | tee build.log
+          ./gradlew assembleRelease --no-configuration-cache --max-workers=2 --stacktrace 2>&1 | tee build.log
           test -f app/build/outputs/apk/release/app-release.apk
           test ! -f app/build/outputs/apk/release/app-release-unsigned.apk
       - name: Upload Android asset
@@ -124,7 +124,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
       - name: Set up Android SDK for shared module configuration
         uses: android-actions/setup-android@v3
         with:
@@ -133,7 +133,7 @@ jobs:
       - name: Build and verify Windows application image
         shell: pwsh
         run: |
-          ./gradlew.bat :desktop:createDistributable --no-daemon --stacktrace
+          ./gradlew.bat :desktop:createDistributable --no-configuration-cache --max-workers=2 --stacktrace --console=plain
           if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
           $launcher = Resolve-Path 'desktop/build/compose/binaries/main/app/Qirato/Qirato.exe'
           $verification = Start-Process -FilePath $launcher -ArgumentList '--verify-runtime' -WindowStyle Hidden -PassThru -Wait

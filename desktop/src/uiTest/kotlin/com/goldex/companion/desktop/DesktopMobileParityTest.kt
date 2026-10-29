@@ -52,10 +52,8 @@ class DesktopMobileParityTest {
         onNodeWithTag("save-backup").assertIsDisplayed()
         onNodeWithTag("reduce-motion").performClick()
         waitUntil(5000) { workspace.state.value.reduceMotion }
-        save(onNodeWithTag("workspace-root"), "settings-polished-light.png")
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"), "settings-polished-dark.png")
     }
 
     @Test fun settingsIdentifiersRenderWithoutPriceGroupingAndSurviveReopen() = runDesktopComposeUiTest(width = 1400, height = 980) {
@@ -72,10 +70,8 @@ class DesktopMobileParityTest {
         field("settings-gallery").performTextReplacement("گالری شماره ۱۲")
         field("settings-address").performTextReplacement("نشانی آزمایشی\nطبقه دوم")
         field("settings-profit").performTextReplacement("۷٫۵")
-        save(onNodeWithTag("workspace-root"), "settings-identifiers-light.png")
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"), "settings-identifiers-dark.png")
         onNodeWithTag("nav-CALCULATOR").performClick()
         onNodeWithTag("input-SPOT").performTextReplacement("۶۰۰۰۰۰۰")
         val priceLayouts = mutableListOf<TextLayoutResult>()
@@ -116,7 +112,6 @@ class DesktopMobileParityTest {
         val state = workspace.inventory.state.value
         onNodeWithText(PersianNumberFormatter.formatWeight(state.summary.gold18)).assertExists()
         onNodeWithText(PersianNumberFormatter.formatPrice(state.metalValue!!)).assertExists()
-        save(onNodeWithTag("workspace-root"), "unified-dashboard.png")
         onNodeWithTag("nav-SETTINGS").performClick()
         onNodeWithTag("open-previous-portfolio").performScrollTo().performClick()
         onNodeWithText("دارایی قبلی").assertExists()
@@ -137,7 +132,6 @@ class DesktopMobileParityTest {
         assertEquals(DesktopDestination.INVENTORY, workspace.state.value.destination)
         assertEquals(2.125, store.inventory.getItems().first { it.title == "کالای ثبت‌شده از پیشخوان" }.grossWeightGrams)
         assertEquals(1, store.getItems().size)
-        save(onNodeWithTag("workspace-root"), "unified-inventory-compact.png")
     }
 
     @Test fun missingQuoteKeepsInventoryWeightWithoutInventingMarketValue() = runDesktopComposeUiTest(width = 940, height = 800) {
@@ -148,13 +142,5 @@ class DesktopMobileParityTest {
         onNode(hasText("—") and hasAnyAncestor(hasTestTag("dashboard-inventory-value"))).assertExists()
         onNodeWithText(PersianNumberFormatter.formatPrice(84_000_000)).assertDoesNotExist()
         assertNull(workspace.inventory.state.value.metalValue)
-    }
-
-    private fun save(node: SemanticsNodeInteraction, name: String) {
-        val bitmap = node.captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir"), name).apply { parentFile.mkdirs(); writeBytes(data.bytes) }
-        data.close(); image.close(); bitmap.close()
     }
 }

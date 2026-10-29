@@ -3,7 +3,6 @@ on:
   pull_request:
     paths:
       - 'desktop/packaging/**'
-      - 'desktop/src/main/kotlin/com/goldex/companion/desktop/update/**'
       - 'desktop/src/main/resources/update/**'
       - '.github/workflows/windows-installer-validation.yml'
 permissions:
@@ -20,7 +19,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
@@ -29,7 +28,7 @@ jobs:
       - name: Build native image and installer
         shell: pwsh
         run: |
-          ./gradlew.bat :desktop:createDistributable --no-daemon -q
+          ./gradlew.bat :desktop:createDistributable --no-configuration-cache --max-workers=2 --console=plain -q
           if ($LASTEXITCODE -ne 0) { throw 'Native image build failed' }
           ./desktop/packaging/build-installer.ps1
       - name: Verify installation upgrade and shipped updater helper

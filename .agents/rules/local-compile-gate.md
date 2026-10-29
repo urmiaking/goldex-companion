@@ -1,32 +1,21 @@
 ---
 trigger: model_decision
-description: Run a local Gradle compile check before triggering GitHub Actions CI to catch syntax errors early
+description: Fast, platform-scoped local Gradle verification; avoid expensive PNG/Compose UI runs by default
 ---
 
-# Local Verification Gate Before Merge & Release
+# Fast local verification before merge or release
 
-Before merging a feature branch to `main`, pushing commits, or triggering a GitHub Actions release:
+Follow [Fast Verification](../../docs/development/fast-verification.md).
 
-1. **Run the local compile task** to verify code compiles without errors:
-   ```powershell
-   .\gradlew compileDebugKotlin --no-build-cache --no-daemon -q
-   ```
-   - Validates Kotlin syntax and type resolution quickly.
+Use the reusable Gradle daemon, shared build cache and configuration cache. **Do not** routinely run \`clean\`, \`--no-daemon\`, or \`--no-build-cache\`.
 
-2. **Run local unit tests** to verify financial calculations, formatting, and domain logic:
-   ```powershell
-   .\gradlew testDebugUnitTest --no-daemon -q
-   ```
-   - All unit tests must pass locally before any merge to `main` or release tag creation.
-   - Unit tests have been offloaded from the cloud CI runner to optimize build speed and runner quota.
+Run only affected platform verification:
 
-3. **If compilation or tests fail**: Fix all errors locally. Do NOT proceed to merge to `main` or trigger a release with failing tests.
+- Windows: \`.\scripts\dev\verify.ps1 -Target windows\`
+- Android: \`.\scripts\dev\verify.ps1 -Target android\`
+- Core only: \`.\scripts\dev\verify.ps1 -Target core\`
+- Changes shared by both apps: \`.\scripts\dev\verify.ps1 -Target shared\`
 
-4. **Cloud CI Scope**: GitHub Actions CI (`build-and-release.yml`) follows [platform routing](platform-release-routing.md); unit tests remain local. It is dedicated to:
-   - Keystore decoding and signing configuration
-   - Release APK assembly (`assembleRelease`)
-   - Failure reporting
-   - GitHub Release publishing and asset uploading
-   - Selecting affected platforms, desktop packaging and packaged runtime verification
+All platform-relevant JVM business tests must pass before merge. \`:desktop:test\` contains fast JVM tests; legacy Compose interaction tests are now optional via \`:desktop:uiTest\` and \`-Ui\` in the script. **Never generate PNG screenshots by default or inspect them as a required step.** Only run optional Compose UI tests for complex interaction regressions when appropriate.
 
-5. Run `python -m unittest discover -s scripts/release -p "test_*.py"` and actionlint when release planning/workflow changes. Do not rebuild the unaffected platform merely to close an issue.
+The final release workflow still owns signed Android APK assembly, Windows packaging and packaged runtime/installer verification. Do not build a local Android release APK. For release workflow or routing changes, also run \`python -m unittest discover -s scripts/release -p "test_*.py"\` and \`actionlint\` if available. Never claim tests passed unless their exit output is available.

@@ -13,4 +13,4 @@ The user's policy is mandatory for both Android and Windows:
 - Confirm publication through `gh release view` or the GitHub API: the expected tag, published status, and required platform assets must be present. Inspect reported asset names, sizes, and digests when available; do not fetch artifact bytes to recompute them. Missing digest metadata alone does not justify downloading an artifact.
 - Report exactly what the evidence establishes. Do not claim a downloaded package, local installation, or end-to-end runtime check occurred unless it actually did.
 
-Existing required tests and CI packaging/installer checks remain mandatory. This rule governs post-implementation/post-publication verification; it does not disable the app's updater downloads or downloads explicitly requested by the user for another task.
+Fast business tests and CI packaging/installer checks remain mandatory; the full Compose UI suite and PNG generation are not routine delivery gates. This rule governs post-implementation/post-publication verification; it does not disable the app's updater downloads or downloads explicitly requested by the user for another task.

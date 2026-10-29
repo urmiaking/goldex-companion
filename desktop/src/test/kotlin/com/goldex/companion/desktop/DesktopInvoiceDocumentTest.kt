@@ -32,8 +32,6 @@ class DesktopInvoiceDocumentTest {
             try {
                 assertEquals(1190, image.width)
                 assertTrue((44 until 1146).any { image.getRGB(it, 65) != java.awt.Color.WHITE.rgb })
-                val screenshots = java.io.File(System.getProperty("qirato.screenshotDir"), "invoice-official-document.png")
-                screenshots.parentFile.mkdirs(); ImageIO.write(image, "png", screenshots)
             } finally { image.flush() }
         }
         assertTrue(DesktopInvoiceDocuments.message(invoice(1)).contains("۱۴۰۵۱۲۳۴"))
@@ -44,12 +42,6 @@ class DesktopInvoiceDocumentTest {
         val original = "previous export".toByteArray(); Files.write(path, original)
         assertFails { DesktopInvoiceDocuments.save(invoice(1), AppSettings(invoiceLogoUri = path.resolveSibling("missing.png").toString()), path) }
         assertContentEquals(original, Files.readAllBytes(path))
-    }
-
-    private fun screenshot(name: String, image: java.awt.image.BufferedImage) {
-        val path = java.io.File(System.getProperty("qirato.screenshotDir"), "$name.png")
-        path.parentFile.mkdirs()
-        ImageIO.write(image, "png", path)
     }
 
     @Test fun summaryAndSellerSignatureAppearOnlyOnTheFinalPage() {
@@ -75,7 +67,6 @@ class DesktopInvoiceDocumentTest {
                 }
                 if (index < pages.lastIndex) assertEquals(0, changed)
                 else assertTrue(changed > 20, "Signature adds visible ink in the seller approval area")
-                screenshot("invoice-parity-page-${index + 1}", pages[index])
             }
         } finally { (pages + unsigned).forEach { it.flush() } }
     }
@@ -99,7 +90,6 @@ class DesktopInvoiceDocumentTest {
             assertTrue(stoneCellChanged, "Stone deduction must be printed, not silently omitted")
             assertEquals(0xFFFFF1F0.toInt(), page.getRGB(80, 447), "Received rows use the Android red-tinted background")
             assertEquals(0xFFFFFFFF.toInt(), page.getRGB(80, 397), "Sale rows remain distinct from receipts")
-            screenshot("invoice-android-layout", page)
         } finally { page.flush(); changed.flush() }
     }
 
@@ -121,7 +111,6 @@ class DesktopInvoiceDocumentTest {
             assertEquals(java.awt.Color.WHITE.rgb, page.getRGB(1085, 60), "Wide logo is centered without stretching")
             assertEquals(java.awt.Color.RED.rgb, page.getRGB(117, 722))
             assertEquals(java.awt.Color.GREEN.rgb, page.getRGB(232, 718))
-            screenshot("invoice-brand-assets", page)
         } finally { page.flush() }
     }
 
@@ -138,7 +127,6 @@ class DesktopInvoiceDocumentTest {
                 for (y in 0 until page.height) for (x in listOf(0, 20, 1189)) {
                     assertEquals(0xFFFFFEFA.toInt(), page.getRGB(x, y), "Text must remain inside document margins")
                 }
-                screenshot("invoice-$name", page)
             } finally { page.flush() }
         }
     }
@@ -175,12 +163,8 @@ class DesktopInvoiceDocumentTest {
             try {
                 assertEquals(4760, enlarged.width)
                 assertEquals(3360, enlarged.height)
-                screenshot("invoice-vector-zoom-800percent", enlarged.getSubimage(207 * 8, 28 * 8, 181 * 8, 34 * 8))
             } finally { enlarged.flush() }
         }
-        val output = java.io.File(System.getProperty("qirato.screenshotDir"), "invoice-vector.pdf")
-        output.parentFile.mkdirs()
-        Files.copy(path, output.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     }
 
     @Test fun onlyOriginalBrandAssetRemainsRasterInAnOtherwiseVectorPdf() {

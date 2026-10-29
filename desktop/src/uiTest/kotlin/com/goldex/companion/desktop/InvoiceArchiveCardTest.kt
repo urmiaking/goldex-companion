@@ -64,7 +64,6 @@ class InvoiceArchiveCardTest {
         val label = onNodeWithTag("desktop-navigation-label", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val chevron = onNodeWithTag("desktop-navigation-icon", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue(chevron.right <= label.left, "RTL chevron follows the label at visual left")
-        screenshot("invoice-card-compact-light")
         onNodeWithTag("invoice-preview-fixture").performClick()
         tags.forEach { onNodeWithTag(it).performClick() }
         assertEquals(listOf("view", "details", "delete", "settle", "print"), events)
@@ -73,22 +72,10 @@ class InvoiceArchiveCardTest {
         runOnIdle { busy = false; settled = true; dark = true }
         onNodeWithTag("invoice-settle-fixture").assertIsDisplayed().assertIsNotEnabled()
         assertEquals(buttons.first().top, onNodeWithTag("invoice-open-fixture").fetchSemanticsNode().boundsInRoot.top)
-        screenshot("invoice-card-compact-dark-settled")
         runOnIdle { direction = LayoutDirection.Ltr }
         val ltrLabel = onNodeWithTag("desktop-navigation-label", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val ltrChevron = onNodeWithTag("desktop-navigation-icon", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue(ltrChevron.left >= ltrLabel.right)
-    }
-
-    private fun ComposeUiTest.screenshot(name: String) {
-        val bitmap = onNodeWithTag("invoice-card-fixture").captureToImage()
-        val skia = bitmap.asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(skia)
-        try {
-            image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!.use { data ->
-                File(System.getProperty("qirato.screenshotDir")).apply { mkdirs() }.resolve("$name.png").writeBytes(data.bytes)
-            }
-        } finally { image.close(); skia.close() }
     }
 }
 

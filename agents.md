@@ -29,15 +29,15 @@ This file governs autonomous changes to GoldEx Companion. Agents must read it be
 ## 2. Build and verification policy
 
 - Unit tests run locally on the development machine (`./gradlew testDebugUnitTest`) to verify calculations, formatting, and domain behavior before merging to `main`. They are offloaded from GitHub Actions CI to conserve runner quota and speed up release delivery.
-- Run a local compile-only check (`./gradlew compileDebugKotlin --no-build-cache --no-daemon -q`) and unit tests locally before merging or tagging.
+- Use platform-scoped incremental verification in `docs/development/fast-verification.md`. Do not run `clean`, `--no-daemon`, or `--no-build-cache` routinely.
 - Do not run full APK assembly or signing on the local machine. Those remain CI-only.
 - Release APK assembly, signing, failure reporting, and release distribution run in GitHub Actions.
 - The workflow source of truth is `.github/workflows/build-and-release.yml`.
 - Follow [platform-selective release routing](.agents/rules/platform-release-routing.md): shared infrastructure/core/UI releases both hosts, desktop-only releases Windows, app-only releases Android. Compare each platform with its own last published artifact and bump only affected versions.
 - Feature branches (`feature/<name>`) and Git Worktrees must be used for feature development and parallel agent workflows (see `.agents/rules/git-worktree-and-branching.md`).
 - Do not use arbitrary polling loops for GitHub Actions. Use `gh run watch` or `gh run view --watch`.
-- Before a change is complete, verify compilation and unit tests locally. For shared-core changes also run `./gradlew :core:verifyCoreBoundaries :core:jvmTest --no-daemon -q`; keep JVM tests local, not in the release workflow.
-- For Windows/shared UI changes also run `./gradlew :desktop:test --no-daemon -q` and verify the packaged desktop runtime. Desktop packaging is allowed locally; APK assembly/signing remains CI-only.
+- Before a change is complete, verify only the affected platform's fast business tests via `scripts/dev/verify.ps1`. For core changes verify `:core:verifyCoreBoundaries :core:jvmTest`; keep JVM tests local.
+- For Windows/shared UI changes run `:desktop:test` (fast JVM tests). Compose interaction tests are opt-in via `:desktop:uiTest`; screenshots are never generated. Windows release CI still verifies the packaged runtime/installer.
 - Do not claim a build or test passed unless its output is available.
 - Follow [release verification without artifact re-downloads](.agents/rules/release-verification.md): do not download published Windows installers/packages or Android APKs again just to verify a feature or release. Use local verification evidence, CI results, and GitHub release/asset metadata instead.
 

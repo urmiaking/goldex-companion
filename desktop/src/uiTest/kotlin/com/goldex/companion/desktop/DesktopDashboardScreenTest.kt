@@ -56,10 +56,8 @@ class DesktopDashboardScreenTest {
         onNodeWithTag("history-canvas").assertIsDisplayed()
         onNodeWithTag("history-canvas").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(0f) }
         onNodeWithText("۹:۰۰").assertExists()
-        save(onNodeWithTag("workspace-root"), "dashboard-wide-light.png")
         onNodeWithTag("workspace-theme").performClick()
         waitUntil(5000) { workspace.state.value.dark }
-        save(onNodeWithTag("workspace-root"), "dashboard-wide-dark.png")
         onNodeWithText("هفتگی").performClick()
         waitUntil(5000) { workspace.dashboard.state.value.horizon == TimeHorizon.ONE_WEEK && !workspace.dashboard.state.value.loading }
         onNodeWithTag("history-canvas").assertExists()
@@ -99,15 +97,12 @@ class DesktopDashboardScreenTest {
         onNode(hasText("۱۰:۰۰") and hasAnyAncestor(hasTestTag("history-tooltip"))).assertExists()
         onNodeWithTag("history-canvas").performTouchInput { swipe(Offset(width - 1f, centerY), Offset(1f, centerY), 400) }
         onNode(hasText("۹:۰۰") and hasAnyAncestor(hasTestTag("history-tooltip"))).assertExists()
-        save(onNodeWithTag("dashboard-trend"), "dashboard-mobile-trend.png")
     }
 
     @Test fun compactDashboardScrollsToChartAndInvoices() = runDesktopComposeUiTest(width = 940, height = 700) {
         setContent { GoldExCompanionTheme { DesktopWorkspaceScreen(workspace, {}, "0.56.39") } }
         waitUntil(5000) { workspace.dashboard.state.value.history.isNotEmpty() }
-        save(onNodeWithTag("workspace-root"), "dashboard-compact.png")
         onNodeWithTag("dashboard-invoices").performScrollTo().assertIsDisplayed()
-        save(onNodeWithTag("workspace-root"), "dashboard-compact-invoices.png")
         onNodeWithTag("nav-RATES").performClick()
         onNodeWithTag("nav-DASHBOARD").performClick()
         onNodeWithTag("dashboard-invoices").assertIsDisplayed()
@@ -158,20 +153,11 @@ class DesktopDashboardScreenTest {
         val amount = com.goldex.companion.model.PersianNumberFormatter.formatPrice(workspace.inventory.state.value.metalValue!!)
         val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         onNodeWithText(amount).performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        save(onNodeWithTag("workspace-root"), "dashboard-large-balance.png")
         val layout = layouts.single()
         // Desktop paragraphWidth retains max constraints even when text measures to its intrinsic width.
         // Check the actual rendered line and every character, rather than that paragraph-width flag.
         assertFalse(layout.didOverflowHeight)
         assertEquals(amount.length, layout.getLineEnd(0))
         assertTrue(layout.getLineRight(0) - layout.getLineLeft(0) <= layout.size.width + 1)
-    }
-
-    private fun save(node: SemanticsNodeInteraction, name: String) {
-        val bitmap = node.captureToImage().asSkiaBitmap()
-        val image = org.jetbrains.skia.Image.makeFromBitmap(bitmap)
-        val data = image.encodeToData(org.jetbrains.skia.EncodedImageFormat.PNG)!!
-        File(System.getProperty("qirato.screenshotDir"), name).apply { parentFile.mkdirs(); writeBytes(data.bytes) }
-        data.close(); image.close(); bitmap.close()
     }
 }
