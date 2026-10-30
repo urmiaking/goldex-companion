@@ -192,7 +192,7 @@ class CustomerSettlementIntegrationTest {
         old.version = 2
         old.close()
         val migrated = androidx.room.Room.databaseBuilder(context, GoldexDatabase::class.java, name)
-            .addMigrations(com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3, com.goldex.companion.data.local.db.migration.INVOICE_DEBT_MIGRATION_3_4).allowMainThreadQueries().build()
+            .addMigrations(com.goldex.companion.data.local.db.migration.SETTLEMENT_MIGRATION_2_3, com.goldex.companion.data.local.db.migration.INVOICE_DEBT_MIGRATION_3_4, com.goldex.companion.data.local.db.migration.COIN_INVENTORY_MIGRATION_4_5).allowMainThreadQueries().build()
         try {
             assertEquals(customer, migrated.customerDao().queryAll().single().toDomain())
             val ledger = migrated.ledgerTransactionDao().queryAll().single()

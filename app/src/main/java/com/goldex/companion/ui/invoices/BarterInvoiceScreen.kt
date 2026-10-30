@@ -407,8 +407,20 @@ fun BarterInvoiceScreen(
             }
 
             if (uiState.isInventoryPickerVisible) {
-                Dialog(onDismissRequest = onCloseInventoryPicker) {
-                    InventorySalePickerContent(uiState.inventoryItems, onCloseInventoryPicker, onAddInventorySale)
+                ModalBottomSheet(
+                    onDismissRequest = onCloseInventoryPicker,
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    dragHandle = null,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    InventorySalePickerContent(
+                        products = uiState.inventoryItems,
+                        onDismiss = onCloseInventoryPicker,
+                        onConfirm = onAddInventorySale,
+                        bottomSheet = true
+                    )
                 }
             }
 
@@ -1994,4 +2006,3 @@ private fun DeleteSettlementConfirmDialog(
         }
     }
 }
-

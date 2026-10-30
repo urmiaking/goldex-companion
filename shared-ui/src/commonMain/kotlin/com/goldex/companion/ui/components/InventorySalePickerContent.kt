@@ -38,7 +38,9 @@ fun InventorySalePickerContent(
     products: List<InventoryItem>,
     onDismiss: () -> Unit,
     onConfirm: (String, Int) -> Unit,
-    searchField: (@Composable (String, (String) -> Unit) -> Unit)? = null
+    searchField: (@Composable (String, (String) -> Unit) -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    bottomSheet: Boolean = false
 ) {
     val c = LocalGoldExColors.current
     var query by remember { mutableStateOf("") }
@@ -67,36 +69,63 @@ fun InventorySalePickerContent(
         count != null && count in 1..chosen.quantity
 
     Surface(
-        modifier = Modifier.fillMaxWidth().widthIn(max = 640.dp).testTag("inventory-sale-dialog"),
-        color = c.surface, shape = RoundedCornerShape(22.dp),
+        modifier = modifier.fillMaxWidth().widthIn(max = 640.dp).heightIn(max = 620.dp)
+            .testTag("inventory-sale-dialog"),
+        color = c.surface,
+        shape = if (bottomSheet) RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            else RoundedCornerShape(22.dp),
         border = BorderStroke(1.dp, c.goldBorder), shadowElevation = 16.dp
     ) {
         Column {
-            Surface(color = if (c.isDark) Color(0xFF1A1D22) else Color(0xFF252830)) {
-                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                    Surface(shape = RoundedCornerShape(11.dp), color = Color(0x36D1A64A),
-                        border = BorderStroke(1.dp, Color(0x7ED4AF37))) {
-                        Box(Modifier.size(42.dp), contentAlignment = Alignment.Center) {
-                            Text("▣", fontSize = 24.sp, color = Color(0xFFEFCB80))
-                        }
+            if (bottomSheet) {
+                Box(
+                    Modifier.fillMaxWidth().padding(top = 9.dp, bottom = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(Modifier.size(width = 36.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(c.textMuted.copy(alpha = 0.3f)))
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(11.dp),
+                    color = c.goldContainer.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, c.goldBorder)
+                ) {
+                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                        Text("▣", fontSize = 22.sp, color = c.goldPrimary)
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text("انتخاب کالا از انبار", fontFamily = VazirmatnFamily, fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold, color = Color.White)
-                        Text("افزودن مستقیم به اقلام فروش فاکتور", fontFamily = VazirmatnFamily,
-                            fontSize = 11.sp, color = Color(0xFFCBCDD1))
-                    }
-                    Surface(onClick = onDismiss, modifier = Modifier.size(42.dp)
-                        .testTag("inventory-dialog-close"), shape = CircleShape, color = Color(0x24FFFFFF)) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("×", color = Color.White, fontSize = 27.sp)
-                        }
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "انتخاب کالا از انبار", fontFamily = VazirmatnFamily,
+                        fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = c.textMain
+                    )
+                    Text(
+                        "افزودن مستقیم به اقلام فروش فاکتور",
+                        fontFamily = VazirmatnFamily, fontSize = 11.sp, color = c.textMuted
+                    )
+                }
+                Surface(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(36.dp).testTag("inventory-dialog-close"),
+                    shape = CircleShape, color = c.surfaceElevated,
+                    border = BorderStroke(1.dp, c.border)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("×", color = c.textSecondary, fontSize = 23.sp)
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            HorizontalDivider(color = c.border)
+            Column(Modifier.fillMaxWidth().weight(1f, fill = false)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SummaryPill("کالاهای موجود", stock.size.toString())
                     SummaryPill("موجودی", stock.sumOf { it.quantity.toLong() }.toString() + " عدد")
@@ -148,8 +177,8 @@ fun InventorySalePickerContent(
                         fontFamily = VazirmatnFamily, fontSize = 11.sp, color = c.textMuted)
                 }
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 115.dp, max = 270.dp)
-                        .testTag("inventory-picker-results"),
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .heightIn(max = 260.dp).testTag("inventory-picker-results"),
                     verticalArrangement = Arrangement.spacedBy(7.dp),
                     contentPadding = PaddingValues(bottom = 5.dp)
                 ) {
@@ -171,7 +200,7 @@ fun InventorySalePickerContent(
                             border = BorderStroke(if (selected) 1.5.dp else 1.dp,
                                 if (selected) c.goldPrimary else c.border)
                         ) {
-                            Row(Modifier.padding(11.dp), verticalAlignment = Alignment.CenterVertically,
+                            Row(Modifier.padding(9.dp), verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Box(Modifier.size(34.dp).clip(CircleShape)
                                     .background(if (selected) c.goldPrimary else c.surface),
@@ -181,7 +210,7 @@ fun InventorySalePickerContent(
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(item.title, color = c.textMain, fontFamily = VazirmatnFamily,
-                                        fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1,
+                                        fontWeight = FontWeight.Medium, fontSize = 12.sp, maxLines = 1,
                                         overflow = TextOverflow.Ellipsis)
                                     Text(item.code + " • " + item.category.titleFa,
                                         color = c.textSecondary, fontFamily = VazirmatnFamily, fontSize = 10.sp)
@@ -211,7 +240,10 @@ fun InventorySalePickerContent(
                 }
             }
             HorizontalDivider(color = c.border)
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth()
+                .then(if (bottomSheet) Modifier.navigationBarsPadding() else Modifier)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 if (chosen != null && inventoryProductIsSellable(chosen)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -256,7 +288,7 @@ fun InventorySalePickerContent(
                         colors = ButtonDefaults.buttonColors(containerColor = c.goldPrimary,
                             contentColor = c.goldButtonText)) {
                         Text("افزودن به فاکتور", fontFamily = VazirmatnFamily,
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            fontSize = 12.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
