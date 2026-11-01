@@ -4,6 +4,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import com.goldex.companion.desktop.ui.controls.LocalDesktopReduceMotion
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.goldex.companion.desktop.data.DesktopDataStore
@@ -20,6 +21,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -77,6 +81,34 @@ class DesktopOnboardingWizardTest {
     }
 
     private fun field(tag: String) = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
+
+    @Test fun confirmedRecoveryLeavesWizardAndShowsWorkspace() {
+        workspace.close()
+        workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline fixture") }),
+            initialWizardOpen = true, cloudApiOverride = DesktopCloudRecoveryTest.Cloud())
+        runBlocking { workspace.cloud.verifyOtp(JSONObject(), "123456", "09120000000").getOrThrow() }
+        renderScreen()
+        fun capture(name: String) {
+            val bitmap = compose.onRoot().captureToImage().asSkiaBitmap()
+            File("build/screenshots/recovery-$name.png").apply {
+                parentFile.mkdirs()
+                writeBytes(checkNotNull(org.jetbrains.skia.Image.makeFromBitmap(bitmap).encodeToData()).bytes)
+            }
+        }
+        capture("wizard")
+        compose.onNodeWithTag("wizard-cloud-restore").performClick()
+        compose.onNodeWithTag("cloud-dialog-restore").performClick()
+        compose.onNodeWithTag("cloud-confirm-restore").performClick()
+        compose.waitUntil(20_000) { !workspace.state.value.isWizardOpen }
+        compose.onNodeWithTag("wizard-intro-pane").assertDoesNotExist()
+        compose.onNodeWithTag("cloud-account-dialog").assertDoesNotExist()
+        compose.onNodeWithTag("nav-DASHBOARD").assertIsDisplayed()
+        compose.onNodeWithTag("dashboard-wizard-banner").assertDoesNotExist()
+        capture("dashboard-light")
+        compose.onNodeWithTag("workspace-theme").performClick()
+        compose.waitUntil(10_000) { workspace.state.value.dark }
+        capture("dashboard-dark")
+    }
 
     @Test
     fun existingAccountEntryOpensCloudLoginWithoutProfileOrInventorySetup() {

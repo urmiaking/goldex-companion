@@ -10,6 +10,14 @@
 
 ## Delivery gates
 
+### Windows wizard exit regression (issue 342)
+
+The Windows cloud dialog now invokes `DesktopWorkspace.restoreCloudAccount`; successful confirmed activation completes an open wizard in the state owner instead of waiting for a dialog-visibility-dependent Compose effect. `DesktopCloudRecoveryTest` covers entry to the dashboard, persisted completion after reopening, preserved remote settings/records, no opening-stock seeding, authentication without completion, rejected consent, failed restore and recovery outside the wizard preserving navigation. `DesktopOnboardingWizardTest.confirmedRecoveryLeavesWizardAndShowsWorkspace` exercises the actual recovery and confirmation buttons through to the dashboard and captures the wizard plus light/dark workspace. All fixtures use temporary local storage and a fake cloud adapter.
+
+This fix is desktop-only. Its release selects Windows and keeps the Android version unchanged. Local compilation, 254 app tests, 100 core Android tests, 143 desktop tests, 14 release-planning tests, desktop packaging and packaged runtime verification passed. The unchanged core Android test configuration initially failed three existing codec tests because it supplied Android's JSON stubs. A temporary, uncommitted Gradle init script supplied `org.json:json:20240303` to `:core:androidUnitTestImplementation`; the complete Android unit suites then passed without exclusions or changed assertions. The production dependencies and core configuration remain unchanged.
+
+Codebase-memory inspection and directed call tracing were checked against current source; its later coverage endpoint disconnected. A local Graphify graph covers five recovery/onboarding source files only (162 nodes, 244 directed edges; no semantic token cost). Workspace Kotlin extraction is partial, diagnostics report six self-loops, and documentation is outside this graph's coverage. Graph links are supplementary; behavior is established by source and local tests. The first offscreen full-workspace UI harness stalled in native Skia drawing and was stopped; the regression uses the repository's established `createComposeRule` harness instead and passed. Packaged `--verify-runtime` exited 0.
+
 Run local Android compilation and unit tests, core boundary checks/JVM tests, the full desktop suite, release-planning tests and desktop `createDistributable`; execute the packaged launcher with `--verify-runtime`. APK construction/signing remains GitHub Actions only. Both hosts are selected because the serializer is shared. Do not re-download release artifacts for verification.
 
 ## Production evidence and limitations

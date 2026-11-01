@@ -1,6 +1,11 @@
 package com.goldex.companion.desktop
 
 import com.goldex.companion.data.sync.SyncJson
+import com.goldex.companion.data.AppSettings
+import com.goldex.companion.desktop.data.DesktopDataStore
+import com.goldex.companion.desktop.data.DesktopMarketRepository
+import com.goldex.companion.desktop.state.DesktopDestination
+import com.goldex.companion.desktop.state.DesktopWorkspace
 import com.goldex.companion.desktop.data.db.DesktopSqliteDatabase
 import com.goldex.companion.desktop.license.DesktopLicenseRepository
 import com.goldex.companion.desktop.sync.*
@@ -18,7 +23,7 @@ import kotlin.test.*
 class DesktopCloudRecoveryTest {
     @get:Rule val temporary = TemporaryFolder()
 
-    private class Cloud : DesktopCloudRepository {
+    class Cloud : DesktopCloudRepository {
         var badHash = false
         var unavailable = false
         var pagesRead = 0
@@ -43,6 +48,65 @@ class DesktopCloudRecoveryTest {
         override suspend fun requestCode(phone: String) = JSONObject()
         override suspend fun verifyCode(challenge: JSONObject, code: String, phone: String) = JSONObject().put("phone", phone).put("accessToken", "test")
         override suspend fun logout() {}
+    }
+
+    @Test fun confirmedWizardRecoveryEntersDashboardWithoutDependingOnDialogVisibility() = runBlocking {
+        val directory = temporary.newFolder().toPath()
+        DesktopDataStore(directory).use { store ->
+            val cloud = Cloud()
+            cloud.records.put(JSONObject().put("type", "businessSettings").put("id", "business")
+                .put("version", 4).put("deleted", false)
+                .put("payload", SyncJson.business(AppSettings(galleryName = "گالری بازیابی", defaultProfitPercent = "8"))))
+            DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline fixture") }),
+                initialWizardOpen = true, cloudApiOverride = cloud).use { workspace ->
+                assertFalse(workspace.completeCloudOnboarding())
+                assertTrue(workspace.cloud.verifyOtp(JSONObject(), "123456", "09120000000").isSuccess)
+                assertTrue(workspace.state.value.isWizardOpen)
+                assertTrue(workspace.restoreCloudAccount(false).isFailure)
+                assertTrue(workspace.state.value.isWizardOpen)
+                // Recovery must finish even when the cloud presentation is already dismissed.
+                workspace.closeCloudSettings()
+                assertTrue(workspace.restoreCloudAccount(true).isSuccess)
+                assertFalse(workspace.state.value.isWizardOpen)
+                assertEquals(DesktopDestination.DASHBOARD, workspace.state.value.destination)
+                assertTrue(workspace.state.value.settings.hasCompletedOnboarding)
+                assertEquals("گالری بازیابی", workspace.state.value.settings.galleryName)
+                assertEquals("8", workspace.state.value.settings.defaultProfitPercent)
+                assertEquals("remote", store.database.getCustomers().single().id)
+                assertTrue(store.inventory.getItems().isEmpty())
+                assertTrue(store.getItems().isEmpty())
+                assertTrue(store.hasSeededOpeningInventory())
+            }
+        }
+        DesktopDataStore(directory).use { reopened ->
+            assertTrue(reopened.loadSettings().hasCompletedOnboarding)
+            assertEquals("گالری بازیابی", reopened.loadSettings().galleryName)
+        }
+    }
+
+    @Test fun failedRecoveryKeepsWizardAndLocalData() = runBlocking {
+        DesktopDataStore(temporary.newFolder().toPath()).use { store ->
+            store.database.addCustomer(Customer(id = "local", name = "محلی", createdAt = 1))
+            DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline fixture") }),
+                initialWizardOpen = true, cloudApiOverride = Cloud().apply { badHash = true }).use { workspace ->
+                assertTrue(workspace.restoreCloudAccount(true).isFailure)
+                assertTrue(workspace.state.value.isWizardOpen)
+                assertFalse(store.loadSettings().hasCompletedOnboarding)
+                assertEquals("local", store.database.getCustomers().single().id)
+            }
+        }
+    }
+
+    @Test fun recoveryOutsideWizardDoesNotCompleteOnboardingOrNavigate() = runBlocking {
+        DesktopDataStore(temporary.newFolder().toPath()).use { store ->
+            DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline fixture") }),
+                cloudApiOverride = Cloud()).use { workspace ->
+                workspace.navigate(DesktopDestination.SETTINGS)
+                assertTrue(workspace.restoreCloudAccount(true).isSuccess)
+                assertEquals(DesktopDestination.SETTINGS, workspace.state.value.destination)
+                assertFalse(store.loadSettings().hasCompletedOnboarding)
+            }
+        }
     }
 
     @Test fun loginFindsExistingAccountAndWaitsForReplacementConsent() = runBlocking {
