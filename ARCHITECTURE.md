@@ -394,6 +394,8 @@ Shared `SyncJson.canonical` owns JSON.stringify-compatible quoting on Android an
 
 The desktop wizard exposes existing-account login on its intro screen using the shared cloud dialog. A successful restore completes onboarding with `restoredFromCloud=true`, preserving remote settings and preventing inventory reseeding. The local opening-inventory checkpoint is recorded at activation. See [ADR 0027](docs/adr/0027-cloud-account-recovery.md) and [verification](docs/testing/cloud-account-recovery.md).
 
+`DesktopWorkspace.restoreCloudAccount` owns the confirmed recovery action and completes an open wizard directly after successful snapshot activation. Completion no longer depends on the wizard observing a restored-generation change while its cloud dialog is visible. Failed/unconfirmed recovery leaves the wizard open; recovery from ordinary cloud settings preserves the current destination. The existing completion use case persists the local onboarding flag and skips opening-inventory seeding for restored accounts.
+
 
 ### Windows calculator and updater cache lifecycle (0.56.89)
 

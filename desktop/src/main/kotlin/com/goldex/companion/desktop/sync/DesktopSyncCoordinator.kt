@@ -53,13 +53,15 @@ class DesktopSyncCoordinator(
         storage: DesktopDataStore,
         licenseStore: LicenseStore,
         scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-        onDataChanged: (() -> Unit)? = null
+        onDataChanged: (() -> Unit)? = null,
+        apiOverride: DesktopCloudRepository? = null
     ) : this(
         directory = storage.directory,
         licenseStore = licenseStore,
         scope = scope,
         database = storage.database,
-        onDataChanged = onDataChanged
+        onDataChanged = onDataChanged,
+        apiOverride = apiOverride
     )
 
     val keys = DesktopCloudKeys(directory)

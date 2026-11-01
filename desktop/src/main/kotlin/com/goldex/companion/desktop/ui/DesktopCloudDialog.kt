@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
                     DesktopActionButton("انصراف", { confirmRestore = false }, Modifier.weight(1f), Icons.Outlined.Close, isSecondary = true)
                     DesktopActionButton("تأیید و بازیابی", {
                         confirmRestore = false
-                        scope.launch { workspace.cloud.restore(true) }
+                        scope.launch { workspace.restoreCloudAccount(true) }
                     }, Modifier.weight(1.5f).testTag("cloud-confirm-restore"), Icons.Outlined.CloudDownload)
                 }
             })

@@ -72,7 +72,8 @@ class DesktopWorkspace(
     rateHistoryGateway: DesktopRateHistoryGateway = DesktopRateHistoryRepository(storage.directory),
     private val waitForNextTick: suspend (Long) -> Unit = { delay(it) },
     initialWizardOpen: Boolean? = null,
-    isLicensedOverride: (() -> Boolean)? = null
+    isLicensedOverride: (() -> Boolean)? = null,
+    cloudApiOverride: com.goldex.companion.desktop.sync.DesktopCloudRepository? = null
 ) : AutoCloseable {
     val dashboard = DesktopDashboard(history, scope)
     val ratesBoard = DesktopRatesBoard(ratesBoardGateway, scope)
@@ -130,7 +131,8 @@ class DesktopWorkspace(
         scope = scope,
         onDataChanged = {
             reloadAfterSync()
-        }
+        },
+        apiOverride = cloudApiOverride
     )
     val completeOnboarding = com.goldex.companion.domain.onboarding.CompleteOnboardingUseCase(
         settings = storage,
@@ -250,6 +252,13 @@ class DesktopWorkspace(
     fun openAsset(item: PortfolioItem? = null) { if (!inventory.state.value.hasDialog) mutable.update { it.copy(draft = item?.let(DesktopPortfolioPolicy::draft) ?: PortfolioDraft(), notice = null) } }
     fun openWizard() { mutable.update { it.copy(isWizardOpen = true) } }
     fun closeWizard() { mutable.update { it.copy(isWizardOpen = false) } }
+    /** Complete recovery in the state owner, independently of the cloud dialog's lifetime. */
+    suspend fun restoreCloudAccount(confirmReplacement: Boolean): Result<Unit> = withContext(Dispatchers.IO) {
+        val result = cloud.restore(confirmReplacement)
+        if (result.isSuccess && state.value.isWizardOpen && !completeCloudOnboarding()) {
+            Result.failure(IllegalStateException("RECOVERED_ONBOARDING_INCOMPLETE"))
+        } else result
+    }
     fun completeCloudOnboarding(): Boolean {
         if (cloud.state.value.restoredGeneration == 0L) return false
         return completeWizard(state.value.settings, com.goldex.companion.domain.onboarding.OpeningInventoryInput(), restoredFromCloud = true)

@@ -80,15 +80,7 @@ fun DesktopOnboardingWizardScreen(
     var isOnlineSync by remember { mutableStateOf(workspace.cloud.state.value.enabled) }
     var isSubmitting by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val cloudState by workspace.cloud.state.collectAsState()
     var showCloudRestore by remember { mutableStateOf(false) }
-    val initialRestoredGeneration = remember { cloudState.restoredGeneration }
-    LaunchedEffect(cloudState.restoredGeneration) {
-        if (showCloudRestore && cloudState.restoredGeneration > initialRestoredGeneration && workspace.completeCloudOnboarding()) {
-            showCloudRestore = false
-            onClose()
-        }
-    }
 
     fun handleNext() {
         when (currentStep) {
