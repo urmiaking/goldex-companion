@@ -2,9 +2,12 @@ package com.goldex.companion.desktop
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.goldex.companion.data.*
+import com.goldex.companion.data.license.LicenseStatus
 import com.goldex.companion.desktop.data.*
 import com.goldex.companion.desktop.state.*
 import com.goldex.companion.desktop.ui.DesktopWorkspaceScreen
@@ -12,7 +15,9 @@ import com.goldex.companion.presentation.calculator.CalculatorField
 import com.goldex.companion.ui.theme.GoldExCompanionTheme
 import org.junit.*
 import org.junit.rules.TemporaryFolder
+import org.json.JSONObject
 import java.io.File
+import java.nio.file.Files
 import kotlin.test.assertEquals
 
 class DesktopWorkspaceScreenTest {
@@ -33,6 +38,43 @@ class DesktopWorkspaceScreenTest {
         GoldExCompanionTheme(isDarkTheme = state.dark) { DesktopWorkspaceScreen(workspace, {}, "0.56.37") }
     }
     private fun field(tag: String) = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)))
+
+    @Test fun expiredSubscriptionOffersPurchaseGuideWithoutClosingActivation() {
+        workspace.close()
+        store.saveSettings(store.loadSettings().copy(hasCompletedOnboarding = true))
+        store.saveReduceMotion(true)
+        Files.writeString(store.directory.resolve("license.json"), JSONObject().apply {
+            put("status", LicenseStatus.TRIAL_EXPIRED.name)
+            put("token", "tok_expired")
+        }.toString())
+        workspace = DesktopWorkspace(store, DesktopMarketRepository(store, fetch = { error("offline test") }))
+        val openedUrls = mutableListOf<String>()
+        val uriHandler = object : UriHandler {
+            override fun openUri(uri: String) { openedUrls.add(uri) }
+        }
+        compose.setContent {
+            GoldExCompanionTheme {
+                CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                    DesktopWorkspaceScreen(workspace, {}, "test")
+                }
+            }
+        }
+
+        for (destination in listOf(DesktopDestination.CALCULATOR, DesktopDestination.INVOICES)) {
+            compose.onNodeWithTag("nav-${destination.name}").performClick()
+            field("license-code-input").performTextReplacement("GOLD-TEST")
+            compose.onNodeWithText("راهنمای خرید لایسنس").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("license-activation-dialog").assertIsDisplayed()
+            field("license-code-input").assertTextContains("GOLD-TEST")
+            compose.onNodeWithTag("submit-license-code").assertHasClickAction()
+            compose.onNodeWithText("انصراف").performClick()
+        }
+
+        compose.runOnIdle {
+            assertEquals(List(2) { "https://qirato.ir/#activation-guide" }, openedUrls)
+            assertEquals(DesktopDestination.DASHBOARD, workspace.state.value.destination)
+        }
+    }
 
     @Test fun navigationRetainsCalculatorAndUnsavedSettings() {
         render()

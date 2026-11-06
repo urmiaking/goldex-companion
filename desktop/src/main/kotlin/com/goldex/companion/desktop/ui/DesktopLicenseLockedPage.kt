@@ -6,14 +6,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -21,6 +28,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.goldex.companion.desktop.ui.controls.DesktopActionButton
 import com.goldex.companion.ui.theme.LocalGoldExColors
+
+private const val LICENSE_PURCHASE_GUIDE_URL = "https://qirato.ir/#activation-guide"
+
+@Composable
+internal fun DesktopLicensePurchaseGuideButton(
+    modifier: Modifier = Modifier,
+    uriHandler: UriHandler = LocalUriHandler.current
+) {
+    var browserError by remember { mutableStateOf(false) }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        DesktopActionButton(
+            text = "راهنمای خرید لایسنس",
+            icon = Icons.AutoMirrored.Outlined.OpenInNew,
+            onClick = {
+                browserError = runCatching { uriHandler.openUri(LICENSE_PURCHASE_GUIDE_URL) }.isFailure
+            },
+            isSecondary = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (browserError) {
+            Text(
+                "مرورگر باز نشد. راهنما در qirato.ir در دسترس است.",
+                fontSize = 12.sp,
+                color = LocalGoldExColors.current.errorRed
+            )
+        }
+    }
+}
 
 @Composable
 fun DesktopLicenseLockedPage(
@@ -91,16 +126,16 @@ fun DesktopLicenseLockedPage(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Primary CTA Button using Windows Design System (12dp, 14sp, required 20dp icon)
-                DesktopActionButton(
-                    text = "فعال‌سازی اشتراک قیراط",
-                    icon = Icons.Outlined.Verified,
-                    onClick = onActivate,
-                    isSecondary = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("desktop-locked-activate-btn")
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DesktopActionButton(
+                        text = "فعال‌سازی اشتراک قیراط",
+                        icon = Icons.Outlined.Verified,
+                        onClick = onActivate,
+                        isSecondary = false,
+                        modifier = Modifier.fillMaxWidth().testTag("desktop-locked-activate-btn")
+                    )
+                    DesktopLicensePurchaseGuideButton(Modifier.fillMaxWidth())
+                }
 
                 // Privacy / data safety disclaimer
                 Text(
