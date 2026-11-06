@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -796,6 +797,7 @@ internal fun DesktopLicenseDialog(
     onActivate: (String) -> Unit
 ) {
     val colors = LocalGoldExColors.current
+    val uriHandler = LocalUriHandler.current
     var code by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -819,6 +821,7 @@ internal fun DesktopLicenseDialog(
                     adornment = Icons.Outlined.VerifiedUser,
                     error = error
                 )
+                DesktopLicensePurchaseGuideButton(Modifier.fillMaxWidth(), uriHandler = uriHandler)
             }
         },
         confirmButton = {
